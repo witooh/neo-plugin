@@ -1,0 +1,19 @@
+{
+  "name": "neo-team-claude",
+  "description": "Orchestrate a specialized software development agent team for Claude Code: BA, Architect, QA, Developer, Code Reviewer, Security, and System Analyzer — with built-in workflows for New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, and Review Loop.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Witoo Harianto",
+    "email": "witoo@plimble.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "neo-team",
+    "orchestrator",
+    "multi-agent",
+    "workflow",
+    "software-development",
+    "tdd",
+    "code-review"
+  ]
+}

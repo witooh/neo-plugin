@@ -1,0 +1,12 @@
+.sisyphus
+node_modules
+.venv
+__pycache__
+*.log
+.DS_Store
+.vscode
+.ruff_cache
+.claude/skills/
+evals/
+.claude/
+*-workspace/

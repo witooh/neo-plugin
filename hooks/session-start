@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# SessionStart hook for neo-team-claude plugin.
+# Injects a short reminder so Claude proactively invokes the neo-team-claude
+# skill whenever a user request involves multiple software-development concerns.
+
+set -euo pipefail
+
+# Escape a string for safe embedding inside a JSON string literal.
+# Uses bash parameter substitution for speed (single C-level pass per rule).
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+session_context="<EXTREMELY_IMPORTANT>
+You have the neo-team-claude plugin installed.
+
+Invoke the \`neo-team-claude\` skill (via the Skill tool) whenever the user's request involves more than one software-development concern — for example:
+- Adding or changing a feature (BA + Architect + Developer + QA + Code Reviewer + Security)
+- Diagnosing a bug across multiple files or environments
+- Reviewing a PR/MR beyond a trivial one-line change
+- Refactoring that crosses layer or module boundaries
+- Any work that would benefit from multiple specialist perspectives rather than a single implementation pass
+
+The skill is an ORCHESTRATOR. Do not implement multi-concern software work yourself — classify the task, select the matching workflow, and delegate each step via the \`Agent\` tool following the skill's Delegation Protocol.
+
+Users can also launch the team explicitly with the \`/neo\` slash command.
+
+Single-file fixes, quick questions, and pure research tasks do NOT need this skill — answer directly.
+</EXTREMELY_IMPORTANT>"
+
+context_escaped=$(escape_for_json "$session_context")
+
+# Emit only the shape the current platform consumes.
+# - Cursor:   additional_context (top-level, snake_case)
+# - Claude Code: hookSpecificOutput.additionalContext (nested)
+# - Copilot CLI / SDK standard: additionalContext (top-level, camelCase)
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$context_escaped"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context_escaped"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$context_escaped"
+fi
+
+exit 0

@@ -1,0 +1,20 @@
+{
+  "name": "neo-team-claude-dev",
+  "description": "Development marketplace for the neo-team-claude plugin",
+  "owner": {
+    "name": "Witoo Harianto",
+    "email": "witoo@plimble.com"
+  },
+  "plugins": [
+    {
+      "name": "neo-team-claude",
+      "description": "Orchestrate a specialized software development agent team for Claude Code: BA, Architect, QA, Developer, Code Reviewer, Security, and System Analyzer — with built-in workflows for New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, and Review Loop.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Witoo Harianto",
+        "email": "witoo@plimble.com"
+      }
+    }
+  ]
+}
