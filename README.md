@@ -1,47 +1,47 @@
-# neo-team-claude
+# neo-dev-toolkit
 
-Orchestrate a specialized software development agent team inside Claude Code. The plugin ships one skill (`neo-team-claude`), one slash command (`/neo`), and a SessionStart hook that reminds Claude to invoke the orchestrator whenever a task has more than one concern.
+Opinionated Claude Code plugin that bundles six composable skills for end-to-end software development — from idea to merged MR.
 
-## What it does
+## What's inside
 
-`neo-team-claude` turns Claude Code into an **Orchestrator** that never implements code itself. Instead it:
+| Skill | Purpose | Triggers on |
+|-------|---------|-------------|
+| **`neo-team`** | Orchestrate a specialist agent team (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) across preset workflows (New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, Review Loop). | Any multi-concern dev request, or explicit `/neo` |
+| **`brainstorm`** | Turn vague requests into actionable outputs via adaptive guided questioning. Prompt / Explore / Focused modes. | "brainstorm", "ช่วยคิด", "I have an idea", "let's explore" |
+| **`improve`** | Iteratively refine any output (code, prose, data, config) until measurable criteria are met. | "improve this", "make it better", "ปรับปรุง", "iterate" |
+| **`api-doc-gen`** | Scan handler/router source to produce structured Markdown API docs in `docs/api/`, or validate existing docs against the code. | "gen api doc", "สร้าง api doc", "api doc outdated" |
+| **`confluence-api-doc`** | Sync the multi-file `docs/api/` structure to Confluence pages via `acli` + REST. | "sync api doc", "push doc to confluence" |
+| **`gitlab`** | Drive GitLab via the `glab` CLI — create, update, read, review, fix, CI-fix, and feedback workflows for MRs. | Any MR URL, "สร้าง MR", "review MR", "fix CI" |
 
-1. Reads project context (`CLAUDE.md`, `AGENTS.md`, `docs/design/INDEX.md`)
-2. Classifies the user's request into a workflow (New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, Review Loop)
-3. Delegates each pipeline step to a specialist agent via the `Agent` tool:
-   - **Business Analyst** — requirements, acceptance criteria, edge cases
-   - **Architect** — system design, API contracts, ADRs
-   - **Developer** — implementation, unit tests
-   - **QA** — test case docs, E2E test code, execution reports
-   - **Code Reviewer** — convention compliance (read-only)
-   - **Security** — security review, secrets detection
-   - **System Analyzer** — diagnose issues across envs (read-only)
-4. Merges outputs, runs the Review Loop, syncs documentation, and returns a single assembled summary
+## Companion pieces
+
+- `/neo <task>` — slash command that explicitly invokes the `neo-team` orchestrator
+- `SessionStart` hook — injects a short reminder on `startup | clear | compact` so Claude proactively picks the right skill
 
 ## Installation
 
-### Local (development)
+**Local (development):**
 
 ```bash
 # From inside Claude Code
 /plugin marketplace add /Users/witoo.h/dev/witooh/neo-plugin
-/plugin install neo-team-claude@neo-team-claude-dev
+/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
 ```
 
-### After publishing to a git remote
+**After publishing to a git remote:**
 
 ```bash
 /plugin marketplace add <your-org>/<your-repo>
-/plugin install neo-team-claude@neo-team-claude-dev
+/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
 ```
 
 ## Usage
 
-Three ways to trigger the team:
+Three ways to kick off work:
 
-1. **Automatic** — the SessionStart hook tells Claude to invoke the skill whenever a request has multiple concerns
-2. **Slash command** — `/neo <task description>` explicitly starts the orchestrator
-3. **Ask directly** — "ใช้ neo-team จัดการเคสนี้ให้หน่อย" / "orchestrate the team to add this endpoint"
+1. **Automatic** — the SessionStart hook tells Claude which skill to reach for; just describe the task naturally
+2. **Slash command** — `/neo <task description>` runs the full orchestrator
+3. **Direct ask** — "ช่วย review MR นี้...", "gen api doc ให้หน่อย", "brainstorm วิธีออกแบบ..."
 
 ## Structure
 
@@ -51,15 +51,18 @@ Three ways to trigger the team:
 │   ├── plugin.json          # plugin manifest
 │   └── marketplace.json     # dev marketplace for local install
 ├── commands/
-│   └── neo.md               # /neo slash command
+│   └── neo.md               # /neo slash command → invokes neo-team skill
 ├── hooks/
 │   ├── hooks.json           # SessionStart registration
-│   ├── session-start        # bash script that injects context
+│   ├── session-start        # bash script that injects skill overview
 │   └── run-hook.cmd         # cross-platform polyglot wrapper
 ├── skills/
-│   └── neo-team-claude/
-│       ├── SKILL.md         # orchestration rules
-│       └── references/      # specialist prompts + workflow templates
+│   ├── neo-team/            # orchestrator (BA → Architect → Dev → QA → Review)
+│   ├── brainstorm/          # guided ideation
+│   ├── improve/             # iterative refinement
+│   ├── api-doc-gen/         # generate API docs from code
+│   ├── confluence-api-doc/  # sync docs/api/ to Confluence
+│   └── gitlab/              # glab-backed MR workflows
 ├── LICENSE
 └── README.md
 ```

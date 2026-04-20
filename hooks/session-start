@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# SessionStart hook for neo-team-claude plugin.
-# Injects a short reminder so Claude proactively invokes the neo-team-claude
-# skill whenever a user request involves multiple software-development concerns.
+# SessionStart hook for neo-dev-toolkit plugin.
+# Injects a reminder so Claude proactively invokes the bundled skills
+# (neo-team, brainstorm, improve, api-doc-gen, confluence-api-doc, gitlab)
+# whenever a user request matches their triggering contexts.
 
 set -euo pipefail
 
@@ -18,20 +19,21 @@ escape_for_json() {
 }
 
 session_context="<EXTREMELY_IMPORTANT>
-You have the neo-team-claude plugin installed.
+You have the neo-dev-toolkit plugin installed. It bundles six skills — invoke them via the Skill tool whenever the user's request matches.
 
-Invoke the \`neo-team-claude\` skill (via the Skill tool) whenever the user's request involves more than one software-development concern — for example:
-- Adding or changing a feature (BA + Architect + Developer + QA + Code Reviewer + Security)
-- Diagnosing a bug across multiple files or environments
-- Reviewing a PR/MR beyond a trivial one-line change
-- Refactoring that crosses layer or module boundaries
-- Any work that would benefit from multiple specialist perspectives rather than a single implementation pass
+1. **\`neo-team\`** — Orchestrate a specialist agent team (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer). Use whenever a request has more than one software-development concern: new feature, multi-file bug fix, non-trivial PR/MR review, cross-module refactor. The skill is an ORCHESTRATOR — do not implement multi-concern work yourself. Delegate via the \`Agent\` tool following the skill's Delegation Protocol. Users can also launch it with \`/neo\`.
 
-The skill is an ORCHESTRATOR. Do not implement multi-concern software work yourself — classify the task, select the matching workflow, and delegate each step via the \`Agent\` tool following the skill's Delegation Protocol.
+2. **\`brainstorm\`** — ALWAYS use before answering brainstorming, ideation, prompt-crafting, or open-ended exploration (\"brainstorm\", \"ช่วยคิด\", \"I have an idea\", \"improve this prompt\", \"let's explore\", \"I want to build\"). Transforms vague requests into actionable outputs via adaptive guided questioning.
 
-Users can also launch the team explicitly with the \`/neo\` slash command.
+3. **\`improve\`** — Iteratively improve any output (code, prose, data, config) until measurable criteria are met. Triggers: \"improve this\", \"make it better\", \"iterate\", \"refine\", \"ปรับปรุง\", \"ทำให้ดีขึ้น\".
 
-Single-file fixes, quick questions, and pure research tasks do NOT need this skill — answer directly.
+4. **\`api-doc-gen\`** — Generate or validate API docs from source. Triggers: \"gen api doc\", \"สร้าง api doc\", \"อัปเดต api doc\", \"document these endpoints\", \"api doc outdated\".
+
+5. **\`confluence-api-doc\`** — Sync docs/api/ to Confluence pages via acli + REST. Triggers: \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\".
+
+6. **\`gitlab\`** — Interact with GitLab via the \`glab\` CLI (create / update / read / review / fix / CI fix / feedback for MRs). Triggers: any GitLab MR URL, \"สร้าง MR\", \"review MR\", \"fix CI\", \"แก้ pipeline\", \"แก้ตาม comment\".
+
+Single-file fixes, quick questions, and pure research tasks do NOT need these skills — answer directly.
 </EXTREMELY_IMPORTANT>"
 
 context_escaped=$(escape_for_json "$session_context")

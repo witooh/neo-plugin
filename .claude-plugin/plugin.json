@@ -1,6 +1,6 @@
 {
-  "name": "neo-team-claude",
-  "description": "Orchestrate a specialized software development agent team for Claude Code: BA, Architect, QA, Developer, Code Reviewer, Security, and System Analyzer — with built-in workflows for New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, and Review Loop.",
+  "name": "neo-dev-toolkit",
+  "description": "Opinionated Claude Code toolkit for software development: orchestrate a specialist agent team (neo-team), brainstorm ideas, iteratively improve outputs, generate + sync API docs to Confluence, and drive GitLab MR workflows via glab.",
   "version": "0.1.0",
   "author": {
     "name": "Witoo Harianto",
@@ -11,9 +11,11 @@
     "neo-team",
     "orchestrator",
     "multi-agent",
-    "workflow",
-    "software-development",
-    "tdd",
-    "code-review"
+    "brainstorm",
+    "api-doc",
+    "confluence",
+    "gitlab",
+    "glab",
+    "workflow"
   ]
 }

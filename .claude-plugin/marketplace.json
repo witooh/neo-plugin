@@ -1,14 +1,14 @@
 {
-  "name": "neo-team-claude-dev",
-  "description": "Development marketplace for the neo-team-claude plugin",
+  "name": "neo-dev-toolkit-dev",
+  "description": "Development marketplace for the neo-dev-toolkit plugin",
   "owner": {
     "name": "Witoo Harianto",
     "email": "witoo@plimble.com"
   },
   "plugins": [
     {
-      "name": "neo-team-claude",
-      "description": "Orchestrate a specialized software development agent team for Claude Code: BA, Architect, QA, Developer, Code Reviewer, Security, and System Analyzer — with built-in workflows for New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, and Review Loop.",
+      "name": "neo-dev-toolkit",
+      "description": "Opinionated Claude Code toolkit for software development: orchestrate a specialist agent team (neo-team), brainstorm ideas, iteratively improve outputs, generate + sync API docs to Confluence, and drive GitLab MR workflows via glab.",
       "version": "0.1.0",
       "source": "./",
       "author": {
