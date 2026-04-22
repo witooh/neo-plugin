@@ -1,6 +1,6 @@
 # neo-dev-toolkit
 
-Opinionated Claude Code plugin that bundles six composable skills for end-to-end software development — from idea to merged MR.
+Opinionated Claude Code plugin that bundles seven composable skills for end-to-end software development — from idea to merged MR.
 
 ## What's inside
 
@@ -12,6 +12,7 @@ Opinionated Claude Code plugin that bundles six composable skills for end-to-end
 | **`api-doc-gen`** | Scan handler/router source to produce structured Markdown API docs in `docs/api/`, or validate existing docs against the code. | "gen api doc", "สร้าง api doc", "api doc outdated" |
 | **`confluence-api-doc`** | Sync the multi-file `docs/api/` structure to Confluence pages via `acli` + REST. | "sync api doc", "push doc to confluence" |
 | **`gitlab`** | Drive GitLab via the `glab` CLI — create, update, read, review, fix, CI-fix, and feedback workflows for MRs. | Any MR URL, "สร้าง MR", "review MR", "fix CI" |
+| **`commit`** | Smart git commit workflow — protected-branch guard, auto `feature/*` branching, rebase onto base, secret-aware staging, conventional commit messages, optional push. | "commit", "/commit", "commit and push", "ช่วย commit", "เสร็จแล้ว" |
 
 ## Companion pieces
 
@@ -62,7 +63,8 @@ Three ways to kick off work:
 │   ├── improve/             # iterative refinement
 │   ├── api-doc-gen/         # generate API docs from code
 │   ├── confluence-api-doc/  # sync docs/api/ to Confluence
-│   └── gitlab/              # glab-backed MR workflows
+│   ├── gitlab/              # glab-backed MR workflows
+│   └── commit/              # smart git commit workflow
 ├── LICENSE
 └── README.md
 ```

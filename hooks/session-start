@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook for neo-dev-toolkit plugin.
 # Injects a reminder so Claude proactively invokes the bundled skills
-# (neo-team, brainstorm, improve, api-doc-gen, confluence-api-doc, gitlab)
+# (neo-team, brainstorm, improve, api-doc-gen, confluence-api-doc, gitlab, commit)
 # whenever a user request matches their triggering contexts.
 
 set -euo pipefail
@@ -19,7 +19,7 @@ escape_for_json() {
 }
 
 session_context="<EXTREMELY_IMPORTANT>
-You have the neo-dev-toolkit plugin installed. It bundles six skills — invoke them via the Skill tool whenever the user's request matches.
+You have the neo-dev-toolkit plugin installed. It bundles seven skills — invoke them via the Skill tool whenever the user's request matches.
 
 1. **\`neo-team\`** — Orchestrate a specialist agent team (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer). Use whenever a request has more than one software-development concern: new feature, multi-file bug fix, non-trivial PR/MR review, cross-module refactor. The skill is an ORCHESTRATOR — do not implement multi-concern work yourself. Delegate via the \`Agent\` tool following the skill's Delegation Protocol. Users can also launch it with \`/neo\`.
 
@@ -32,6 +32,8 @@ You have the neo-dev-toolkit plugin installed. It bundles six skills — invoke 
 5. **\`confluence-api-doc\`** — Sync docs/api/ to Confluence pages via acli + REST. Triggers: \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\".
 
 6. **\`gitlab\`** — Interact with GitLab via the \`glab\` CLI (create / update / read / review / fix / CI fix / feedback for MRs). Triggers: any GitLab MR URL, \"สร้าง MR\", \"review MR\", \"fix CI\", \"แก้ pipeline\", \"แก้ตาม comment\".
+
+7. **\`commit\`** — Smart git commit workflow with protected-branch guard, rebase onto base, secret-aware staging, and conventional commit messages. ALWAYS use this skill whenever the user asks to commit — do not run \`git commit\` directly. Triggers: \"commit\", \"/commit\", \"commit changes\", \"save my work\", \"push this\", \"commit and push\", \"commit ให้หน่อย\", \"ช่วย commit\", \"เสร็จแล้ว\", \"save and push\".
 
 Single-file fixes, quick questions, and pure research tasks do NOT need these skills — answer directly.
 </EXTREMELY_IMPORTANT>"
