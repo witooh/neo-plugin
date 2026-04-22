@@ -36,6 +36,25 @@ Opinionated Claude Code plugin that bundles seven composable skills for end-to-e
 /plugin install neo-dev-toolkit@neo-dev-toolkit-dev
 ```
 
+**Update (local marketplace):**
+
+Local-path marketplaces have auto-update off, so pulling new changes in the repo is not enough — you must refresh the marketplace listing and reinstall:
+
+```bash
+# 1. Make sure your repo is on the commit you want to ship
+cd /path/to/neo-plugin
+git status   # should be clean
+
+# 2. Refresh the marketplace listing
+/plugin marketplace update neo-dev-toolkit-dev
+
+# 3. Reinstall the plugin so the new version is loaded
+/plugin uninstall neo-dev-toolkit@neo-dev-toolkit-dev
+/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
+```
+
+Open a fresh Claude Code session to confirm the updated skills are active.
+
 ## Usage
 
 Three ways to kick off work:
