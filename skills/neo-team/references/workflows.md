@@ -19,11 +19,11 @@ Complex task (Brainstorm + BA + Architect + Plan):
       a. Orchestrator asks user for clarification (relay BA's questions)
       b. Orchestrator re-delegates to BA with user's answers
       c. Repeat until BA has no Open Questions
-   Output: AC document written to `docs/design/{feature}/acceptance-criteria.md` (no Open Questions remaining)
+   Output: AC document written to `docs/design/{usecase}/acceptance-criteria.md` (no Open Questions remaining)
    Verification: BA re-reads generated document, verifies against template + quality gates, fixes issues (mandatory before handoff)
 3. architect           → generate system design document (system-design.md template)
    Context: BA's AC document path (hard prerequisite — must read AC before designing)
-   Output: API contracts written to `docs/design/{feature}/api-contracts.md`, shared design to `docs/design/system-design/`
+   Output: API contracts written to `docs/design/{usecase}/api-contracts.md`, shared design to `docs/design/system-design/`
    Verification: Architect re-reads generated document, verifies structure + AC traceability + consistency with AC, fixes issues (mandatory before handoff)
 4. /plan               → synthesize Architect's design into an implementation plan, present to user for confirmation
    Include: component breakdown, file changes, API contracts, implementation order
@@ -47,11 +47,11 @@ Simple task (BA first → Architect):
       a. Orchestrator asks user for clarification (relay BA's questions)
       b. Orchestrator re-delegates to BA with user's answers
       c. Repeat until BA has no Open Questions
-   Output: AC document written to `docs/design/{feature}/acceptance-criteria.md` (no Open Questions remaining)
+   Output: AC document written to `docs/design/{usecase}/acceptance-criteria.md` (no Open Questions remaining)
    Verification: BA re-reads generated document, verifies against template + quality gates, fixes issues (mandatory before handoff)
 2. architect           → generate system design document (system-design.md template), ensuring design covers every AC-ID
    Context: BA's AC document path (hard prerequisite — must read AC before designing)
-   Output: API contracts written to `docs/design/{feature}/api-contracts.md`, shared design to `docs/design/system-design/`
+   Output: API contracts written to `docs/design/{usecase}/api-contracts.md`, shared design to `docs/design/system-design/`
    Verification: Architect re-reads generated document, verifies structure + AC traceability + consistency with AC, fixes issues (mandatory before handoff)
 3. TEST CASE REVIEW LOOP → QA generates test cases, BA reviews for AC coverage (see Test Case Review Loop section)
    Context to QA: Architect's API contracts + BA's AC document (BOTH required — hard gate)
@@ -85,7 +85,7 @@ Complex bug (multi-file, ambiguous root cause, multiple fix strategies):
 6. [If fix changes API endpoints: delegate to `api-doc-gen` skill to update docs/api-doc.md]
 7. DOCUMENT SYNC PHASE → sync all docs with final code (see Document Sync Phase section)
    Input: Developer's final changed files + INDEX.md (if exists) + all doc paths from prior steps
-   Note: Bug Fix may not have BA/Architect docs — only sync agents whose docs exist for the affected feature
+   Note: Bug Fix may not have BA/Architect docs — only sync agents whose docs exist for the affected usecase
 
 Simple bug (single file, obvious root cause, straightforward fix):
 1. system-analyzer     → diagnose root cause
@@ -99,7 +99,7 @@ Simple bug (single file, obvious root cause, straightforward fix):
 5. [If fix changes API endpoints: delegate to `api-doc-gen` skill to update docs/api-doc.md]
 6. DOCUMENT SYNC PHASE → sync all docs with final code (see Document Sync Phase section)
    Input: Developer's final changed files + INDEX.md (if exists) + all doc paths from prior steps
-   Note: Bug Fix may not have BA/Architect docs — only sync agents whose docs exist for the affected feature
+   Note: Bug Fix may not have BA/Architect docs — only sync agents whose docs exist for the affected usecase
 ```
 
 ## PR Review
@@ -168,7 +168,7 @@ Simple (single module, extract function, simplify logic):
 2. architect           → validate technical feasibility
    Context: BA's structured requirements (fully clarified)
    Verification: Architect re-reads generated document, verifies structure + AC traceability + consistency with AC, fixes issues (mandatory before handoff)
-3. Orchestrator updates docs/design/INDEX.md (create if not exists) with the new/updated feature entry
+3. Orchestrator updates docs/design/INDEX.md (create if not exists) with the new/updated usecase entry
 ```
 
 ## Test Case Review Loop
@@ -283,34 +283,34 @@ After the Review Loop passes in any code-changing workflow, this phase ensures a
 ```
 Document Sync Phase:
 
-1. Orchestrator reads docs/design/INDEX.md (if exists) to identify potentially affected features
+1. Orchestrator reads docs/design/INDEX.md (if exists) to identify potentially affected usecases
    → Also gathers: Developer's final changed files, all doc paths from prior pipeline steps
-   → Determines which document-owning agents have existing docs for the affected feature(s)
+   → Determines which document-owning agents have existing docs for the affected usecase(s)
 
 2. business-analyst (doc sync) → review AC document against final code
    Context: AC document path + Developer's changed files summary
    Mode: Doc Review & Update (see business-analyst.md reference)
    Output: "updated" (with path to updated doc) OR "no change needed" (with justification)
    IF updated → Document Verification & Fix applies (same as new document)
-   IF no AC doc exists for this feature → skip
+   IF no AC doc exists for this usecase → skip
 
-3. architect (doc sync) → review both shared System Design AND per-feature API Contracts against final code + latest AC
-   Context: shared design paths (`docs/design/system-design/`) + feature API contracts (`docs/design/{feature}/api-contracts.md`) + Developer's changed files summary + BA's latest AC (from step 2)
+3. architect (doc sync) → review both shared System Design AND per-usecase API Contracts against final code + latest AC
+   Context: shared design paths (`docs/design/system-design/`) + usecase API contracts (`docs/design/{usecase}/api-contracts.md`) + Developer's changed files summary + BA's latest AC (from step 2)
    Mode: Doc Review & Update (see architect.md reference)
    Output: per-document assessment — "updated" or "no change needed" for each (shared design + API contracts separately)
    IF updated → Document Verification & Fix applies (same as new document)
-   IF no design docs exist for this feature → skip
+   IF no design docs exist for this usecase → skip
 
 4. qa (doc sync) → review Test Cases against final code + latest AC + latest Design
-   Context: test case doc path (`docs/design/{feature}/test-cases.md`) + Developer's changed files summary + BA's latest AC + Architect's latest API contracts (`docs/design/{feature}/api-contracts.md`)
+   Context: test case doc path (`docs/design/{usecase}/test-cases.md`) + Developer's changed files summary + BA's latest AC + Architect's latest API contracts (`docs/design/{usecase}/api-contracts.md`)
    Mode: Doc Review & Update (see qa.md reference)
    Output: "updated" (with path to updated doc) OR "no change needed" (with justification)
    IF updated → Verification applies (TC-IDs sequential, Summary table matches)
-   IF no Test Case doc exists for this feature → skip
+   IF no Test Case doc exists for this usecase → skip
 
 5. Orchestrator updates docs/design/INDEX.md
    → Create INDEX.md if it does not exist
-   → Add or update the feature entry: feature name, description, status, AC-IDs, last updated date
+   → Add or update the usecase entry: usecase name, description, status, AC-IDs, last updated date
    → Follow the INDEX.md format defined in SKILL.md (Document Folder Structure Convention)
 
 6. Orchestrator updates docs/design/VERSION.md
@@ -319,12 +319,18 @@ Document Sync Phase:
    → Prepend a new entry at the top (latest version first) with:
      - Version number + date
      - Task description (what the user asked)
+     - Usecase(s) touched (folder names under docs/design/)
      - List of changed files (collected from BA/Architect/QA sync outputs)
+     - Extension summary — when ACs were appended to an existing usecase, record which AC-IDs were added/modified and what requirement triggered the extension. This preserves historical traceability that would otherwise be lost when appending into an existing folder.
    → Format:
      ## v{X.Y} — {YYYY-MM-DD}
      **Task:** {user's original request}
+     **Usecase touched:** {usecase folder name(s)}
      **Changes:**
      - {file path} — {what changed}
+     **Extension summary (if applicable):**
+     - {usecase}: added AC-XXX..AC-YYY; modified AC-ZZZ
+     - Triggering requirement: {short name or reference}
 ```
 
 **Trust agent judgment:** If an agent reports "no change needed," accept it and move to the next agent. No cross-verification is required.

@@ -49,9 +49,9 @@ For every workflow that includes code changes:
   --- Document Sync Gate ---
   ✅ Document Sync Phase invoked? (MANDATORY for all code-changing workflows after Review Loop passes)
   ✅ BA confirmed AC doc is in sync? (output: "updated" or "no change needed" — skip if no AC doc exists)
-  ✅ Architect confirmed both shared System Design and per-feature API Contracts are in sync? (output per document: "updated" or "no change needed" — skip if no design docs exist)
+  ✅ Architect confirmed both shared System Design and per-usecase API Contracts are in sync? (output per document: "updated" or "no change needed" — skip if no design docs exist)
   ✅ QA confirmed Test Cases are in sync? (output: "updated" or "no change needed" — skip if no test case doc exists)
-  ✅ INDEX.md updated or created? (feature entry with current status and last-updated date)
+  ✅ INDEX.md updated or created? (usecase entry with current status and last-updated date)
   ✅ VERSION.md updated? (new version entry prepended with task description + changed files list)
   ✅ No unresolved document consistency conflicts? (if any agent flagged a fundamental mismatch → escalated to user)
 

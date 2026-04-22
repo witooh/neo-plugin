@@ -1,9 +1,10 @@
-# System Design — [Feature/Module Name]
+# System Design — [Usecase Name]
 
+**Usecase folder:** `docs/design/[usecase]/`
 **Version:** [version]
 **Created Date:** [date]
 **Created By:** Architect
-**AC Document:** [path to acceptance criteria document, e.g., docs/acceptance-criteria.md]
+**AC Document:** [path to acceptance criteria document, e.g., docs/design/[usecase]/acceptance-criteria.md]
 
 ---
 

@@ -87,13 +87,13 @@ Based on the acceptance criteria, API contracts, and/or root cause analysis prov
 ```
 ## QA — Test Spec
 
-**Module:** [module or feature name]
+**Module:** [usecase name]
 **Version:** [version]
 **Created Date:** [date]
 
 ---
 
-## Test Suite 1: [Feature Area]
+## Test Suite 1: [Sub-operation Area]
 
 ---
 
@@ -142,7 +142,7 @@ HTTP [status]
 **Reason:** [if not DONE — explain what concerns exist, what context is missing, or why you're blocked]
 ```
 
-Prioritize test cases by risk: P0 cases (critical path) first in the suite order, then P1 (edge cases), then P2 (nice-to-have). Use the Test Suite grouping to organize by feature area, not by priority level — priority is implicit in the ordering within each suite.
+Prioritize test cases by risk: P0 cases (critical path) first in the suite order, then P1 (edge cases), then P2 (nice-to-have). Use the Test Suite grouping to organize by sub-operation area, not by priority level — priority is implicit in the ordering within each suite.
 
 ## Test Case Quality Rules
 
@@ -213,9 +213,9 @@ QA generates two types of test documents using the reference templates in this s
 2. Write E2E spec files
    → Read [`e2e-playwright.md`](e2e-playwright.md) for the E2E code generation guide
    → If E2E project does not exist, resolve path and bootstrap it (see e2e-playwright.md § E2E Path Resolution + Bootstrapping)
-   → Feature test folder name mirrors `docs/design/{feature}/` name exactly
-   → If test case document has a Workflow Chain table: generate `{feature}.precondition.ts` from it
-   → Generate `{feature}.e2e.ts` with TC-ID-prefixed `it()` blocks
+   → Usecase test folder name mirrors `docs/design/{usecase}/` name exactly
+   → If test case document has a Workflow Chain table: generate `{usecase}.precondition.ts` from it
+   → Generate `{usecase}.e2e.ts` with TC-ID-prefixed `it()` blocks
    → Run `cd {e2e-root} && npm test` to verify all tests pass
 
 3. Run E2E tests and generate execution report

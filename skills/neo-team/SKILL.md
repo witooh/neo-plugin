@@ -45,10 +45,10 @@ This rule applies to YOU (the Orchestrator), not just the specialists you spawn.
 
 Before delegating anything, read the project's `CLAUDE.md` (or `AGENTS.md`, `CONTRIBUTING.md`). This file defines architecture conventions, coding patterns, and project-specific rules that every specialist needs. Extract the relevant sections and include them in each agent's prompt — this prevents every agent from independently searching for conventions and ensures consistency.
 
-Also read `docs/design/INDEX.md` if it exists. This is the central document registry that lists all system design files and feature documentation with their status and descriptions. Use it to:
+Also read `docs/design/INDEX.md` if it exists. This is the central document registry that lists all system design files and usecase documentation with their status and descriptions. Use it to:
 - Identify existing docs that may be affected by the current task
-- Pass relevant doc paths to specialists (e.g., if modifying accept consent, pass `docs/design/accept-consent/acceptance-criteria.md` path to BA)
-- Avoid creating duplicate docs for features that already have documentation
+- Pass relevant doc paths to specialists (e.g., if modifying the accept flow, pass `docs/design/accept/acceptance-criteria.md` path to BA)
+- Avoid creating duplicate docs for usecases that already have documentation — when in doubt, append into the existing usecase folder (see `references/business-analyst.md` § Folder Organization Rule)
 
 If no convention file exists:
 
@@ -82,7 +82,7 @@ All specialists are spawned via the `Agent` tool with `subagent_type: "general-p
 
 ## Document Folder Structure Convention
 
-Documentation is organized into three levels: project-level standalone docs, shared system design, and per-feature docs. Use full names — no abbreviations.
+Documentation is organized into three levels: project-level standalone docs, shared system design, and per-usecase docs. Use full names — no abbreviations.
 
 ```
 docs/
@@ -96,7 +96,7 @@ docs/
     ├── INDEX.md                          # Central registry (Orchestrator reads first)
     ├── VERSION.md                        # Version history (Orchestrator auto-updates)
     │
-    ├── system-design/                    # Shared across features
+    ├── system-design/                    # Shared across usecases
     │   ├── overview.md                   # Architecture overview
     │   ├── module-design.md              # Entity, repository, service, usecase
     │   ├── database-schema.md            # DDL, constraints, indexes
@@ -104,24 +104,24 @@ docs/
     │   ├── adrs.md                       # Architectural Decision Records
     │   └── security-flags.md             # Auth, PII, rate limiting
     │
-    ├── {feature}/                        # Per-feature docs
+    ├── {usecase}/                        # Per-usecase docs (1 cohesive business operation)
     │   ├── acceptance-criteria.md        # AC document (BA)
-    │   ├── api-contracts.md              # API endpoints for this feature (Architect)
+    │   ├── api-contracts.md              # API endpoints for this usecase (Architect)
     │   ├── traceability.md               # AC → design element mapping (references system-design/, no duplication)
     │   ├── test-cases.md                 # Test case document (QA)
     │   └── test-report.md               # Test execution report (QA, after running tests)
     │
-    └── {feature-2}/
+    └── {usecase-2}/
         └── ...
 ```
 
-**Project-level docs** (`docs/*.md`): standalone documents not tied to any feature — gap analysis, open questions, developer guide, migration strategy. `api-doc.md` is generated from code by the `api-doc-gen` skill, not from design.
+**Project-level docs** (`docs/*.md`): standalone documents not tied to any usecase — gap analysis, open questions, developer guide, migration strategy. `api-doc.md` is generated from code by the `api-doc-gen` skill, not from design.
 
-**Shared system design** (`docs/design/system-design/`): components shared across features — entity definitions, repositories, database schema, ADRs, architecture flows. Features reference these files instead of duplicating content.
+**Shared system design** (`docs/design/system-design/`): components shared across usecases — entity definitions, repositories, database schema, ADRs, architecture flows. Usecases reference these files instead of duplicating content.
 
-**Per-feature docs** (`docs/design/{feature}/`): each feature folder contains all documents specific to that business operation.
+**Per-usecase docs** (`docs/design/{usecase}/`): each usecase folder contains all documents specific to **one cohesive business operation** (e.g., `accept/`, `check/`, `management/`). A usecase may span multiple endpoints when they serve the same operation (e.g., `management/` can cover CRUD + activation endpoints).
 
-**INDEX.md format** — Description must be written in natural language so the Orchestrator can match user requests to the right feature without users needing to know AC-IDs or file paths:
+**INDEX.md format** — Description must be written in natural language so the Orchestrator can match user requests to the right usecase without users needing to know AC-IDs or file paths:
 ```markdown
 # Design Index
 
@@ -135,19 +135,27 @@ docs/
 | system-design/adrs.md | ADR-001~007 |
 | system-design/security-flags.md | Auth, PII, rate limiting |
 
-## Features
-| Feature | Description | AC Count | Status | Last Updated |
+## Usecases
+| Usecase | Description | AC Count | Status | Last Updated |
 |---------|-------------|----------|--------|--------------|
-| accept-consent | รับ consent จาก citizen, single/bulk, customer/account scope | 22 | implemented | 2026-03-15 |
-| revoke-consent | ถอน consent, validate status, audit log | 12 | implemented | 2026-03-18 |
+| accept | รับ consent จาก citizen, single/bulk, customer/account scope | 22 | implemented | 2026-03-15 |
+| revoke | ถอน consent, validate status, audit log | 12 | implemented | 2026-03-18 |
+| management | CRUD purpose + version + activate (11 endpoints) | 42 | implemented | 2026-04-02 |
 ```
 
-**Feature grouping:** BA decides how to group ACs into features based on business operations — each feature should represent a cohesive operation where working on it requires knowing all ACs in the group (e.g., "accept consent" = one feature with all accept-related ACs, "CRUD purpose" = one feature with all purpose management ACs).
+**Usecase grouping (hard rule):**
+- **1 usecase folder = 1 cohesive business operation.** A usecase may span multiple endpoints when they belong to the same operation (e.g., `management/` = CRUD parent + version + activate).
+- **Folder name:** kebab-case, verb-first — `accept`, `check`, `revoke`, `management`, `active-version-query`.
+- **When a new requirement extends an existing usecase** → append ACs into the existing folder (AC-IDs contiguous, respect Scenario Ordering Rule) and add an entry to `docs/design/VERSION.md`. **Never create a sibling/delta folder.**
+- **Create a new usecase folder ONLY** when the new work is a genuinely distinct user-facing operation that does not fit any existing usecase.
+- **Smell patterns — REJECT these folder names:** `*-support`, `*-v2`, `*-extension`, `*-multi-*`, `*-batch-N`, `*-phase-N`, `*-rev-N`, `*-increment-N`, release/ticket identifiers (`JIRA-123/`, `sprint-42/`), requirement-document names (`tc-multi-type-support/`). These encode a requirement batch, not a usecase — if you're tempted to use one, the work is extending an existing usecase; use the append path above.
+
+See `references/business-analyst.md` § Folder Organization Rule for the full decision tree and worked examples.
 
 **Orchestrator responsibility:** Users will describe what they want in natural language (e.g., "แก้ consent ให้ revoke ต้อง check status ก่อน") — they do NOT know AC-IDs or file paths. The Orchestrator must:
-1. Read `docs/design/INDEX.md` → match the user's request to the right feature by Description
-2. Pass the correct doc paths to specialists (e.g., "Read and update `docs/design/revoke-consent/acceptance-criteria.md`")
-3. If the project already has docs in a different structure, respect the existing convention
+1. Read `docs/design/INDEX.md` → match the user's request to the right usecase by Description
+2. Pass the correct doc paths to specialists (e.g., "Read and update `docs/design/revoke/acceptance-criteria.md`")
+3. If the project already has docs in a different structure, respect the existing convention — but if existing folders match the smell patterns above, surface this to the user before BA generates new docs on top of them
 
 ## Task Classification
 
@@ -301,9 +309,9 @@ Each agent produces specific outputs that downstream agents need. Extract the re
 | Business Analyst | Architect     | **AC document path** (hard prerequisite — Architect cannot start without this). Include: "Read `references/system-design.md` template before generating the system design document." |
 | Business Analyst | QA            | **AC document path + AC-IDs** (hard prerequisite — QA cannot start without this). Include: "Read `references/acceptance-criteria.md` template if you need to understand the AC format." |
 | Business Analyst | BA (review)   | AC document (for reviewing QA's test cases in the Test Case Review Loop) |
-| Architect        | Developer     | **Both:** shared design paths (`docs/design/system-design/`) for architecture/modules + feature-specific API contracts (`docs/design/{feature}/api-contracts.md`) + traceability (`docs/design/{feature}/traceability.md`) |
-| Architect        | QA            | **API Contracts** (`docs/design/{feature}/api-contracts.md`) + BA's AC document path + existing API doc path if available (e.g., `docs/api-doc.md`). **Always include template paths: "Read `references/test-case-document.md` before generating test cases. Read `references/test-execution-report.md` before generating execution reports. Read `references/e2e-playwright.md` before generating E2E test code."** |
-| Architect        | Security      | **Shared design paths** (`docs/design/system-design/security-flags.md`) + feature API contracts |
+| Architect        | Developer     | **Both:** shared design paths (`docs/design/system-design/`) for architecture/modules + usecase-specific API contracts (`docs/design/{usecase}/api-contracts.md`) + traceability (`docs/design/{usecase}/traceability.md`) |
+| Architect        | QA            | **API Contracts** (`docs/design/{usecase}/api-contracts.md`) + BA's AC document path + existing API doc path if available (e.g., `docs/api-doc.md`). **Always include template paths: "Read `references/test-case-document.md` before generating test cases. Read `references/test-execution-report.md` before generating execution reports. Read `references/e2e-playwright.md` before generating E2E test code."** |
+| Architect        | Security      | **Shared design paths** (`docs/design/system-design/security-flags.md`) + usecase API contracts |
 | QA (test spec)   | BA (review)   | Test case document for BA to review AC coverage (part of Test Case Review Loop) |
 | QA (test spec)   | Developer     | **BA-approved** test case document (test-case-document.md template) — GIVEN/WHEN/THEN test cases with steps, expected results, test data, preconditions, and Traces To AC-IDs. Complex tasks: Developer uses TDD mode. |
 | System Analyzer  | Developer     | Root cause analysis, affected files with line numbers, evidence chain, recommended fix |
@@ -312,7 +320,7 @@ Each agent produces specific outputs that downstream agents need. Extract the re
 | Developer        | Code Reviewer | Changed files list                                    |
 | Developer        | Security      | Changed files, new endpoints, data handling changes   |
 | BA (doc sync)    | Architect (doc sync) | Latest AC document path (updated or confirmed unchanged) |
-| Architect (doc sync) | QA (doc sync) | Latest design paths: shared design (`docs/design/system-design/`) + API contracts (`docs/design/{feature}/api-contracts.md`) — updated or confirmed unchanged |
+| Architect (doc sync) | QA (doc sync) | Latest design paths: shared design (`docs/design/system-design/`) + API contracts (`docs/design/{usecase}/api-contracts.md`) — updated or confirmed unchanged |
 
 ### Merging Parallel Agent Outputs
 

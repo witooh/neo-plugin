@@ -1,14 +1,20 @@
-# Acceptance Criteria — [Feature/Module Name]
+# Acceptance Criteria — [Usecase Name]
 
+**Usecase folder:** `docs/design/[usecase]/`
 **Version:** [version]
 **Created Date:** [date]
 **Created By:** Business Analyst
+**Version History:** see `docs/design/VERSION.md`
 
 ---
 
-**Feature Scope Rule:** One business workflow = one feature. Only split into multiple features if the requirements describe genuinely independent capabilities with different actors AND different business values. Sub-operations within one workflow (create, approve, reject, cancel, etc.) are scenarios within a single feature.
+**Usecase Scope Rule:** 1 AC document = 1 usecase folder. See `business-analyst.md` § Usecase Scope Rule and § Folder Organization Rule for the full decision tree (when to append vs. when to create a new usecase folder, folder-naming smell patterns).
 
-## Feature 1: [Feature Name]
+If this usecase has **multiple sub-operations** (e.g., `management/` covers CRUD parent + version + activate), group ACs under `## Sub-operation N:` headings below. For simple usecases with a single operation, skip Sub-operation headings and list ACs directly under the Acceptance Criteria section.
+
+## Sub-operation 1: [Sub-operation Name]
+
+_(Optional heading — include only when the usecase has multiple sub-operations. Skip for single-operation usecases.)_
 
 ### User Story
 
@@ -78,22 +84,22 @@ List edge cases in this category order. For each, include the expected behavior.
 
 ### Out of Scope
 
-- [what is explicitly NOT included in this feature]
+- [what is explicitly NOT included in this usecase]
 
 ---
 
-## Feature 2: [Feature Name]
+## Sub-operation 2: [Sub-operation Name]
 
-_(repeat the same structure for each feature)_
+_(Repeat the same structure for each sub-operation. Omit this section entirely when the usecase has only one operation.)_
 
 ---
 
 ## AC Summary
 
-| ID | Feature | Scenario | Priority | Business Rule |
-|----|---------|----------|----------|---------------|
-| AC-001 | [feature] | [scenario name] | P0 | [short rule ref] |
-| AC-002 | [feature] | [scenario name] | P1 | [short rule ref] |
+| ID | Sub-operation | Scenario | Priority | Business Rule |
+|----|---------------|----------|----------|---------------|
+| AC-001 | [sub-operation or "—" if single-op] | [scenario name] | P0 | [short rule ref] |
+| AC-002 | [sub-operation or "—" if single-op] | [scenario name] | P1 | [short rule ref] |
 
 **Total Acceptance Criteria:** N
 

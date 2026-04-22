@@ -58,12 +58,48 @@ Every AC must be **specific enough that QA can write a test case without asking 
 
 These rules ensure the AC document is structurally consistent every time, regardless of when or how many times it is generated from the same requirements.
 
-### Feature Scope Rule
+### Usecase Scope Rule
 
-- **One business workflow = one feature.** When a requirement describes a single end-to-end process (e.g., "approval workflow," "verification flow," "order processing"), write it as ONE feature with ONE user story. Sub-operations within the same workflow (create, approve, reject, cancel, delegate, escalate) are scenarios within that feature — NOT separate features.
-- **Only split into multiple features** when the requirements describe genuinely independent business capabilities with different actors AND different business values that could be developed and deployed separately.
-- **Audit logging = exactly 1 AC** for the entire document, placed in the Cross-cutting group. This single AC covers all actions (create, approve, reject, cancel, etc.) across the entire workflow. Never create separate audit ACs per sub-operation.
+- **One business operation = one usecase.** When a requirement describes a single end-to-end operation (e.g., "accept terms-and-conditions," "approval workflow," "order processing"), write it as ONE usecase with ONE user story. Sub-operations within the same operation (create, approve, reject, cancel, delegate, escalate) are scenarios or sub-operations within that usecase — NOT separate usecases.
+- **Only split into multiple usecases** when the requirements describe genuinely independent business operations with different actors AND different business values that could be developed and deployed separately (e.g., `accept/` vs `check/` vs `management/` are distinct user-facing operations; "multi-active-versions" is NOT — it extends the `accept/` operation).
+- **Audit logging = exactly 1 AC** for the entire document, placed in the Cross-cutting group. This single AC covers all actions (create, approve, reject, cancel, etc.) across the entire usecase. Never create separate audit ACs per sub-operation.
 - **Notification = exactly 1 AC** for the entire document (if applicable), placed in the Cross-cutting group. This single AC covers all notification triggers. Never create separate notification ACs per sub-operation.
+
+### Folder Organization Rule (hard rule)
+
+The folder name under `docs/design/` MUST be the usecase name — a stable, user-facing operation — not a requirement batch, release label, or delta marker.
+
+**Decision tree — on every new requirement:**
+
+1. **Read** `docs/design/INDEX.md` to see what usecases already exist.
+2. **Ask:** does the new work fit within an existing usecase?
+   - **YES** → **append** ACs into `docs/design/<usecase>/acceptance-criteria.md`.
+     - AC-IDs continue contiguously from the tail (respect Scenario Ordering Rule within each group — happy paths still come before validation errors, etc.).
+     - Log the extension in `docs/design/VERSION.md` with the specific AC-IDs added, the triggering requirement, and the date.
+     - **Never** create a sibling folder for the extension.
+   - **NO** → create a new `docs/design/<new-usecase>/` folder. In the AC doc's Notes section, justify why this is a distinct usecase rather than an extension.
+
+**Folder name format:**
+- kebab-case, verb-first: `accept`, `check`, `revoke`, `management`, `active-version-query`.
+- Must represent a cohesive user-facing operation. A usecase MAY span multiple endpoints when they serve the same operation (e.g., `management/` covers CRUD parent + version + activate).
+- Short and timeless — readers should still understand the name a year later without knowing which ticket or release it came from.
+
+**Smell patterns — NEVER use these folder names:**
+- Suffixes that imply a delta or batch: `*-support`, `*-v2`, `*-extension`, `*-multi-*`, `*-batch-N`, `*-phase-N`, `*-rev-N`, `*-increment-N`.
+- Release or ticket identifiers: `JIRA-123/`, `sprint-42/`, `q3-rollout/`.
+- Requirement-document names that describe *what was added*, not *what operation exists*: `tc-multi-type-support/`, `acceptor-customer-id-support/`, `multi-active-versions/`.
+
+These are requirement-batch identifiers, not usecases. If you are tempted to use one, the new work is extending an existing usecase — use the append path in the decision tree above.
+
+**Worked examples:**
+
+✅ **Correct (extension → append):**
+- Base requirement → create `docs/design/accept/` with AC-001..AC-034.
+- Later requirement adds multi-version rules to `/accept` → append AC-035..AC-056 into `accept/acceptance-criteria.md`. Update `accept/api-contracts.md` in place. Add a VERSION.md entry: `v2.0: accept — added AC-035..AC-056 for multi-active-versions requirement`.
+
+❌ **Wrong (extension → sibling folder):**
+- Create `docs/design/accept-multi-active/` as a sibling of `accept/`.
+- Result: anyone asking "how does `/accept` work?" must reconcile ACs and API contracts across two folders. API contracts drift. Error taxonomies duplicate or disagree. Test cases lose their single source.
 
 ### AC Granularity Rule
 
@@ -205,7 +241,7 @@ After writing or editing any AC document, you MUST verify it before returning yo
    - Business Rules section lists all rules referenced by ACs
    - Edge Cases section present with expected behavior for each
    - Out of Scope section present
-   - AC Summary table matches the AC list (correct IDs, features, scenarios, priorities, count)
+   - AC Summary table matches the AC list (correct IDs, sub-operations, scenarios, priorities, count)
 3. **Verify quality** against the Quality Gates above:
    - No vague outcomes — every error specifies HTTP status code and error message
    - No implicit rules — all validation ranges, accepted formats, limits are explicit
@@ -229,17 +265,22 @@ When invoked during the Document Sync Phase (after Review Loop passes), your rol
 
 ### Process
 
-1. **Read** the existing AC document from the path provided by Orchestrator
-2. **Read** the Developer's changed files summary to understand what was implemented
-3. **Assess** whether the AC document is still accurate:
+1. **Pre-flight folder-smell scan** (run every invocation, before anything else):
+   - List the contents of `docs/design/` (e.g., `ls docs/design/`).
+   - Match each folder against the smell patterns in the Folder Organization Rule (`*-support`, `*-v2`, `*-extension`, `*-multi-*`, `*-batch-N`, `*-phase-N`, release/ticket identifiers, requirement-document names).
+   - If any folder matches a smell pattern, **STOP** and return an Open Question in Thai asking the user whether to refactor (merge into the correct usecase folder) before proceeding with doc sync. Include the folder names you flagged and the usecase each likely extends. Do not silently inherit bad folders by appending onto them.
+2. **Read** the existing AC document from the path provided by Orchestrator
+3. **Read** the Developer's changed files summary to understand what was implemented
+4. **Assess** whether the AC document is still accurate:
    - Do all AC-IDs still match the implemented behavior?
    - Were any business rules modified during implementation that the AC doesn't reflect?
    - Were any new edge cases discovered during development or review that should be documented?
    - Were any AC items descoped or changed during the review-fix cycle?
-4. **Decide:**
+   - Does the folder this AC lives in still correctly represent a single usecase (see Folder Organization Rule)? If the implementation revealed that work should have been split or merged into a different usecase folder, flag it — do not silently move files.
+5. **Decide:**
    - If the AC document is still accurate → report "no change needed" with a brief justification
    - If updates are needed → edit the document, then run the **Document Verification & Fix** process (same as for new documents)
-5. **Report** your result to the Orchestrator
+6. **Report** your result to the Orchestrator
 
 ### Output Format (Doc Review & Update)
 

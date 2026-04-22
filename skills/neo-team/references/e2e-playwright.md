@@ -26,7 +26,7 @@ Store the resolved path and use it consistently throughout bootstrapping, test g
 
 ## E2E Project Structure
 
-The E2E project lives at `{e2e-root}` in the project root as a **standalone project** with its own `package.json`. Feature test folders mirror `docs/design/{feature}/` names exactly.
+The E2E project lives at `{e2e-root}` in the project root as a **standalone project** with its own `package.json`. Usecase test folders mirror `docs/design/{usecase}/` names exactly.
 
 ```
 {e2e-root}/
@@ -35,27 +35,27 @@ The E2E project lives at `{e2e-root}` in the project root as a **standalone proj
 ├── jest.config.ts                  ← Jest configuration
 ├── jest.setup.ts                   ← global Playwright APIRequestContext setup
 │
-├── helpers/                        ← shared utilities (all features use these)
+├── helpers/                        ← shared utilities (all usecases use these)
 │   ├── api-client.ts               ← typed HTTP wrapper around APIRequestContext
-│   ├── precondition.ts             ← abstract base class for feature preconditions
+│   ├── precondition.ts             ← abstract base class for usecase preconditions
 │   └── fixture-loader.ts           ← load JSON fixtures / execute SQL seeds
 │
-├── {feature}/                      ← mirrors docs/design/{feature}/ name
-│   ├── __fixtures__/               ← per-feature test data (optional)
+├── {usecase}/                      ← mirrors docs/design/{usecase}/ name
+│   ├── __fixtures__/               ← per-usecase test data (optional)
 │   │   ├── data.json               ← JSON fixture data
 │   │   └── seed.sql                ← SQL seed script (optional)
-│   ├── {feature}.precondition.ts   ← setup/teardown for this feature
-│   └── {feature}.e2e.ts            ← test file with TC-ID-prefixed cases
+│   ├── {usecase}.precondition.ts   ← setup/teardown for this usecase
+│   └── {usecase}.e2e.ts            ← test file with TC-ID-prefixed cases
 │
-└── {feature-2}/
+└── {usecase-2}/
     └── (same structure)
 ```
 
 **Naming rules:**
-- Feature folder name = exact match of `docs/design/{feature}/` folder name
-- Test file: `{feature}.e2e.ts`
-- Precondition file: `{feature}.precondition.ts`
-- Fixtures folder: `__fixtures__/` inside each feature folder
+- Usecase folder name = exact match of `docs/design/{usecase}/` folder name
+- Test file: `{usecase}.e2e.ts`
+- Precondition file: `{usecase}.precondition.ts`
+- Fixtures folder: `__fixtures__/` inside each usecase folder
 
 ## Bootstrapping (First-time Setup)
 
@@ -69,7 +69,7 @@ If `{e2e-root}` does not exist in the project root, create the entire skeleton b
   "private": true,
   "scripts": {
     "test": "jest",
-    "test:feature": "jest --testPathPattern"
+    "test:usecase": "jest --testPathPattern"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -195,7 +195,7 @@ export class ApiClient {
 
 ### helpers/precondition.ts
 
-Abstract base class for feature preconditions. Each feature extends this to define its own setup/teardown workflow.
+Abstract base class for usecase preconditions. Each usecase extends this to define its own setup/teardown workflow.
 
 ```typescript
 import { ApiClient } from './api-client';
@@ -236,7 +236,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * Load a JSON fixture file relative to the calling feature's __fixtures__/ folder.
+ * Load a JSON fixture file relative to the calling usecase's __fixtures__/ folder.
  * @param fixturePath - path relative to {e2e-root} (e.g., 'loan-approval/__fixtures__/data.json')
  */
 export function loadJson<T = any>(fixturePath: string): T {
@@ -258,7 +258,7 @@ export function readSqlSeed(fixturePath: string): string {
 
 ## Precondition Pattern
 
-When a feature requires calling other APIs before its test cases can run (documented as a **Workflow Chain** in the test case document), create a `{feature}.precondition.ts` that implements those steps.
+When a usecase requires calling other APIs before its test cases can run (documented as a **Workflow Chain** in the test case document), create a `{usecase}.precondition.ts` that implements those steps.
 
 The precondition's `setup()` method must follow the exact step order from the Workflow Chain table. Each step calls an API, captures the response value, and makes it available to subsequent steps and test cases.
 
@@ -307,11 +307,11 @@ export class SavingsAccountPrecondition extends Precondition {
 
 ### When No Precondition Is Needed
 
-If a feature's test cases have no Workflow Chain (all preconditions are "None"), skip creating a precondition file. The test file's `beforeAll` can directly set up simple state or use fixture data.
+If a usecase's test cases have no Workflow Chain (all preconditions are "None"), skip creating a precondition file. The test file's `beforeAll` can directly set up simple state or use fixture data.
 
 ## Test File Pattern
 
-Each feature has one test file: `{feature}.e2e.ts`. The file structure maps directly to the test case document:
+Each usecase has one test file: `{usecase}.e2e.ts`. The file structure maps directly to the test case document:
 - `describe()` blocks = Test Suites from the document
 - `it()` blocks = individual Test Cases, prefixed with TC-ID
 
@@ -371,7 +371,7 @@ describe('Savings Account', () => {
 ### Test File Rules
 
 1. **TC-ID prefix is mandatory** — every `it()` must start with the TC-ID from the test case document: `it('TC-001: ...')`
-2. **One test file per feature** — all test suites for a feature go in the same `.e2e.ts` file
+2. **One test file per usecase** — all test suites for a usecase go in the same `.e2e.ts` file
 3. **Precondition test cases become setup** — if TC-001 and TC-002 are preconditions for TC-003+, they belong in `precondition.ts` setup, not as `it()` blocks (they are implicitly validated when setup succeeds)
 4. **Assertion standards** — follow the Test Case Quality Rules from [`qa.md`](qa.md) (exact HTTP status codes, error body assertions, no duplicate scenarios)
 
@@ -381,7 +381,7 @@ describe('Savings Account', () => {
 # Run all E2E tests
 cd {e2e-root} && npm test
 
-# Run tests for a specific feature
+# Run tests for a specific usecase
 cd {e2e-root} && npm test -- --testPathPattern=savings-account
 
 # With custom API URL
@@ -405,6 +405,6 @@ Before reporting E2E test results, verify:
 - [ ] Precondition `teardown()` cleans up in reverse order
 - [ ] `cd {e2e-root} && npm test` runs successfully (or failures are documented in the execution report)
 - [ ] No hardcoded URLs or tokens — all use environment variables
-- [ ] Feature folder name matches `docs/design/{feature}/` exactly
+- [ ] Usecase folder name matches `docs/design/{usecase}/` exactly
 - [ ] Test assertions use exact HTTP status codes from the API contract
 - [ ] Error test cases assert error body structure (not just status code)

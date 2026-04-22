@@ -166,7 +166,7 @@ HTTP 400
 
 ## Workflow Chain (Optional — Per Test Suite)
 
-When a test suite requires calling APIs to create prerequisite data before the actual test cases can run, document the API call chain here. QA uses this table to generate `{feature}.precondition.ts` code (see [`e2e-playwright.md`](e2e-playwright.md)).
+When a test suite requires calling APIs to create prerequisite data before the actual test cases can run, document the API call chain here. QA uses this table to generate `{usecase}.precondition.ts` code (see [`e2e-playwright.md`](e2e-playwright.md)).
 
 Include this section when test cases have `Precondition: TC-XXX must pass` that involves calling APIs to create data. Skip if the only preconditions are static data or configuration.
 

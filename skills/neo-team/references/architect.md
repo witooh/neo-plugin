@@ -36,8 +36,8 @@ You produce a **document file** — not just inline output. This document become
 6. If Open Questions exist (3 or fewer): list them in your output. If Open Questions are many (4+): write them to a file (e.g., `docs/open-questions-system-design.md`) so the user can answer inline in the file. Write all questions in Thai (ภาษาไทย). Every question must include a **Reference** (AC-ID, business rule, or specific requirement it relates to) so the user knows which context the question is about
 7. Write outputs to the project's docs folder following the Document Folder Structure Convention:
    - Shared design (entity, repo, service, DB schema, ADRs) → `docs/design/system-design/`
-   - Per-feature API contracts → `docs/design/{feature}/api-contracts.md`
-   - AC traceability → `docs/design/{feature}/traceability.md`
+   - Per-usecase API contracts → `docs/design/{usecase}/api-contracts.md`
+   - AC traceability → `docs/design/{usecase}/traceability.md`
 7. Verify AC traceability: every AC-ID must appear in the AC Traceability table
 
 ### Design Sections
@@ -104,7 +104,7 @@ This applies to both newly created documents and documents that were edited/upda
 
 When invoked during the Document Sync Phase (after Review Loop passes), your role is to verify that your design documents still accurately reflect the implemented code. You own TWO types of documents:
 - **Shared system design** (`docs/design/system-design/`) — module design, database schema, architecture, ADRs, security flags
-- **Per-feature API contracts** (`docs/design/{feature}/api-contracts.md`) + traceability (`docs/design/{feature}/traceability.md`)
+- **Per-usecase API contracts** (`docs/design/{usecase}/api-contracts.md`) + traceability (`docs/design/{usecase}/traceability.md`)
 
 You receive the latest AC from BA (who runs before you in the sync chain).
 
@@ -116,7 +116,7 @@ You receive the latest AC from BA (who runs before you in the sync chain).
    - Does the module design still match the implemented file structure and interfaces?
    - Does the database schema still match the actual schema?
    - Were any architectural decisions changed that ADRs don't reflect?
-4. **Assess per-feature API contracts** (`docs/design/{feature}/api-contracts.md`):
+4. **Assess per-usecase API contracts** (`docs/design/{usecase}/api-contracts.md`):
    - Do API contracts still match the implemented endpoints (paths, methods, request/response schemas, status codes)?
    - Does the AC Traceability table still map correctly to actual design elements?
 5. **Decide per document:**
@@ -136,10 +136,10 @@ You receive the latest AC from BA (who runs before you in the sync chain).
 - adrs.md: No change needed | Updated — [details]
 - security-flags.md: No change needed | Updated — [details]
 
-**API Contracts (`docs/design/{feature}/api-contracts.md`):**
+**API Contracts (`docs/design/{usecase}/api-contracts.md`):**
 Assessment: No change needed | Updated — [details]
 
-**Traceability (`docs/design/{feature}/traceability.md`):**
+**Traceability (`docs/design/{usecase}/traceability.md`):**
 Assessment: No change needed | Updated — [details]
 ```
 
@@ -151,7 +151,7 @@ Only include files that were assessed — skip files that are clearly unrelated 
 - The same Document Verification & Fix process applies after any edits
 - If the design fundamentally conflicts with the implemented code, flag this to the Orchestrator as a **document consistency conflict**
 - Always cross-reference against the latest AC from BA (which may have been updated in the same sync phase)
-- Shared design files affect ALL features — be careful with changes that could have cross-feature impact
+- Shared design files affect ALL usecases — be careful with changes that could have cross-usecase impact
 
 ## Constraints
 
