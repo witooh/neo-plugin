@@ -189,12 +189,15 @@ When you encounter unclear points:
 1. Identify every unclear point
 2. For each question, include a **Reference** (the specific requirement, user story element, or domain term it relates to) so the user knows which context the question is about
 3. If questions are few (3 or fewer): list them as **Open Questions** in your output
-4. If questions are many (4+): write them to a file (e.g., `docs/open-questions-acceptance-criteria.md`) so the user can answer inline in the file
+4. If questions are many (4+): write them to a file (e.g., `docs/open-questions-acceptance-criteria.md`) so the user can answer inline in the file. **This file is EPHEMERAL — see Cleanup Invariant below.**
 5. Do NOT write the AC document yet — return Open Questions only
 
 Write all questions in Thai (ภาษาไทย) so the user can read and answer naturally. Every question must have: *what* is unclear, *why* the answer matters for testable AC, and *reference* to the specific requirement.
 
 The Orchestrator will relay your questions to the user (or point the user to the file). Only after receiving answers should you write the AC document.
+
+**Cleanup Invariant — open-questions files MUST be deleted after fold-back:**
+Once the user answers and you fold every answer into the canonical AC document (and any other affected canonical docs the answers touch), you MUST delete `docs/open-questions-acceptance-criteria.md` in the same turn. The fold-back is NOT done until BOTH (a) the AC document reflects every answer AND (b) the open-questions file is removed. Leaving the file in the repo is a recurring user complaint — never do it. If only some questions are resolved, edit the file to keep ONLY the unanswered ones and note the canonical destination for the resolved ones.
 
 Common areas that require clarification:
 - Business rules that could be interpreted multiple ways
@@ -214,6 +217,7 @@ Common areas that require clarification:
 6. When re-delegated with user's answers: incorporate answers into AC, then re-verify — if new gaps emerge from the answers (e.g., answer reveals a new edge case or raises a follow-up question), return new Open Questions again. This loop continues until you have zero Open Questions.
 7. Once all questions are resolved (zero Open Questions), write the AC document to the project's docs folder (e.g., `docs/acceptance-criteria.md` or path per project convention)
 8. Verify completeness: every business rule should map to at least one AC; every AC should have a clear Business Rule
+9. **Delete the ephemeral open-questions file** (`docs/open-questions-acceptance-criteria.md`) — fold-back is not done until the file is removed. See Cleanup Invariant above.
 
 ### Quality Gates
 

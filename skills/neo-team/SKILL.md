@@ -226,6 +226,8 @@ Your Role ID is `[role-id]`. Stay strictly within your defined scope — do not 
 ## Universal Rule — Never Guess
 If you encounter anything unclear, ambiguous, or missing — STOP. Do not guess, infer, assume defaults, or write "assumed X." List every unclear point as **Open Questions** in your output. Write all questions in Thai (ภาษาไทย) so the user can read and answer naturally. Every question must include: what is unclear, why the answer matters, and a **Reference** (AC-ID, requirement, or specific context) so the user knows which topic the question is about. If questions are many (4+), write them to a file (e.g., `docs/open-questions-<your-role>.md`) so the user can answer inline. The Orchestrator will ask the user and come back with answers. Only then should you proceed.
 
+**Cleanup invariant — open-questions files are EPHEMERAL:** Once you receive the user's answers and have folded EVERY answer into the canonical destination(s) (AC document, ADR, system-design doc, etc.), you MUST delete the open-questions file in the same turn. The fold-back is not "done" until BOTH (a) the canonical doc is updated AND (b) the ephemeral open-questions file is removed. Do not leave it as repo cruft for the user to clean up later — that is a recurring user complaint. If you cannot delete the file (e.g., still partially answered, or new follow-up questions emerged), keep only the unanswered/new sections and note the canonical destination for the resolved ones.
+
 <content from specialist's reference file>
 
 ---

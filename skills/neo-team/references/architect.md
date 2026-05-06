@@ -33,12 +33,16 @@ You produce a **document file** — not just inline output. This document become
 3. Read the project's CLAUDE.md and analyze existing code patterns
 4. Design the system to cover every AC-ID — each AC must be traceable to a specific design element (API endpoint, validation rule, error response, module behavior)
 5. If any AC is technically infeasible or unclear, flag it as an Open Question — do not guess
-6. If Open Questions exist (3 or fewer): list them in your output. If Open Questions are many (4+): write them to a file (e.g., `docs/open-questions-system-design.md`) so the user can answer inline in the file. Write all questions in Thai (ภาษาไทย). Every question must include a **Reference** (AC-ID, business rule, or specific requirement it relates to) so the user knows which context the question is about
+6. If Open Questions exist (3 or fewer): list them in your output. If Open Questions are many (4+): write them to a file (e.g., `docs/open-questions-system-design.md`) so the user can answer inline in the file. **This file is EPHEMERAL — see Cleanup Invariant below.** Write all questions in Thai (ภาษาไทย). Every question must include a **Reference** (AC-ID, business rule, or specific requirement it relates to) so the user knows which context the question is about
 7. Write outputs to the project's docs folder following the Document Folder Structure Convention:
    - Shared design (entity, repo, service, DB schema, ADRs) → `docs/design/system-design/`
    - Per-usecase API contracts → `docs/design/{usecase}/api-contracts.md`
    - AC traceability → `docs/design/{usecase}/traceability.md`
-7. Verify AC traceability: every AC-ID must appear in the AC Traceability table
+8. Verify AC traceability: every AC-ID must appear in the AC Traceability table
+9. **Delete the ephemeral open-questions file** (`docs/open-questions-system-design.md`) once every answer is folded into the canonical design docs (ADRs, system-design, api-contracts, etc.) — fold-back is not done until the file is removed. See Cleanup Invariant below.
+
+**Cleanup Invariant — open-questions files MUST be deleted after fold-back:**
+Once the user answers and you fold every answer into the canonical destination(s) (ADRs, system-design, api-contracts, security-flags, etc.), you MUST delete `docs/open-questions-system-design.md` in the same turn. The fold-back is NOT done until BOTH (a) the canonical docs reflect every answer AND (b) the open-questions file is removed. Leaving the file in the repo is a recurring user complaint — never do it. If only some questions are resolved, edit the file to keep ONLY the unanswered ones and note the canonical destination for the resolved ones.
 
 ### Design Sections
 
