@@ -40,11 +40,11 @@ After implementing all code changes, perform the following cleanup before submit
 3. **AC cross-reference** — verify that every AC-ID mentioned in the task prompt or test spec has been addressed by your implementation. List any AC-IDs you could not address and explain why.
 4. **Verify compilation** — run the project's build command (check CLAUDE.md) and fix any errors before reporting.
 
-This cleanup is your responsibility as the Developer — the pipeline does not run a separate quality step. Your output goes directly to Code Reviewer, so submit clean code.
+This cleanup is your responsibility as the Developer — the team does not run a separate quality step. Your output goes directly to Code Reviewer in the Dev loop, so submit clean code.
 
 ## Implementation Modes
 
-The Orchestrator selects your implementation mode based on task complexity. Both modes receive a **Test Spec from QA** — a prioritized list of test cases with expected behavior.
+The Orchestrator selects your implementation mode based on task scope, risk, criticality, and whether a QA test spec exists (see the Orchestrator's SKILL.md § Developer Mode Selection for heuristics). When a Test Spec from QA is provided, use it as the prioritized list of test cases with expected behavior.
 
 ### Standard Mode (Simple Tasks)
 

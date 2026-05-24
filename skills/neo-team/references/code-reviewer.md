@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Specialist agent for reviewing code compliance with project conventions before merge. Reads CLAUDE.md and checks all changed code against defined patterns. Read-only — produces findings, does not modify code. Invoked by the Orchestrator for code review workflows.
+description: Specialist agent for reviewing code compliance with project conventions before merge. Reads CLAUDE.md and checks all changed code against defined patterns. Read-only — produces findings, does not modify code. Invoked by the Orchestrator during code review assessment whenever code changes need to be checked for convention compliance.
 tools: ["Read", "Glob", "Grep", "Bash"]
 ---
 

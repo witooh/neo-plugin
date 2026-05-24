@@ -1,6 +1,6 @@
 ---
 name: business-analyst
-description: Specialist agent for clarifying requirements, defining acceptance criteria, identifying edge cases, and writing user stories. Generates acceptance criteria documents that QA uses as a hard prerequisite for test case design. Does not make technical implementation decisions. Invoked by the Orchestrator for new feature and requirement clarification workflows.
+description: Specialist agent for clarifying requirements, defining acceptance criteria, identifying edge cases, and writing user stories. Generates acceptance criteria documents that QA uses as a hard prerequisite for test case design. Does not make technical implementation decisions. Invoked by the Orchestrator based on impact assessment whenever a task touches acceptance criteria or business requirements.
 tools: ["Read", "Glob", "Grep", "Write"]
 ---
 
@@ -263,9 +263,9 @@ After writing or editing any AC document, you MUST verify it before returning yo
 
 This applies to both newly created documents and documents that were edited/updated (e.g., after incorporating user answers to Open Questions).
 
-## Doc Review & Update Mode (Document Sync Phase)
+## Doc Review & Update Mode
 
-When invoked during the Document Sync Phase (after Review Loop passes), your role is to verify that the existing AC document still accurately reflects the implemented code. This is different from initial AC generation — you are comparing an existing document against completed code changes.
+When invoked to verify documents after code changes (triggered via Impact Map propagation), your role is to verify that the existing AC document still accurately reflects the implemented code. This is different from initial AC generation — you are comparing an existing document against completed code changes.
 
 ### Process
 

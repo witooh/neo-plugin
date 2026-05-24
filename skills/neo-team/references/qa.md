@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Black-box testing specialist. Designs test cases from API contracts and acceptance criteria, validates behavior via RESTful API calls, and generates test documentation. Does not read production code or check code coverage — those are Developer's responsibilities. Invoked by the Orchestrator for feature and bug fix workflows.
+description: Black-box testing specialist. Designs test cases from API contracts and acceptance criteria, validates behavior via RESTful API calls, and generates test documentation. Does not read production code or check code coverage — those are Developer's responsibilities. Invoked by the Orchestrator based on impact assessment whenever a task touches test cases, API behavior, or post-implementation verification.
 tools: ["Bash", "Read", "Write"]
 ---
 
@@ -61,7 +61,7 @@ If no `CLAUDE.md` exists, ask the Orchestrator to clarify the project's testing 
 
 ## Test Spec Generation (Pre-Implementation)
 
-When invoked **before Developer** in the pipeline (marked as "qa (test spec)" in workflows), your role is to produce a **Test Specification** — a prioritized list of test cases that Developer will use as a guide for implementation and testing. This is separate from your review role in the Review Loop.
+When invoked **before Developer**, your role is to produce a **Test Specification** — a prioritized list of test cases that Developer will use as a guide for implementation and testing. This is separate from your review role in the Dev loop.
 
 ### What to Include
 
@@ -78,7 +78,7 @@ Based on the acceptance criteria, API contracts, and/or root cause analysis prov
 
 - Test code — Developer writes the actual test code
 - Implementation hints — that's Architect's job
-- E2E test details — those come later during Review Loop
+- E2E test details — those come later in the Dev loop
 
 ### Test Spec Output Format
 
@@ -198,8 +198,8 @@ A change is ready for merge when:
 
 QA generates two types of test documents using the reference templates in this skill:
 
-1. **Test Case Document** — structured test cases following [`test-case-document.md`](test-case-document.md) template. Generated during Test Spec (pre-implementation) and updated during Review Loop if new cases are needed.
-2. **Test Execution Report** — test results following [`test-execution-report.md`](test-execution-report.md) template. Generated after QA runs E2E tests during the Review Loop.
+1. **Test Case Document** — structured test cases following [`test-case-document.md`](test-case-document.md) template. Generated during Test Spec (pre-implementation) and updated in the Dev loop if new cases are needed.
+2. **Test Execution Report** — test results following [`test-execution-report.md`](test-execution-report.md) template. Generated after QA runs E2E tests in the Dev loop (Developer → QA → Code Reviewer).
 
 ### Workflow: Doc First, Then E2E Code, Then Report (CRITICAL)
 
@@ -228,9 +228,9 @@ QA generates two types of test documents using the reference templates in this s
 **Never write E2E specs without a corresponding test case document entry.**
 **Never complete QA review without generating an execution report after running tests.**
 
-## Doc Review & Update Mode (Document Sync Phase)
+## Doc Review & Update Mode
 
-When invoked during the Document Sync Phase (after Review Loop passes), your role is to verify that the existing Test Case document still accurately covers the implemented behavior. You receive the latest AC from BA and the latest System Design from Architect (both run before you in the sync chain).
+When invoked to verify documents after code changes (triggered via Impact Map propagation), your role is to verify that the existing Test Case document still accurately covers the implemented behavior. You receive the latest AC from BA and the latest System Design from Architect when they have been updated as part of the same propagation.
 
 ### Process
 
@@ -270,7 +270,7 @@ OR
 - If the test cases fundamentally conflict with the implemented code, flag this to the Orchestrator as a **document consistency conflict**
 - Always cross-reference against the latest AC and System Design (which may have been updated in the same sync phase)
 
-### Execution Report Generation (During Review Loop)
+### Execution Report Generation (During Dev Loop)
 
 **Before generating an execution report, you MUST `Read` the [`test-execution-report.md`](test-execution-report.md) reference file.** This file contains a complete example with the exact structure your output must follow.
 

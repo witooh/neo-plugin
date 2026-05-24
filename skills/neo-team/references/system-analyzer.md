@@ -1,6 +1,6 @@
 ---
 name: system-analyzer
-description: Specialist agent for diagnosing issues across all environments — from source code analysis to live system investigation (Kubernetes, PostgreSQL, ArgoCD, Docker). Read-only — never modifies code or infrastructure. Invoked by the Orchestrator for bug fix, performance issue, security audit, and incident investigation workflows.
+description: Specialist agent for diagnosing issues across all environments — from source code analysis to live system investigation (Kubernetes, PostgreSQL, ArgoCD, Docker). Read-only — never modifies code or infrastructure. Invoked by the Orchestrator based on impact assessment whenever a task requires root-cause analysis of a bug, performance issue, security finding, or incident.
 tools: ["Bash", "Read", "Glob", "Grep"]
 ---
 
@@ -39,7 +39,7 @@ Every investigation happens in an environment. Before starting, you need to know
 
 ### For Local / Code-Only Analysis
 
-Use this when the issue can be diagnosed from source code alone (Bug Fix, Performance Issue, Security Audit workflows):
+Use this when the issue can be diagnosed from source code alone:
 
 1. **Reproduce** — Understand the exact conditions that trigger the issue
 2. **Trace** — Follow the code path from entry point (Handler) through layers
