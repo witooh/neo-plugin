@@ -1,207 +1,250 @@
 ---
 name: improve
-description: Iteratively improve any output until measurable criteria are met. Use when the user wants to refine existing work against specific standards — whether it's code, prose, data, config, or any other artifact. Triggers on phrases like "improve this", "make it better", "iterate", "refine", "keep improving", "not good enough yet", "optimize this", "polish this", "tighten this up", "ปรับปรุง", "ทำให้ดีขึ้น", "ยังไม่ดี", "แก้ให้ดีกว่านี้", "iterate ต่อ", or when the user provides criteria and wants repeated improvement until they're satisfied. Also use when the user gives feedback on output and expects you to keep refining, even if they don't say "improve" explicitly.
+description: Iteratively improve any output until a clear finish-line condition holds — autonomous loop modeled on Claude Code's `/goal` command. Establish ONE measurable completion condition up front (with adaptive questioning if vague), then run improve → self-evaluate → loop until the condition is met or the bound is reached. After each iteration the evaluator returns a yes/no + one-sentence reason; if "no", that reason becomes the next iteration's directive. Use to refine code, prose, data, config, design, or any artifact against a verifiable end state. Triggers on phrases like "improve this", "make it better", "iterate", "refine", "keep improving", "not good enough yet", "optimize this", "polish this", "tighten this up", "ปรับปรุง", "ทำให้ดีขึ้น", "ยังไม่ดี", "แก้ให้ดีกว่านี้", "iterate ต่อ", or when the user provides criteria and wants repeated improvement until they're satisfied. Also use when the user gives feedback on output and expects continued refinement, even without saying "improve" explicitly.
 compatibility:
   environment: claude-code, copilot-cli, kiro-cli
   tools:
     - AskUserQuestion (fallback: ask_user, plain text conversation)
 metadata:
-  version: "3.0"
+  version: "4.0"
 ---
 
 # Improve
 
-Iteratively improve any output until all criteria are met — with scored evaluation at every step so "better" is never subjective.
+Set a finish-line condition for any output, then run an autonomous improve → evaluate loop until the condition holds. Modeled on Claude Code's `/goal` — the condition itself is the directive, and a fresh self-evaluation after each iteration decides whether to keep going.
 
-## Mode Selection
+## How It Works (TL;DR)
 
-Choose the mode by counting how many **independent dimensions** the task touches. This matters because forcing a full loop on a simple request wastes time, while skipping structure on a complex request leads to aimless changes.
+1. **Finish line** — Establish ONE measurable completion condition with an explicit check and a bound
+2. **Improve** — Make one focused change targeting the condition
+3. **Evaluate** — Self-check against the condition: `met` / `not met` + one-sentence reason
+4. **Loop or stop** — If met → deliver. If not → the reason becomes the directive for the next iteration.
+5. **Bound lives in the condition** — e.g., "…or stop after 5 iterations"
 
-### Quick Mode
+This skill stays **autonomous** between iterations: no user checkpoint mid-loop. The condition is the contract. The user can interrupt at any time with "stop" / "good enough".
 
-Use when **one clear dimension** drives the improvement — e.g., "make this function faster", "shorten this paragraph", "fix the formatting". The user's request itself implies a single criterion.
+## Tools
 
-1. **Name the criterion** — State it explicitly even though it seems obvious (e.g., "Goal: reduce execution time")
-2. **Read and understand** — For code, read the file. For prose, read the text. Don't improve blind.
-3. **Make the improvement** — One focused change
-4. **Show before/after** — For code: diff or side-by-side. For prose: highlight what changed and why.
-5. **Check in** — "Does this hit the mark, or should I keep going?"
+| Tool | Purpose |
+|---|---|
+| `AskUserQuestion` | Ask the user ONE question at a time to nail down the condition. Claude Code: native `AskUserQuestion` with `options`. Copilot: `ask_user` with `choices`. Kiro/other: plain text with numbered options. |
 
-**Escalation:** If the user says "keep going" or raises a second concern, transition to Full Mode. Carry the current criterion forward as #1, add new ones, and score the current output as Iteration 0. No work is lost.
+Use `AskUserQuestion` only during the **discovery phase** (before the loop starts). Once the condition is confirmed, do not pause the loop to ask anything — the loop runs end-to-end and reports back.
 
-### Full Mode
+## Core Principles
 
-Use when the task involves **2+ independent dimensions**, competing tradeoffs, the user's request is vague ("clean this up", "make it better"), or the user explicitly asks for iterative refinement.
+1. **Never improve without a finish line.** A vague directive produces vague output. Establish the condition first; everything else flows from it.
+2. **The condition must be verifiable from output alone.** The evaluator does not run external commands during evaluation — it judges only what the iteration has already surfaced (test output pasted into the transcript, file content shown, counts reported, etc.). If a check requires running tests/lint/builds, the iteration step must run them and surface the result.
+3. **One measurable end state.** A test result, an exit code, a file count, a word count, a checklist — something Claude can prove in its own output. Not "better" or "cleaner".
+4. **Autonomous loop, not user-paced.** No "is this good?" after every iteration — that's what the condition is for. The user agreed to the condition; trust it until met, stalled, bound reached, or user interrupts.
+5. **Stop fast when stalled.** If iterations stop making progress, surface it and ask the user to relax/redirect — don't grind.
+6. **Bound is mandatory.** Every loop has a max — iterations or wall-clock. No exceptions.
 
-1. Receive input
-2. Establish 1-3 ranked, measurable criteria
-3. Score baseline (Iteration 0), then iteratively improve — one focused goal per iteration
-4. Each iteration: improve → score → user checkpoint → decide (continue/stop)
-5. Deliver final output with full iteration history
+## Workflow
 
-## Domain Hints
+For deeper patterns on writing conditions, evaluator prompts, and stop logic, see [references/CONDITION-GUIDE.md](references/CONDITION-GUIDE.md).
 
-Different output types have different improvement patterns and workflows. Use these as starting points — not rigid rules — when thinking about what "better" means in context and how to approach the improvement.
+### Phase 1 — Receive
 
-### Code
-**Dimensions:** readability, performance, correctness, test coverage, idiomatic style
-**Workflow:** Read the code first → identify the specific issue → make the change → show a diff → run tests if available. For performance improvements, explain the complexity change (e.g., O(n²) → O(n)). For readability, explain what makes the new version clearer.
+Accept the input and understand it:
 
-### Prose
-**Dimensions:** clarity, conciseness, tone, structure, audience fit
-**Workflow:** Read the full text → identify structural or clarity issues → revise → highlight what changed and why. Show word count before/after when conciseness is a goal.
+- **Existing work** — User provides code, text, or a file path. Read it thoroughly.
+- **Raw request** — User describes what they want. Produce a first draft only after the condition is set.
 
-### Data/Config
-**Dimensions:** correctness, completeness, consistency, schema compliance
-**Workflow:** Validate against schema or expected format → identify gaps or errors → fix → show what was added/changed/removed. For configs, check for security issues (hardcoded secrets, overly permissive settings).
+Briefly state what you received (one line) and what current state you observe (one line). **Do NOT start improving yet.**
 
-### Design/Visual
-**Dimensions:** alignment, hierarchy, accessibility, responsiveness
-**Workflow:** Review the markup/styles → identify visual hierarchy or accessibility issues → fix → describe the visual impact of the change.
+### Phase 2 — Establish the Finish Line
 
-When establishing criteria, suggest domain-relevant dimensions the user might not have thought of.
+Try to infer the condition from the user's request first. Users often state the end state without using the word "condition":
+
+| User says | Inferred finish line |
+|---|---|
+| "Make this faster" | Reduce p50 latency below a target (ask: what target?) — bound 3 iterations |
+| "Shorten this README" | Under N lines (ask: what N?) while keeping all section headings — bound 3 iterations |
+| "Fix the failing tests" | `npm test` exits 0 — bound 5 iterations |
+| "Clean this up" | Vague — must ask. What does "clean" mean (style? size? duplication?) |
+
+When the condition is clear from context, **confirm** in one sentence (Phase 3). When it's vague, ask **1–2 questions max** via `AskUserQuestion` to nail down:
+
+- The measurable end state (e.g., target latency, max lines, test result)
+- The check (how to prove it — running tests, counting lines, eyeballing diff)
+- Any constraints (what must NOT change — public API, deps, format)
+- The bound (default 5 iterations if unspecified)
+
+Combine into a single question when natural. Skip the question entirely if the request already names a clear end state.
+
+### Phase 3 — Confirm
+
+Restate the finish line in one line, then start the loop:
+
+> I'll iterate until **[condition]**, proving it by **[check]**. Constraint: **[what must not change]**. Bound: **[N iterations]**. Starting now.
+
+No need to wait for "yes" — start the loop immediately. The user can interrupt if anything is wrong.
+
+### Phase 4 — Autonomous Loop
+
+Repeat until the condition holds, the bound is reached, or the loop stalls:
+
+**4a. Improve** — Make one focused change targeting the condition (or, on iteration 0, produce the baseline). Explain what changed in one sentence.
+
+**4b. Verify** — Surface the proof: run tests, print line count, show diff, render output — whatever the check requires. The evaluator can only judge what's in the transcript.
+
+**4c. Self-evaluate** — In your own output, give the verdict:
+
+```
+Iteration N — [one-line change description]
+Verdict: met | not met
+Reason: [one sentence — what the proof shows]
+```
+
+**4d. Decide:**
+
+- `met` → exit loop, go to Phase 5
+- `not met` → the `Reason` becomes the directive for iteration N+1; loop back to 4a
+- Stop conditions (see below) → exit loop, go to Phase 5
+
+Keep iterations tight. Don't restate the whole condition every loop — the iteration log is enough.
+
+### Phase 5 — Deliver
+
+Present:
+
+1. The final output (or final state if condition not fully met)
+2. A compact iteration log:
+
+```
+| Iteration | Change | Verdict | Reason |
+|---|---|---|---|
+| 0 (baseline) | — | not met | [baseline reason] |
+| 1 | [change] | not met | [reason] |
+| 2 | [change] | met | [reason] |
+
+Final: [met / stalled / bound reached / user stopped]
+```
+
+If the loop ran 3+ iterations, also write the log to `improve-history.md` in the working directory so progress is preserved if context resets.
+
+## Stop Conditions
+
+The loop exits when ANY of these are true:
+
+| Condition | Action |
+|---|---|
+| Verdict = `met` | Declare success, deliver final output |
+| Bound reached (e.g., 5 iterations) | Stop. Deliver best state. Summarize remaining gap and ask if the user wants to extend the bound |
+| 3 consecutive iterations with no movement on the condition | Stall. Stop and ask: relax the condition, change approach, or accept current state |
+| User says "stop" / "good enough" / equivalent | Respect immediately |
+| Condition proven impossible given constraints | Flag the contradiction, ask the user to relax a constraint or drop the condition |
+
+## Writing an Effective Condition
+
+A condition that survives the loop usually has:
+
+- **One measurable end state** — a test result, a build exit code, a count, a checklist item
+- **A stated check** — how to prove it: "`npm test` exits 0", "`wc -l < 100`", "no `eslint` errors"
+- **Constraints that matter** — what must NOT change: "no public API changes", "no new deps"
+- **A bound** — "stop after N iterations" or "stop after T minutes"
+
+Examples:
+
+| Vague | Better |
+|---|---|
+| "Make this cleaner" | "Reduce to under 100 lines while keeping all tests passing — max 5 iterations" |
+| "Faster" | "Reduce p50 latency below 50ms on the bench — max 3 iterations, no API changes" |
+| "Better docs" | "Every public function has a docstring with one usage example — max 4 iterations" |
+| "Fix this config" | "`yamllint` exits 0 and the file loads in the app without warnings — max 3 iterations" |
+
+For exhaustive patterns and the evaluator prompt template, see [references/CONDITION-GUIDE.md](references/CONDITION-GUIDE.md).
 
 ## Asking Questions
 
-Use `AskUserQuestion` (with `options` array when the answer space is predictable) if available. If not, fall back to `ask_user` (with `choices`). If neither is available, ask in plain text — the important thing is to ask, not how you ask.
+Use `AskUserQuestion` (Claude Code) with `options` array when the answer space is predictable. Fall back to `ask_user` with `choices` (Copilot) or plain text with numbered options (Kiro/other). One question per call — multiple questions get shallow answers.
 
-## Criteria Inference
-
-Before asking the user for criteria, try to infer them from the request. Users often state exactly what they want without using the word "criteria":
-
-- "make this faster" → performance (Quick Mode)
-- "this is confusing and too long" → clarity + conciseness (Full Mode, 2 criteria already provided)
-- "clean this up" → vague, ask what "clean" means to them
-- "improve this README — our onboarding takes forever" → the real criterion is onboarding speed, not README aesthetics
-
-When you can infer criteria, **confirm them** instead of asking from scratch: "I'll focus on [X] and [Y] — does that match what you're after?" This saves a round-trip.
-
-## Core Rules
-
-1. **Never improve without at least one criterion.** Even in Quick Mode, the user's request implies a criterion — name it explicitly.
-2. **Always score before AND after** (Full Mode). Every iteration has a scorecard.
-3. **One focused goal per iteration.** Closely related changes may go together, but they must serve a single improvement goal. Multiple unrelated changes make it impossible to know what helped.
-4. **Target the largest gap first.** Never polish a met criterion while others are unmet.
-5. **Detect regressions.** If a previously-met criterion drops, revert or fix before continuing.
-6. **Stop when appropriate.** All criteria met, 3 stalled iterations, 10 total iterations (soft max), or user says stop.
-7. **User checkpoints matter.** After scoring each iteration, briefly share the scorecard and ask if the user agrees with the assessment. Self-scoring has blind spots — the user's perspective is the ground truth.
-
-## Workflow (Full Mode)
-
-For detailed scoring rubric, scorecard formats, priority rules, and completion conditions: see [references/EVALUATION-GUIDE.md](references/EVALUATION-GUIDE.md)
-
-1. **Receive** — Accept the input (existing work or raw request)
-2. **Establish Criteria** — Extract or ask for measurable evaluation criteria (1-3, ranked)
-3. **Capture Baseline** — Produce first output, score it (Iteration 0)
-4. **Improve** — Make one focused change targeting the largest gap
-5. **Evaluate & Checkpoint** — Score the new output, share scorecard with user, confirm alignment
-6. **Decide** — Continue, stop, or adjust criteria
-7. **Deliver** — Present final output with full iteration history
-
-### Step 1 — Receive
-
-Accept the input and understand what you're working with:
-
-- **Existing work** — User provides code, text, or a file path. Read it thoroughly before proceeding.
-- **Raw request** — User describes what they want. Produce the first version, then move to criteria.
-
-Acknowledge what was received and briefly summarize its current state (e.g., "This is a 120-line Go handler that processes webhook events. I notice it has nested error handling and some repeated patterns."). Do NOT start improving yet.
-
-### Step 2 — Establish Criteria
-
-Try to infer criteria from the user's request first (see Criteria Inference above). Then confirm or ask:
-
-- **If criteria are clear from context** — Confirm: "I'll focus on [X] and [Y] — sound right?"
-- **If criteria are vague** — Ask: "What's the most important thing to get right?" and "What would make you reject the result?"
-- **If criteria > 3** — Force-rank and pick the top 3
-
-A single criterion is fine for focused tasks — don't force the user to invent extra criteria just to hit a number. Suggest domain-relevant criteria the user may not have mentioned (see Domain Hints), but let them decide.
-
-### Step 3 — Capture Baseline
-
-Produce the first output (or use existing work as-is), score it against all criteria, and present to the user with key gaps identified.
-
-### Step 4 — Improve
-
-Make **one focused change** targeting the largest gap. Explain what you're changing and why before making the change.
-
-### Step 5 — Evaluate & Checkpoint
-
-Score the new output against ALL criteria, compare to previous iteration, and check for regressions. Then share the scorecard with the user — they may see things you missed, or disagree with your scoring. Adjust if needed before continuing.
-
-### Step 6 — Decide
-
-Continue if gaps remain, stop if all criteria met, 3 stalled iterations, 10 total iterations, or user says stop.
-
-### Step 7 — Deliver
-
-Present the final output with a summary. Keep tables in English per project conventions:
-
-```
-## Final Output
-
-[The improved result]
-
----
-
-### Iteration History
-
-| Iteration | Change | Total Score | Delta |
-|---|---|---|---|
-| 0 (Baseline) | — | X / Y | — |
-| 1 | [Change description] | X / Y | +W |
-| 2 | [Change description] | X / Y | +W |
-
-**Final Score: X / Y**
-**Criteria met:** [List]
-**Criteria not met (if any):** [List with reason]
-```
-
-For long improvement sessions (3+ iterations), write the iteration history to a file (e.g., `improve-history.md` in the working directory) so progress is preserved if context resets. Mention the file path to the user.
+Each question needs: a recommended option first labeled `"(Recommended)"`, 2–4 mutually exclusive choices with `label` (1–5 words) and `description` (explains the trade-off).
 
 ## Examples
 
-### Quick Mode Example
+### Example 1 — Clear condition, no questions needed
 
-**User:** "Make this function faster"
+**User:** "Make `parseDate` handle ISO 8601 with timezone — all tests in `date.test.ts` should pass"
+
 ```
-1. Goal: improve execution speed
-2. Read the function, identify bottleneck
-3. Apply optimization
-4. Show before/after with explanation
-5. "Does this hit the mark, or should I keep going?"
+Phase 1 — Receive
+Read parseDate.ts and date.test.ts. 3 of 12 tests fail on timezone parsing.
+
+Phase 3 — Confirm
+I'll iterate until all 12 tests in date.test.ts pass, proving it by running `npm test`.
+Constraint: no signature change. Bound: 5 iterations. Starting now.
+
+Phase 4 — Loop
+Iteration 0 — baseline run.  Verdict: not met. Reason: 3/12 fail (TZ offset).
+Iteration 1 — added offset parsing. Verdict: not met. Reason: 1/12 fails (negative offsets).
+Iteration 2 — handle negative offsets. Verdict: met. Reason: 12/12 pass.
+
+Phase 5 — Deliver final + log.
 ```
 
-### Full Mode Example
+### Example 2 — Vague request, one question to nail down
 
-**User:** "Improve this README — it's confusing and too long"
+**User:** "Tighten this paragraph up"
+
 ```
-1. Receive: README.md contents
-2. Criteria (confirmed with user):
-   - #1 Clarity: a new team member understands the project in under 2 minutes
-   - #2 Conciseness: under 200 lines, no redundant sections
-3. Baseline: score both criteria, identify key gaps
-4. Iteration 1: restructure for clarity (target biggest gap)
-5. Checkpoint: share scorecard, ask user if they agree
-6. Iteration 2: trim redundant content (next gap)
-7. Deliver: final README + iteration history
+Phase 1 — Receive
+Read the paragraph: 78 words, 4 sentences.
+
+Phase 2 — Question
+"What's the target?"
+  - Under 40 words while keeping the key claim (Recommended)
+  - Active voice only, length unchanged
+  - Cut every word that doesn't earn its place — aim for ~50 words
+
+User picks option 1.
+
+Phase 3 — Confirm
+Iterating until the paragraph is under 40 words and keeps the key claim. 
+Bound: 3 iterations. Starting now.
+
+Phase 4 — Loop
+Iteration 0 — 78 words. Verdict: not met. Reason: too long.
+Iteration 1 — cut redundancies → 52 words. Verdict: not met. Reason: still over 40.
+Iteration 2 — merge sentences 2+3 → 36 words. Verdict: met. Reason: 36 < 40, key claim preserved.
+
+Phase 5 — Deliver.
+```
+
+### Example 3 — Stall, ask user to relax
+
+**User:** "Cut this 800-line file under 200 lines while keeping all public API"
+
+```
+Iteration 0 → 1 → 2: 800 → 540 → 420 lines (extracted helpers, removed dead code).
+Iteration 3 → 4 → 5: 420 → 415 → 410 lines (diminishing returns).
+
+Stall detected (3 iterations < 50 lines progress).
+
+Surface: "Under 200 with the current public API surface looks structurally infeasible — 
+the API itself has 180+ lines of signatures. Options:
+  1. Relax to <300 lines
+  2. Allow public API trimming
+  3. Accept current state (410 lines)"
 ```
 
 ## Handling Edge Cases
 
-**User changes criteria mid-loop:** Accept the change. Re-score the current output against the new criteria and continue from Step 4.
+**Condition met at baseline (iteration 0).** Declare success immediately. Offer to raise the bar if the user wants more.
 
-**User provides feedback instead of letting the loop run:** Treat feedback as a new criterion or a signal to re-prioritize. Adjust and continue.
+**User provides feedback mid-loop.** Treat as either (a) a new constraint to add to the condition, or (b) a redirect ("stop, change the condition to X"). Acknowledge and adjust before continuing.
 
-**Output is already perfect (all criteria met at baseline):** Declare success immediately. Suggest the user raise the bar if they want further improvement.
+**Constraint conflicts with the end state.** Flag neutrally: *"Reaching X under constraint Y looks impossible — which should give?"* Don't grind.
 
-**Criteria conflict with each other:** Flag the conflict: *"Criterion A and B seem to pull in opposite directions. Which should win when they conflict?"*
+**Condition is too narrow and creates regressions elsewhere.** Surface the trade-off in the iteration log. If a regression is severe and the user didn't sanction it, treat as a stall and ask.
 
-**User just wants one quick fix:** Use Quick Mode — don't force the full loop.
+**User says "improve" with no input artifact.** Ask what to improve. Don't fabricate an artifact to improve.
 
 ## What This Skill Does NOT Do
 
-- Does not discover goals or explore intent — it requires clear input and criteria (use `/brainstorm` for discovery)
-- Does not guess what "better" means — requires explicit criteria
-- Does not make unlimited iterations — has clear stopping conditions
-- Does not trade met criteria for unmet ones without user approval
+- Does **not** discover goals or explore intent — use `/brainstorm` for that. This skill assumes you can name a measurable finish line (or get to one in 1–2 questions).
+- Does **not** pause for user approval mid-loop — the condition is the contract.
+- Does **not** run unbounded — every loop has an explicit cap.
+- Does **not** auto-detect regression in criteria that aren't named in the condition — if it matters, write it into the condition.
+- Does **not** install a session-scoped Stop hook like `/goal` — the loop runs within one skill invocation. For cross-session autonomous goals, use the actual `/goal` command.

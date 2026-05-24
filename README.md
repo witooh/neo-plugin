@@ -6,9 +6,9 @@ Opinionated Claude Code plugin that bundles seven composable skills for end-to-e
 
 | Skill | Purpose | Triggers on |
 |-------|---------|-------------|
-| **`neo-team`** | Orchestrate a specialist agent team (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) across preset workflows (New Feature, Bug Fix, PR Review, Refactoring, Requirement Clarification, Review Loop). | Any multi-concern dev request, or explicit `/neo` |
+| **`neo-team`** | Route a software-development task to specialist agents (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) via impact-based analysis. No fixed workflow — supports single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). Auto Dev loop (Dev → QA → Code Reviewer). | Any dev task that touches AC, design, code, tests, API, or security, or explicit `/neo` |
 | **`brainstorm`** | Turn vague requests into actionable outputs via adaptive guided questioning. Prompt / Explore / Focused modes. | "brainstorm", "ช่วยคิด", "I have an idea", "let's explore" |
-| **`improve`** | Iteratively refine any output (code, prose, data, config) until measurable criteria are met. | "improve this", "make it better", "ปรับปรุง", "iterate" |
+| **`improve`** | Iteratively refine any output (code, prose, data, config) until a measurable finish-line condition holds — autonomous improve → self-evaluate loop modeled on `/goal`. | "improve this", "make it better", "ปรับปรุง", "iterate" |
 | **`api-doc-gen`** | Scan handler/router source to produce structured Markdown API docs in `docs/api/`, or validate existing docs against the code. | "gen api doc", "สร้าง api doc", "api doc outdated" |
 | **`confluence-api-doc`** | Sync the multi-file `docs/api/` structure to Confluence pages via `acli` + REST. | "sync api doc", "push doc to confluence" |
 | **`gitlab`** | Drive GitLab via the `glab` CLI — create, update, read, review, fix, CI-fix, and feedback workflows for MRs. | Any MR URL, "สร้าง MR", "review MR", "fix CI" |
@@ -77,7 +77,7 @@ Three ways to kick off work:
 │   ├── session-start        # bash script that injects skill overview
 │   └── run-hook.cmd         # cross-platform polyglot wrapper
 ├── skills/
-│   ├── neo-team/            # orchestrator (BA → Architect → Dev → QA → Review)
+│   ├── neo-team/            # impact-based router → specialist agents
 │   ├── brainstorm/          # guided ideation
 │   ├── improve/             # iterative refinement
 │   ├── api-doc-gen/         # generate API docs from code

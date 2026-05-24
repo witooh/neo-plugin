@@ -21,11 +21,11 @@ escape_for_json() {
 session_context="<EXTREMELY_IMPORTANT>
 You have the neo-dev-toolkit plugin installed. It bundles seven skills — invoke them via the Skill tool whenever the user's request matches.
 
-1. **\`neo-team\`** — Orchestrate a specialist agent team (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer). Use whenever a request has more than one software-development concern: new feature, multi-file bug fix, non-trivial PR/MR review, cross-module refactor. The skill is an ORCHESTRATOR — do not implement multi-concern work yourself. Delegate via the \`Agent\` tool following the skill's Delegation Protocol. Users can also launch it with \`/neo\`.
+1. **\`neo-team\`** — Route a software-development task to specialist agents (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) via impact-based analysis. Use for any task that touches AC, system design, code, test cases, API contracts, or security — including single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). The skill is an ORCHESTRATOR — do not implement specialist work yourself. Delegate via the \`Agent\` tool following the skill's Delegation Protocol. Users can also launch it with \`/neo\`.
 
 2. **\`brainstorm\`** — ALWAYS use before answering brainstorming, ideation, prompt-crafting, or open-ended exploration (\"brainstorm\", \"ช่วยคิด\", \"I have an idea\", \"improve this prompt\", \"let's explore\", \"I want to build\"). Transforms vague requests into actionable outputs via adaptive guided questioning.
 
-3. **\`improve\`** — Iteratively improve any output (code, prose, data, config) until measurable criteria are met. Triggers: \"improve this\", \"make it better\", \"iterate\", \"refine\", \"ปรับปรุง\", \"ทำให้ดีขึ้น\".
+3. **\`improve\`** — Iteratively refine any output until a measurable finish-line condition holds — autonomous improve → self-evaluate loop modeled on Claude Code's \`/goal\`. Establishes ONE condition up front (asks 1-2 questions if vague), then loops without mid-loop checkpoints until met, stalled, or bound reached. Triggers: \"improve this\", \"make it better\", \"iterate\", \"refine\", \"ปรับปรุง\", \"ทำให้ดีขึ้น\".
 
 4. **\`api-doc-gen\`** — Generate or validate API docs from source. Triggers: \"gen api doc\", \"สร้าง api doc\", \"อัปเดต api doc\", \"document these endpoints\", \"api doc outdated\".
 
