@@ -2,9 +2,9 @@
 name: improve
 description: Iteratively improve any output until a clear finish-line condition holds — autonomous loop modeled on Claude Code's `/goal` command. Establish ONE measurable completion condition up front (with adaptive questioning if vague), then run improve → self-evaluate → loop until the condition is met or the bound is reached. After each iteration the evaluator returns a yes/no + one-sentence reason; if "no", that reason becomes the next iteration's directive. Use to refine code, prose, data, config, design, or any artifact against a verifiable end state. Triggers on phrases like "improve this", "make it better", "iterate", "refine", "keep improving", "not good enough yet", "optimize this", "polish this", "tighten this up", "ปรับปรุง", "ทำให้ดีขึ้น", "ยังไม่ดี", "แก้ให้ดีกว่านี้", "iterate ต่อ", or when the user provides criteria and wants repeated improvement until they're satisfied. Also use when the user gives feedback on output and expects continued refinement, even without saying "improve" explicitly.
 compatibility:
-  environment: claude-code, copilot-cli, kiro-cli
+  environment: claude-code
   tools:
-    - AskUserQuestion (fallback: ask_user, plain text conversation)
+    - AskUserQuestion
 metadata:
   version: "4.0"
 ---
@@ -27,7 +27,7 @@ This skill stays **autonomous** between iterations: no user checkpoint mid-loop.
 
 | Tool | Purpose |
 |---|---|
-| `AskUserQuestion` | Ask the user ONE question at a time to nail down the condition. Claude Code: native `AskUserQuestion` with `options`. Copilot: `ask_user` with `choices`. Kiro/other: plain text with numbered options. |
+| `AskUserQuestion` | Ask the user ONE question at a time to nail down the condition, using the `options` array. |
 
 Use `AskUserQuestion` only during the **discovery phase** (before the loop starts). Once the condition is confirmed, do not pause the loop to ask anything — the loop runs end-to-end and reports back.
 
@@ -158,7 +158,7 @@ For exhaustive patterns and the evaluator prompt template, see [references/CONDI
 
 ## Asking Questions
 
-Use `AskUserQuestion` (Claude Code) with `options` array when the answer space is predictable. Fall back to `ask_user` with `choices` (Copilot) or plain text with numbered options (Kiro/other). One question per call — multiple questions get shallow answers.
+Use `AskUserQuestion` with `options` array when the answer space is predictable. One question per call — multiple questions get shallow answers.
 
 Each question needs: a recommended option first labeled `"(Recommended)"`, 2–4 mutually exclusive choices with `label` (1–5 words) and `description` (explains the trade-off).
 

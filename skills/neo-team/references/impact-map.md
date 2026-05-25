@@ -27,8 +27,12 @@ This replaces the v1 workflow catalog. Tasks are no longer matched to a fixed pi
 
 ## Propagation Rules
 
-- **Sequential by default.** Each role waits for the previous role's output, with a checkpoint in between (Review / Continue / Stop).
-- **Dev loop** is the only auto-continuous segment: **Developer → QA → Code Reviewer** runs without inner checkpoints until QA passes AND Code Reviewer has no blockers. One combined checkpoint is shown after the loop ends.
+- **Sequential by default.** Each role waits for the previous role's output, with a checkpoint in between (Review / Continue / Stop) — enforced by Orchestrator HARD-GATE 6.
+- **Dev loop** is the only auto-continuous segment: **Developer → QA → Code Reviewer** runs without inner checkpoints. Exit condition (enforced by Orchestrator HARD-GATE 5) — BOTH must hold:
+  - QA Sign-Off = Approved (E2E pass + ACs validated)
+  - Code Reviewer Verdict = Approved (zero Blocker AND zero Critical)
+
+  On failure: Orchestrator re-dispatches Developer with concrete findings folded in, then re-runs QA + Code Reviewer. **Max 3 iterations** — after the 3rd round fails, the Orchestrator STOPS the loop and escalates to user. One combined checkpoint after exit. Warning/Info findings do NOT block exit.
 - **Conditional roles** (the parenthesized entries in row 5) are dispatched only when the trigger condition is met. If the Orchestrator is unsure whether the condition is met, it surfaces the decision to the user at the relevant checkpoint instead of auto-including or auto-skipping the role.
 - **User override.** If the user names a specific role in their request ("ให้ QA gen test cases เลย"), route directly to that role even if the Impact Map says additional roles are touched — but surface the discrepancy in the plan or in chat so the user can opt in to the extra roles if they want.
 

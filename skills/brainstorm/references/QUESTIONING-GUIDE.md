@@ -2,7 +2,7 @@
 
 Detailed patterns for each discovery phase across all three modes. Read this file when executing the brainstorm workflow to understand the intent, techniques, and examples for each phase.
 
-**Important:** Always use `AskUserQuestion` (Claude Code), `ask_user` (Copilot), or plain text with numbered options (Kiro) — never embed questions in unstructured text output. See SKILL.md's **AskUserQuestion Usage** section for the Claude Code call schema.
+**Important:** Always use `AskUserQuestion` — never embed questions in unstructured text output. See SKILL.md's **AskUserQuestion Usage** section for the call schema.
 
 ---
 

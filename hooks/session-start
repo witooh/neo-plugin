@@ -40,16 +40,7 @@ Single-file fixes, quick questions, and pure research tasks do NOT need these sk
 
 context_escaped=$(escape_for_json "$session_context")
 
-# Emit only the shape the current platform consumes.
-# - Cursor:   additional_context (top-level, snake_case)
-# - Claude Code: hookSpecificOutput.additionalContext (nested)
-# - Copilot CLI / SDK standard: additionalContext (top-level, camelCase)
-if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
-  printf '{\n  "additional_context": "%s"\n}\n' "$context_escaped"
-elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
-  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context_escaped"
-else
-  printf '{\n  "additionalContext": "%s"\n}\n' "$context_escaped"
-fi
+# Emit the Claude Code hook output shape.
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context_escaped"
 
 exit 0
