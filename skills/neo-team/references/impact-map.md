@@ -24,6 +24,7 @@ This replaces the v1 workflow catalog. Tasks are no longer matched to a fixed pi
 | 7 | **Bug fix**                         | System Analyzer → Developer → QA → Code Reviewer                                      | System Analyzer first to find root cause; then Dev loop.                                            |
 | 8 | **Review PR / MR**                  | Code Reviewer → Security                                                              | Read-only. No Developer dispatch unless the user explicitly asks to fix findings.                   |
 | 9 | **Refactor**                        | Code Reviewer → Developer → QA                                                        | Code Reviewer first to identify scope; Developer to apply; QA to confirm no behavior change.        |
+| 10 | **AC Blocker resolved** (Blocked → Ready promotion) | BA → Architect (conditional) → QA → Developer → Code Reviewer | BA mutates ONLY the named AC-IDs (Status: Blocked → Ready, removes Blocker line, updates Summary + Total + VERSION.md entry). Architect runs only if the previously-Blocked AC's design did not exist yet. QA untags `@blocked` and generates E2E specs for the now-Ready TCs. Dev Loop is scoped to ONLY the promoted AC-IDs — not the whole document. See § Re-entry Workflow below. |
 
 ## Propagation Rules
 
@@ -51,6 +52,43 @@ When the user modifies existing code, the Orchestrator must decide whether the c
 | Performance optimization with identical I/O contract  | No               | No                         |
 
 If the Orchestrator cannot decide confidently from the diff or task description, it MUST ask the user at the checkpoint after Developer (before deciding whether to include BA/Architect downstream).
+
+## Re-entry Workflow (Blocker resolved)
+
+When a previously-Blocked AC becomes implementable (the upstream dependency in the Blocker field is now finalized), the user re-invokes `/neo-team` with a message like:
+
+```
+/neo-team AC-002 unblocked — promote to Ready and run Dev Loop scoped to AC-002
+```
+
+This triggers **row 10** of the Impact Map. The Orchestrator dispatches roles in this order:
+
+1. **BA** (mandatory first) — reads the AC document, mutates ONLY the named AC-IDs:
+   - `Status: Blocked` → `Status: Ready`
+   - Remove the `Blocker:` line from each promoted AC
+   - Update AC Summary table `Status` column for the promoted rows
+   - Update `Ready: R / Blocked: B` tail count
+   - Add a `VERSION.md` entry: `vN.M: <usecase> — promoted AC-NNN from Blocked to Ready (upstream <ticket-id> finalized YYYY-MM-DD)`
+   - Run § Document Verification & Fix (GATE BA3) on the modified doc
+   - Output the diff (which AC-IDs changed) so downstream specialists know the scope
+
+2. **Architect** (conditional) — re-dispatched only if the promoted AC's behavior is NOT already covered in `docs/design/<usecase>/api-contracts.md` (this happens if the Blocked AC was a placeholder and design was deferred). If contract is already there, skip.
+
+3. **QA** — re-dispatched in **two modes back-to-back**:
+   - First in **Test Spec mode**: removes the `@blocked` tag, removes the `Blocker:` field, updates Test Case Summary `Status` column for the promoted TC-IDs, removes the rows from the Deferred Test Cases table, updates the `Ready: R / Blocked: B` count.
+   - Then later in **Dev Loop mode** (after Developer): generates E2E specs ONLY for the promoted TCs, runs them.
+
+4. **Developer** — dispatched with a prompt scoped to ONLY the newly-Ready AC-IDs (paste the AC bodies verbatim). Developer MUST NOT modify code paths covered by other ACs unless the implementation crosscuts. Run in TDD mode if a QA test spec exists for the promoted TC.
+
+5. **Code Reviewer** — reviews only the new diff from step 4.
+
+6. **Pre-Finalization Checklist** — Blocked ACs section now reflects the reduced count (or is empty if all were unblocked).
+
+### Edge cases
+
+- **Contract drift** — if the resolved Blocker is finalized but the actual contract differs from BA's original AC body assumptions, BA returns Open Questions BEFORE promoting. Do NOT silently promote when scenario semantics changed.
+- **Selective promotion** — if multiple Blocked ACs share the same upstream and only one is being resolved, the user MUST specify which AC-IDs to promote. Do NOT batch-promote all that share the upstream without user direction.
+- **Missing evidence** — if the user requests promotion but the upstream evidence is not actually available (e.g., they say "promote AC-002" but no contract reference exists), BA returns an Open Question asking for the reference (same Trigger B template as initial Blocked detection — `references/business-analyst.md` § Status Assignment Rule § 6).
 
 ## Single-Role Shortcuts
 

@@ -37,6 +37,18 @@ Number AC-IDs sequentially within this order (AC-001, AC-002, ...). Never reorde
 
 **Audit Logging Rule:** Audit logging is always ONE combined AC that covers both success and failure outcomes. Never split audit into separate ACs per outcome type (e.g., do not create separate ACs for "audit success" and "audit failure").
 
+**Status Semantics — every AC has a dependency-readiness status:**
+
+- **Ready** (default) — all upstream artifacts (API contracts, service contracts, data schemas) needed to implement and test this AC exist. The AC can flow through Architect → QA → Developer normally.
+- **Blocked** — this AC depends on a contract or artifact from another work item (ticket/MR) that is not yet finalized. The AC is documented for visibility but is excluded from the Dev Loop until the blocker is resolved.
+
+`Blocked` is for **dependency readiness only** — it is NOT a progress-tracking status (progress lives in Jira and git). An AC marked `Blocked` MUST also declare a Blocker field naming the dependency identifier and the specific missing piece.
+
+When `Status: Blocked` is set, the orchestrator:
+- Does NOT dispatch Developer to implement this AC
+- DOES instruct QA to generate test cases with an `@blocked` tag (so coverage is documented but execution is deferred)
+- Reports the AC in the Pre-Finalization Checklist's "Blocked ACs" section
+
 ---
 
 #### AC-001: [Scenario name — happy path]
@@ -48,6 +60,8 @@ Number AC-IDs sequentially within this order (AC-001, AC-002, ...). Never reorde
 
 **Business Rule:** [underlying rule this validates — must be explicit and testable]
 **Priority:** P0 (Critical) | P1 (High) | P2 (Medium)
+**Status:** Ready | Blocked
+**Blocker:** [REQUIRED when Status=Blocked — format: `<ticket-id-or-artifact-ref> — <what's missing>`. OMIT this line entirely when Status=Ready]
 
 ---
 
@@ -59,6 +73,8 @@ Number AC-IDs sequentially within this order (AC-001, AC-002, ...). Never reorde
 
 **Business Rule:** [underlying rule this validates]
 **Priority:** P0 (Critical) | P1 (High) | P2 (Medium)
+**Status:** Ready | Blocked
+**Blocker:** [REQUIRED when Status=Blocked — format: `<ticket-id-or-artifact-ref> — <what's missing>`. OMIT this line entirely when Status=Ready]
 
 ---
 
@@ -96,12 +112,14 @@ _(Repeat the same structure for each sub-operation. Omit this section entirely w
 
 ## AC Summary
 
-| ID | Sub-operation | Scenario | Priority | Business Rule |
-|----|---------------|----------|----------|---------------|
-| AC-001 | [sub-operation or "—" if single-op] | [scenario name] | P0 | [short rule ref] |
-| AC-002 | [sub-operation or "—" if single-op] | [scenario name] | P1 | [short rule ref] |
+| ID | Sub-operation | Scenario | Priority | Status | Business Rule |
+|----|---------------|----------|----------|--------|---------------|
+| AC-001 | [sub-operation or "—" if single-op] | [scenario name] | P0 | Ready | [short rule ref] |
+| AC-002 | [sub-operation or "—" if single-op] | [scenario name] | P1 | Blocked | [short rule ref] (blocked by GI-XX) |
 
-**Total Acceptance Criteria:** N
+_When Status=Blocked, append the Blocker reference to the Business Rule cell as `(blocked by <dependency-id>)` so readers can scan dependencies without opening every AC._
+
+**Total Acceptance Criteria:** N  (Ready: R / Blocked: B)
 
 ---
 

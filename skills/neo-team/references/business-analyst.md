@@ -34,7 +34,12 @@ After writing or editing any AC document, you **MUST** complete the Verification
 3. Verify quality (no vague outcomes, no implicit rules, no missing failure paths, state transitions complete).
 4. Placeholder scan (`TODO`, `TBD`, `[...]`, `assumed`, `default`, `example`, any bracket placeholders).
 5. Cross-reference (AC-IDs in Summary match body; BR numbering matches AC ordering; priority counts match).
-6. Fix issues + re-read.
+6. Status consistency check:
+   - Status field present on every AC (`Ready` or `Blocked` — no other values, no missing)
+   - Every Blocked AC has a non-empty Blocker field; every Ready AC has NO Blocker line
+   - AC Summary table includes the Status column with counts matching the body
+   - "Total Acceptance Criteria" tail line breakdown `(Ready: R / Blocked: B)` adds up correctly
+7. Fix issues + re-read.
 
 **MUST NOT** return `DONE` without completed verification. An unverified document propagates silent errors to QA and Developer.
 
@@ -63,6 +68,8 @@ A requirement is ready when:
 - [ ] Error scenarios are defined with **specific expected behavior** (not just "returns error")
 - [ ] Business rules are explicit (not implied)
 - [ ] Out-of-scope items are noted
+- [ ] Every AC has an explicit **Status** (Ready or Blocked) — no AC defaults to absent/null
+- [ ] Every Blocked AC has a Blocker field with `<dependency-id> — <missing piece>` format (no Blocker line on Ready ACs)
 
 ## User Story Format
 
@@ -83,6 +90,8 @@ AC-[NNN]: [scenario name]
 
   Business Rule: [the underlying rule — explicit and testable]
   Priority: P0 | P1 | P2
+  Status: Ready | Blocked
+  Blocker: <dep-id> — <missing piece>   (only when Status=Blocked; omit line when Ready)
 ```
 
 Every AC must be **specific enough that QA can write a test case without asking follow-up questions**. If an AC mentions an error, specify the expected error code and message — not just "returns an error." If an AC involves validation, state exactly what values are valid and invalid.
@@ -203,6 +212,41 @@ Use these standard mappings. Do not invent alternatives:
 - **1 AC = 1 BR.** Each AC references exactly one Business Rule. Do not split a single AC's logic into multiple BRs, and do not create BRs that are not referenced by any AC.
 - Number Business Rules (BR-001, BR-002, ...) in the order they first appear in the AC list. BR-001 corresponds to the Business Rule of AC-001, BR-002 to AC-002, and so on. Never reorder BRs independently of the AC sequence.
 
+### Status Assignment Rule
+
+Every AC gets exactly one Status — `Ready` (default) or `Blocked`. Apply this deterministic decision tree at AC-generation time:
+
+1. **Default = Ready.** Begin every AC with Status: Ready. The AC must be downgraded to Blocked only by the explicit triggers below.
+
+2. **Trigger A — User-declared blocker.** If the user's task prompt explicitly names a blocked AC ("AC-002 ถูก block โดย GI-53", "AC for X is blocked by ticket Y"), set Status: Blocked and copy the user's exact dependency reference into the Blocker field. **No Open Question needed.**
+
+3. **Trigger B — External-contract dependency without evidence.** If the AC body contains a call to an external service/endpoint owned by another team (e.g., "AS calls PS GET /products/...", "AS reads from Vault response"), check for any of:
+   - An existing API contract doc at `docs/design/<usecase>/api-contracts.md` or `docs/design/system-design/` that covers the called endpoint
+   - A reference in the user's task prompt to a ticket/MR/contract proving the dependency is finalized
+
+   If NEITHER exists → write an Open Question (see template below) asking the user to either (a) confirm the contract is finalized + provide a reference, or (b) confirm the AC is Blocked + provide the upstream ticket. Do NOT default to Blocked on your own — wait for the answer. Honors GATE BA1 (Never Guess).
+
+4. **Forbidden uses of Blocked:**
+   - Do NOT use Blocked for "I'm unsure how to write this AC" — that's an Open Question (GATE BA1).
+   - Do NOT use Blocked for "this might change later" — that's a versioning concern handled in VERSION.md.
+   - Do NOT use Blocked for "we'll defer this to a later sprint" — that's scoping, handle via Out of Scope section.
+
+5. **Blocker field format (required when Status=Blocked):** `<dependency-id> — <specific missing piece>`. Examples:
+   - `GI-53 (PS contract) — response shape when campaign_eligible_list is empty is not yet confirmed`
+   - `docs/design/system-design/vault-api.md — accountInterestRate update endpoint signature pending`
+
+6. **Open Question template (for Trigger B)** — emit this in Thai when no contract evidence exists:
+
+   > **AC-NNN — External contract dependency check**
+   >
+   > AC-NNN อ้างถึง [ชื่อ endpoint/service/contract] ของทีม/ระบบ [ชื่อ]. ขออนุมัติทางใดทางหนึ่ง:
+   >
+   > (a) Contract นี้ finalized แล้ว — โปรดระบุ reference (ticket ID, doc path, หรือ MR link) เพื่อให้ AC ถูก mark เป็น Ready
+   > (b) Contract ยังไม่พร้อม — โปรดระบุ upstream ticket/work item ที่ block AC นี้อยู่ เพื่อ mark Status=Blocked + Blocker field
+   >
+   > **Reference:** AC-NNN (`<sub-operation name>`)
+   > **Why it matters:** ถ้า AC อยู่ใน Ready โดยที่ contract ยังไม่นิ่ง Dev Loop จะ implement บน assumption และ test จะ fail; ถ้า mark Blocked โดยที่ contract พร้อมแล้ว เราจะ defer งานโดยไม่จำเป็น
+
 ---
 
 ## AC Document Generation (CRITICAL)
@@ -275,10 +319,11 @@ After writing or editing any AC document, you MUST verify it before returning yo
    - Every AC uses **GIVEN/WHEN/THEN** format
    - Every AC has explicit **Business Rule**
    - Every AC has **Priority** (P0/P1/P2)
+   - Every AC has **Status** (Ready | Blocked); Blocker line present iff Status=Blocked
    - Business Rules section lists all rules referenced by ACs
    - Edge Cases section present with expected behavior for each
    - Out of Scope section present
-   - AC Summary table matches the AC list (correct IDs, sub-operations, scenarios, priorities, count)
+   - AC Summary table matches the AC list (correct IDs, sub-operations, scenarios, priorities, Status, count)
 3. **Verify quality** against the Quality Gates above:
    - No vague outcomes — every error specifies HTTP status code and error message
    - No implicit rules — all validation ranges, accepted formats, limits are explicit
@@ -291,6 +336,7 @@ After writing or editing any AC document, you MUST verify it before returning yo
    - Every AC-ID in the Summary table matches an AC in the body (no phantom IDs, no missing IDs)
    - BR numbering matches AC ordering (BR-001 → AC-001, BR-002 → AC-002, ...)
    - Priority counts in Summary match actual priorities assigned
+   - Status counts in Summary (`Ready: R / Blocked: B`) match body counts; the "Total Acceptance Criteria" tail line breakdown matches R+B
 6. **Fix** any issues found — edit the document directly
 7. **Re-read** to confirm all fixes are applied correctly
 
@@ -375,6 +421,8 @@ When invoked to review QA's test cases, evaluate against these criteria:
 - Do not estimate effort — that is the Developer's role
 - If requirements conflict with each other, flag it and ask for resolution before proceeding
 - Never-guess and Open-Questions rules → see GATE BA1 (blocking).
+- Do not mark an AC as `Blocked` to avoid writing it — Blocked still requires a complete, testable AC (GIVEN/WHEN/THEN, Business Rule, Priority). Blocked defers implementation, NOT specification quality.
+- Do not mark ACs as `Blocked` based on guesses about dependencies — apply the Status Assignment Rule (§ Status Assignment Rule) strictly; ask via Open Questions when in doubt (GATE BA1).
 
 ## Output Format
 
@@ -396,13 +444,16 @@ AC-001: [happy path]
   Then [outcome]
   Business Rule: [rule]
   Priority: P0
+  Status: Ready
 
-AC-002: [edge case]
+AC-002: [edge case — example with Blocker]
   Given [context]
   When [action]
   Then [outcome]
   Business Rule: [rule]
   Priority: P1
+  Status: Blocked
+  Blocker: GI-53 (PS contract) — response shape เมื่อ campaign_eligible_list ว่างยังไม่ confirm
 
 AC-003: [error case]
   Given [context]
@@ -410,6 +461,7 @@ AC-003: [error case]
   Then [outcome]
   Business Rule: [rule]
   Priority: P1
+  Status: Ready
 
 **Business Rules:**
 1. [rule 1]

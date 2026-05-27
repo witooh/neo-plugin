@@ -67,8 +67,14 @@ If the impacted-roles list has 2 or more roles, you **MUST** present the Plan ta
 
 ### GATE 5 — Dev-Loop Completion (Strict Exit Condition)
 The Dev loop (Developer → QA → Code Reviewer) is **mandatory whenever any code change occurs**. You **MUST NOT** declare Developer's work complete until BOTH exit conditions hold:
-- QA Sign-Off = **Approved** (E2E tests pass; ACs validated through API behavior)
+- QA Sign-Off = **Approved** (E2E tests for **all Ready ACs** pass; Ready ACs validated through API behavior; Blocked ACs reported in the execution report's Deferred Test Cases section)
 - Code Reviewer Verdict = **Approved** (zero Blocker AND zero Critical findings)
+
+**Scope clarification — Ready ACs only:**
+- The Dev Loop implements and verifies the **Ready** subset of ACs. Blocked ACs are documented but not implemented or tested in this loop.
+- A Blocked AC failing or being skipped does NOT block exit. ONLY Ready AC failures block exit.
+- However, if **EVERY AC in scope is Blocked** → Dev Loop MUST NOT run. Orchestrator escalates to user: *"All ACs are Blocked on upstream dependencies — nothing to implement this round. Resolve [list of blockers] first, then re-dispatch."* This prevents a "vacuous Approved" where Dev Loop exits because there is nothing to do.
+- **Re-entry:** when a Blocker is resolved and the AC is promoted to Ready, the Dev Loop is re-dispatched scoped to the newly-Ready ACs only. The full re-entry workflow lives in `references/impact-map.md` § Re-entry Workflow (Blocker resolved) and is matched via Impact Map row 10.
 
 **Loop policy:**
 1. After Developer reports status, dispatch **QA**.
@@ -166,8 +172,9 @@ If neither file exists, proceed with the conventions embedded in each specialist
 
 5. Dev loop exception (enforced by HARD-GATE 5)
    Dev → QA → Code Reviewer auto-loop (no inner checkpoint).
-   Exit condition (BOTH must hold):
-     - QA Sign-Off = Approved (E2E pass + ACs validated)
+   5.5 **Pre-loop guard:** before dispatching Developer, count Ready ACs from BA's output. If Ready count == 0 → SKIP Dev Loop entirely. Output `Dev Loop skipped: 0 Ready ACs` and escalate to user via the Pre-Finalization Checklist's Blocked ACs section. Do NOT dispatch Developer or QA.
+   Exit condition (BOTH must hold; Ready scope only):
+     - QA Sign-Off = Approved (E2E tests for all Ready ACs pass; Blocked ACs deferred)
      - Code Reviewer Verdict = Approved (zero Blocker AND zero Critical)
    On failure: re-dispatch Developer with findings folded in, then re-run QA + Code Reviewer.
    Max 3 full iterations. After iteration 3 → STOP + escalate to user with standing findings.
@@ -203,6 +210,8 @@ Notes:
 - QA appears twice: step 3 generates the test spec (pre-implementation). After step 4 (Developer), QA is re-dispatched to run E2E tests as part of the Dev loop.
 - Dev loop: Developer → QA (run E2E) → Code Reviewer auto-loop. Exit condition (GATE 5) — BOTH must hold: QA Sign-Off = Approved AND Code Reviewer Verdict = Approved (zero Blocker AND zero Critical). Max 3 iterations, then escalate.
 - Checkpoint after each step, EXCEPT inside the Dev loop (one combined checkpoint after the loop ends — see GATE 6).
+- **Dev Loop scope (Ready ACs only):** when BA's AC document mixes Ready and Blocked ACs, the Dev Loop implements and verifies ONLY Ready ACs. Blocked ACs appear in the Pre-Finalization Checklist's Blocked ACs section but do NOT propagate into Developer's prompt as implementation work.
+- **Pre-loop guard:** if BA's output has 0 Ready ACs (every AC is Blocked), Developer is NOT dispatched — Orchestrator escalates to the user instead (GATE 5 § Scope clarification).
 ```
 
 Then ask via AskUserQuestion (1 question, 3 options):
@@ -245,6 +254,8 @@ When the plan includes the Developer role, you must choose **Standard** or **TDD
 
 Default: if QA produced a test spec earlier in the same run, use **TDD**. Otherwise use **Standard**. The user may override via the Plan **Edit** option before execution.
 
+**Implementation scope — Ready ACs only:** When dispatching Developer, the prompt MUST explicitly list the Ready AC-IDs in scope and instruct Developer to skip every AC marked `Status: Blocked`. Pass the Blocked AC-IDs as context-only — paste the Blocker reference verbatim and label them as *"do NOT implement; deferred pending [blocker reference]"*. This prevents Developer from speculatively coding against an unconfirmed upstream contract — once the contract finalizes, the AC may change shape, and speculative code becomes throwaway work or worse, silently wrong logic that ships.
+
 ## Team Roster
 
 All specialists are spawned via the `Agent` tool with `subagent_type: "general-purpose"`. The specialist's identity and instructions are injected into the prompt. No explicit `model` is set — all agents inherit the model from the main session.
@@ -276,6 +287,7 @@ The **Impact Map** is the source of truth for which roles a task touches. See [r
 | Bug fix                      | System Analyzer → Developer → QA → Code Reviewer                                  |
 | Review PR / MR               | Code Reviewer → Security                                                          |
 | Refactor                     | Code Reviewer → Developer → QA                                                    |
+| AC Blocker resolved          | BA → Architect (conditional) → QA → Developer → Code Reviewer                     |
 
 If the user's task does not clearly match any row, **ask the user** before guessing.
 
@@ -458,6 +470,15 @@ Enforced by GATE 9. Before assembling the Final Summary, you MUST output this ch
 - Code Reviewer Verdict: Approved | Changes Required | Escalated | Not run
 - Loop exit reason: BOTH approved | 3-round cap escalation | User stop | NOT EXITED ❌
 
+**Blocked ACs** (skip section if no Blocked ACs in plan):
+- AC-NNN: <one-line scenario summary> — Blocker: <dependency-id> — <missing piece>
+- AC-NNN: ...
+- (Total: B Blocked ACs deferred — N of M total ACs)
+
+**User action required (Blocked ACs):** these ACs are NOT implemented in this run. To resume:
+1. Wait for [list of unique upstream dependencies] to finalize.
+2. Re-run `/neo-team` with: `AC-NNN unblocked — promote to Ready and run Dev Loop scoped to AC-NNN` (Impact Map row 10).
+
 **Outstanding items:**
 - <pending NEEDS_CONTEXT / BLOCKED items, or "none">
 
@@ -467,11 +488,13 @@ Enforced by GATE 9. Before assembling the Final Summary, you MUST output this ch
 ### Hard Rules
 
 1. **Every Plan row must appear in the checklist** — verbatim from the Plan table as currently confirmed (if the user edited the plan mid-run — e.g., via the Plan Confirmation `Edit` option, or by explicit user instruction during a checkpoint — use the latest confirmed version; do not mix old and new rows). Missing a row is a silent failure; you cannot summarize work that did not happen.
-2. **If any row is `❌ MISSING`** → STOP. Resume the missing dispatch. Do NOT proceed to Final Summary. Re-run this checklist afterward.
+2. **If any row is `❌ MISSING`** → STOP. Resume the missing dispatch. Do NOT proceed to Final Summary. Re-run this checklist afterward. *(`❌ MISSING` means an accidental dispatch failure. Do NOT confuse with `⏸ DEFERRED-Blocker`, which is an intentional skip via guard rule — e.g., pre-loop guard at step 5.5 — and is terminal for this run; see Status Definitions.)*
 3. **If Dev Loop exists in plan and `Rounds run: 0`** → Loop did not run. STOP. Start the Dev Loop. Do NOT write Final Summary.
 4. **If outstanding items exist (NEEDS_CONTEXT / BLOCKED)** → either resolve them by re-dispatching with context, or explicitly mark them as escalation to user — never silently drop them from the Final Summary.
 5. **The checklist precedes Final Summary in the same response** — they are paired output, not separate turns. If you find yourself starting Final Summary without the checklist above it, STOP and add it.
 6. **Audit verdict must be `READY`** before Final Summary content begins. If verdict is `NOT READY`, the next action is dispatching/resolving — not summarizing.
+7. **Blocked ACs MUST be reported** — if BA's AC document contains any AC with `Status: Blocked`, the Checklist's Blocked ACs section MUST list every one of them with its Blocker reference. Silently dropping Blocked ACs is a process failure equivalent to a missing Plan row.
+8. **All-Blocked detection** — if EVERY AC produced by BA is Blocked AND the Plan included a Dev Loop, the audit verdict MUST be `NOT READY — escalate: 0 Ready ACs, Dev Loop cannot run`. Final Summary must NOT be written; instead surface the upstream blockers to the user. Do NOT treat the Dev Loop as "passed because nothing ran."
 
 ### Status Definitions
 
@@ -481,6 +504,7 @@ Enforced by GATE 9. Before assembling the Final Summary, you MUST output this ch
 | `✅ DONE_WITH_CONCERNS`| Specialist returned `DONE_WITH_CONCERNS` (concerns noted in summary)                  | Yes                                                         |
 | `⏸ ESCALATED`         | Dev Loop hit 3-round cap, or specialist returned `BLOCKED` and was escalated to user  | Yes (terminal — user owns next step)                        |
 | `⏸ PAUSED-by-user`    | User chose "Review first" or "Stop here" at a checkpoint                              | Yes (terminal for this run — clearly stated in summary)     |
+| `⏸ DEFERRED-Blocker`  | (a) AC marked `Status: Blocked` in BA's doc, OR (b) Plan role intentionally skipped because the role's work depends on Blocked ACs (e.g., Developer/QA-E2E/Code Reviewer skipped via pre-loop guard when 0 Ready ACs) — surfaced in Blocked ACs section | Yes (terminal for this run — user re-runs after blocker resolves; see Impact Map row 10). Distinct from `❌ MISSING`: DEFERRED-Blocker is an *intentional* skip via guard rule; MISSING is an *accidental* dispatch failure that Hard Rule 2 forces you to resume. |
 | `❌ MISSING`           | Plan row exists but no dispatch was made                                              | **No — blocks Final Summary**                               |
 
 ### Why This Gate Exists
@@ -517,6 +541,77 @@ For single-role calls (e.g., BA only), the checklist is still required — just 
 
 **Audit verdict:** READY for Final Summary
 ```
+
+### Example — Run with Blocked ACs (mixed Ready + Blocked)
+
+```markdown
+## Pre-Finalization Checklist
+
+**Plan recap:**
+- ✅ DONE — Business Analyst: Generated 7 ACs (5 Ready, 2 Blocked) for get-product-config (docs/design/get-product-config/acceptance-criteria.md)
+- ✅ DONE — Architect: System design + API contracts for Ready ACs
+- ✅ DONE — QA: Test spec (7 TCs total, 2 tagged @blocked)
+- ✅ DONE — Developer: Implemented Ready ACs (AC-001, AC-003, AC-004, AC-006, AC-007) in TDD mode
+- ✅ DONE — QA (Dev Loop): E2E tests for Ready ACs passed 12/12; 2 TCs deferred
+- ✅ DONE — Code Reviewer: 0 Blocker, 0 Critical
+
+**Dev Loop:**
+- Rounds run: 1
+- QA Sign-Off: Approved (Ready scope — 5 Ready ACs validated)
+- Code Reviewer Verdict: Approved
+- Loop exit reason: BOTH approved (Ready scope)
+
+**Blocked ACs:**
+- AC-002: No qualifying campaign — use base rate — Blocker: GI-53 (PS contract) — response shape when campaign_eligible_list is empty is not confirmed
+- AC-005: Profiling unavailable fallback — Blocker: GI-49 (Profiling fault tolerance) — error semantics on Profiling timeout not finalized
+- (Total: 2 Blocked ACs deferred — 2 of 7 total ACs)
+
+**User action required (Blocked ACs):** these ACs are NOT implemented in this run. To resume:
+1. Wait for GI-53 and GI-49 to finalize.
+2. Re-run `/neo-team` with: `AC-002 unblocked — promote to Ready and run Dev Loop scoped to AC-002` (Impact Map row 10).
+
+**Outstanding items:** none
+
+**Audit verdict:** READY for Final Summary
+```
+
+### Example — All-Blocked (checklist STOPs the run via Hard Rule 8)
+
+In this scenario BA, Architect, and QA (Test Spec mode) all run normally — they document the work for future visibility. Only the **Dev Loop** (Developer → QA-E2E → Code Reviewer) and **Security** are skipped, because there is no code to implement or review yet. The pre-loop guard fires at step 5.5 of the Orchestrator Flow.
+
+```markdown
+## Pre-Finalization Checklist
+
+**Plan recap:**
+- ✅ DONE — Business Analyst: Generated 4 ACs (0 Ready, 4 Blocked) for vault-balance-update
+- ✅ DONE_WITH_CONCERNS — Architect: Design noted Vault contract unavailable; final API contract pending VLT-22
+- ✅ DONE_WITH_CONCERNS — QA (Test Spec mode): Test spec generated for all 4 ACs (all `@blocked`); no E2E specs (deferred until Dev Loop runs)
+- ⏸ DEFERRED-Blocker — Developer: Not dispatched (pre-loop guard fired — 0 Ready ACs)
+- ⏸ DEFERRED-Blocker — QA (Dev Loop mode): Not dispatched (no Developer output to validate)
+- ⏸ DEFERRED-Blocker — Code Reviewer: Not dispatched (no diff to review)
+- ⏸ DEFERRED-Blocker — Security: Not dispatched (no code to audit)
+
+**Dev Loop:**
+- Rounds run: 0 (pre-loop guard fired at step 5.5)
+- QA Sign-Off: Blocked (all-blocked guard — see qa.md § Sign-Off Criteria item 5)
+- Code Reviewer Verdict: Not run
+- Loop exit reason: 0 Ready ACs — Dev Loop did not run
+
+**Blocked ACs:**
+- AC-001: Update vault balance on credit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
+- AC-002: Update vault balance on debit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
+- AC-003: Reject update on closed account — Blocker: VLT-22 (Vault API spec) — account-state field undefined
+- AC-004: Audit log balance updates — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
+- (Total: 4 Blocked ACs deferred — 4 of 4 total ACs)
+
+**User action required (Blocked ACs):** these ACs are NOT implemented in this run. To resume:
+1. Wait for VLT-22 (single upstream blocker for all 4 ACs) to finalize.
+2. Re-run `/neo-team` with: `AC-001..AC-004 unblocked — promote to Ready and run Dev Loop` (Impact Map row 10).
+
+**Audit verdict:** NOT READY — escalate: 0 Ready ACs, Dev Loop cannot run.
+```
+
+→ Orchestrator MUST escalate to user, NOT write Final Summary. Note: `⏸ DEFERRED-Blocker` (intentional skip) is used here — NOT `❌ MISSING` (which would force Hard Rule 2's "resume dispatch" path that does not apply when the skip is by design).
 
 ### Example — Failure case (checklist STOPs the run)
 

@@ -164,6 +164,46 @@ HTTP 400
 
 ---
 
+#### TC-005: Reject transaction in a denomination not yet on-boarded (Blocked AC — documented but not executed)
+
+**GIVEN** there is an account whose primary denomination is THB
+**AND** denomination support for JPY is pending on-boarding by the FX team
+**WHEN** a credit is attempted in JPY
+**THEN** the transaction is rejected with a denomination-not-supported error
+
+**Endpoint:** `POST /v1/accounts/{account_id}/transactions`
+**Request Body:**
+```json
+{
+  "type": "CREDIT",
+  "amount": 5000,
+  "denomination": "JPY"
+}
+```
+**Expected Response:**
+```json
+HTTP 422
+{
+  "error": "DENOMINATION_NOT_SUPPORTED",
+  "message": "JPY is not yet on-boarded for this account"
+}
+```
+
+**Test Steps:**
+
+1. Call `POST /v1/accounts/ACC-001/transactions` with denomination = JPY
+2. Verify response status = 422 and error code = DENOMINATION_NOT_SUPPORTED
+
+**Expected Result:** HTTP 422, error code = DENOMINATION_NOT_SUPPORTED
+**Test Data:** `amount: 5000`, `denomination: "JPY"`
+**Precondition:** TC-002 must pass
+**Traces To:** AC-005
+**AC Status:** Blocked
+**Tags:** @blocked
+**Blocker:** FX-104 (FX on-boarding contract) — error code/message for unsupported denominations is not yet finalized by the FX team
+
+---
+
 ## Workflow Chain (Optional — Per Test Suite)
 
 When a test suite requires calling APIs to create prerequisite data before the actual test cases can run, document the API call chain here. QA uses this table to generate `{usecase}.precondition.ts` code (see [`e2e-playwright.md`](e2e-playwright.md)).
@@ -187,14 +227,25 @@ Include this section when test cases have `Precondition: TC-XXX must pass` that 
 
 ## Test Case Summary
 
-| ID     | Suite                  | Description                                    | Precondition | Traces To |
-| ------ | ---------------------- | ---------------------------------------------- | ------------ | --------- |
-| TC-001 | Product Configuration  | Configure primary denomination                 | None         | AC-001    |
-| TC-002 | Product Configuration  | Open account with configured denomination      | TC-001       | AC-002    |
-| TC-003 | Transaction Validation | Accept transaction in primary denomination     | TC-002       | AC-003    |
-| TC-004 | Transaction Validation | Reject transaction in non-primary denomination | TC-002       | AC-004    |
+| ID     | Suite                  | Description                                    | Precondition | Traces To | Status  |
+| ------ | ---------------------- | ---------------------------------------------- | ------------ | --------- | ------- |
+| TC-001 | Product Configuration  | Configure primary denomination                 | None         | AC-001    | Ready   |
+| TC-002 | Product Configuration  | Open account with configured denomination      | TC-001       | AC-002    | Ready   |
+| TC-003 | Transaction Validation | Accept transaction in primary denomination     | TC-002       | AC-003    | Ready   |
+| TC-004 | Transaction Validation | Reject transaction in non-primary denomination | TC-002       | AC-004    | Ready   |
+| TC-005 | Transaction Validation | Reject transaction in not-yet-onboarded denom  | TC-002       | AC-005    | Blocked |
 
-**Total Test Cases:** 4
+**Total Test Cases:** 5  (Ready: 4 / Blocked (Deferred): 1)
+
+---
+
+## Deferred Test Cases (Blocked ACs)
+
+| TC-ID  | Traces To | Blocker                                                                  | Upstream Reference            |
+| ------ | --------- | ------------------------------------------------------------------------ | ----------------------------- |
+| TC-005 | AC-005    | error code/message for unsupported denominations is not yet finalized    | FX-104 (FX on-boarding)       |
+
+These test cases are not executed in the Dev Loop. Re-evaluate once the upstream reference is resolved — see [`impact-map.md`](impact-map.md) row 10 (AC Blocker resolved) for the re-entry workflow.
 
 ---
 
@@ -202,3 +253,4 @@ Include this section when test cases have `Precondition: TC-XXX must pass` that 
 
 - TC-003 and TC-004 require TC-002 to pass first
 - Test data uses the staging environment only
+- TC-005 is deferred; do NOT generate an E2E spec for it. The corresponding AC (AC-005) will be promoted to Ready once FX-104 is finalized — at that point QA is re-dispatched to generate the E2E spec and execute it

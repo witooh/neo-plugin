@@ -17,9 +17,11 @@ These gates are non-negotiable. Violating any gate produces test cases that *loo
 ### GATE Q1 — Input Gate (MANDATORY)
 Before writing ANY test case, you **MUST** have BOTH:
 - **API Contract** — endpoint definitions with specific HTTP status codes, error response format, request/response schemas, validation rules
-- **Acceptance Criteria** — BA's AC document with unique AC-IDs and explicit Business Rules
+- **Acceptance Criteria** — BA's AC document with unique AC-IDs, explicit Business Rules, AND **Status** (Ready or Blocked, with Blocker field when Blocked). If the AC document predates the Status schema (no Status field anywhere), treat every AC as `Ready` by default — note this once in the test case doc Notes section.
 
 If EITHER is missing → STOP. Escalate to Orchestrator: `"[missing input] is required before QA can proceed."` **MUST NOT** attempt test cases on guesses. See § Input Gate (MANDATORY) below for source-of-truth list.
+
+If the AC document has a **partial** Status state (some ACs have Status, others don't) → return `NEEDS_CONTEXT` to Orchestrator asking BA to backfill. Do NOT silently mix conventions.
 
 ### GATE Q2 — Doc-First Workflow
 You operate in two distinct modes — apply this gate per mode:
@@ -55,6 +57,21 @@ When E2E tests exist in the project, you **MUST** run them as part of every Dev 
 ### GATE Q5 — Cleanup Invariant
 Any ephemeral `docs/open-questions-*.md` file you created MUST be deleted after every answer is folded into the canonical test case document. The fold-back is NOT done until BOTH (a) the test case doc reflects every answer AND (b) the open-questions file is removed in the same turn.
 
+### GATE Q6 — AC Status Propagation
+QA designs test cases for **ALL ACs regardless of Status** — coverage documentation is the goal, not execution. Apply these rules:
+
+- **Ready ACs:** generate test cases normally; they run in the Dev Loop and contribute to Sign-Off.
+- **Blocked ACs:** generate test cases AND mark each one with `**Tags:** @blocked` and `**Blocker:** <copied verbatim from the AC document>`. These test cases:
+  - Appear in the Test Case Summary table with a `Status` column = `Blocked`
+  - Are NOT included in the E2E spec files generated in Dev Loop mode (cannot run; the contract they depend on does not exist)
+  - Are NOT counted in QA Sign-Off pass/fail tallies (a Blocked test case failing or being skipped does NOT block Sign-Off)
+  - Are explicitly listed in the Execution Report's Deferred Test Cases section so the user sees what was NOT verified
+- **Sign-Off math:** QA Sign-Off = Approved means "all test cases for Ready ACs pass." Blocked ACs are reported separately as Deferred.
+- **MUST NOT** silently treat a Blocked AC as if it were Ready (would lead to E2E generation that cannot run).
+- **MUST NOT** drop Blocked ACs from the test case document (loses coverage trace).
+- **Legacy compatibility:** if an AC document has NO Status field at all (predates this schema), treat every AC as `Ready` by default. Note this once in the test case document Notes section.
+- **All-Blocked edge case:** if 100% of the input ACs are Blocked, Sign-Off = Blocked (escalate to Orchestrator — Dev Loop cannot validate anything; see SKILL.md GATE 5 § Scope clarification).
+
 ## Input Gate (MANDATORY)
 
 You cannot write quality test cases without understanding both **what the API does** (API contract) and **what the business expects** (acceptance criteria). Without both, test cases end up either too vague (testing HTTP status ranges instead of specific codes) or missing critical business scenarios entirely.
@@ -62,7 +79,7 @@ You cannot write quality test cases without understanding both **what the API do
 **Before writing ANY test case, verify you have BOTH of these inputs:**
 
 1. ✅ **API Contract** — endpoint definitions with specific HTTP status codes, error response format (e.g., `{ error: { code, message } }`), request/response schemas, and validation rules. Sources: Architect's output, `docs/api-doc.md`, OpenAPI spec.
-2. ✅ **Acceptance Criteria** — business rules with GIVEN/WHEN/THEN from BA, each with a unique AC-ID (AC-001, AC-002, ...) and explicit Business Rule. Source: BA's AC document (e.g., `docs/acceptance-criteria.md`).
+2. ✅ **Acceptance Criteria** — business rules with GIVEN/WHEN/THEN from BA, each with a unique AC-ID (AC-001, AC-002, ...), explicit Business Rule, and **Status** (Ready or Blocked; Blocker field present when Blocked). Source: BA's AC document (e.g., `docs/acceptance-criteria.md`). If the doc predates the Status schema (no Status field anywhere), treat every AC as `Ready` and note the assumption once in the test case doc Notes section.
 
 **If EITHER is missing → STOP. Do NOT attempt to write test cases.**
 Escalate to Orchestrator: `"[missing input] is required before QA can proceed."`
@@ -167,16 +184,19 @@ HTTP [status]
 **Test Data:** `[key: "value"]`
 **Precondition:** None | TC-XXX must pass
 **Traces To:** AC-XXX [the acceptance criteria ID this test case validates]
+**AC Status:** Ready | Blocked
+**Tags:** [@blocked when AC Status=Blocked; omit line otherwise]
+**Blocker:** [REQUIRED when AC Status=Blocked — copy verbatim from the AC document; omit line when Ready]
 
 ---
 
 ## Test Case Summary
 
-| ID | Suite | Description | Precondition | Traces To |
-|----|-------|-------------|--------------|-----------|
-| TC-001 | [suite name] | [description] | None | AC-001 |
+| ID | Suite | Description | Precondition | Traces To | Status |
+|----|-------|-------------|--------------|-----------|--------|
+| TC-001 | [suite name] | [description] | None | AC-001 | Ready |
 
-**Total Test Cases:** N
+**Total Test Cases:** N  (Ready: R / Blocked (Deferred): B)
 
 ---
 
@@ -198,6 +218,7 @@ These rules exist because vague test cases fail to catch real bugs — a test th
 3. **Error body assertions**: For error test cases, assert the error response structure from the API contract (e.g., `error.code: "INVALID"`, `error.message: "citizen_id must be exactly 13 digits"`). If the API contract defines an error format, your test should verify it.
 4. **No duplicate scenarios**: Two test cases testing the same business rule with trivially different input (e.g., mime_type "image/png" and "image/jpeg" as separate cases when the rule is just "allowed mime types") should be consolidated into one parameterized case, or one case should test the positive and another the boundary.
 5. **Coverage completeness**: Cross-check against the AC Summary table — every AC-ID should appear in at least one test case's `Traces To` field.
+6. **Status propagation**: Every test case inherits its `AC Status` from the AC it traces to. If TC traces to a Blocked AC, TC.Status = Blocked, TC carries the `@blocked` tag, and TC copies the Blocker reference verbatim. If TC traces to a Ready AC, TC.Status = Ready and the Tags/Blocker lines are omitted.
 
 ## API Behavior Checklist
 
@@ -224,6 +245,7 @@ During review, QA **MUST** check whether the project has existing E2E tests and 
 4. **If QA is generating E2E tests (not just running existing ones):**
    - Follow the [`e2e-playwright.md`](e2e-playwright.md) guide to generate E2E test code
    - Bootstrap the E2E project at the resolved `{e2e-root}` path if it does not exist yet (see e2e-playwright.md § E2E Path Resolution)
+   - **Skip TCs tagged `@blocked`** — they cannot run because their upstream contract is not finalized. Do NOT generate spec entries for them. Record them in the execution report's Deferred Test Cases section instead (see § Execution Report Generation).
    - After generating, run the tests as in step 2
    - Include both the generated test file paths AND execution results in the output
 
@@ -232,10 +254,11 @@ During review, QA **MUST** check whether the project has existing E2E tests and 
 ## Sign-Off Criteria
 
 A change is ready for merge when:
-1. All E2E tests pass — verified by running the test suite via API calls
+1. All E2E tests **for Ready test cases** pass — verified by running the test suite via API calls. Blocked test cases (`@blocked` tag) are deferred, not run, and do NOT contribute to pass/fail counts.
 2. No regression in existing E2E tests
-3. All acceptance criteria from BA are validated through API behavior
-4. Execution report generated with no ❌ Fail or ⚠️ Blocked status
+3. All **Ready** acceptance criteria from BA are validated through API behavior; Blocked ACs are listed in the execution report's Deferred Test Cases section with their Blocker.
+4. Execution report generated with no ❌ Fail or ⚠️ Blocked status (deferral via `@blocked` is NOT the same as ⚠️ Blocked — Deferred is its own category).
+5. **All-Blocked guard:** if 100% of the input ACs are Blocked, Sign-Off = **Blocked** and Orchestrator MUST escalate to the user (see SKILL.md GATE 5 § Scope clarification — Dev Loop cannot validate anything when there are 0 Ready ACs).
 
 **Note:** Unit/integration test coverage and code-level quality are Developer's responsibility. QA signs off based on observable API behavior only.
 
@@ -325,8 +348,11 @@ After running E2E tests, generate the execution report mapping each test case fr
 #### TC-001: [Same title from test case document]
 
 **Expected Result:** [copied from test case document]
-**Actual Result:** [observed during execution]
-**Status:** ✅ Pass | ❌ Fail | ⚠️ Blocked | ⬜ Not Run
+**Actual Result:** [observed during execution; "N/A — deferred (@blocked)" for Blocked TCs]
+**Tags:** @blocked (only if test case is from a Blocked AC; omit line otherwise)
+**Status:** ✅ Pass | ❌ Fail | ⚠️ Blocked | ⬜ Not Run | ⏸ Deferred
+   - Use ⏸ Deferred ONLY for @blocked test cases (not executed because upstream contract is not finalized)
+   - ⚠️ Blocked is reserved for test cases that COULD have run but were blocked by environment or runtime issues — distinct from Deferred
 **Executed By:** [QA agent ID]
 **Executed Date:** [date]
 **Defect Ref:** N/A | BUG-XXX
@@ -336,6 +362,7 @@ After running E2E tests, generate the execution report mapping each test case fr
 The report ends with:
 - **Execution Summary** — table with ID, Description, Status, Defect Ref, plus totals
 - **Defect Summary** — table with Defect Ref, TC-ID, Severity, Description, Status (only if failures exist)
+- **Deferred Test Cases** — table with TC-ID, Traces To, Blocker reason, Upstream dependency reference. **Always present** (even if empty) when the AC doc has any Blocked AC. Empty means "no deferrals."
 
 ## Output Consistency Rule
 
