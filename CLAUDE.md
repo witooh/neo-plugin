@@ -50,9 +50,9 @@ Skills currently bundled: `neo-team`, `brainstorm`, `improve`, `api-doc-gen`, `c
 Local-path marketplaces have auto-update **off**. After committing a change you must refresh the marketplace listing and reinstall — `git pull` inside the marketplace dir is not enough:
 
 ```
-/plugin marketplace update neo-dev-toolkit-dev
-/plugin uninstall neo-dev-toolkit@neo-dev-toolkit-dev
-/plugin install   neo-dev-toolkit@neo-dev-toolkit-dev
+/plugin marketplace update neo
+/plugin uninstall neo-dev-toolkit@neo
+/plugin install   neo-dev-toolkit@neo
 ```
 
 (Version bump is a hard rule before commit — see "Before every commit" above.)

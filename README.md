@@ -21,36 +21,32 @@ Opinionated Claude Code plugin that bundles seven composable skills for end-to-e
 
 ## Installation
 
-**Local (development):**
+Install the plugin straight from this GitHub repo — no local clone needed:
 
 ```bash
 # From inside Claude Code
-/plugin marketplace add /Users/witoo.h/dev/witooh/neo-plugin
-/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
+/plugin marketplace add witooh/neo-plugin
+/plugin install neo-dev-toolkit@neo
 ```
 
-**After publishing to a git remote:**
+`witooh/neo-plugin` is the GitHub `owner/repo` shorthand. Claude Code reads `.claude-plugin/marketplace.json` from the default branch and resolves the plugin from there.
+
+If the repo is private or you prefer an explicit URL:
 
 ```bash
-/plugin marketplace add <your-org>/<your-repo>
-/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
+/plugin marketplace add https://github.com/witooh/neo-plugin.git
+/plugin install neo-dev-toolkit@neo
 ```
 
-**Update (local marketplace):**
-
-Local-path marketplaces have auto-update off, so pulling new changes in the repo is not enough — you must refresh the marketplace listing and reinstall:
+### Updating
 
 ```bash
-# 1. Make sure your repo is on the commit you want to ship
-cd /path/to/neo-plugin
-git status   # should be clean
+# 1. Pull the latest marketplace listing from GitHub
+/plugin marketplace update neo
 
-# 2. Refresh the marketplace listing
-/plugin marketplace update neo-dev-toolkit-dev
-
-# 3. Reinstall the plugin so the new version is loaded
-/plugin uninstall neo-dev-toolkit@neo-dev-toolkit-dev
-/plugin install neo-dev-toolkit@neo-dev-toolkit-dev
+# 2. Reinstall so the new plugin version is loaded
+/plugin uninstall neo-dev-toolkit@neo
+/plugin install neo-dev-toolkit@neo
 ```
 
 Open a fresh Claude Code session to confirm the updated skills are active.
@@ -69,7 +65,7 @@ Three ways to kick off work:
 .
 ├── .claude-plugin/
 │   ├── plugin.json          # plugin manifest
-│   └── marketplace.json     # dev marketplace for local install
+│   └── marketplace.json     # marketplace listing consumed by Claude Code
 ├── commands/
 │   └── neo.md               # /neo slash command → invokes neo-team skill
 ├── hooks/
