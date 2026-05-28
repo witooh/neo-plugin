@@ -44,6 +44,7 @@ HTTP 201
 **Test Data:** `denomination: "THB"`
 **Precondition:** None
 **Traces To:** AC-001
+**JIRA Ref:** PROJ-123
 
 ---
 
@@ -83,6 +84,7 @@ HTTP 200
 **Test Data:** `account_id: "ACC-001"`, `denomination: "THB"`
 **Precondition:** TC-001 must pass
 **Traces To:** AC-002
+**JIRA Ref:** PROJ-123, PROJ-456
 
 ---
 
@@ -125,6 +127,7 @@ HTTP 200
 **Test Data:** `amount: 1000`, `denomination: "THB"`
 **Precondition:** TC-002 must pass
 **Traces To:** AC-003
+**JIRA Ref:** PROJ-789
 
 ---
 
@@ -161,6 +164,7 @@ HTTP 400
 **Test Data:** `amount: 100`, `denomination: "USD"`
 **Precondition:** TC-002 must pass
 **Traces To:** AC-004
+**JIRA Ref:** PROJ-789
 
 ---
 
@@ -198,6 +202,7 @@ HTTP 422
 **Test Data:** `amount: 5000`, `denomination: "JPY"`
 **Precondition:** TC-002 must pass
 **Traces To:** AC-005
+**JIRA Ref:** PROJ-789, PROJ-901
 **AC Status:** Blocked
 **Tags:** @blocked
 **Blocker:** FX-104 (FX on-boarding contract) — error code/message for unsupported denominations is not yet finalized by the FX team
@@ -227,13 +232,15 @@ Include this section when test cases have `Precondition: TC-XXX must pass` that 
 
 ## Test Case Summary
 
-| ID     | Suite                  | Description                                    | Precondition | Traces To | Status  |
-| ------ | ---------------------- | ---------------------------------------------- | ------------ | --------- | ------- |
-| TC-001 | Product Configuration  | Configure primary denomination                 | None         | AC-001    | Ready   |
-| TC-002 | Product Configuration  | Open account with configured denomination      | TC-001       | AC-002    | Ready   |
-| TC-003 | Transaction Validation | Accept transaction in primary denomination     | TC-002       | AC-003    | Ready   |
-| TC-004 | Transaction Validation | Reject transaction in non-primary denomination | TC-002       | AC-004    | Ready   |
-| TC-005 | Transaction Validation | Reject transaction in not-yet-onboarded denom  | TC-002       | AC-005    | Blocked |
+| ID     | Suite                  | Description                                    | Precondition | Traces To | JIRA Ref           | Status  |
+| ------ | ---------------------- | ---------------------------------------------- | ------------ | --------- | ------------------ | ------- |
+| TC-001 | Product Configuration  | Configure primary denomination                 | None         | AC-001    | PROJ-123           | Ready   |
+| TC-002 | Product Configuration  | Open account with configured denomination      | TC-001       | AC-002    | PROJ-123, PROJ-456 | Ready   |
+| TC-003 | Transaction Validation | Accept transaction in primary denomination     | TC-002       | AC-003    | PROJ-789           | Ready   |
+| TC-004 | Transaction Validation | Reject transaction in non-primary denomination | TC-002       | AC-004    | PROJ-789           | Ready   |
+| TC-005 | Transaction Validation | Reject transaction in not-yet-onboarded denom  | TC-002       | AC-005    | PROJ-789, PROJ-901 | Blocked |
+
+_The JIRA Ref column mirrors the per-TC `JIRA Ref:` field, which is inherited verbatim from the AC at `Traces To`. Use `—` (em dash) when the source AC has no JIRA reference._
 
 **Total Test Cases:** 5  (Ready: 4 / Blocked (Deferred): 1)
 
@@ -241,11 +248,26 @@ Include this section when test cases have `Precondition: TC-XXX must pass` that 
 
 ## Deferred Test Cases (Blocked ACs)
 
-| TC-ID  | Traces To | Blocker                                                                  | Upstream Reference            |
-| ------ | --------- | ------------------------------------------------------------------------ | ----------------------------- |
-| TC-005 | AC-005    | error code/message for unsupported denominations is not yet finalized    | FX-104 (FX on-boarding)       |
+| TC-ID  | Traces To | JIRA Ref           | Blocker                                                                  | Upstream Reference            |
+| ------ | --------- | ------------------ | ------------------------------------------------------------------------ | ----------------------------- |
+| TC-005 | AC-005    | PROJ-789, PROJ-901 | error code/message for unsupported denominations is not yet finalized    | FX-104 (FX on-boarding)       |
+
+_The JIRA Ref column is inherited from the source AC at `Traces To` (the AC that tracks this scenario). This is distinct from the `Upstream Reference` column, which names the **blocker** (the upstream contract/ticket that prevents implementation). Use `—` (em dash) when the source AC has no JIRA Ref._
 
 These test cases are not executed in the Dev Loop. Re-evaluate once the upstream reference is resolved — see [`impact-map.md`](impact-map.md) row 10 (AC Blocker resolved) for the re-entry workflow.
+
+---
+
+## JIRA Ref Inheritance Rule
+
+Each TC's `JIRA Ref:` field is **inherited verbatim from the AC at `Traces To`** — QA does NOT pick or invent JIRA IDs for test cases. The AC document is the single source of truth.
+
+- If the source AC has `JIRA Ref: PROJ-123, PROJ-456` → the TC writes `**JIRA Ref:** PROJ-123, PROJ-456`.
+- If the source AC has NO `JIRA Ref:` line at all → OMIT the `**JIRA Ref:**` line entirely from the TC (do not write `—` in the body; the em dash is only for the Summary table column when the source AC has no refs).
+- If a TC traces to multiple ACs (rare; usually one TC = one AC), concatenate the deduplicated JIRA Ref union from every traced AC.
+- When AC's `JIRA Ref` changes upstream (BA updates the AC doc), re-sync the TC document. The test case document is downstream-only — never write back a JIRA Ref that the AC document doesn't have.
+
+This mirrors the existing Status / Blocker inheritance (§ Test Case Quality Rules in `qa.md`).
 
 ---
 

@@ -471,7 +471,7 @@ Enforced by GATE 9. Before assembling the Final Summary, you MUST output this ch
 - Loop exit reason: BOTH approved | 3-round cap escalation | User stop | NOT EXITED ❌
 
 **Blocked ACs** (skip section if no Blocked ACs in plan):
-- AC-NNN: <one-line scenario summary> — Blocker: <dependency-id> — <missing piece>
+- AC-NNN: <one-line scenario summary> — Blocker: <dependency-id> — <missing piece> [— JIRA: <comma-separated IDs>] *(JIRA segment appended ONLY when the AC carries a `JIRA Ref:` field in the AC doc; OMIT the ` — JIRA: ...` suffix entirely when the AC has no JIRA Ref)*
 - AC-NNN: ...
 - (Total: B Blocked ACs deferred — N of M total ACs)
 
@@ -562,9 +562,11 @@ For single-role calls (e.g., BA only), the checklist is still required — just 
 - Loop exit reason: BOTH approved (Ready scope)
 
 **Blocked ACs:**
-- AC-002: No qualifying campaign — use base rate — Blocker: GI-53 (PS contract) — response shape when campaign_eligible_list is empty is not confirmed
+- AC-002: No qualifying campaign — use base rate — Blocker: GI-53 (PS contract) — response shape when campaign_eligible_list is empty is not confirmed — JIRA: PROJ-501
 - AC-005: Profiling unavailable fallback — Blocker: GI-49 (Profiling fault tolerance) — error semantics on Profiling timeout not finalized
 - (Total: 2 Blocked ACs deferred — 2 of 7 total ACs)
+
+_AC-002 carries a JIRA Ref (`PROJ-501`) in the AC doc → ` — JIRA: PROJ-501` suffix is appended. AC-005 has no JIRA Ref in the AC doc → the JIRA suffix is OMITTED entirely._
 
 **User action required (Blocked ACs):** these ACs are NOT implemented in this run. To resume:
 1. Wait for GI-53 and GI-49 to finalize.
@@ -598,10 +600,10 @@ In this scenario BA, Architect, and QA (Test Spec mode) all run normally — the
 - Loop exit reason: 0 Ready ACs — Dev Loop did not run
 
 **Blocked ACs:**
-- AC-001: Update vault balance on credit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
-- AC-002: Update vault balance on debit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
-- AC-003: Reject update on closed account — Blocker: VLT-22 (Vault API spec) — account-state field undefined
-- AC-004: Audit log balance updates — Blocker: VLT-22 (Vault API spec) — endpoint signature not published
+- AC-001: Update vault balance on credit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published — JIRA: PROJ-901, PROJ-902
+- AC-002: Update vault balance on debit — Blocker: VLT-22 (Vault API spec) — endpoint signature not published — JIRA: PROJ-901, PROJ-902
+- AC-003: Reject update on closed account — Blocker: VLT-22 (Vault API spec) — account-state field undefined — JIRA: PROJ-901
+- AC-004: Audit log balance updates — Blocker: VLT-22 (Vault API spec) — endpoint signature not published — JIRA: PROJ-903
 - (Total: 4 Blocked ACs deferred — 4 of 4 total ACs)
 
 **User action required (Blocked ACs):** these ACs are NOT implemented in this run. To resume:

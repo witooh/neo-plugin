@@ -62,6 +62,7 @@ When `Status: Blocked` is set, the orchestrator:
 **Priority:** P0 (Critical) | P1 (High) | P2 (Medium)
 **Status:** Ready | Blocked
 **Blocker:** [REQUIRED when Status=Blocked — format: `<ticket-id-or-artifact-ref> — <what's missing>`. OMIT this line entirely when Status=Ready]
+**JIRA Ref:** [OPTIONAL — one or more JIRA card IDs that originated or track this AC. Format: comma-separated IDs (e.g., `PROJ-123` or `PROJ-123, PROJ-456`). OMIT this line entirely when no JIRA reference exists]
 
 ---
 
@@ -75,6 +76,7 @@ When `Status: Blocked` is set, the orchestrator:
 **Priority:** P0 (Critical) | P1 (High) | P2 (Medium)
 **Status:** Ready | Blocked
 **Blocker:** [REQUIRED when Status=Blocked — format: `<ticket-id-or-artifact-ref> — <what's missing>`. OMIT this line entirely when Status=Ready]
+**JIRA Ref:** [OPTIONAL — comma-separated JIRA card IDs; OMIT this line entirely when no JIRA reference exists]
 
 ---
 
@@ -112,12 +114,14 @@ _(Repeat the same structure for each sub-operation. Omit this section entirely w
 
 ## AC Summary
 
-| ID | Sub-operation | Scenario | Priority | Status | Business Rule |
-|----|---------------|----------|----------|--------|---------------|
-| AC-001 | [sub-operation or "—" if single-op] | [scenario name] | P0 | Ready | [short rule ref] |
-| AC-002 | [sub-operation or "—" if single-op] | [scenario name] | P1 | Blocked | [short rule ref] (blocked by GI-XX) |
+| ID | Sub-operation | Scenario | Priority | Status | JIRA Ref | Business Rule |
+|----|---------------|----------|----------|--------|----------|---------------|
+| AC-001 | [sub-operation or "—" if single-op] | [scenario name] | P0 | Ready | PROJ-123 | [short rule ref] |
+| AC-002 | [sub-operation or "—" if single-op] | [scenario name] | P1 | Blocked | PROJ-123, PROJ-456 | [short rule ref] (blocked by GI-XX) |
 
 _When Status=Blocked, append the Blocker reference to the Business Rule cell as `(blocked by <dependency-id>)` so readers can scan dependencies without opening every AC._
+
+_The JIRA Ref column mirrors the per-AC `JIRA Ref:` field. Write a comma-separated ID list when one or more refs exist (e.g., `PROJ-123` or `PROJ-123, PROJ-456`). Write `—` (em dash, not blank, not `N/A`) when the AC has no JIRA reference._
 
 **Total Acceptance Criteria:** N  (Ready: R / Blocked: B)
 

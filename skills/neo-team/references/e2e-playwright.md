@@ -45,7 +45,7 @@ The E2E project lives at `{e2e-root}` in the project root as a **standalone proj
 │   │   ├── data.json               ← JSON fixture data
 │   │   └── seed.sql                ← SQL seed script (optional)
 │   ├── {usecase}.precondition.ts   ← setup/teardown for this usecase
-│   └── {usecase}.e2e.ts            ← test file with TC-ID-prefixed cases
+│   └── {usecase}.e2e.ts            ← test file with `[TC - JIRA - AC]`-prefixed cases
 │
 └── {usecase-2}/
     └── (same structure)
@@ -313,7 +313,7 @@ If a usecase's test cases have no Workflow Chain (all preconditions are "None"),
 
 Each usecase has one test file: `{usecase}.e2e.ts`. The file structure maps directly to the test case document:
 - `describe()` blocks = Test Suites from the document
-- `it()` blocks = individual Test Cases, prefixed with TC-ID
+- `it()` blocks = individual Test Cases, prefixed with a traceability bracket — see § `it()` Prefix Format below
 
 ### Example: Savings Account E2E Test
 
@@ -338,7 +338,7 @@ describe('Savings Account', () => {
   // (Suite 1 steps are handled by precondition)
 
   describe('Transaction Validation', () => {
-    it('TC-003: should accept credit in primary denomination', async () => {
+    it('[TC-003 - PROJ-789 - AC-003]: should accept credit in primary denomination', async () => {
       const { accountId } = precondition.getContext();
 
       const res = await client.post(`/v1/accounts/${accountId}/transactions`, {
@@ -352,7 +352,7 @@ describe('Savings Account', () => {
       expect(res.body.denomination).toBe('THB');
     });
 
-    it('TC-004: should reject credit in non-primary denomination', async () => {
+    it('[TC-004 - PROJ-789 - AC-004]: should reject credit in non-primary denomination', async () => {
       const { accountId } = precondition.getContext();
 
       const res = await client.post(`/v1/accounts/${accountId}/transactions`, {
@@ -368,9 +368,44 @@ describe('Savings Account', () => {
 });
 ```
 
+### `it()` Prefix Format
+
+Every `it()` block **MUST** begin with a traceability bracket of the form:
+
+```
+[<TC-ID> - <JIRA-IDs> - <AC-IDs>]: <description>
+```
+
+The bracket has up to three segments separated by ` - ` (space-dash-space):
+
+1. **TC segment (mandatory)** — the test case ID from the test case document, e.g., `TC-001`.
+2. **JIRA segment (optional — OMIT entirely when the source AC has no JIRA Ref)** — comma-separated JIRA card IDs copied verbatim from the TC's `**JIRA Ref:**` field, e.g., `PROJ-123` or `PROJ-123, PROJ-456`.
+3. **AC segment (mandatory)** — comma-separated AC IDs from the TC's `**Traces To:**` field, using the same `AC-NNN` casing the AC document uses, e.g., `AC-001` or `AC-001, AC-002`.
+
+**Examples (canonical):**
+
+```typescript
+// With JIRA + single AC
+it('[TC-001 - PROJ-123 - AC-001]: should configure primary denomination', ...)
+
+// With multiple JIRA IDs + single AC
+it('[TC-002 - PROJ-123, PROJ-456 - AC-002]: should open account with configured denomination', ...)
+
+// Without JIRA (source AC has no JIRA Ref) — JIRA segment OMITTED, two-segment bracket
+it('[TC-010 - AC-010]: should reject when authorization header is missing', ...)
+
+// With JIRA + multiple ACs (rare; TC traces to more than one AC)
+it('[TC-020 - PROJ-901 - AC-015, AC-016]: should cascade-deactivate dependent records', ...)
+```
+
+**Source-of-truth rules:**
+- JIRA IDs **MUST** match the TC's `**JIRA Ref:**` field verbatim (same IDs, same order, same casing). Never invent IDs. If the source AC has no `JIRA Ref`, the TC inherits no JIRA Ref → OMIT the JIRA segment from the bracket (do NOT write empty segment like `[TC-001 -  - AC-001]` and do NOT write `—` inside the bracket).
+- AC IDs **MUST** match the TC's `**Traces To:**` field verbatim. When `Traces To` lists multiple ACs, comma-separate them in the same order, e.g., `AC-001, AC-002`.
+- The colon `:` after the closing bracket and the human-readable description follow the same convention as the previous TC-ID-only prefix (`it('TC-001: ...')` → `it('[TC-001 - … - AC-NNN]: ...')`).
+
 ### Test File Rules
 
-1. **TC-ID prefix is mandatory** — every `it()` must start with the TC-ID from the test case document: `it('TC-001: ...')`
+1. **Traceability bracket prefix is mandatory** — every `it()` must start with the bracket described in § `it()` Prefix Format above.
 2. **One test file per usecase** — all test suites for a usecase go in the same `.e2e.ts` file
 3. **Precondition test cases become setup** — if TC-001 and TC-002 are preconditions for TC-003+, they belong in `precondition.ts` setup, not as `it()` blocks (they are implicitly validated when setup succeeds)
 4. **Assertion standards** — follow the Test Case Quality Rules from [`qa.md`](qa.md) (exact HTTP status codes, error body assertions, no duplicate scenarios)
@@ -401,6 +436,7 @@ If the project's `CLAUDE.md` defines different env vars or test commands, follow
 Before reporting E2E test results, verify:
 
 - [ ] Every TC-ID from the test case document has a corresponding `it()` block in the `.e2e.ts` file
+- [ ] Every `it()` block begins with the traceability bracket `[<TC-ID> - <JIRA-IDs> - <AC-IDs>]:` (JIRA segment omitted when the source AC has no JIRA Ref); JIRA and AC IDs match the source TC's `**JIRA Ref:**` and `**Traces To:**` fields verbatim
 - [ ] Precondition `setup()` covers every step from the Workflow Chain table in the test case document
 - [ ] Precondition `teardown()` cleans up in reverse order
 - [ ] `cd {e2e-root} && npm test` runs successfully (or failures are documented in the execution report)

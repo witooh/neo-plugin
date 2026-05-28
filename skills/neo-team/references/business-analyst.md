@@ -39,7 +39,12 @@ After writing or editing any AC document, you **MUST** complete the Verification
    - Every Blocked AC has a non-empty Blocker field; every Ready AC has NO Blocker line
    - AC Summary table includes the Status column with counts matching the body
    - "Total Acceptance Criteria" tail line breakdown `(Ready: R / Blocked: B)` adds up correctly
-7. Fix issues + re-read.
+7. JIRA Ref consistency check (when any AC carries a `JIRA Ref` field):
+   - Every JIRA Ref value is a comma-separated list of plain IDs — no URLs, no titles, no leading `#` or `[JIRA]` prefix
+   - Each AC's body `**JIRA Ref:**` value matches the same row's `JIRA Ref` column in the AC Summary table verbatim
+   - ACs WITHOUT a `**JIRA Ref:**` body line have `—` (em dash) in the Summary table's JIRA Ref column — not blank, not `N/A`, not omitted column
+   - No JIRA ID was invented by you (cross-check against the user's task prompt) — every ID that appears in the doc traces back to a user-supplied value
+8. Fix issues + re-read.
 
 **MUST NOT** return `DONE` without completed verification. An unverified document propagates silent errors to QA and Developer.
 
@@ -70,6 +75,7 @@ A requirement is ready when:
 - [ ] Out-of-scope items are noted
 - [ ] Every AC has an explicit **Status** (Ready or Blocked) — no AC defaults to absent/null
 - [ ] Every Blocked AC has a Blocker field with `<dependency-id> — <missing piece>` format (no Blocker line on Ready ACs)
+- [ ] **JIRA Ref** (optional) — when the user's task prompt names JIRA card IDs (e.g., `PROJ-123`, `ABC-456`), the corresponding AC(s) carry a `**JIRA Ref:**` field with the comma-separated ID list. When no JIRA card is referenced for an AC, the `JIRA Ref` line is OMITTED entirely (do not write `JIRA Ref: —` or `JIRA Ref: N/A` in the body)
 
 ## User Story Format
 
@@ -92,6 +98,7 @@ AC-[NNN]: [scenario name]
   Priority: P0 | P1 | P2
   Status: Ready | Blocked
   Blocker: <dep-id> — <missing piece>   (only when Status=Blocked; omit line when Ready)
+  JIRA Ref: <comma-separated JIRA card IDs>   (OPTIONAL — omit line when no JIRA card tracks this AC)
 ```
 
 Every AC must be **specific enough that QA can write a test case without asking follow-up questions**. If an AC mentions an error, specify the expected error code and message — not just "returns an error." If an AC involves validation, state exactly what values are valid and invalid.
@@ -247,6 +254,33 @@ Every AC gets exactly one Status — `Ready` (default) or `Blocked`. Apply this 
    > **Reference:** AC-NNN (`<sub-operation name>`)
    > **Why it matters:** ถ้า AC อยู่ใน Ready โดยที่ contract ยังไม่นิ่ง Dev Loop จะ implement บน assumption และ test จะ fail; ถ้า mark Blocked โดยที่ contract พร้อมแล้ว เราจะ defer งานโดยไม่จำเป็น
 
+### JIRA Ref Capture Rule
+
+The `JIRA Ref` field on each AC is **optional traceability metadata** linking the AC back to one or more JIRA cards (story, task, sub-task, bug) that originated or track this scenario. Apply this deterministic rule at AC-generation time:
+
+1. **Default = OMITTED.** If the user's task prompt does NOT mention any JIRA card, the `JIRA Ref:` line is OMITTED from every AC body and the Summary table's JIRA Ref column reads `—` (em dash). **Never write an Open Question asking "which JIRA card is this from" — JIRA Ref is optional by design.**
+
+2. **Capture trigger.** When the user's task prompt names one or more JIRA card IDs (format: `ABC-123`, `PROJ-4567`, typically all-caps project key + dash + integer), capture every ID exactly as written and attach it to the AC(s) the user associates with that ID. Examples that count as a capture trigger:
+   - "ทำ AC ของ PROJ-123" → every AC of this usecase gets `JIRA Ref: PROJ-123`
+   - "AC-002 มาจาก PROJ-456 และ PROJ-789" → AC-002 gets `JIRA Ref: PROJ-456, PROJ-789`; other ACs do NOT inherit
+   - "Sub-operation 'Activate' tracked by PROJ-501" → every AC under Sub-operation 'Activate' gets `JIRA Ref: PROJ-501`
+   - A JIRA URL like `https://<host>/browse/PROJ-123` → extract just the ID `PROJ-123` (Format Rule: ID only, no URL, no title)
+
+3. **Mapping ambiguity.** If the user names JIRA IDs but the mapping to specific ACs is ambiguous (e.g., "PROJ-123 และ PROJ-456 เกี่ยวกับ usecase นี้" with 5 ACs in the doc), write an Open Question in Thai asking which AC(s) each ID covers. Do NOT default to "all ACs get all IDs" — that destroys traceability granularity.
+
+4. **Format rules (mirror `acceptance-criteria.md` template):**
+   - Comma-separated IDs: `PROJ-123` or `PROJ-123, PROJ-456` (single space after the comma)
+   - IDs only — never URLs, never titles, never JIRA prefixes like `[JIRA]` or `#`
+   - Deduplicate within a single AC (`PROJ-123, PROJ-123` → `PROJ-123`)
+   - Preserve the user's exact casing of the project key (do not lowercase `proj-123` to `PROJ-123` unless the user wrote it that way)
+   - In the AC body: write `**JIRA Ref:** PROJ-123` (full line); OMIT the line entirely when no refs exist
+   - In the AC Summary table's JIRA Ref column: write the same comma-separated list; write `—` (em dash) when the source AC has no refs
+
+5. **Forbidden uses of JIRA Ref:**
+   - Do NOT use JIRA Ref as a Blocker substitute — Blocker is for *upstream dependencies that prevent implementation*; JIRA Ref is for *the ticket(s) this AC was authored against*. Both fields can coexist on the same AC.
+   - Do NOT invent JIRA IDs that the user did not provide (GATE BA1 — Never Guess). If the user said "the JIRA card for login flow" without an ID, ask which ID — do not write a placeholder.
+   - Do NOT auto-fill JIRA Ref from git branch names, commit messages, or any source the user did not explicitly call out as the JIRA reference.
+
 ---
 
 ## AC Document Generation (CRITICAL)
@@ -320,10 +354,11 @@ After writing or editing any AC document, you MUST verify it before returning yo
    - Every AC has explicit **Business Rule**
    - Every AC has **Priority** (P0/P1/P2)
    - Every AC has **Status** (Ready | Blocked); Blocker line present iff Status=Blocked
+   - JIRA Ref line is OPTIONAL: present only when one or more JIRA card IDs were captured for this AC; OMITTED entirely otherwise (never `JIRA Ref: —` or `JIRA Ref: N/A` in the AC body)
    - Business Rules section lists all rules referenced by ACs
    - Edge Cases section present with expected behavior for each
    - Out of Scope section present
-   - AC Summary table matches the AC list (correct IDs, sub-operations, scenarios, priorities, Status, count)
+   - AC Summary table matches the AC list (correct IDs, sub-operations, scenarios, priorities, Status, JIRA Ref, count)
 3. **Verify quality** against the Quality Gates above:
    - No vague outcomes — every error specifies HTTP status code and error message
    - No implicit rules — all validation ranges, accepted formats, limits are explicit
@@ -337,6 +372,8 @@ After writing or editing any AC document, you MUST verify it before returning yo
    - BR numbering matches AC ordering (BR-001 → AC-001, BR-002 → AC-002, ...)
    - Priority counts in Summary match actual priorities assigned
    - Status counts in Summary (`Ready: R / Blocked: B`) match body counts; the "Total Acceptance Criteria" tail line breakdown matches R+B
+   - JIRA Ref column in Summary matches each AC's body `**JIRA Ref:**` value verbatim; ACs with no `JIRA Ref:` body line show `—` (em dash) in the Summary column (not blank, not `N/A`)
+   - No JIRA ID appears in the doc that was not supplied by the user (cross-check captured IDs against the original task prompt — never invent IDs)
 6. **Fix** any issues found — edit the document directly
 7. **Re-read** to confirm all fixes are applied correctly
 
@@ -445,8 +482,9 @@ AC-001: [happy path]
   Business Rule: [rule]
   Priority: P0
   Status: Ready
+  JIRA Ref: PROJ-123
 
-AC-002: [edge case — example with Blocker]
+AC-002: [edge case — example with Blocker and multiple JIRA refs]
   Given [context]
   When [action]
   Then [outcome]
@@ -454,8 +492,9 @@ AC-002: [edge case — example with Blocker]
   Priority: P1
   Status: Blocked
   Blocker: GI-53 (PS contract) — response shape เมื่อ campaign_eligible_list ว่างยังไม่ confirm
+  JIRA Ref: PROJ-123, PROJ-456
 
-AC-003: [error case]
+AC-003: [error case — example with no JIRA Ref; JIRA Ref line is OMITTED entirely]
   Given [context]
   When [action]
   Then [outcome]

@@ -53,6 +53,7 @@ When E2E tests exist in the project, you **MUST** run them as part of every Dev 
 - Every status code assertion **MUST** use the exact code from the API contract (`400`, `404`, `409`, `422`, `429`, `502`, `504`).
 - **MUST NOT** use vague ranges like `>= 400` or `status < 500`.
 - Error test cases **MUST** assert the error body structure (e.g., `error.code`, `error.message`) when the API contract defines one.
+- **JIRA Ref inheritance.** When the source AC carries a `JIRA Ref` field, the test case **MUST** include a `**JIRA Ref:**` line copied verbatim from that AC. When the source AC has NO `JIRA Ref` field, OMIT the line from the TC body entirely (do not write `JIRA Ref: —` or `JIRA Ref: N/A`). **MUST NOT** invent JIRA IDs that the AC document does not contain — the AC document is the single source of truth.
 
 ### GATE Q5 — Cleanup Invariant
 Any ephemeral `docs/open-questions-*.md` file you created MUST be deleted after every answer is folded into the canonical test case document. The fold-back is NOT done until BOTH (a) the test case doc reflects every answer AND (b) the open-questions file is removed in the same turn.
@@ -184,6 +185,7 @@ HTTP [status]
 **Test Data:** `[key: "value"]`
 **Precondition:** None | TC-XXX must pass
 **Traces To:** AC-XXX [the acceptance criteria ID this test case validates]
+**JIRA Ref:** [OPTIONAL — inherited verbatim from the source AC's JIRA Ref. OMIT this line entirely when the source AC has no JIRA Ref]
 **AC Status:** Ready | Blocked
 **Tags:** [@blocked when AC Status=Blocked; omit line otherwise]
 **Blocker:** [REQUIRED when AC Status=Blocked — copy verbatim from the AC document; omit line when Ready]
@@ -192,9 +194,9 @@ HTTP [status]
 
 ## Test Case Summary
 
-| ID | Suite | Description | Precondition | Traces To | Status |
-|----|-------|-------------|--------------|-----------|--------|
-| TC-001 | [suite name] | [description] | None | AC-001 | Ready |
+| ID | Suite | Description | Precondition | Traces To | JIRA Ref | Status |
+|----|-------|-------------|--------------|-----------|----------|--------|
+| TC-001 | [suite name] | [description] | None | AC-001 | PROJ-123 | Ready |
 
 **Total Test Cases:** N  (Ready: R / Blocked (Deferred): B)
 
@@ -219,6 +221,7 @@ These rules exist because vague test cases fail to catch real bugs — a test th
 4. **No duplicate scenarios**: Two test cases testing the same business rule with trivially different input (e.g., mime_type "image/png" and "image/jpeg" as separate cases when the rule is just "allowed mime types") should be consolidated into one parameterized case, or one case should test the positive and another the boundary.
 5. **Coverage completeness**: Cross-check against the AC Summary table — every AC-ID should appear in at least one test case's `Traces To` field.
 6. **Status propagation**: Every test case inherits its `AC Status` from the AC it traces to. If TC traces to a Blocked AC, TC.Status = Blocked, TC carries the `@blocked` tag, and TC copies the Blocker reference verbatim. If TC traces to a Ready AC, TC.Status = Ready and the Tags/Blocker lines are omitted.
+7. **JIRA Ref inheritance**: Every test case inherits its `JIRA Ref` from the AC it traces to — the AC document is the single source of truth. Copy the value VERBATIM (same IDs, same order, same casing). When TC traces to multiple ACs (rare), write the deduplicated union of all source ACs' JIRA Refs. When the source AC has NO `JIRA Ref` line, OMIT the `**JIRA Ref:**` line from the TC body (write `—` only in the Summary table column, never in the body). **Never invent JIRA IDs** — if you think a TC needs a JIRA Ref that the AC doesn't carry, escalate to Orchestrator to have BA update the AC document first.
 
 ## API Behavior Checklist
 
@@ -283,7 +286,7 @@ QA generates two types of test documents using the reference templates in this s
    → If E2E project does not exist, resolve path and bootstrap it (see e2e-playwright.md § E2E Path Resolution + Bootstrapping)
    → Usecase test folder name mirrors `docs/design/{usecase}/` name exactly
    → If test case document has a Workflow Chain table: generate `{usecase}.precondition.ts` from it
-   → Generate `{usecase}.e2e.ts` with TC-ID-prefixed `it()` blocks
+   → Generate `{usecase}.e2e.ts` with traceability-bracket-prefixed `it()` blocks of the form `[<TC-ID> - <JIRA-IDs> - <AC-IDs>]: <description>` (see [`e2e-playwright.md`](e2e-playwright.md) § `it()` Prefix Format — JIRA segment omitted when the source AC has no JIRA Ref)
    → Run `cd {e2e-root} && npm test` to verify all tests pass
 
 3. Run E2E tests and generate execution report
@@ -355,14 +358,15 @@ After running E2E tests, generate the execution report mapping each test case fr
    - ⚠️ Blocked is reserved for test cases that COULD have run but were blocked by environment or runtime issues — distinct from Deferred
 **Executed By:** [QA agent ID]
 **Executed Date:** [date]
+**JIRA Ref:** [OPTIONAL — inherited verbatim from the source TC's `JIRA Ref` (which itself inherits from the source AC). OMIT this line entirely when the source TC has no JIRA Ref]
 **Defect Ref:** N/A | BUG-XXX
 **Notes:** [context, observations, screenshots if relevant]
 ```
 
 The report ends with:
-- **Execution Summary** — table with ID, Description, Status, Defect Ref, plus totals
+- **Execution Summary** — table with ID, Description, Status, JIRA Ref, Defect Ref, plus totals. The JIRA Ref column mirrors each TC's body field; use `—` (em dash) for TCs without a JIRA Ref.
 - **Defect Summary** — table with Defect Ref, TC-ID, Severity, Description, Status (only if failures exist)
-- **Deferred Test Cases** — table with TC-ID, Traces To, Blocker reason, Upstream dependency reference. **Always present** (even if empty) when the AC doc has any Blocked AC. Empty means "no deferrals."
+- **Deferred Test Cases** — table with TC-ID, Traces To, JIRA Ref, Blocker reason, Upstream dependency reference. The JIRA Ref column is inherited from each TC's test case document entry (em dash when none). **Always present** (even if empty) when the AC doc has any Blocked AC. Empty means "no deferrals."
 
 ## Output Consistency Rule
 
