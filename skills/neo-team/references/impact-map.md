@@ -18,11 +18,11 @@ This replaces the v1 workflow catalog. Tasks are no longer matched to a fixed pi
 | 1 | Create or modify **AC**             | BA → Architect → QA                                                                  | Architect re-validates design covers updated ACs; QA updates test cases for AC coverage.            |
 | 2 | Create or modify **System Design**  | Architect → QA → Developer                                                            | QA reassesses testability of new design; Developer updates implementation if already started.       |
 | 3 | Create or modify **Test Cases**     | QA → BA (for AC coverage review)                                                      | BA reviews to ensure tests cover every AC-ID; no Developer dispatch unless tests reveal AC gaps.    |
-| 4 | Add **new endpoint** (full spec)    | BA → Architect → QA → Developer → Code Reviewer → Security                            | Full chain. Dev loop kicks in for Developer → QA → Code Reviewer.                                   |
+| 4 | Add **new endpoint** (full spec)    | BA → Architect → QA → Developer → (Code Reviewer ∥ Security)                          | Full chain. Dev loop = Developer → QA → Code Reviewer. The final **Code Reviewer ∥ Security run in parallel** (both read-only, independent scopes) — see Propagation Rules § Parallel read-only review. |
 | 5 | Modify **existing Code**            | Developer → QA → Code Reviewer → (BA / Architect if behavior is impacted)             | Dev loop. BA/Architect propagation is **conditional** — see "Behavior-impact decision" below.       |
 | 6 | Modify **API contract**             | Architect → Developer → QA → Security                                                 | Security is mandatory whenever API surface changes.                                                 |
 | 7 | **Bug fix**                         | System Analyzer → Developer → QA → Code Reviewer                                      | System Analyzer first to find root cause; then Dev loop.                                            |
-| 8 | **Review PR / MR**                  | Code Reviewer → Security                                                              | Read-only. No Developer dispatch unless the user explicitly asks to fix findings.                   |
+| 8 | **Review PR / MR**                  | Code Reviewer ∥ Security                                                              | Read-only, run **in parallel** (independent scopes) — see Propagation Rules § Parallel read-only review. No Developer dispatch unless the user explicitly asks to fix findings. |
 | 9 | **Refactor**                        | Code Reviewer → Developer → QA                                                        | Code Reviewer first to identify scope; Developer to apply; QA to confirm no behavior change.        |
 | 10 | **AC Blocker resolved** (Blocked → Ready promotion) | BA → Architect (conditional) → QA → Developer → Code Reviewer | BA mutates ONLY the named AC-IDs (Status: Blocked → Ready, removes Blocker line, updates Summary + Total + VERSION.md entry). Architect runs only if the previously-Blocked AC's design did not exist yet. QA untags `@blocked` and generates E2E specs for the now-Ready TCs. Dev Loop is scoped to ONLY the promoted AC-IDs — not the whole document. See § Re-entry Workflow below. |
 
@@ -34,12 +34,14 @@ This replaces the v1 workflow catalog. Tasks are no longer matched to a fixed pi
   - Code Reviewer Verdict = Approved (zero Blocker AND zero Critical)
 
   On failure: Orchestrator re-dispatches Developer with concrete findings folded in, then re-runs QA + Code Reviewer. **Max 3 iterations** — after the 3rd round fails, the Orchestrator STOPS the loop and escalates to user. One combined checkpoint after exit. Warning/Info findings do NOT block exit.
+- **Doc Verify Loop (downstream verifies upstream).** In the doc chain (rows 1, 2, 4) each downstream doc-role adversarially verifies its upstream artifact FIRST — Architect attacks BA's AC (GATE AR7), QA attacks Architect's design (GATE Q7) — before producing its own deliverable. A **Blocker-class** defect **loops back to the upstream role** (concrete findings folded in, **max 2 loops per edge** — Architect↔BA, QA↔Architect; see SKILL.md GATE 10 for the loop unit + the QA→BA two-hop — then escalate to user); a **judgment** defect goes to the user as an Open Question (HARD-GATE 8). No inner checkpoint for the verify → fix → re-verify cycle — one checkpoint after the downstream role completes (enforced by Orchestrator **HARD-GATE 10**). BA closes the loop on QA's test cases via row 3's Test Case Review. This is the doc analogue of the Dev loop: independent verification, not the author's own re-read.
+- **Parallel read-only review (Code Reviewer ∥ Security).** In rows 4 & 8 these two run **concurrently**, not sequentially — both are strictly read-only (CR1 / SEC1), their scopes are orthogonal (Code Reviewer = convention compliance; Security = exploitability), and neither consumes the other's output. The Orchestrator dispatches both in a single batch (two `Agent` calls in one step) and shows **ONE combined checkpoint after both return** — the same exception to HARD-GATE 6 that the Dev loop uses. No worktree isolation is needed (read-only agents cannot conflict on files).
 - **Conditional roles** (the parenthesized entries in row 5) are dispatched only when the trigger condition is met. If the Orchestrator is unsure whether the condition is met, it surfaces the decision to the user at the relevant checkpoint instead of auto-including or auto-skipping the role.
 - **User override.** If the user names a specific role in their request ("ให้ QA gen test cases เลย"), route directly to that role even if the Impact Map says additional roles are touched — but surface the discrepancy in the plan or in chat so the user can opt in to the extra roles if they want.
 
 ## Behavior-impact Decision (row 5)
 
-When the user modifies existing code, the Orchestrator must decide whether the change touches **observable behavior** (which would require updating AC/system design) or is internal-only (which would not).
+When the user modifies existing code, the Orchestrator must decide whether the change touches **observable behavior** (which would require updating AC/system design) or is internal-only (which would not). Reason this through deliberately — inspect what the change does to inputs, outputs, side effects, and error semantics — rather than guessing from diff size or file names.
 
 | Code change pattern                                   | Behavior impact? | Propagate to BA/Architect? |
 | ----------------------------------------------------- | ---------------- | -------------------------- |
@@ -63,22 +65,11 @@ When a previously-Blocked AC becomes implementable (the upstream dependency in t
 
 This triggers **row 10** of the Impact Map. The Orchestrator dispatches roles in this order:
 
-1. **BA** (mandatory first) — reads the AC document, mutates ONLY the named AC-IDs:
-   - `Status: Blocked` → `Status: Ready`
-   - Remove the `Blocker:` line from each promoted AC
-   - Update AC Summary table `Status` column for the promoted rows
-   - Update `Ready: R / Blocked: B` tail count
-   - Add a `VERSION.md` entry: `vN.M: <usecase> — promoted AC-NNN from Blocked to Ready (upstream <ticket-id> finalized YYYY-MM-DD)`
-   - Run § Document Verification & Fix (GATE BA3) on the modified doc
-   - Output the diff (which AC-IDs changed) so downstream specialists know the scope
-
-   **JIRA Ref persistence during promotion:** the `JIRA Ref:` field is **sticky** — it persists across Blocker resolution UNCHANGED. Do NOT add, modify, or remove `JIRA Ref` values during promotion unless the user's promotion message explicitly supplies new JIRA IDs (e.g., "promote AC-002 with JIRA Ref PROJ-700"). If the user supplies new JIRA IDs in the promotion message, follow the standard JIRA Ref Capture Rule (see `references/business-analyst.md` § JIRA Ref Capture Rule — merge new IDs with existing, deduplicate). The Blocker field (upstream dependency) and the JIRA Ref field (AC tracking ticket) are independent — resolving one does not affect the other.
+1. **BA** (mandatory first) — mutates ONLY the named AC-IDs (Status `Blocked → Ready`, remove `Blocker:`, update Summary `Status` column + `Ready: R / Blocked: B` count + a `VERSION.md` entry, run verification, output the diff of changed AC-IDs). Field mutations are defined in [`shared/ac-status.md`](shared/ac-status.md) §5; `JIRA Ref` is sticky ([`shared/jira-ref.md`](shared/jira-ref.md) §5).
 
 2. **Architect** (conditional) — re-dispatched only if the promoted AC's behavior is NOT already covered in `docs/design/<usecase>/api-contracts.html` (this happens if the Blocked AC was a placeholder and design was deferred). If contract is already there, skip.
 
-3. **QA** — re-dispatched in **two modes back-to-back**:
-   - First in **Test Spec mode**: removes the `@blocked` tag, removes the `Blocker:` field, updates Test Case Summary `Status` column for the promoted TC-IDs, removes the rows from the Deferred Test Cases table, updates the `Ready: R / Blocked: B` count.
-   - Then later in **Dev Loop mode** (after Developer): generates E2E specs ONLY for the promoted TCs, runs them.
+3. **QA** — re-dispatched in **two modes back-to-back**: first **Test Spec mode** (untag `@blocked`, remove `Blocker:`, update Test Case Summary + Deferred table + count for the promoted TC-IDs — [`shared/ac-status.md`](shared/ac-status.md) §5), then **Dev Loop mode** after Developer (generate E2E specs ONLY for the promoted TCs, run them).
 
 4. **Developer** — dispatched with a prompt scoped to ONLY the newly-Ready AC-IDs (paste the AC bodies verbatim). Developer MUST NOT modify code paths covered by other ACs unless the implementation crosscuts. Run in TDD mode if a QA test spec exists for the promoted TC.
 
@@ -90,7 +81,7 @@ This triggers **row 10** of the Impact Map. The Orchestrator dispatches roles in
 
 - **Contract drift** — if the resolved Blocker is finalized but the actual contract differs from BA's original AC body assumptions, BA returns Open Questions BEFORE promoting. Do NOT silently promote when scenario semantics changed.
 - **Selective promotion** — if multiple Blocked ACs share the same upstream and only one is being resolved, the user MUST specify which AC-IDs to promote. Do NOT batch-promote all that share the upstream without user direction.
-- **Missing evidence** — if the user requests promotion but the upstream evidence is not actually available (e.g., they say "promote AC-002" but no contract reference exists), BA returns an Open Question asking for the reference (same Trigger B template as initial Blocked detection — `references/business-analyst.md` § Status Assignment Rule § 6).
+- **Missing evidence** — if the user requests promotion but the upstream evidence is not actually available (e.g., they say "promote AC-002" but no contract reference exists), BA returns an Open Question asking for the reference (same Trigger B template as initial Blocked detection — [`shared/ac-status.md`](shared/ac-status.md) §2).
 
 ## Single-Role Shortcuts
 

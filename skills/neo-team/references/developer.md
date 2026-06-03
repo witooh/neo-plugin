@@ -21,12 +21,10 @@ Before writing ANY code, you **MUST** have all of:
 If any input is missing or unclear → STOP. Return `NEEDS_CONTEXT` with the specific missing piece. **MUST NOT** start coding on guesses.
 
 ### GATE D2 — Never Guess
-If the task prompt has ambiguity (missing API contract field, unclear business rule, conflicting instructions between documents) → STOP. Return Open Questions in Thai with **Reference** (which AC-ID / requirement / file) and why each answer matters.
-- **MUST NOT** infer "reasonable" defaults.
-- **MUST NOT** write code with "assumed X" comments.
+If the task prompt has ambiguity (missing API contract field, unclear business rule, conflicting instructions between documents) → STOP. Follow the **Universal Rule — Never Guess** (prompt header): return Open Questions in Thai with a **Reference** (AC-ID / requirement / file) and why each matters. **MUST NOT** infer "reasonable" defaults or write code with "assumed X" comments.
 
 ### GATE D3 — Cleanup Invariant
-Any ephemeral `docs/open-questions-*.md` file you (or a prior dispatch of you) created MUST be deleted after every answer is folded into the canonical destination. The fold-back is NOT done until BOTH (a) canonical docs/code reflect every answer AND (b) the open-questions file is removed in the same turn.
+Per the Universal **Cleanup Invariant** (prompt header): delete any ephemeral `docs/open-questions-*.md` file you (or a prior dispatch of you) created in the same turn you fold the answers into the canonical destination (code/docs).
 
 ### GATE D4 — Route Registration
 Every new endpoint MUST be registered in the router AND MUST NOT be commented out. An unregistered handler is an incomplete feature.

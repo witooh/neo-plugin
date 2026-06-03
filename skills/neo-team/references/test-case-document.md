@@ -8,7 +8,7 @@ This test case document is emitted as **`test-cases.html`** (interactive HTML), 
 - Test Suites → `h2` group headings; add a `.filter-bar[data-target="#tc-list > .card"]` with pills for suite / status / `@blocked` / priority.
 - Test Case Summary → **`<tc-summary>`** > **`<tc ref="TC-NNN" suite precond>`** per TC; Deferred Test Cases → **`<tc-deferred>`** > **`<tc ref blocker upstream>`** (blocked TCs only). Description(=`label`)/Traces/JIRA/Status are **derived from the matching `<tc-card>`** (Status → `.status-badge`, can't drift); you author only `suite` (omit → "—") + `precond` (omit → "None") for the summary, and the `blocker` reason + `upstream` ref for the deferred table. Both render `.table-wrap > table.data-table[data-sortable]`. The summary's **Total line → `<tc-total></tc-total>`** (empty) — counts the page's `<tc-card>`s by status ("Total Test Cases: N (Ready: R / Blocked (Deferred): B)", can't go stale).
 - **Workflow Chain stays an authored, readable table** rendered as `table.data-table`. It is ALSO the input QA parses to generate `{usecase}.precondition.ts` — author the logical table and render it to HTML; do **NOT** scrape it back out of HTML for codegen.
-- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` until `PASS`, then semantic self-check (html-output.md §7). Escape `<`/`>`/`&` in prose (§6).
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` then `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>` until `PASS`, then semantic self-check (html-output.md §7). Escape `<`/`>`/`&` in prose (§6).
 
 ---
 
@@ -274,14 +274,7 @@ These test cases are not executed in the Dev Loop. Re-evaluate once the upstream
 
 ## JIRA Ref Inheritance Rule
 
-Each TC's `JIRA Ref:` field is **inherited verbatim from the AC at `Traces To`** — QA does NOT pick or invent JIRA IDs for test cases. The AC document is the single source of truth.
-
-- If the source AC has `JIRA Ref: PROJ-123, PROJ-456` → the TC writes `**JIRA Ref:** PROJ-123, PROJ-456`.
-- If the source AC has NO `JIRA Ref:` line at all → OMIT the `**JIRA Ref:**` line entirely from the TC (do not write `—` in the body; the em dash is only for the Summary table column when the source AC has no refs).
-- If a TC traces to multiple ACs (rare; usually one TC = one AC), concatenate the deduplicated JIRA Ref union from every traced AC.
-- When AC's `JIRA Ref` changes upstream (BA updates the AC doc), re-sync the TC document. The test case document is downstream-only — never write back a JIRA Ref that the AC document doesn't have.
-
-This mirrors the existing Status / Blocker inheritance (§ Test Case Quality Rules in `qa.md`).
+Each TC's `JIRA Ref:` is **inherited verbatim from the AC at `Traces To`** — QA never picks or invents JIRA IDs; the AC document is the single source of truth. Full rules: [`shared/jira-ref.md`](shared/jira-ref.md) §2 — copy verbatim; OMIT the body line (and write `—` in the Summary column) when the AC has none; deduplicated union when a TC traces multiple ACs; re-sync when the AC changes upstream, never writing back an ID the AC lacks.
 
 ---
 

@@ -399,7 +399,7 @@ it('[TC-020 - PROJ-901 - AC-015, AC-016]: should cascade-deactivate dependent re
 ```
 
 **Source-of-truth rules:**
-- JIRA IDs **MUST** match the TC's `**JIRA Ref:**` field verbatim (same IDs, same order, same casing). Never invent IDs. If the source AC has no `JIRA Ref`, the TC inherits no JIRA Ref → OMIT the JIRA segment from the bracket (do NOT write empty segment like `[TC-001 -  - AC-001]` and do NOT write `—` inside the bracket).
+- JIRA IDs come from the TC's `**JIRA Ref:**` verbatim per [`shared/jira-ref.md`](shared/jira-ref.md) §2–3 (match exactly — same IDs, order, casing; never invent). Bracket-specific: when the TC has no JIRA Ref, OMIT the JIRA segment entirely — do NOT write an empty segment `[TC-001 -  - AC-001]` or a `—` inside the bracket.
 - AC IDs **MUST** match the TC's `**Traces To:**` field verbatim. When `Traces To` lists multiple ACs, comma-separate them in the same order, e.g., `AC-001, AC-002`.
 - The colon `:` after the closing bracket and the human-readable description follow the same convention as the previous TC-ID-only prefix (`it('TC-001: ...')` → `it('[TC-001 - … - AC-NNN]: ...')`).
 

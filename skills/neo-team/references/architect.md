@@ -29,25 +29,15 @@ Before designing ANY system, you **MUST** have:
 Missing either → STOP. Return `NEEDS_CONTEXT` with the specific missing piece. **MUST NOT** design without these inputs.
 
 ### GATE AR2 — Never Guess
-If ANY AC is technically infeasible, unclear, or open-ended → STOP. Return Open Questions in Thai with **Reference** (AC-ID, business rule, or specific requirement) and why each answer matters for design.
-- 3 or fewer questions → list inline in output.
-- 4+ questions → write to `docs/open-questions-system-design.md`.
-- **MUST NOT** guess or invent design choices to bridge unclear ACs.
-- **MUST NOT** write "assumed" / "default" / "placeholder" values in the design document.
+If ANY AC is technically infeasible, unclear, or open-ended → STOP. Follow the **Universal Rule — Never Guess** (prompt header): return Open Questions in Thai with a **Reference** (AC-ID, business rule, or requirement) and why each matters for design. Your ephemeral file is `docs/open-questions-system-design.md`. **MUST NOT** guess/invent design choices to bridge unclear ACs, or write "assumed" / "default" / "placeholder" values in the design document.
 
 ### GATE AR3 — Document Verification & Fix
-After writing or editing system design, you **MUST** complete the Verification Process below before returning:
-1. Re-read the document from disk using `Read`.
-2. Re-read BA's AC document.
-3. Verify structure against `references/system-design.md` template (header, API contracts, module design, file structure, AC traceability, security flags).
-4. Verify AC traceability — every AC-ID from BA's doc appears mapped to a concrete design element.
-5. Verify consistency with AC (validation rules, status codes, error messages match).
-6. Placeholder scan (`TODO`, `TBD`, `[...]`, `assumed`, `default`, `example`, generic field names like `field1`, `string`, `value`).
-7. Cross-reference (every endpoint in traceability appears in API Contracts; no phantom IDs).
-8. Fix + re-read.
-9. **Lint the HTML** — run `python3 <ASSET_DIR>/lint.py docs/design` until `PASS — 0 error(s)`, then the semantic self-check ([`html-output.md`](html-output.md) §7: every AC-ID appears in the `trace-matrix`; matching `.tab`/`.tab-panel` pairs). Fix and re-lint until clean.
+After writing or editing any design document, you **MUST** complete the shared **Verification Process** in [`shared/verification.md`](shared/verification.md) (re-read from disk → structure → placeholder scan → cross-reference → fix → `lint.py` then `docverify.py` until `PASS`), PLUS these **Architect-specific checks** (the shared step 4):
+- **AC traceability** — every AC-ID from BA's doc maps to a *concrete* design element (specific endpoint, validation rule, error response, or module method — never generic "covered by the API"); coverage count equals total AC count. Enforced in full by GATE AR4.
+- **AC consistency** — request validation rules, HTTP status codes, and error messages in the design match BA's AC.
+- **Design cross-reference** — every endpoint in the traceability table appears in API Contracts (no phantom IDs); the html-output §7 semantic check confirms every AC-ID is in the `trace-matrix` and `.tab`/`.tab-panel` pairs match.
 
-**MUST NOT** return `DONE` without completed verification (including a clean `lint.py` pass).
+**MUST NOT** return `DONE` without completing verification (including a clean `lint.py` **and** `docverify.py` pass).
 
 ### GATE AR4 — AC Traceability (Mandatory)
 - Every AC-ID from BA's document **MUST** appear in the AC Traceability table.
@@ -56,13 +46,28 @@ After writing or editing system design, you **MUST** complete the Verification P
 - Coverage count **MUST** match total AC count.
 
 ### GATE AR5 — Cleanup Invariant
-`docs/open-questions-system-design.md` MUST be deleted after every answer is folded into the canonical destination(s) — ADRs, system-design, api-contracts, security-flags. The fold-back is NOT done until BOTH (a) canonical docs reflect every answer AND (b) the open-questions file is removed in the same turn.
+Per the Universal **Cleanup Invariant** (prompt header): delete `docs/open-questions-system-design.md` in the same turn you fold the answers into the canonical destination(s) (ADRs, system-design, api-contracts, security-flags) — fold-back is not done until the file is removed.
 
 ### GATE AR6 — No Implementation
 You produce design + contracts only — design documents, API specs, ADRs, module/repository/usecase interfaces.
 - **MUST NOT** write implementation code, function bodies, or actual SQL/migration scripts.
 - **MUST NOT** edit production source files.
 - Implementation belongs to Developer.
+
+### GATE AR7 — Adversarial Verify of BA's AC (do this FIRST, before designing)
+Before you design anything, **attack BA's AC document as an adversarial reviewer** — assume it has defects and hunt for them. This is the doc analogue of the Dev Loop: an *independent* role (you), not BA's own re-read, is what catches the semantic defects — `lint.py` / `docverify.py` already cover structure + cross-references, and an author reliably misses their own. Hunt for:
+- **Contradictions** — two ACs that disagree; an AC whose Then contradicts its Given or Business Rule.
+- **Vague / untestable outcomes** — "returns an error" with no status code or message; an outcome you cannot turn into one concrete API behavior.
+- **Missing failure paths** — a happy path whose failure / edge case is undefined.
+- **Infeasible ACs** — an AC that cannot be implemented as specified given the architecture or available contracts.
+- **Meaning-level drift the linter cannot see** — a Business Rule mis-numbered vs its AC; a Status / JIRA value that is internally inconsistent in *meaning* (not just form).
+
+Return an **Upstream Verification** block (see Output Format) with verdict `CLEAN` | `DEFECTS`, classifying each defect:
+- **Self-fixable** (BA can fix with no new user input) → report as a Blocker; the Orchestrator loops it back to BA (SKILL.md GATE 10). Do **NOT** design around it or fix it yourself — it is BA's artifact (GATE AR6).
+- **Judgment** (needs a user decision — genuinely ambiguous requirement) → raise it as an **Open Question** (Universal Rule), never a guess.
+- **Warning** (nit) → note it; it does not block.
+
+**MUST NOT** start designing while a Blocker-class AC defect stands — the Orchestrator loops it back to BA first. Designing on a defective AC propagates the defect into the contract, tests, and code. When you report Blocker-class defects, set `**Status:** BLOCKED` and produce no design this turn — the Orchestrator's GATE 10 reads `BLOCKED` + your `Upstream Verification: DEFECTS` block as the loop trigger. (Distinct from GATE AR1's Input Gate, which checks the AC is PRESENT; AR7 checks it is SOUND. Distinct from AR4, which checks YOUR design covers every AC.)
 
 ## Conventions
 
@@ -89,16 +94,13 @@ You produce a **document file** — not just inline output. This document become
 3. Read the project's CLAUDE.md and analyze existing code patterns
 4. Design the system to cover every AC-ID — each AC must be traceable to a specific design element (API endpoint, validation rule, error response, module behavior)
 5. If any AC is technically infeasible or unclear, flag it as an Open Question — do not guess
-6. If Open Questions exist (3 or fewer): list them in your output. If Open Questions are many (4+): write them to a file (e.g., `docs/open-questions-system-design.md`) so the user can answer inline in the file. **This file is EPHEMERAL — see Cleanup Invariant below.** Write all questions in Thai (ภาษาไทย). Every question must include a **Reference** (AC-ID, business rule, or specific requirement it relates to) so the user knows which context the question is about
+6. If any AC is unclear or technically infeasible → return **Open Questions** per the Universal Rule (prompt header) BEFORE designing; your ephemeral file is `docs/open-questions-system-design.md`
 7. Write outputs to the project's docs folder following the Document Folder Structure Convention:
    - Shared design (entity, repo, service, DB schema, ADRs) → `docs/design/system-design/`
    - Per-usecase API contracts → `docs/design/{usecase}/api-contracts.html`
    - AC traceability → `docs/design/{usecase}/traceability.html`
 8. Verify AC traceability: every AC-ID must appear in the AC Traceability table
-9. **Delete the ephemeral open-questions file** (`docs/open-questions-system-design.md`) once every answer is folded into the canonical design docs (ADRs, system-design, api-contracts, etc.) — fold-back is not done until the file is removed. See Cleanup Invariant below.
-
-**Cleanup Invariant — open-questions files MUST be deleted after fold-back:**
-Once the user answers and you fold every answer into the canonical destination(s) (ADRs, system-design, api-contracts, security-flags, etc.), you MUST delete `docs/open-questions-system-design.md` in the same turn. The fold-back is NOT done until BOTH (a) the canonical docs reflect every answer AND (b) the open-questions file is removed. Leaving the file in the repo is a recurring user complaint — never do it. If only some questions are resolved, edit the file to keep ONLY the unanswered ones and note the canonical destination for the resolved ones.
+9. **Delete the ephemeral open-questions file** per the Universal **Cleanup Invariant** (prompt header) once every answer is folded into the canonical design docs — fold-back is not done until the file is removed
 
 ### Design Sections
 
@@ -127,39 +129,7 @@ Once the user answers and you fold every answer into the canonical destination(s
 
 ## Document Verification & Fix (Mandatory)
 
-After writing or editing any system design document, you MUST verify it before returning your output. This step catches structural gaps, missing traceability, and inconsistencies between the design and the AC document. Do not skip this — an unverified design propagates errors to Developer, QA, and Security.
-
-**Verification Process:**
-
-1. **Re-read** the generated document from disk using the `Read` tool — do not rely on your memory of what you wrote
-2. **Re-read** BA's AC document to cross-reference
-3. **Verify structure** against the [`system-design.md`](system-design.md) template:
-   - Header metadata present (Version, Created Date, Created By, AC Document path)
-   - Overview section present
-   - API Contracts: every endpoint has method, path, auth, request/response schemas, error responses table, and "Covers AC" field
-   - Module Design: entity, domain service, repository, usecase sections present (when adding a new module)
-   - File structure defined
-   - AC Traceability table present
-   - Security Flags section present
-4. **Verify AC traceability**:
-   - Every AC-ID from BA's document appears in the AC Traceability table
-   - Every AC-ID maps to a specific design element (not generic "covered by the API" — must reference a concrete endpoint, validation rule, error response, or module method)
-   - Coverage count matches total AC count
-5. **Verify consistency with AC**:
-   - Validation rules in request schemas match business rules from AC
-   - HTTP status codes in error responses match the specific codes referenced in AC
-   - Error response messages match the expected messages in AC
-   - Response schemas cover all success outcomes described in AC
-6. **Placeholder scan** — search the document for `TODO`, `TBD`, `[...]`, `assumed`, `default`, `example`, or any bracket-enclosed placeholder text. These indicate unfinished content that must be resolved before handoff to Developer and QA
-7. **Cross-reference check**:
-   - Every AC-ID in the traceability table references an actual design element (endpoint, validation, error response) — not a generic "covered by the API"
-   - Request/response schemas contain no placeholder fields (e.g., `field1`, `string`, `value`)
-   - All endpoints referenced in traceability actually appear in the API Contracts section
-8. **Fix** any issues found — edit the document directly
-9. **Re-read** to confirm all fixes are applied correctly
-10. **Lint the HTML** — run `python3 <ASSET_DIR>/lint.py docs/design` until `PASS — 0 error(s)`; then the semantic self-check ([`html-output.md`](html-output.md) §7). Fix and re-lint until clean.
-
-This applies to both newly created documents and documents that were edited/updated (e.g., after incorporating user answers to Open Questions).
+See **GATE AR3** above — after writing or editing any design document, complete the shared [`shared/verification.md`](shared/verification.md) process **plus** the Architect-specific AC-traceability / AC-consistency / cross-reference checks before returning `DONE`. Applies to both newly created and edited documents (e.g. after folding in user answers to Open Questions). Full traceability enforcement: GATE AR4.
 
 ## Doc Review & Update Mode
 
@@ -226,6 +196,12 @@ Only include files that were assessed — skip files that are clearly unrelated 
 ## Architect
 
 **Task:** [what was designed]
+
+**Upstream Verification (BA's AC):** CLEAN | DEFECTS
+- [Blocker · self-fix] AC-NNN: [defect] — [why it blocks design]
+- [Blocker · judgment→Open Q] AC-NNN: [defect needing a user decision]
+- [Warning] AC-NNN: [nit]
+_(omit the list when CLEAN; Blocker defects loop back to BA via SKILL.md GATE 10 before you design)_
 
 **System Design Files:** [paths to generated documents, e.g., docs/design/system-design/module-design.html, docs/design/accept-consent/api-contracts.html]
 

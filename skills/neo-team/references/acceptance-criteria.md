@@ -12,12 +12,12 @@
 
 This document is emitted as **`acceptance-criteria.html`** (interactive HTML), **not** markdown. **Build it per [`html-output.md`](html-output.md)** — every rule below defines the CONTENT (which ACs, ordering, fields, status); the HTML guide defines the FORM (components, page shell, stamping, verify). Do not emit a `.md` file. The markdown structure shown below is the **content spec** — read it for fields/ordering, then render as HTML using this mapping:
 
-- Each AC → **`<ac-card>`** (custom element in `assets/js/components.js`): `<ac-card id="AC-NNN" status="ready|blocked|pending" priority traces subop jira label>` with child `<g>/<w>/<t>` (+ `<a>`) for GIVEN/WHEN/THEN, `<rule>` for the business rule, and optional `<blocker>`. It expands to the canonical `.card` (`is-<status>` + every `data-*` + badge/chips/chevron + `.gwt` + field-rows) — **status/priority/traces written ONCE then derived, so they can't drift**. Full HTML form + rendered structure: `html-output.md` §5.
+- Each AC → **`<ac-card>`** (custom element in `assets/js/components.js`): `<ac-card id="AC-NNN" status="ready|blocked" priority traces subop jira label>` with child `<g>/<w>/<t>` (+ `<a>`) for GIVEN/WHEN/THEN, `<rule>` for the business rule, and optional `<blocker>`. It expands to the canonical `.card` (`is-<status>` + every `data-*` + badge/chips/chevron + `.gwt` + field-rows) — **status/priority/traces written ONCE then derived, so they can't drift**. Full HTML form + rendered structure: `html-output.md` §5.
 - Business Rule (`<rule>` child), JIRA Ref (`jira=` attr) and Priority/Status (derived) render as **`dl.field-row`s** inside `.card__body`; a Blocker (`<blocker>` child) renders a `.callout[data-kind="blocked"]` — all emitted by the element; you supply only the children/attrs.
 - AC Summary → **`<ac-summary>`** with one **`<ac ref="AC-NNN" subop rule [blocker]>`** per AC. Scenario/Priority/Status/JIRA are **derived from the matching `<ac-card>`** (written once on the card → can't drift): Status → `.status-badge`, Priority → `.chip[data-tone="p0|p1"]` (P2 = plain `.chip`), JIRA → `.chip[data-tone="jira"]`. You author only `subop` (sub-operation name; omit → "—") and `rule` (short Business-Rule ref); `blocker="<dep>"` appends "(blocked by <dep>)" to the rule cell. Renders `.table-wrap > table.data-table[data-sortable]`. The section's **Total line → `<ac-total></ac-total>`** (empty) — counts the page's `<ac-card>`s by status, so "Total Acceptance Criteria: N (Ready: R / Blocked: B)" can't go stale.
 - Business Rules / Edge Cases / Out of Scope → `h2` + lists (use `<callout-box kind="…">` for emphasis).
 - Also create the usecase's `index.html` overview and register the usecase group in `nav.js` (html-output.md §4, §9).
-- **Verify:** run `python3 <ASSET_DIR>/lint.py docs/design` until `PASS — 0 error(s)`, then the semantic self-check (html-output.md §7). In `<g>/<w>/<t>/<rule>` prose, inline `<b>`/`<code>` are fine but **bare `&` → `&amp;`** (§6).
+- **Verify:** run `python3 <ASSET_DIR>/lint.py docs/design` then `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>` until `PASS — 0 error(s)`, then the semantic self-check (html-output.md §7). In `<g>/<w>/<t>/<rule>` prose, inline `<b>`/`<code>` are fine but **bare `&` → `&amp;`** (§6).
 
 ---
 
@@ -50,17 +50,7 @@ Number AC-IDs sequentially within this order (AC-001, AC-002, ...). Never reorde
 
 **Audit Logging Rule:** Audit logging is always ONE combined AC that covers both success and failure outcomes. Never split audit into separate ACs per outcome type (e.g., do not create separate ACs for "audit success" and "audit failure").
 
-**Status Semantics — every AC has a dependency-readiness status:**
-
-- **Ready** (default) — all upstream artifacts (API contracts, service contracts, data schemas) needed to implement and test this AC exist. The AC can flow through Architect → QA → Developer normally.
-- **Blocked** — this AC depends on a contract or artifact from another work item (ticket/MR) that is not yet finalized. The AC is documented for visibility but is excluded from the Dev Loop until the blocker is resolved.
-
-`Blocked` is for **dependency readiness only** — it is NOT a progress-tracking status (progress lives in Jira and git). An AC marked `Blocked` MUST also declare a Blocker field naming the dependency identifier and the specific missing piece.
-
-When `Status: Blocked` is set, the orchestrator:
-- Does NOT dispatch Developer to implement this AC
-- DOES instruct QA to generate test cases with an `@blocked` tag (so coverage is documented but execution is deferred)
-- Reports the AC in the Pre-Finalization Checklist's "Blocked ACs" section
+**Status Semantics — every AC has a dependency-readiness status (`Ready` | `Blocked`).** Full rules: [`shared/ac-status.md`](shared/ac-status.md). In brief — **Ready** (default): all upstream artifacts exist; flows through Architect → QA → Developer normally. **Blocked**: depends on a contract/artifact from another work item not yet finalized; documented for visibility, excluded from the Dev Loop until resolved, and MUST declare a `Blocker` field (dependency-readiness only, NOT progress tracking). When `Status: Blocked`, the orchestrator skips Developer for that AC, has QA generate an `@blocked`-tagged test case, and reports it in the Pre-Finalization Checklist's "Blocked ACs" section.
 
 ---
 
