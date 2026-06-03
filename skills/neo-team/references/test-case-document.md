@@ -1,3 +1,17 @@
+# Output Format — interactive HTML
+
+This test case document is emitted as **`test-cases.html`** (interactive HTML), **not** markdown. **Build per [`html-output.md`](html-output.md)** — the worked example below is the CONTENT spec; the guide is the FORM. Mapping:
+
+- Each test case → **`<tc-card>`** (custom element in `assets/js/components.js`): `<tc-card id="TC-NNN" status="ready|blocked" priority traces jira endpoint label>` with child `<g>/<a>/<w>/<t>` for GIVEN/WHEN/THEN/AND (**write in G-A-W-T order**), `<req>`/`<res>` for Request/Expected-Response JSON, `<steps><step>…</step></steps>` for Test Steps, and `<expected>`/`<tdata>`/`<precond>`/`<blocker>` for the remaining prose. It expands to the canonical `.card` (`is-<status>` + every `data-*` + badge/chips/chevron + `.gwt` + field-rows) — **status written ONCE then derived**: the `is-<status>` class, `data-status`, the badge, the `data-tags="blocked"` filter tag, and the "AC Status" row all come from one `status=`, so they can't drift. Full HTML form: `html-output.md` §5.
+- Endpoint (`endpoint=` attr → `<code>`), Expected Result (`<expected>`), Test Data (`<tdata>`), Precondition (`<precond>`), Traces To (`traces=` attr), JIRA Ref (`jira=` attr) render as **`dl.field-row`s** in `.card__body`. **AC Status** (derived "Blocked") and a **Blocker** (`<blocker>` → `.callout[data-kind="blocked"]`) are emitted **only for blocked TCs** — you supply just the children/attrs.
+- Request / Expected-Response JSON → child `<req>`/`<res>` (raw JSON; escape `<`/`>`/`&` per §6). The element wraps each in `.code[data-lang="json"]` and groups them in `.tabs` when **both** are present (a single `.code` when only one). An `HTTP NNN` line may prefix the response JSON inside `<res>` — kept verbatim.
+- Test Suites → `h2` group headings; add a `.filter-bar[data-target="#tc-list > .card"]` with pills for suite / status / `@blocked` / priority.
+- Test Case Summary → **`<tc-summary>`** > **`<tc ref="TC-NNN" suite precond>`** per TC; Deferred Test Cases → **`<tc-deferred>`** > **`<tc ref blocker upstream>`** (blocked TCs only). Description(=`label`)/Traces/JIRA/Status are **derived from the matching `<tc-card>`** (Status → `.status-badge`, can't drift); you author only `suite` (omit → "—") + `precond` (omit → "None") for the summary, and the `blocker` reason + `upstream` ref for the deferred table. Both render `.table-wrap > table.data-table[data-sortable]`. The summary's **Total line → `<tc-total></tc-total>`** (empty) — counts the page's `<tc-card>`s by status ("Total Test Cases: N (Ready: R / Blocked (Deferred): B)", can't go stale).
+- **Workflow Chain stays an authored, readable table** rendered as `table.data-table`. It is ALSO the input QA parses to generate `{usecase}.precondition.ts` — author the logical table and render it to HTML; do **NOT** scrape it back out of HTML for codegen.
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` until `PASS`, then semantic self-check (html-output.md §7). Escape `<`/`>`/`&` in prose (§6).
+
+---
+
 **Module:** Savings Account
 **Version:** 1.0.0
 **Created Date:** 2026-03-17

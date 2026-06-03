@@ -4,7 +4,22 @@
 **Version:** [version]
 **Created Date:** [date]
 **Created By:** Architect
-**AC Document:** [path to acceptance criteria document, e.g., docs/design/[usecase]/acceptance-criteria.md]
+**AC Document:** [path to acceptance criteria document, e.g., docs/design/[usecase]/acceptance-criteria.html]
+
+---
+
+## Output Format — interactive HTML
+
+These design docs are emitted as **interactive HTML** — `api-contracts.html` (per usecase), `system-design/*.html` (shared), and `traceability.html` — **not** markdown. **Build per [`html-output.md`](html-output.md)** — the structure below is the CONTENT spec; the guide is the FORM. Mapping:
+
+- API endpoint → a section (`h2`/`h3`); method/path/auth/Covers-AC → `dl.field-row` (or a small `table.data-table`).
+- Request / Response(200/201) / Error JSON → `.code[data-lang="json"]` grouped in `.tabs` (`.tab[data-tab]` ↔ `.tab-panel[data-tab]`). **Error Responses table → `table.data-table[data-sortable]`**.
+- Entity / Domain Service / Repository / Usecase tables → `table.data-table[data-sortable]`. File Structure → `.code[data-lang="text"]`.
+- ADRs → one `.card` per ADR (or `<callout-box kind="note">…</callout-box>`).
+- **AC Traceability → `table.trace-matrix`** (in `.matrix-wrap`; `tbody th` = AC-ID, click-highlights) on `traceability.html`; keep the coverage count.
+- Diagrams (sequence / flowchart / ER) → `.diagram` > `.mermaid` (raw mermaid; no HTML in labels — use `&lt;br/&gt;`).
+- Create `system-design/index.html` overview and register links in `nav.js` (html-output.md §4, §9).
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` until `PASS`, then semantic self-check — every AC-ID from BA appears in the trace matrix. Escape `<`/`>`/`&` in prose (§6).
 
 ---
 

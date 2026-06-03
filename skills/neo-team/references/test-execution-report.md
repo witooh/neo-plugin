@@ -1,3 +1,15 @@
+# Output Format — interactive HTML
+
+This execution report is emitted as **`test-report.html`** (interactive HTML), **not** markdown. **Build per [`html-output.md`](html-output.md)** — the worked example below is the CONTENT spec; the guide is the FORM. Mapping:
+
+- Each result → `div.card` with `id="TC-NNN"` + `data-status`; Expected / Actual / Status / Executed Date / JIRA Ref / Defect Ref / Notes → `dl.field-row`s.
+- Status badge mapping (only `ready|blocked|pending` exist): **✅ Pass → `data-status="ready"`**, **❌ Fail → `data-status="blocked"`**, **⏸ Deferred / ⚠️ Blocked → `data-status="pending"`**. Keep the ✅/❌/⏸ emoji in the text too.
+- Execution Summary / Defect Summary / Deferred Test Cases → `table.data-table[data-sortable]`.
+- Pass / Fail / Blocked / Not-Run totals → `.stat-grid` > `.stat-card` (optionally a `.bar` > `.bar__seg.ready|.blocked`).
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` until `PASS`. Escape `<`/`>`/`&` in prose (§6).
+
+---
+
 **Module:** Savings Account
 **Version:** 1.0.0
 **Execution Date:** 2026-03-17

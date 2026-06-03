@@ -74,7 +74,7 @@ This triggers **row 10** of the Impact Map. The Orchestrator dispatches roles in
 
    **JIRA Ref persistence during promotion:** the `JIRA Ref:` field is **sticky** — it persists across Blocker resolution UNCHANGED. Do NOT add, modify, or remove `JIRA Ref` values during promotion unless the user's promotion message explicitly supplies new JIRA IDs (e.g., "promote AC-002 with JIRA Ref PROJ-700"). If the user supplies new JIRA IDs in the promotion message, follow the standard JIRA Ref Capture Rule (see `references/business-analyst.md` § JIRA Ref Capture Rule — merge new IDs with existing, deduplicate). The Blocker field (upstream dependency) and the JIRA Ref field (AC tracking ticket) are independent — resolving one does not affect the other.
 
-2. **Architect** (conditional) — re-dispatched only if the promoted AC's behavior is NOT already covered in `docs/design/<usecase>/api-contracts.md` (this happens if the Blocked AC was a placeholder and design was deferred). If contract is already there, skip.
+2. **Architect** (conditional) — re-dispatched only if the promoted AC's behavior is NOT already covered in `docs/design/<usecase>/api-contracts.html` (this happens if the Blocked AC was a placeholder and design was deferred). If contract is already there, skip.
 
 3. **QA** — re-dispatched in **two modes back-to-back**:
    - First in **Test Spec mode**: removes the `@blocked` tag, removes the `Blocker:` field, updates Test Case Summary `Status` column for the promoted TC-IDs, removes the rows from the Deferred Test Cases table, updates the `Ready: R / Blocked: B` count.

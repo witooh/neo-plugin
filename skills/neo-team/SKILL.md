@@ -141,10 +141,12 @@ Before parsing intent or dispatching anyone, read:
 1. **`CLAUDE.md`** (or fall back to `AGENTS.md`, `CONTRIBUTING.md`, `docs/conventions.md`) — architecture conventions, coding patterns, project-specific rules. Extract the sections each specialist will need and include them in their delegation prompt — do not let every specialist re-discover conventions.
 2. **`docs/design/INDEX.md`** if it exists — central registry of usecase docs. Use it to:
    - Match the user's natural-language request to an existing usecase (users do not know AC-IDs or file paths)
-   - Pass concrete doc paths to specialists (e.g., "Read and update `docs/design/revoke/acceptance-criteria.md`")
+   - Pass concrete doc paths to specialists (e.g., "Read and update `docs/design/revoke/acceptance-criteria.html`")
    - Avoid creating duplicate docs — if a usecase already exists, append into the existing folder (see `references/business-analyst.md` § Folder Organization Rule)
 
 If neither file exists, proceed with the conventions embedded in each specialist's reference file and note this in the Final Summary.
+
+**Design docs are interactive HTML** (see `references/html-output.md`). The doc-producing specialists (BA / Architect / QA) emit `.html`, not markdown, using a shared design system that the first one stamps into `docs/design/` via `scaffold.sh`. You MUST pass each of them the bundled assets directory — see § Asset-dir handoff under Delegation Protocol. `INDEX.md` / `VERSION.md` stay markdown (the machine-readable registry you read here); the human-facing landing is the generated `docs/design/index.html`.
 
 ## Orchestrator Flow
 
@@ -199,9 +201,9 @@ Impact trigger matched: <which row of Impact Map>
 
 | # | Role            | Task                                                            | Output                                            |
 | - | --------------- | --------------------------------------------------------------- | ------------------------------------------------- |
-| 1 | Business Analyst | Generate AC for ...                                            | `docs/design/<usecase>/acceptance-criteria.md`    |
-| 2 | Architect       | Design system + API contracts to satisfy AC                     | `docs/design/<usecase>/api-contracts.md` + `system-design/*` |
-| 3 | QA              | Generate test cases from AC + API contracts                     | `docs/design/<usecase>/test-cases.md`             |
+| 1 | Business Analyst | Generate AC for ...                                            | `docs/design/<usecase>/acceptance-criteria.html`    |
+| 2 | Architect       | Design system + API contracts to satisfy AC                     | `docs/design/<usecase>/api-contracts.html` + `system-design/*.html` |
+| 3 | QA              | Generate test cases from AC + API contracts                     | `docs/design/<usecase>/test-cases.html`             |
 | 4 | Developer       | Implement to satisfy test cases (TDD mode)                      | Code changes                                      |
 | 5 | Code Reviewer   | Review for convention compliance                                | Inline review report                              |
 | 6 | Security        | Review for authn/PII/rate limiting                              | Security findings                                 |
@@ -338,6 +340,15 @@ End your output with `**Status:** DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BL
 
 The role identity block at the top is critical — it tells the general-purpose agent which specialist it's acting as, establishing scope boundaries before the reference content fills in the details.
 
+### Asset-dir handoff (BA / Architect / QA — REQUIRED)
+
+The three doc-producing specialists emit interactive HTML and need the bundled design system, but as `general-purpose` sub-agents they do **not** know this skill's location. In each of their delegation prompts you **MUST** include, in the Context section, the absolute path to this skill's `assets/` directory as **`ASSET_DIR`**.
+
+- Construct it from this skill's own directory (given in the skill-load message as "Base directory for this skill: …/skills/neo-team") → `ASSET_DIR = <that directory>/assets`.
+- Tell the specialist: "Read `references/html-output.md` first. Your `ASSET_DIR` is `<abs path>`. On the first HTML doc in this project, stamp the design system with `bash <ASSET_DIR>/scaffold.sh <project>/docs/design`; read `<ASSET_DIR>/_shell.html` for the page skeleton; verify every page with `python3 <ASSET_DIR>/lint.py docs/design`."
+
+Without `ASSET_DIR`, `scaffold.sh` and `_shell.html` cannot be resolved and the specialist cannot produce a working HTML doc. This applies to BA, Architect, and QA only — code/review/security roles do not need it.
+
 ### Subagent Status Protocol
 
 Every specialist MUST end their output with one of these statuses:
@@ -355,7 +366,7 @@ Every specialist MUST end their output with one of these statuses:
 
 Enforced by GATE 7. Practical guidelines for composing the prompt:
 
-- **Include scene-setting context**: one or two sentences on where this role fits in the current run (e.g., "BA already produced `docs/design/x/acceptance-criteria.md` — you are now designing the system to satisfy those ACs.")
+- **Include scene-setting context**: one or two sentences on where this role fits in the current run (e.g., "BA already produced `docs/design/x/acceptance-criteria.html` — you are now designing the system to satisfy those ACs.")
 - **Extract relevant outputs** from prior roles — pass only the parts this specialist needs, not raw dumps
 - **Paste content, don't reference**: when a specialist needs information from a prior role's output, paste the relevant section into the prompt (or pass a concrete file path), do not say "go read the previous output"
 
@@ -371,9 +382,9 @@ Enforced by GATE 8. The steps are listed in the gate itself — never let a spec
 
 When delegating to **Business Analyst** (GATE BA3) or **Architect** (GATE AR3), include in the prompt:
 
-> "After writing (or editing) the document, you MUST verify it — re-read from disk, check against the template and quality criteria, and fix any issues before returning."
+> "After writing (or editing) the document, you MUST verify it — re-read from disk, check against the template and quality criteria, and fix any issues before returning. The doc is interactive HTML (see `references/html-output.md`): then run `python3 <ASSET_DIR>/lint.py docs/design` until it reports `0 error(s)` and do the semantic self-check before returning `DONE`."
 
-Both specialists' HARD-GATE sections enforce the full verification process. An unverified document propagates silent errors to every downstream role.
+Both specialists' HARD-GATE sections enforce the full verification process (BA GATE BA3, Architect GATE AR3, QA GATE Q2). An unverified document — including one that fails `lint.py` — propagates silent errors to every downstream role.
 
 ## Document Folder Structure Convention
 
@@ -381,30 +392,35 @@ Documentation is organized into three levels: project-level standalone docs, sha
 
 ```
 docs/
-├── gap-analysis.md                       # Project-level
-├── open-questions.md                     # Project-level
-├── developer-guide.md                    # Project-level
-├── migration-strategy.md                 # Project-level
+├── gap-analysis.md                       # Project-level (markdown)
+├── open-questions.md                     # Project-level (markdown)
+├── developer-guide.md                    # Project-level (markdown)
+├── migration-strategy.md                 # Project-level (markdown)
 ├── api-doc.md                            # Generated from code (api-doc-gen skill)
 │
-└── design/
-    ├── INDEX.md                          # Central registry (Orchestrator reads first)
-    ├── VERSION.md                        # Version history (updated when ACs change)
+└── design/                               # Design docs are interactive HTML — see references/html-output.md
+    ├── INDEX.md                          # Central registry — machine-readable (Orchestrator reads first); markdown
+    ├── VERSION.md                        # Version history — machine-readable; markdown
+    ├── index.html                        # Human-facing registry landing (generated from INDEX.md + VERSION.md)
+    ├── components.html                   # Living style guide (stamped by scaffold.sh)
+    ├── assets/                           # Shared design system (stamped by scaffold.sh)
+    │   ├── css/styles.css
+    │   └── js/{app.js, components.js, nav.js}  # components.js = custom elements (loads before app.js); nav.js = per-project sidebar registry
     │
-    ├── system-design/                    # Shared across usecases
-    │   ├── overview.md
-    │   ├── module-design.md
-    │   ├── database-schema.md
-    │   ├── architecture.md
-    │   ├── adrs.md
-    │   └── security-flags.md
+    ├── system-design/                    # Shared across usecases (HTML)
+    │   ├── index.html                    # Overview (sidebar "Overview" link target)
+    │   ├── module-design.html
+    │   ├── database-schema.html
+    │   ├── adrs.html
+    │   └── security-flags.html
     │
-    └── {usecase}/                        # Per-usecase docs (1 cohesive business operation)
-        ├── acceptance-criteria.md        # AC document (BA)
-        ├── api-contracts.md              # API endpoints for this usecase (Architect)
-        ├── traceability.md               # AC → design element mapping
-        ├── test-cases.md                 # Test case document (QA)
-        └── test-report.md                # Test execution report (QA, after running tests)
+    └── {usecase}/                        # Per-usecase docs (1 cohesive business operation, HTML)
+        ├── index.html                    # Usecase overview (sidebar "Overview" link target)
+        ├── acceptance-criteria.html      # AC document (BA)
+        ├── api-contracts.html            # API endpoints for this usecase (Architect)
+        ├── traceability.html             # AC → design element mapping (Architect)
+        ├── test-cases.html               # Test case document (QA)
+        └── test-report.html              # Test execution report (QA, after running tests)
 ```
 
 **Project-level docs** (`docs/*.md`): standalone documents not tied to any usecase. `api-doc.md` is generated by the `api-doc-gen` skill, not from design.
@@ -523,9 +539,9 @@ For single-role calls (e.g., BA only), the checklist is still required — just 
 ## Pre-Finalization Checklist
 
 **Plan recap:**
-- ✅ DONE — Business Analyst: Generated AC for revoke-consent (docs/design/revoke/acceptance-criteria.md)
+- ✅ DONE — Business Analyst: Generated AC for revoke-consent (docs/design/revoke/acceptance-criteria.html)
 - ✅ DONE — Architect: System design + API contracts
-- ✅ DONE — QA: Test spec (docs/design/revoke/test-cases.md)
+- ✅ DONE — QA: Test spec (docs/design/revoke/test-cases.html)
 - ✅ DONE — Developer: Implemented endpoint POST /revoke-consent (TDD mode)
 - ✅ DONE — QA (Dev Loop): E2E tests passed 12/12
 - ✅ DONE_WITH_CONCERNS — Code Reviewer: 0 Blocker, 0 Critical, 2 Warnings (naming)
@@ -548,7 +564,7 @@ For single-role calls (e.g., BA only), the checklist is still required — just 
 ## Pre-Finalization Checklist
 
 **Plan recap:**
-- ✅ DONE — Business Analyst: Generated 7 ACs (5 Ready, 2 Blocked) for get-product-config (docs/design/get-product-config/acceptance-criteria.md)
+- ✅ DONE — Business Analyst: Generated 7 ACs (5 Ready, 2 Blocked) for get-product-config (docs/design/get-product-config/acceptance-criteria.html)
 - ✅ DONE — Architect: System design + API contracts for Ready ACs
 - ✅ DONE — QA: Test spec (7 TCs total, 2 tagged @blocked)
 - ✅ DONE — Developer: Implemented Ready ACs (AC-001, AC-003, AC-004, AC-006, AC-007) in TDD mode
@@ -656,7 +672,7 @@ The Final Summary follows the checklist IN THE SAME RESPONSE — they are paired
 
 **Issues found:** <blocker/critical findings from Code Reviewer or Security — empty if none>
 **Gaps:** <any roles skipped, failed, or paused for review — empty if none>
-**Next steps:** <recommended actions — e.g., "User to review test-cases.md before re-dispatching Developer", or "Run /neo-team review PR after merge">
+**Next steps:** <recommended actions — e.g., "User to review test-cases.html before re-dispatching Developer", or "Run /neo-team review PR after merge">
 ```
 
 If the run was paused at a checkpoint (user chose "Review first" or "Stop here"), state this clearly so the next person picking up the work knows where to resume.

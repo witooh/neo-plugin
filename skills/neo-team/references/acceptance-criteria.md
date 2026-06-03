@@ -8,6 +8,19 @@
 
 ---
 
+## Output Format — interactive HTML
+
+This document is emitted as **`acceptance-criteria.html`** (interactive HTML), **not** markdown. **Build it per [`html-output.md`](html-output.md)** — every rule below defines the CONTENT (which ACs, ordering, fields, status); the HTML guide defines the FORM (components, page shell, stamping, verify). Do not emit a `.md` file. The markdown structure shown below is the **content spec** — read it for fields/ordering, then render as HTML using this mapping:
+
+- Each AC → **`<ac-card>`** (custom element in `assets/js/components.js`): `<ac-card id="AC-NNN" status="ready|blocked|pending" priority traces subop jira label>` with child `<g>/<w>/<t>` (+ `<a>`) for GIVEN/WHEN/THEN, `<rule>` for the business rule, and optional `<blocker>`. It expands to the canonical `.card` (`is-<status>` + every `data-*` + badge/chips/chevron + `.gwt` + field-rows) — **status/priority/traces written ONCE then derived, so they can't drift**. Full HTML form + rendered structure: `html-output.md` §5.
+- Business Rule (`<rule>` child), JIRA Ref (`jira=` attr) and Priority/Status (derived) render as **`dl.field-row`s** inside `.card__body`; a Blocker (`<blocker>` child) renders a `.callout[data-kind="blocked"]` — all emitted by the element; you supply only the children/attrs.
+- AC Summary → **`<ac-summary>`** with one **`<ac ref="AC-NNN" subop rule [blocker]>`** per AC. Scenario/Priority/Status/JIRA are **derived from the matching `<ac-card>`** (written once on the card → can't drift): Status → `.status-badge`, Priority → `.chip[data-tone="p0|p1"]` (P2 = plain `.chip`), JIRA → `.chip[data-tone="jira"]`. You author only `subop` (sub-operation name; omit → "—") and `rule` (short Business-Rule ref); `blocker="<dep>"` appends "(blocked by <dep>)" to the rule cell. Renders `.table-wrap > table.data-table[data-sortable]`. The section's **Total line → `<ac-total></ac-total>`** (empty) — counts the page's `<ac-card>`s by status, so "Total Acceptance Criteria: N (Ready: R / Blocked: B)" can't go stale.
+- Business Rules / Edge Cases / Out of Scope → `h2` + lists (use `<callout-box kind="…">` for emphasis).
+- Also create the usecase's `index.html` overview and register the usecase group in `nav.js` (html-output.md §4, §9).
+- **Verify:** run `python3 <ASSET_DIR>/lint.py docs/design` until `PASS — 0 error(s)`, then the semantic self-check (html-output.md §7). In `<g>/<w>/<t>/<rule>` prose, inline `<b>`/`<code>` are fine but **bare `&` → `&amp;`** (§6).
+
+---
+
 **Usecase Scope Rule:** 1 AC document = 1 usecase folder. See `business-analyst.md` § Usecase Scope Rule and § Folder Organization Rule for the full decision tree (when to append vs. when to create a new usecase folder, folder-naming smell patterns).
 
 If this usecase has **multiple sub-operations** (e.g., `management/` covers CRUD parent + version + activate), group ACs under `## Sub-operation N:` headings below. For simple usecases with a single operation, skip Sub-operation headings and list ACs directly under the Acceptance Criteria section.
