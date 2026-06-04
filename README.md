@@ -6,12 +6,12 @@ Opinionated Claude Code plugin that bundles seven composable skills for end-to-e
 
 | Skill | Purpose | Triggers on |
 |-------|---------|-------------|
-| **`neo-team`** | Route a software-development task to specialist agents (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) via impact-based analysis. No fixed workflow — supports single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). Auto Dev loop (Dev → QA → Code Reviewer). | Any dev task that touches AC, design, code, tests, API, or security, or explicit `/neo` |
+| **`neo-team`** | Route a software-development task to specialist agents (BA, Architect, Developer, QA, Code Reviewer, Security, System Analyzer) via impact-based analysis. No fixed workflow — supports single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). Auto Dev loop (Dev → QA → Code Reviewer). Single entry point for GitLab MR **create** and **review** (with a JIRA card → AC/TC compliance; without → code + security + regression), calling the `gitlab` skill for glab I/O. | Any dev task that touches AC, design, code, tests, API, or security; "สร้าง MR", "review MR"; or explicit `/neo` |
 | **`brainstorm`** | Turn vague requests into actionable outputs via adaptive guided questioning. Prompt / Explore / Focused modes. | "brainstorm", "ช่วยคิด", "I have an idea", "let's explore" |
 | **`improve`** | Iteratively refine any output (code, prose, data, config) until a measurable finish-line condition holds — autonomous improve → self-evaluate loop modeled on `/goal`. | "improve this", "make it better", "ปรับปรุง", "iterate" |
 | **`api-doc-gen`** | Scan handler/router source to produce structured Markdown API docs in `docs/api/`, or validate existing docs against the code. | "gen api doc", "สร้าง api doc", "api doc outdated" |
 | **`confluence-api-doc`** | Sync the multi-file `docs/api/` structure to Confluence pages via `acli` + REST. | "sync api doc", "push doc to confluence" |
-| **`gitlab`** | Drive GitLab via the `glab` CLI — create, update, read, review, fix, CI-fix, and feedback workflows for MRs. | Any MR URL, "สร้าง MR", "review MR", "fix CI" |
+| **`gitlab`** | Low-level GitLab `glab` execution arm — neo-team invokes it for MR create + review-comment posting; also usable directly for read/summarize, update description, list MRs, CI status/logs, approve. (Create / review / fix / feedback now route through `neo-team`.) | Bare MR URL, "อ่าน MR", "อัพเดท MR", "list MRs", "check pipeline" |
 | **`commit`** | Smart git commit workflow — protected-branch guard, auto `feature/*` branching, rebase onto base, secret-aware staging, conventional commit messages, optional push. | "commit", "/commit", "commit and push", "ช่วย commit", "เสร็จแล้ว" |
 
 ## Companion pieces
@@ -78,7 +78,7 @@ Three ways to kick off work:
 │   ├── improve/             # iterative refinement
 │   ├── api-doc-gen/         # generate API docs from code
 │   ├── confluence-api-doc/  # sync docs/api/ to Confluence
-│   ├── gitlab/              # glab-backed MR workflows
+│   ├── gitlab/              # glab execution arm (invoked by neo-team)
 │   └── commit/              # smart git commit workflow
 ├── LICENSE
 └── README.md

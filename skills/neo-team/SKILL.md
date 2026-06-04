@@ -6,10 +6,14 @@ description: >
   which artifacts (AC, system design, code, test cases, API contract, security) it
   touches, then dispatch only the roles needed. Supports both single-role calls
   ("สร้าง AC") and multi-role tasks ("เพิ่ม endpoint X" → BA + Architect + QA +
-  Developer + Code Reviewer + Security). Trigger on /neo-team, /neo, "neo-team",
-  "ใช้ neo-team", "สร้าง AC", "ทำ system design", "เพิ่ม endpoint", "review code",
-  "fix bug", "refactor", "review PR", or any software-development task that
-  benefits from specialist agents.
+  Developer + Code Reviewer + Security). Also the single entry point for GitLab MR
+  work — creating an MR and reviewing an MR (two modes: with a JIRA card → adds AC/TC
+  compliance review, or without a card → code + security + regression) — invoking the
+  `gitlab` skill via the Skill tool for the glab I/O. Trigger on /neo-team, /neo,
+  "neo-team", "ใช้ neo-team", "สร้าง AC", "ทำ system design", "เพิ่ม endpoint",
+  "review code", "fix bug", "refactor", "review PR", "สร้าง MR", "create MR",
+  "review MR", "ตรวจ MR", a GitLab MR URL to review, or any software-development
+  task that benefits from specialist agents.
 compatibility:
   environment: claude-code
   tools:
@@ -17,7 +21,7 @@ compatibility:
     - Read
     - Skill
 metadata:
-  version: "2.5"
+  version: "2.6"
 ---
 
 # Neo Team
@@ -44,7 +48,8 @@ You may use ONLY: `Agent`, `Read`, `Skill`, `AskUserQuestion`.
 
 - **MUST NOT** use `Edit`, `Write`, `Bash` (any modifying form), or any tool that touches the working repo.
 - The frontmatter `tools:` block declares this — the gate enforces it at decision time.
-- **Violation action:** REFUSE the operation. Dispatch a specialist via `Agent` instead.
+- **GitLab / glab carve-out.** GitLab operations (fetch an MR, create/update an MR, post a review comment, fetch CI logs) are performed by **invoking the `gitlab` skill via the `Skill` tool** — this is the ONE sanctioned execution path. Invoking `Skill(gitlab)` is NOT a Bash call by you; the `gitlab` skill is the execution arm that runs `glab`. You yourself still **MUST NOT** call `Bash`/`glab` directly. When you invoke it, state the exact operation (e.g., "MR Read: fetch <url>", "MR Create from current branch", "Post a Comment to <url>: <text>"). See § MR Workflows.
+- **Violation action:** REFUSE the operation. Dispatch a specialist via `Agent`, or invoke `Skill(gitlab)` for glab I/O.
 
 ### GATE 2 — Never Implement (Refusal Guard)
 
@@ -108,7 +113,7 @@ Between every two sequential roles, you **MUST** present the Checkpoint format a
 - **MUST NOT** auto-continue to the next role without user input, even when the previous role returned `DONE`.
 - **Three exceptions only** — each collapses an internal group to a single checkpoint _after_ the group finishes, never between its members:
   1. **Dev loop** (GATE 5) — Developer → QA → Code Reviewer; one checkpoint after the loop exits, none between iterations.
-  2. **Parallel read-only review** — Code Reviewer ∥ Security (Impact Map rows 4 & 8), dispatched concurrently in one batch; one combined checkpoint after BOTH return. They are read-only with orthogonal scopes and do not consume each other's output, so a checkpoint between them adds nothing.
+  2. **Parallel read-only review** — the read-only review group dispatched concurrently in one batch, with one combined checkpoint after ALL return: **Code Reviewer ∥ Security** for new-endpoint row 4, and **Code Reviewer ∥ Security ∥ QA** for MR-review rows 8a/8b (QA in read-only MR-review mode). They have orthogonal scopes (convention / exploitability / AC-TC behavior) and do not consume each other's output, so a checkpoint between them adds nothing.
   3. **Doc Verify Loop** (GATE 10) — a downstream doc-role's adversarial verify of its upstream artifact plus any fix-loop back to the upstream role; one checkpoint after the downstream role completes, none for the internal verify → fix → re-verify cycle. This collapses checkpoints *within* the downstream role's turn — it does **not** remove the **post-BA intent checkpoint** (GATE BA5): BA's Interpretation Summary is confirmed by the user *before* Architect runs, so no role designs on unconfirmed intent.
 - **Violation action:** STOP. Present checkpoint first.
 
@@ -181,7 +186,9 @@ Examples:
 | --------------------------------------------------------------- | ----------------------------------------------------- |
 | `/neo-team สร้าง AC ของ revoke consent`                         | 1 role (BA) → run immediately, no plan UI             |
 | `/neo-team เพิ่ม endpoint POST /accounts`                       | 6 roles → show plan table → confirm → execute         |
-| `/neo-team review PR https://gitlab.com/.../merge_requests/123` | 2 roles (Code Reviewer + Security) → plan → confirm   |
+| `/neo-team review MR https://gitlab.com/.../merge_requests/123` | MR review, no card → 3 roles (Code Reviewer ∥ Security ∥ QA) → plan → confirm |
+| `/neo-team review MR <url> PROJ-123`                            | MR review, with card → 3 roles + AC/TC compliance → plan → confirm |
+| `/neo-team สร้าง MR`                                            | Create MR → invoke `Skill(gitlab)` → report URL (no plan UI) |
 | `/neo-team แก้ bug ใน checkConsent`                             | 4 roles (System Analyzer + Dev loop) → plan → confirm |
 
 The user does not have to name a role explicitly — you infer the impacted roles from the task description using the Impact Map. The user _may_ name a role explicitly (e.g., "ให้ QA gen test cases เลย"); when they do, treat it as a hint and route directly to that role unless the Impact Map clearly indicates additional roles must be involved (in which case surface the discrepancy to the user before dispatching).
@@ -240,7 +247,7 @@ If neither file exists, proceed with the conventions embedded in each specialist
    Checkpoint is shown ONCE — after the loop exits — not between iterations.
 
 5b. Parallel read-only review exception (enforced by HARD-GATE 6)
-   When the plan ends with **Code Reviewer ∥ Security** (Impact Map rows 4 & 8), dispatch BOTH in a single step — two `Agent` calls in one message — instead of sequentially. They are read-only with orthogonal scopes (convention compliance vs. exploitability) and never read each other's output, so there is no ordering dependency and no file-conflict risk (no worktree needed). Show ONE combined checkpoint after both return.
+   When the plan ends with the read-only review group, dispatch it in a single step — multiple `Agent` calls in one message — instead of sequentially: **Code Reviewer ∥ Security** for new-endpoint row 4, or **Code Reviewer ∥ Security ∥ QA** for MR-review rows 8a/8b (QA in read-only MR-review mode). They are read-only with orthogonal scopes and never read each other's output, so there is no ordering dependency and no file-conflict risk (no worktree needed). Show ONE combined checkpoint after all return.
 
 6. Finalize (enforced by HARD-GATE 9)
    a. Output the Pre-Finalization Checklist in chat — Plan recap (every row + terminal status), Dev Loop section if applicable, Outstanding items, Audit verdict.
@@ -350,11 +357,45 @@ The **Impact Map** is the source of truth for which roles a task touches. See [r
 | Modify existing Code         | Developer → QA → Code Reviewer → (BA / Architect if behavior is impacted) |
 | Modify API contract          | Architect → Developer → QA → Security                                     |
 | Bug fix                      | System Analyzer → Developer → QA → Code Reviewer                          |
-| Review PR / MR               | Code Reviewer ∥ Security                                                  |
+| Review MR (no JIRA card)     | Code Reviewer ∥ Security ∥ QA (regression E2E)                            |
+| Review MR (with JIRA card)   | Code Reviewer ∥ Security ∥ QA (AC/TC compliance + regression)             |
+| Create MR                    | invoke `Skill(gitlab)` MR Create (orchestrator routes + reports)          |
 | Refactor                     | Code Reviewer → Developer → QA                                            |
 | AC Blocker resolved          | BA → Architect (conditional) → QA → Developer → Code Reviewer             |
 
 If the user's task does not clearly match any row, **ask the user** before guessing.
+
+## MR Workflows
+
+You are the single entry point for GitLab MR work — **creating** an MR and **reviewing** an MR. You never run `glab` yourself (GATE 1); you invoke the `gitlab` skill via the `Skill` tool for all glab I/O (fetch, create, update, post comment, CI logs), and you orchestrate the thinking (mode decision, specialist dispatch, comment composition).
+
+### Intent + mode detection
+
+1. **Create vs review.** "สร้าง MR / create MR / open MR" (no existing MR URL, intent to open one) → **MR Create**. "review MR / ตรวจ MR / ช่วย review" + an MR URL → **MR Review**. A bare MR URL with no verb is ambiguous between a quick read and a review — ask the user which they want (do NOT default to a heavy review).
+2. **Review mode — card or no card.** If the task names a JIRA card ID (format `ABC-123`) → **mode 8b (with card)**. If no card is named → **mode 8a (no card)**. If you are unsure whether a card applies (e.g., the user says "review ตามการ์ด" but gives no ID) → ask via `AskUserQuestion`; never guess a card ID (Never Guess + [`shared/jira-ref.md`](references/shared/jira-ref.md) §6).
+
+### MR Create flow (single-role shortcut — no plan UI)
+
+1. Invoke `Skill(gitlab)` with an explicit "MR Create from the current branch" instruction. The `gitlab` skill handles branch/uncommitted checks, push, diff analysis, description generation, and `glab mr create`.
+2. If the user named a JIRA card, pass it so gitlab adds a `JIRA: <ID>` line to the description.
+3. Report the MR URL returned by gitlab. (Create is a delegation, not a specialist dispatch — no plan table; the Pre-Finalization Checklist still records it.)
+
+### MR Review flow
+
+Matches Impact Map **row 8a** (no card) or **row 8b** (with card). It is **read-only** — it posts findings, never edits code.
+
+1. **(8b only) Resolve the usecase docs.** Read `docs/design/INDEX.md`, match the card/MR to a usecase, and confirm by checking that the usecase's `acceptance-criteria.html` carries a `JIRA Ref:` equal to the card. Collect the paths: `acceptance-criteria.html`, `test-cases.html`, `traceability.html`. If the card maps to **no** usecase, to **multiple** usecases, or the match is unclear → **ask the user** via `AskUserQuestion` (Never Guess). Local docs are the only source — do NOT fetch the live JIRA card.
+2. **Fetch the MR.** Invoke `Skill(gitlab)` "MR Read: fetch <url>" to get the MR JSON (title, source→target branch, author), the diff, and the existing notes. Summarize the existing comments so reviewers don't repeat them.
+3. **Plan confirmation (GATE 4 — 3 roles).** Present the plan table (Code Reviewer ∥ Security ∥ QA, with the mode noted) and ask Confirm / Edit / Cancel.
+4. **Dispatch the read-only review group in parallel** (one batch — GATE 6 exception #2 / Orchestrator Flow 5b): **Code Reviewer ∥ Security ∥ QA**. Give every agent the diff + the existing-comments summary (instruct: do not repeat issues already raised). Additionally:
+   - **QA** gets the **MR-review mode** flag (`8a regression` / `8b compliance`) and, for 8b, the three doc paths + the card ID. QA runs read-only (no doc writing — see [`references/qa.md`](references/qa.md) § MR Review Mode).
+   - For 8b, instruct QA to return the **AC/TC compliance table**.
+5. **One combined checkpoint** after all three return (GATE 6 exception #2). No checkpoint between them.
+6. **Compose the comment.** Read [`references/mr-review-template.md`](references/mr-review-template.md) and fill it from the three agents' findings (table-first). For 8b, include the AC/TC Compliance section from QA's compliance table — the mismatch column must be specific and actionable so an AI can act on it.
+7. **Post the comment.** Invoke `Skill(gitlab)` "Post a Comment to <url>: <composed text>". gitlab posts it verbatim. If glab is unauthenticated/fails, gitlab returns the error — surface the comment text to the user to post manually.
+8. **Finalize** (GATE 9): Pre-Finalization Checklist (the review group's verdicts + whether the comment was posted) + Final Summary.
+
+**MR Review does NOT auto-fix.** It posts findings only. If the user wants the findings fixed, they re-invoke `/neo-team` with a fix request, which routes through the Modify-Code / Bug-Fix rows (Impact Map rows 5 / 7) and the Dev Loop.
 
 ## Delegation Protocol
 
@@ -414,7 +455,7 @@ The three doc-producing specialists emit interactive HTML and need the bundled d
 - Construct it from this skill's own directory (given in the skill-load message as "Base directory for this skill: …/skills/neo-team") → `ASSET_DIR = <that directory>/assets`. The reference files sit next to it at `<ASSET_DIR>/../references/` (and the shared rule files at `<ASSET_DIR>/../references/shared/`).
 - Tell the specialist: "Read `references/html-output.md` first, plus the shared rule files your HARD-GATEs cite — `references/shared/verification.md`, `references/shared/jira-ref.md`, and (BA/QA only) `references/shared/ac-status.md`. Your `ASSET_DIR` is `<abs path>`. On the first HTML doc in this project, stamp the design system with `bash <ASSET_DIR>/scaffold.sh <project>/docs/design`; read `<ASSET_DIR>/_shell.html` for the page skeleton; verify every page with `python3 <ASSET_DIR>/lint.py docs/design`, then cross-check references between docs with `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>`."
 
-Without `ASSET_DIR`, `scaffold.sh` / `_shell.html` and the shared rule files cannot be resolved and the specialist cannot produce a working, verified HTML doc. This applies to BA, Architect, and QA only — code/review/security roles do not need it (their shared rules ride in the universal prompt header).
+Without `ASSET_DIR`, `scaffold.sh` / `_shell.html` and the shared rule files cannot be resolved and the specialist cannot produce a working, verified HTML doc. This applies to BA, Architect, and QA **when they author HTML docs** — code/review/security roles do not need it (their shared rules ride in the universal prompt header). **Exception:** QA in **MR-review mode** (Impact Map rows 8a/8b) is read-only and produces no HTML — do NOT pass it `ASSET_DIR`; dispatch it per § MR Workflows instead.
 
 ### Subagent Status Protocol
 
@@ -441,7 +482,7 @@ Enforced by GATE 7. Practical guidelines for composing the prompt:
 
 ### Worktree Isolation (parallel WRITERS only)
 
-The default flow is sequential — one role at a time — so worktree isolation is usually unnecessary. Use `isolation: "worktree"` on the `Agent` tool only when you genuinely run **writer** roles in parallel and their file edits could overlap (e.g., two Developer agents implementing independent components in the same run). The **Code Reviewer ∥ Security** parallel group (Impact Map rows 4 & 8) does NOT need it — both are read-only and cannot conflict on files.
+The default flow is sequential — one role at a time — so worktree isolation is usually unnecessary. Use `isolation: "worktree"` on the `Agent` tool only when you genuinely run **writer** roles in parallel and their file edits could overlap (e.g., two Developer agents implementing independent components in the same run). The read-only review group — **Code Reviewer ∥ Security** (row 4) and **Code Reviewer ∥ Security ∥ QA** (MR-review rows 8a/8b) — does NOT need it; all are read-only and cannot conflict on files.
 
 ## Open Questions Handling
 
@@ -759,7 +800,7 @@ The Final Summary follows the checklist IN THE SAME RESPONSE — they are paired
 
 **Issues found:** <blocker/critical findings from Code Reviewer or Security — empty if none>
 **Gaps:** <any roles skipped, failed, or paused for review — empty if none>
-**Next steps:** <recommended actions — e.g., "User to review test-cases.html before re-dispatching Developer", or "Run /neo-team review PR after merge">
+**Next steps:** <recommended actions — e.g., "User to review test-cases.html before re-dispatching Developer", or "Run /neo-team review MR <url>">
 ```
 
 If the run was paused at a checkpoint (user chose "Review first" or "Stop here"), state this clearly so the next person picking up the work knows where to resume.
