@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A **Claude Code plugin** (`neo-dev-toolkit`) — not an application. There is no compile/test/lint pipeline. The "code" is Markdown skill definitions, a slash command, and a SessionStart hook script. Distribution is via Claude Code's plugin marketplace mechanism.
+A **Claude Code plugin** (`neo-dev-toolkit`) — not an application. There is no compile/test/lint pipeline. The "code" is Markdown skill definitions and a SessionStart hook script. Distribution is via Claude Code's plugin marketplace mechanism.
 
 ## Repo layout (the parts that matter)
 
@@ -12,8 +12,6 @@ A **Claude Code plugin** (`neo-dev-toolkit`) — not an application. There is no
 .claude-plugin/
   plugin.json         # plugin manifest — bump `version` when publishing
   marketplace.json    # local-dev marketplace pointing at "./"
-commands/
-  neo.md              # /neo slash command → invokes the neo-team skill
 hooks/
   hooks.json          # registers SessionStart hook
   run-hook.cmd        # cross-platform polyglot wrapper (cmd.exe + bash)
@@ -24,14 +22,14 @@ skills/<name>/
   references/*.md     # role specs / templates pulled in by the skill body
 ```
 
-Skills currently bundled: `neo-team`, `brainstorm`, `improve`, `api-doc-gen`, `confluence-api-doc`, `gitlab`, `commit`, `bruno`, `open-collection`. The README's table is the authoritative list of triggers.
+Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc-gen`, `confluence-api-doc`, `gitlab`, `commit`, `bruno`, `open-collection`. The README's table is the authoritative list of triggers.
 
 ## How the pieces wire together
 
 - **`SessionStart` hook** (`hooks/hooks.json` → `run-hook.cmd session-start`) runs on `startup | clear | compact` and injects an `<EXTREMELY_IMPORTANT>` block listing every skill and its triggers. This is what makes Claude reach for the skills proactively without the user naming them.
 - **`run-hook.cmd`** is a deliberate polyglot file — cmd.exe reads the `@echo off` batch portion (which finds Git-Bash and re-execs the script), while bash treats the leading `:` as a no-op and falls through to the Unix branch. Hook scripts are intentionally **extensionless** (`session-start`, not `session-start.sh`) because Claude Code's Windows auto-detection prepends `bash` to anything ending in `.sh`, which breaks the wrapper.
-- **`commands/neo.md`** is a thin slash-command shim — its only job is to invoke the `neo-team` skill via the `Skill` tool, passing `$ARGUMENTS` as the task description.
-- **`neo-team`** is the heaviest skill. It is a strict **orchestrator** — `SKILL.md` declares `tools: [Agent, Read, Skill]` and the HARD-GATE section forbids it from using `Edit`/`Write`/`Bash`. All actual work goes through specialist sub-agents dispatched via the `Agent` tool with `subagent_type: "general-purpose"`; the specialist's identity comes from the per-role files in `skills/neo-team/references/`.
+- **`/neo`** invokes the `neo` skill directly — skill invocation, no command shim (the skill's `description` is the trigger contract).
+- **`neo`** is the heaviest skill — a strict **phase-based orchestrator**. `SKILL.md` (~100 lines) declares `tools: [Agent, Read, Skill]` and forbids `Edit`/`Write`/`Bash`. All real work goes through specialist sub-agents (`subagent_type: "general-purpose"`) dispatched via `Agent` using **point-to-read**: the orchestrator passes `NEO_DIR` + artifact paths, and each specialist reads its own role spec from `skills/neo/references/roles/<role>.md` — the orchestrator never pastes role specs into the prompt. The previous v2.6 (`neo-team`) is kept **dormant** in `legacy/neo-team/` (outside `skills/`, so not auto-discovered) as a reference/fallback.
 
 ## Working in this repo
 
@@ -39,7 +37,7 @@ Skills currently bundled: `neo-team`, `brainstorm`, `improve`, `api-doc-gen`, `c
 
 - `SKILL.md` frontmatter `description` is **the trigger contract** — Claude uses it (not the body) to decide whether to invoke a skill. Edits to the description change activation behavior; edits to the body change what happens *after* activation. Keep both in sync.
 - When adding a new skill, also update: the SessionStart hook (`hooks/session-start`) so its overview block lists the new skill, and the README table.
-- `neo-team` references (`skills/neo-team/references/*.md`) are loaded by the orchestrator at dispatch time. Changing a role's contract here changes specialist behavior even though the file isn't itself a skill.
+- `neo` references (`skills/neo/references/`) are **read by the specialist sub-agent** (point-to-read), not pasted by the orchestrator: `roles/<role>.md` (distilled role capsules), `shared/preamble.md` (universal agent header — never-guess / cleanup / status / HTML-verify), `templates/` (artifact content specs), `html-output.md` (HTML form), `phase-map.md` (task→phase routing). Changing a role's contract here changes specialist behavior.
 
 ### Before every commit
 

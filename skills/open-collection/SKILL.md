@@ -9,7 +9,7 @@ description: >
   generate, update, or validate an OpenCollection / Bruno collection from code, or says
   things like "gen open collection", "สร้าง open collection", "อัปเดต bruno collection",
   "สร้าง bruno จาก code", "scaffold opencollection.yml from handlers", "เช็ค bruno
-  ตรงกับ code ไหม", or "open-collection". Also trigger when neo-team delegates collection
+  ตรงกับ code ไหม", or "open-collection". Also trigger when neo delegates collection
   generation tasks. This is the *code-to-collection generator*; for hand-authoring or
   curl/Postman conversion use the `bruno` skill instead.
 compatibility:

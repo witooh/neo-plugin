@@ -1,7 +1,7 @@
 # Product
 
-> Scope: the **"Design Docs" HTML site** that the `neo-team` skill generates into a project's
-> `docs/design/` — i.e. the shared design system in `skills/neo-team/assets/` (styles.css +
+> Scope: the **"Design Docs" HTML site** that the `neo` skill generates into a project's
+> `docs/design/` — i.e. the shared design system in `skills/neo/assets/` (styles.css +
 > components + page shell). Not the plugin tooling itself.
 
 ## Register
@@ -10,11 +10,11 @@ product
 
 ## Users
 
-Internal engineering team using the neo-team skill — Business Analysts, Architects, QA, developers — plus AI tools/agents that read the generated HTML. They open the site to read, review, and trace acceptance criteria, system designs, API contracts, test cases, and traceability for a feature. Context: reviewing dense spec content on a laptop, switching between docs, comparing status (ready/blocked/pending) across many items. Thai-language content with English technical terms.
+Internal engineering team using the neo skill — Business Analysts, Architects, QA, developers — plus AI tools/agents that read the generated HTML. They open the site to read, review, and trace acceptance criteria, system designs, API contracts, test cases, and traceability for a feature. Context: reviewing dense spec content on a laptop, switching between docs, comparing status (ready/blocked/pending) across many items. Thai-language content with English technical terms.
 
 ## Product Purpose
 
-The human-facing render of design docs that neo-team specialists generate. It exists because dense markdown specs don't get read; the HTML turns them into a scannable, interactive site (collapsible cards, sortable tables, status filters, trace matrices, mermaid diagrams, light/dark). Success = a reviewer finds and judges a spec item in seconds, and the raw HTML stays lean enough that an AI/tool reads only content, not styling (CSS/JS external; token cost ≈ markdown). Hard constraints: **offline, zero-build, framework-free, external CSS/JS**.
+The human-facing render of design docs that neo specialists generate. It exists because dense markdown specs don't get read; the HTML turns them into a scannable, interactive site (collapsible cards, sortable tables, status filters, trace matrices, mermaid diagrams, light/dark). Success = a reviewer finds and judges a spec item in seconds, and the raw HTML stays lean enough that an AI/tool reads only content, not styling (CSS/JS external; token cost ≈ markdown). Hard constraints: **offline, zero-build, framework-free, external CSS/JS**.
 
 ## Brand Personality
 

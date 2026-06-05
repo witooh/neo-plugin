@@ -8,7 +8,7 @@ description: >
   check if API docs are out of date, create endpoint documentation from code, or says
   things like "gen api doc", "สร้าง api doc", "อัปเดต api doc",
   "เช็ค api doc ตรงกับ code ไหม", "document these endpoints", "api doc outdated".
-  Also trigger when neo-team delegates API documentation tasks to this skill.
+  Also trigger when neo delegates API documentation tasks to this skill.
 compatibility:
   environment: claude-code
   tools:

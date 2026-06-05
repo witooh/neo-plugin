@@ -1,7 +1,7 @@
 ---
 name: gitlab
 description: >
-  Low-level GitLab execution via the glab CLI — the "execution arm" that the neo-team
+  Low-level GitLab execution via the glab CLI — the "execution arm" that the neo
   skill invokes (through the Skill tool) to run glab for MR creation and review-comment
   posting. Also usable directly for lightweight, side-effect-free MR operations: Read
   (summarize an MR), Update (อัพเดท MR description), list MRs, view MR/CI status, fetch
@@ -10,8 +10,8 @@ description: >
   "แก้ description", "list MRs", "list open MRs", "check pipeline", "pipeline status",
   "approve MR", or asks for a raw glab operation. NOTE: creating an MR ("สร้าง MR"),
   reviewing an MR ("review MR", "ตรวจ MR"), fixing issues/CI, or addressing review
-  feedback now route through the neo-team skill (which calls this skill for the glab I/O) —
-  do NOT trigger this skill directly for those; let neo-team orchestrate.
+  feedback now route through the neo skill (which calls this skill for the glab I/O) —
+  do NOT trigger this skill directly for those; let neo orchestrate.
 compatibility:
   environment: claude-code
   tools:
@@ -23,9 +23,9 @@ metadata:
 
 # GitLab Skill (Claude Code)
 
-Use the `glab` CLI to interact with GitLab. This skill is the **glab execution arm**: the `neo-team` skill invokes it (via the `Skill` tool) to run glab for MR creation and review-comment posting, and you can also use it directly for lightweight, side-effect-free MR operations.
+Use the `glab` CLI to interact with GitLab. This skill is the **glab execution arm**: the `neo` skill invokes it (via the `Skill` tool) to run glab for MR creation and review-comment posting, and you can also use it directly for lightweight, side-effect-free MR operations.
 
-It provides **mechanics only** — **Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations. MR **review / fix / CI-fix / feedback orchestration now lives in the `neo-team` skill**; this skill no longer spawns review agents or hands off to other skills.
+It provides **mechanics only** — **Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations. MR **review / fix / CI-fix / feedback orchestration now lives in the `neo` skill**; this skill no longer spawns review agents or hands off to other skills.
 
 ## URL Parsing
 
@@ -38,20 +38,20 @@ These two values power most glab commands: `glab mr <cmd> <mr_id> --repo <repo_r
 
 ## Intent Detection
 
-This skill provides **glab mechanics only**. Determine which operation the user (or the calling `neo-team` skill) wants:
+This skill provides **glab mechanics only**. Determine which operation the user (or the calling `neo` skill) wants:
 
 | Signal | Operation |
 |--------|-----------|
 | bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary" | **MR Read** — fetch MR info + diff (+ notes) and summarize |
-| "สร้าง MR", "create MR", "open MR" — or invoked by neo-team to create | **MR Create** — create a new MR from the current branch |
+| "สร้าง MR", "create MR", "open MR" — or invoked by neo to create | **MR Create** — create a new MR from the current branch |
 | "อัพเดท MR", "update description", "แก้ description" | **MR Update** — rewrite the MR description |
 | "check pipeline", "pipeline status", failed-job logs | **CI Inspection** — fetch pipeline status + job logs (no fixing) |
 | "list MRs", "approve MR", or a raw glab command | **Common glab Operations** |
-| post a composed review comment (invoked by neo-team) | **Post a Comment** |
+| post a composed review comment (invoked by neo) | **Post a Comment** |
 
-**Routes to neo-team, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `neo-team` skill. neo-team calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
+**Routes to neo, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `neo` skill. neo calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
 
-**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects). When neo-team invokes this skill, it states the operation explicitly — follow it.
+**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects). When neo invokes this skill, it states the operation explicitly — follow it.
 
 ---
 
@@ -118,7 +118,7 @@ From the commits and diff, generate a structured MR description:
 
 The description must accurately reflect what the commits and diff show. Read the actual code changes — do not just paraphrase commit messages. If commits are messy or unclear, the description should still be clear and well-organized based on what the diff reveals.
 
-If a JIRA card ID is provided (e.g., by the neo-team skill or the user), add a `JIRA: <ID>` line near the top of the description.
+If a JIRA card ID is provided (e.g., by the neo skill or the user), add a `JIRA: <ID>` line near the top of the description.
 
 ### Step 4: Create MR
 
@@ -229,7 +229,7 @@ Report:
 
 ## MR Read Workflow
 
-The lightest workflow — no specialist agents, no comments posted. Just fetch MR data and present a concise summary to the user in the conversation. (neo-team also calls this to fetch MR data for a review.)
+The lightest workflow — no specialist agents, no comments posted. Just fetch MR data and present a concise summary to the user in the conversation. (neo also calls this to fetch MR data for a review.)
 
 ```
 1. Fetch MR info (JSON), diff, and notes
@@ -259,7 +259,7 @@ Keep it terminal-friendly and scannable. Do NOT spawn specialist agents or post 
 
 ## CI Inspection (fetch only)
 
-Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI — fixing pipeline failures is orchestrated by the `neo-team` skill (Bug Fix flow), which calls this section to gather the logs.
+Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI — fixing pipeline failures is orchestrated by the `neo` skill (Bug Fix flow), which calls this section to gather the logs.
 
 ### Step 1: Pipeline Status
 
@@ -279,13 +279,13 @@ glab ci view <pipeline_id> --repo <repo_ref>
 glab ci trace <job_id> --repo <repo_ref>
 ```
 
-Collect the last ~100 lines of each failed job's log — these hold the actual error messages. Summarize each failure (job name, stage, category — Build / Test / Lint / Config — and an error excerpt) and hand it back to neo-team for orchestration, or present it to the user. Do NOT spawn fix agents here.
+Collect the last ~100 lines of each failed job's log — these hold the actual error messages. Summarize each failure (job name, stage, category — Build / Test / Lint / Config — and an error excerpt) and hand it back to neo for orchestration, or present it to the user. Do NOT spawn fix agents here.
 
 ---
 
-## Post a Comment (invoked by neo-team)
+## Post a Comment (invoked by neo)
 
-When neo-team has composed a review comment (it owns the table-first review template), it calls this skill to post the comment. Post the provided text **verbatim** — do not re-summarize, re-review, or add findings of your own:
+When neo has composed a review comment (it owns the table-first review template), it calls this skill to post the comment. Post the provided text **verbatim** — do not re-summarize, re-review, or add findings of your own:
 
 ```bash
 glab mr note <mr_id> --repo <repo_ref> -m "<composed_comment>"
@@ -325,6 +325,6 @@ For `--repo`, you can omit it if you're already inside the project directory (gl
 
 - **glab not authenticated**: tell the user to run `glab auth login`
 - **glab command fails**: output the result as conversation text instead of posting, explain what failed
-- **Empty diff**: note that the MR has no file changes (tell neo-team / the user) and stop
+- **Empty diff**: note that the MR has no file changes (tell neo / the user) and stop
 - **Large diff (>500 lines)**: warn the user, proceed but note the summary may miss details
 - **Large single-line files** (minified JS, large JSON): the view tool now shows partial content — note this in the summary if such files are part of the diff
