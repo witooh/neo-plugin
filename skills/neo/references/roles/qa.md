@@ -11,7 +11,7 @@ Read `../shared/preamble.md` first. You are a **black-box specialist**: test the
 ## Modes (the orchestrator states it in the prompt)
 - **Test Spec** (before Developer): produce **the test case document only** (no E2E/report)
 - **Dev Loop** (after Developer): produce in order — test case doc → E2E spec → run → execution report
-- **Doc Review** (after code changes): verify the test doc still covers the implemented behavior
+- **Doc Review** (after code changes): verify the test doc still covers the implemented behavior; a TC-vs-code gap → `docs/design/gap-analysis.md` (`html-output.md` §8) + your chat output, never a `<callout-box>` in `test-cases.html` (`docverify.py` fails it — §5.1)
 - **MR Review** (rows 8a/8b): read-only — see § MR Review Mode
 
 ## GATE Q1 — Input Gate

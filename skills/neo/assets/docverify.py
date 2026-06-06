@@ -43,6 +43,13 @@ WHAT IT CHECKS  (all read from the SOURCE HTML authoring tags <ac-card>/<tc-card
         (jira-ref.md §2/§4 — verbatim; never invented, dropped, or reordered)
     X5  every <ac-card traces> TC-id exists in the test-case doc            -> ERROR
 
+  every page in the folder  (callout discipline — html-output.md §5.1):
+    C1  no version/changelog <callout-box> on a spec page (-> VERSION.md)   -> ERROR
+    C2  no doc-vs-code gap <callout-box> (-> gap-analysis.md + chat report) -> ERROR
+    C3  <= 6 hand-authored callouts/page outside a <h2 id="notes"> region   -> WARNING
+        (Notes-region callouts are exempt — that IS the correct home; a card's
+         own <blocker> callout is element-emitted, not authored, so never counted)
+
   LEGACY (ac-status.md §1): if NO card in a doc carries a `status` at all, the doc
   predates the Status schema → every card is treated as Ready and A1/A2 are skipped
   (one WARNING). A *partial* status state (some cards have it, some don't) is a real
@@ -176,6 +183,20 @@ def parse_refs(html, parent_tag):
     return refs
 
 
+def parse_callouts(html):
+    """Each hand-authored <callout-box ...>inner</callout-box> as {kind, text}.
+       text = inner with tags stripped + whitespace-collapsed — enough for the
+       body-start (version) + keyword (gap) matching in classify_callout(). A card's
+       own <blocker> callout is emitted by components.js (never authored as a
+       <callout-box>), so it is correctly invisible here. Reuses elements()/attr()."""
+    out = []
+    for open_tag, inner in elements(html, "callout-box"):
+        text = re.sub(r'<[^>]+>', ' ', inner)            # drop inline <b>/<code>/<a>/…
+        text = re.sub(r'\s+', ' ', text).strip()
+        out.append({"kind": (attr(open_tag, "kind") or "").lower(), "text": text})
+    return out
+
+
 # ---- checks ----
 
 ID_RE = {"ac-card": re.compile(r'^AC-\d+$'), "tc-card": re.compile(r'^TC-\d+$')}
@@ -295,13 +316,77 @@ def check_cross(ac_cards, tc_cards, errors):
                 errors.append(f"{ac['id']}: traces {tc} which is not a TC in {TC_DOC}")
 
 
+# ---- callout discipline (html-output.md §5.1): a spec page = current desired state.
+#      version/changelog + doc-vs-code gap notes must NOT live in a <callout-box> on the
+#      page — they belong in VERSION.md / gap-analysis.md. Run on EVERY page in the folder
+#      (api-contracts/traceability/index too), not just the card docs. ----
+
+DENSITY_CAP = 6                                                 # non-exempt callouts/page → warn
+VERSION_RE = re.compile(r'^\s*v?\d+\.\d+(?:\.\d+)?\b', re.I)    # body STARTS with a semver token
+GAP_PHRASES = ("doc-vs-code", "doc vs code", "code-compliance gap", "compliance gap",
+               "plumbing gap", "rate plumbing", "implementation gap", "not yet implement",
+               "not implemented", "re-aligned", "realigned", "supersede")  # substring → also supersedes/-d
+# words that ALSO occur in legit spec prose ("cache is stale", "data drift between regions")
+# — a gap only WITH a code-pointer co-signal (CODE_SIGNAL), never on their own:
+GAP_WEAK = ("gap", "plumbing", "verified", "migration", "drift", "stale")
+CODE_SIGNAL = re.compile(r'\b(code|grep|adapter|port|handler|implement)\b', re.I)
+
+
+def classify_callout(text):
+    """'version' | 'gap' | 'ok'. version wins (anchored at body-start, so a mid-sentence
+       "in v2 we will…" is NOT flagged). 'gap' needs a STRONG phrase, or a WEAK word AND
+       a code-pointer co-signal — so a legit spec note ("…verified against
+       GetProductResponse") stays 'ok', but "plumbing gap … port" is a gap. Tuned to the
+       real corpus; widen GAP_PHRASES as new docs surface."""
+    if VERSION_RE.match(text):
+        return "version"
+    low = text.lower()
+    if any(p in low for p in GAP_PHRASES):
+        return "gap"
+    if any(re.search(r'\b' + re.escape(w) + r'\b', low) for w in GAP_WEAK) and CODE_SIGNAL.search(low):
+        return "gap"
+    return "ok"
+
+
+def split_at_notes(html):
+    """(pre, notes_region) split at the first <h2|section id="notes">. Callouts inside the
+       Notes region are EXEMPT — a cross-cutting note placed there IS the correct routing."""
+    m = re.search(r'<(?:h2|section)\b[^>]*\bid\s*=\s*["\']notes["\']', html, re.I)
+    return (html, "") if not m else (html[:m.start()], html[m.start():])
+
+
+def check_callouts(html, fname, errors, warns):
+    """C1/C2 version+gap callouts on a spec page -> ERROR; C3 density -> WARNING.
+       The Notes region (split_at_notes) is exempt from all three."""
+    pre, _notes = split_at_notes(html)
+    live = 0
+    for c in parse_callouts(pre):
+        kind = classify_callout(c["text"])
+        if kind == "ok":
+            live += 1
+            continue
+        snip = (c["text"][:60] + "…") if len(c["text"]) > 60 else c["text"]
+        if kind == "version":
+            errors.append(f'{fname}: version/changelog callout on a spec page — move it to '
+                          f'VERSION.md + the index.html version table (starts "{snip}")')
+        else:                                              # gap
+            errors.append(f'{fname}: doc-vs-code gap callout on a spec page — move it to '
+                          f'gap-analysis.md + report it in the chat response (starts "{snip}")')
+    if live > DENSITY_CAP:
+        warns.append(f'{fname}: {live} hand-authored callouts (cap {DENSITY_CAP}) — fold '
+                     f'element-specific notes into their section, cross-cutting ones into a '
+                     f'single <h2 id="notes"> section (html-output.md §5.1)')
+
+
 def check_usecase(folder):
     errors, warns, checked, skipped = [], [], [], []
     ac_path, tc_path = folder / AC_DOC, folder / TC_DOC
 
     ac_cards = tc_cards = None
+    loaded = {}                                           # stash for the callout pass — no re-read
     if ac_path.exists():
         html = load(ac_path)
+        loaded[AC_DOC] = html
         ac_cards = parse_cards(html, "ac-card")
         check_card_basics(ac_cards, "ac-card", errors, warns)
         check_summary_pairs([c["id"] for c in ac_cards if c["id"]],
@@ -312,6 +397,7 @@ def check_usecase(folder):
 
     if tc_path.exists():
         html = load(tc_path)
+        loaded[TC_DOC] = html
         tc_cards = parse_cards(html, "tc-card")
         check_card_basics(tc_cards, "tc-card", errors, warns)
         check_summary_pairs([c["id"] for c in tc_cards if c["id"]],
@@ -335,6 +421,17 @@ def check_usecase(folder):
         checked.append("cross-file AC<->TC")
     elif ac_cards is not None:
         skipped.append("cross-file AC<->TC (test-cases.html absent)")
+
+    # callout discipline — EVERY page in the folder (api-contracts/traceability/index too,
+    # which the card-based checks above never open). Skips _shell/_partials.
+    pages = [p for p in sorted(folder.glob("*.html")) if not p.name.startswith("_")]
+    for page in pages:
+        try:
+            check_callouts(loaded.get(page.name) or load(page), page.name, errors, warns)
+        except Exception as e:
+            errors.append(f"{page.name}: callout check failed ({e!r})")
+    if pages:
+        checked.append(f"callout discipline ({len(pages)} page(s))")
 
     return errors, warns, checked, skipped
 

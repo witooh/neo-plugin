@@ -40,9 +40,15 @@ Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc-gen`, `conflu
 - `neo` references (`skills/neo/references/`) are **read by the specialist sub-agent** (point-to-read), not pasted by the orchestrator: `roles/<role>.md` (distilled role capsules), `shared/preamble.md` (universal agent header — never-guess / cleanup / status / HTML-verify), `templates/` (artifact content specs), `html-output.md` (HTML form), `phase-map.md` (task→phase routing). Changing a role's contract here changes specialist behavior.
 - **`neo` has its own scoped `skills/neo/CLAUDE.md`** — the load-bearing invariants for editing it (gate inventory + count, point-to-read / `NEO_DIR` handoff, HTML asset coupling, the language-neutral rule, add-a-role sync list, verify-before-commit). It's a maintainer doc (not loaded at runtime, not shipped to consumers). Read it before non-trivial neo edits; keep neo detail there, not duplicated here.
 
-### Before every commit
+### Before every commit (release workflow)
 
-**Bump `version`** in `.claude-plugin/plugin.json` (and keep the matching entry in `.claude-plugin/marketplace.json` in sync) before every commit — never commit with the version unchanged. This is the only signal installed clients have that the plugin changed; local marketplaces don't auto-update (see the next section), so a stale version means users keep running the old code.
+When the user asks to **bump the version, commit, or cut a release**, run this standing flow (the version bump is a hard rule — never commit with it unchanged):
+
+1. **Bump `version`** in `.claude-plugin/plugin.json` AND `.claude-plugin/marketplace.json` (keep both in sync). Semver by change type: patch = fix/docs, minor = new feature/skill, major = breaking. It's the only signal installed clients have that the plugin changed; local marketplaces don't auto-update (see "Publishing" below), so a stale version means users keep running old code.
+2. **Update `RELEASE.md`** — prepend a `## <version> — <YYYY-MM-DD>` entry summarizing the diff (Added / Changed / Notes; one entry per version, newest on top; keep older entries).
+3. **Tag the release** — one annotated tag per version bump, created *after* the commit lands: `git tag -a v<version> -m "neo-dev-toolkit <version> — <headline>"` (v-prefix). Push it alongside the branch when the user pushes (`git push origin <branch> && git push origin v<version>`).
+
+The user runs `git commit` themselves — don't auto-commit. Always do steps 1–2 in the same turn as the request; provide (or run, once they've committed) the step-3 tag command.
 
 ### Publishing changes (local marketplace)
 

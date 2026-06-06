@@ -19,6 +19,8 @@ python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document referen
 ```
 **GATE CS1 — Completeness Sweep (SCOPED-CHANGE tasks only: retire / rename / migrate / modify-with-removal).** Derive the retired/renamed target(s) from the orchestrator-passed scope + your own diff (your role file says how to derive). For each target, `grep -rn` `docs/design` (and the codebase when the change removes/renames a user-visible token) for live references — PASS = **zero stale references** (a rename also requires the new name present). Greenfield / pure-additive task → CS1 N/A (no old token; rely on your role's forward-coverage gate). **No derivable target → REPORT `CS1: sweep skipped — no target` in the output (never silent-skip).** CS1 is a **measurable** gate: loop until green; **~3 rounds with no progress → stop and escalate to the orchestrator** (state the residual stale references) — never return a fake PASS.
 
+**Callout discipline (design docs = current desired state).** Do NOT hand-author a `<callout-box>` for a version/changelog entry (→ `VERSION.md`) or a doc-vs-code gap (→ `gap-analysis.md` + your chat output) — `docverify.py` fails the gate on these. A spec-relevant note folds into the element it describes; a cross-cutting one goes in a single `<h2 id="notes">Notes</h2>` section. Full routing table: `html-output.md` §5.1.
+
 Then eyeball the semantic self-check the scripts can't cover (see `html-output.md` §7). The model cannot trust a single self re-read for cross-file references or completeness — the scripts + grep are the gate.
 
 ## 4. Status line (end of every output)

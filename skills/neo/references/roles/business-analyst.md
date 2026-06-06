@@ -63,7 +63,7 @@ After writing/editing the AC doc, also check: **Status consistency** (every AC h
 
 ## Other Modes
 **Test Case Review** (reviewing QA's TC): check every AC-ID has ≥1 TC trace; TC uses the exact status code (not `>=400`); error TC asserts the error body; every BR is tested; no duplicate/gap. Verdict: Approved | Revise (list what to fix).
-**Doc Review & Update** (after code changes): pre-flight folder-smell scan first; compare AC against the implemented code; accurate → "no change needed" + reason; needs fixing → targeted edit + re-verify. AC genuinely conflicts with code (not a small drift) → flag as a document consistency conflict, don't fix silently.
+**Doc Review & Update** (after code changes): pre-flight folder-smell scan first; compare AC against the implemented code; accurate → "no change needed" + reason; needs fixing → targeted edit + re-verify. AC genuinely conflicts with code (not a small drift) → flag as a document consistency conflict, don't fix silently → record it in `docs/design/gap-analysis.md` (`html-output.md` §8) + report it in your chat output; never write the gap into the AC HTML as a `<callout-box>` (`docverify.py` fails it — §5.1).
 
 ## Output Format
 ```

@@ -115,7 +115,7 @@ Build `{{CONTENT}}` from these components. `docs/design/components.html` is the 
 | AC / TC "Total …" line | **`<ac-total></ac-total>`** / **`<tc-total></tc-total>`** (empty) — counts the page's `<ac-card>`/`<tc-card>`s by status → "Total …: N (Ready: R / Blocked: B)" (can't go stale). Renders `.doc-total`. |
 | Status pill | **`<status-badge status="ready\|blocked\|pending">`** — label derived from `status` (capitalized; can't drift from `data-status`). Non-empty content overrides the label (e.g. `<status-badge status="blocked">Deferred</status-badge>`). |
 | Priority / JIRA / tag | `span.chip[data-tone="p0\|p1\|jira"]` — **only `p0`, `p1`, `jira` tones exist**; P2 (or any other tag) = plain `span.chip` (no `data-tone`) |
-| Blocker / note / scope / warning | **`<callout-box kind="note\|success\|warning\|pending\|blocked">`** prose `</callout-box>` (optional `ico=` overrides the glyph) — derives `.callout__ico` (icon from kind, can't drift) + wraps `.callout__body`. *(Cards emit their own blocked callout; this element is for hand-authored callouts.)* |
+| Blocker / note / scope / warning | **`<callout-box kind="note\|success\|warning\|pending\|blocked">`** prose `</callout-box>` (optional `ico=` overrides the glyph) — derives `.callout__ico` (icon from kind, can't drift) + wraps `.callout__body`. *(Cards emit their own blocked callout; this element is for hand-authored callouts.)* **FIRST apply §5.1 — most "notes" (changelog / doc-vs-code gap) do NOT belong on the page; `docverify.py` fails the gate on them.** |
 | JSON request/response | `div.code[data-lang="json"]` > `pre` > `code`; group request/200/error in `.tabs` (`.tabs__nav` > `.tab[data-tab]`) + `.tab-panel[data-tab]` |
 | API error table | `table.data-table[data-sortable]` |
 | Gate / validation chain | **`<card-flow>`** > `<step status="ready\|blocked" href tag detail>title</step>` — derives `.flow__step.is-<status>` + the **step number** (auto) + the **`.flow__arrow` between** steps (auto). |
@@ -163,6 +163,21 @@ A **blocked** TC adds `status="blocked"` + a `<blocker>…</blocker>` child; the
 
 ---
 
+## 5.1 Callout discipline — most "notes" do NOT belong on the page (READ before authoring any `<callout-box>`)
+
+A design doc states the **current desired state** — what the system *should* be, now. It is **not** a changelog and **not** a doc-vs-code drift log. Before you hand-author a `<callout-box>`, route its content:
+
+| The note is… | Where it goes | On the HTML page? |
+|--------------|---------------|-------------------|
+| a **version / changelog** entry ("v1.4.0 — re-aligned…", "now Ready since GI-117") | `VERSION.md` + the Version History table in `index.html` (§9) | **NO** — `docverify.py` fails the gate (C1) |
+| **code doesn't match the spec** (gap / drift / "pending because the field isn't in code yet" / "verified against `X` — not implemented") | `gap-analysis.md` (§8) **and** report it in your chat output back to the orchestrator | **NO** — `docverify.py` fails the gate (C2) |
+| **spec-relevant, tied to ONE element** (an error-code taxonomy for an error-responses section, a field's mapping rule) | **fold it INTO that element** — a `dl.field-row`, a table row/cell, or a sentence in that section. Not a callout. | yes, as content |
+| **spec-relevant, cross-cutting** (an orchestrator boundary, an out-of-scope statement) | a single **`<h2 id="notes">Notes</h2>` + `<ul>`** at the end of the page | yes, in the Notes section only |
+
+The `id="notes"` is load-bearing: `docverify.py` exempts callouts inside that region (a cross-cutting note placed there is correct routing), and the density check (C3, warns at >6) counts only callouts **outside** it. A card's own `<blocker>` callout is element-emitted (not hand-authored) and is never counted. **Net rule:** if a `<callout-box>` survives this routing, it is a genuine cross-cutting spec note → it lives in the Notes section, nowhere else.
+
+---
+
 ## 6. HTML-safety rules (so lint passes) — READ THIS
 
 The linter flags raw `<` as an "unknown tag" and a bare `&` as a non-entity. In **prose / text content** you MUST escape:
@@ -203,7 +218,10 @@ Occasionally (when layout/diagrams changed) eyeball a screenshot. Do not return 
 
 - **Ephemeral `docs/open-questions-*.md`** — throwaway Q&A, deleted after fold-back (per your Cleanup Invariant). Never HTML.
 - **`docs/design/INDEX.md` + `docs/design/VERSION.md`** — the machine-readable registry/changelog the Orchestrator reads. Keep as markdown. The **human-facing** registry is the generated `docs/design/index.html` (§9), built FROM them.
-- E2E test code (`.ts`), project-level docs (`gap-analysis.md`, etc.), and `api-doc.md` are out of scope here.
+- **`docs/design/gap-analysis.md`** — the **doc-vs-code drift ledger**: where §5.1's "code doesn't match the spec" notes go so they never pollute the spec pages. **Markdown**, never HTML; out of scope of `lint.py` / `docverify.py`; sibling of `INDEX.md` / `VERSION.md`. One append-only table, newest row first:
+  `| Date | Doc element | Spec says | Code currently does | AC/ID | Status (open/closed) |`
+  **Who/when:** any doc-role (BA / Architect / QA) in Doc-Review or adversarial-verify mode appends a row when it finds drift **and** surfaces the same gap in its chat output (so the orchestrator/user sees it without opening the file). Exclusions: a version/changelog entry → `VERSION.md`; a gap that is really a *desired spec change* → update the spec itself, not this ledger.
+- E2E test code (`.ts`) and `api-doc.md` are out of scope here.
 
 ---
 
