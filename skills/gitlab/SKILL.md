@@ -12,6 +12,7 @@ description: >
   reviewing an MR ("review MR", "ตรวจ MR"), fixing issues/CI, or addressing review
   feedback now route through the neo skill (which calls this skill for the glab I/O) —
   do NOT trigger this skill directly for those; let neo orchestrate.
+effort: low
 compatibility:
   environment: claude-code
   tools:
@@ -40,14 +41,14 @@ These two values power most glab commands: `glab mr <cmd> <mr_id> --repo <repo_r
 
 This skill provides **glab mechanics only**. Determine which operation the user (or the calling `neo` skill) wants:
 
-| Signal | Operation |
-|--------|-----------|
-| bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary" | **MR Read** — fetch MR info + diff (+ notes) and summarize |
-| "สร้าง MR", "create MR", "open MR" — or invoked by neo to create | **MR Create** — create a new MR from the current branch |
-| "อัพเดท MR", "update description", "แก้ description" | **MR Update** — rewrite the MR description |
-| "check pipeline", "pipeline status", failed-job logs | **CI Inspection** — fetch pipeline status + job logs (no fixing) |
-| "list MRs", "approve MR", or a raw glab command | **Common glab Operations** |
-| post a composed review comment (invoked by neo) | **Post a Comment** |
+| Signal                                                           | Operation                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary"            | **MR Read** — fetch MR info + diff (+ notes) and summarize       |
+| "สร้าง MR", "create MR", "open MR" — or invoked by neo to create | **MR Create** — create a new MR from the current branch          |
+| "อัพเดท MR", "update description", "แก้ description"             | **MR Update** — rewrite the MR description                       |
+| "check pipeline", "pipeline status", failed-job logs             | **CI Inspection** — fetch pipeline status + job logs (no fixing) |
+| "list MRs", "approve MR", or a raw glab command                  | **Common glab Operations**                                       |
+| post a composed review comment (invoked by neo)                  | **Post a Comment**                                               |
 
 **Routes to neo, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `neo` skill. neo calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
 
@@ -299,21 +300,22 @@ If `glab` is not authenticated or the post fails, return the error and output th
 
 Use these directly via `Bash` when the user asks for something other than the workflows above:
 
-| Task | Command |
-|------|---------|
-| Create MR | `glab mr create --repo <repo_ref> --remove-source-branch --squash-before-merge` |
-| List open MRs | `glab mr list --repo <repo_ref>` |
-| View MR details | `glab mr view <mr_id> --repo <repo_ref>` |
-| Approve MR | `glab mr approve <mr_id> --repo <repo_ref>` |
-| Check pipeline status | `glab ci status --repo <repo_ref>` |
-| List pipelines | `glab ci list --repo <repo_ref>` |
-| Retry a job | `glab ci retry <job_id> --repo <repo_ref>` |
-| Update MR description | `glab mr update <mr_id> --repo <repo_ref> --description "<text>"` |
-| Add a note/comment | `glab mr note <mr_id> --repo <repo_ref> -m "<text>"` |
+| Task                  | Command                                                                         |
+| --------------------- | ------------------------------------------------------------------------------- |
+| Create MR             | `glab mr create --repo <repo_ref> --remove-source-branch --squash-before-merge` |
+| List open MRs         | `glab mr list --repo <repo_ref>`                                                |
+| View MR details       | `glab mr view <mr_id> --repo <repo_ref>`                                        |
+| Approve MR            | `glab mr approve <mr_id> --repo <repo_ref>`                                     |
+| Check pipeline status | `glab ci status --repo <repo_ref>`                                              |
+| List pipelines        | `glab ci list --repo <repo_ref>`                                                |
+| Retry a job           | `glab ci retry <job_id> --repo <repo_ref>`                                      |
+| Update MR description | `glab mr update <mr_id> --repo <repo_ref> --description "<text>"`               |
+| Add a note/comment    | `glab mr note <mr_id> --repo <repo_ref> -m "<text>"`                            |
 
 ### MR Creation Defaults
 
 When creating a MR with `glab mr create`, always include these flags:
+
 - `--remove-source-branch` — delete source branch after merge
 - `--squash-before-merge` — squash commits when MR is accepted
 
