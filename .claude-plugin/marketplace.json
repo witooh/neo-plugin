@@ -9,7 +9,7 @@
     {
       "name": "neo-dev-toolkit",
       "description": "Opinionated Claude Code toolkit for software development: orchestrate a specialist agent team (neo), brainstorm ideas, iteratively improve outputs, generate + sync API docs to Confluence, and drive GitLab MR workflows via glab.",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "source": "./",
       "author": {
         "name": "Witoo Harianto",

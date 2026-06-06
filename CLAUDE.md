@@ -22,7 +22,7 @@ skills/<name>/
   references/*.md     # role specs / templates pulled in by the skill body
 ```
 
-Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`, `bruno`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0.)
+Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0; the `bruno` hand-authoring skill was removed in 0.9.0.)
 
 ## How the pieces wire together
 

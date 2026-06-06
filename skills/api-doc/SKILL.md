@@ -17,9 +17,9 @@ description: >
   "sync open collection to confluence", "sync bruno to confluence",
   "อัปเดต api doc ไป confluence", "sync open-collection ไป confluence",
   "sync confluence pages"  →  publish. Also trigger when neo delegates API
-  documentation tasks. NOTE: for hand-authoring a collection or converting
-  curl/Postman/OpenAPI, use the `bruno` skill — this skill is the code-to-collection
-  generator + Confluence publisher, not an interactive editor.
+  documentation tasks. NOTE: this skill is the code-to-collection
+  generator + Confluence publisher, not an interactive editor or a
+  curl/Postman/OpenAPI converter.
 compatibility:
   environment: claude-code
   tools:
@@ -47,7 +47,7 @@ Pick the command from the request; if genuinely ambiguous, ask once with `AskUse
 |--------|---------|
 | `gen` / `generate` / "สร้าง" / "อัปเดต" / "validate" / "เช็ค … ตรงกับ code", a Go repo, "from code", "open collection", "bruno from code" | **gen** |
 | `publish` / `sync` / "push to confluence" / "ไป confluence", a Confluence parent-page URL | **publish** |
-| hand-authoring, curl/Postman/OpenAPI conversion, editing one request interactively | → use the **`bruno`** skill instead |
+| hand-authoring, curl/Postman/OpenAPI conversion, editing one request interactively | → out of scope (this skill is code-to-collection + publish, not an interactive editor) |
 
 `gen` produces/updates the collection; `publish` ships an existing collection. They are independent — after a `gen`, offer to `publish` but don't assume it.
 
@@ -176,7 +176,7 @@ Full procedure (auth, page-tree mapping, the markdown→storage conversion rules
 ---
 
 ## What this skill is NOT
-- **Not** a hand-authoring / curl-Postman-OpenAPI converter → that is the `bruno` skill.
+- **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive collection editor.
 - **Not** a markdown `docs/api/` generator — the single source is the OpenCollection workspace (its `docs:` blocks carry the same field/error tables).
 - The verify scripts are **tripwires**: a flag means inspect, a NOTE means a human/fresh-eyes call. Coverage of the full [Verification Checklist](references/api-doc-template.md#verification-checklist) comes from L1 (mechanical) + L2 (judgment) together.
 
