@@ -123,6 +123,8 @@ Each file contains exactly ONE endpoint. Do not include document headers or TOC 
 
 ## Response (<HTTP Status> <Status Text>)
 
+_Conditional: omit Request Body + Request Example when the endpoint takes no body. When the success status is `204 No Content`, omit this Response section + Response Example and instead add `- **Response:** `204 No Content` (no body)` to the Method/Path/Auth list._
+
 | Field Name   | Description            | Type   | Mandatory | Example                  | Remark               |
 | ------------ | ---------------------- | ------ | --------- | ------------------------ | -------------------- |
 | `id`         | Unique identifier of the record | String | M         | `"uuid-v4"`              |                      |
@@ -204,6 +206,7 @@ Follow Go struct field order (top to bottom):
 1. Embedded struct fields first — expanded in their declaration order
 2. Then the struct's own fields in declaration order
 3. Sub-tables appear immediately after the parent table that references them
+4. Query Parameters table: struct-based params first (struct field order), then inline `c.Query()` params in first-appearance order in the handler; a param extracted both ways is listed once (at its struct position)
 
 ### Example Value Conventions
 
@@ -302,7 +305,9 @@ Max 8 words. Factual only.
 
 ## Verification Checklist
 
-This is the **single source of truth** for all verification checks — used by Step 4 (verify after Generate/Update) and Validate Mode. Do not duplicate these checks elsewhere; reference this checklist instead.
+This is the **single source of truth** for *what* must be checked — referenced by api-doc-gen's Step 4 + Validate Mode and by the `open-collection` skill. Do not duplicate these checks elsewhere; reference this checklist instead.
+
+> **How api-doc-gen covers it — two layers.** `assets/doccheck.py` (**L1**, a deterministic script) mechanically covers: route↔file & index-link coverage · group/Method/Path/example presence · JSON-block validity · request/response field **count** (embedded structs expanded) · **M/O** for fields it can map to a struct. The **L2** fresh-eyes verifier (`api-doc-verifier.md`, items 1-9) covers everything else — error rows, step counting, custom-type enums, every Description/Example/Remark cell, field row ordering, success status code, auth type, JSON example fidelity, and structural (group / breadcrumb / version) consistency. Whatever L1 cannot resolve confidently it prints as a `NOTE` to focus L2 — so between the two layers, every item below is owned. (`open-collection` has no script, so it runs the whole list manually.)
 
 ### Coverage & Structure
 - [ ] Every route in code has a corresponding `.md` file, and vice versa (no missing or orphan files)
@@ -357,7 +362,7 @@ This is the **single source of truth** for all verification checks — used by S
 - [ ] Handler-level errors exhaustively checked: bind/parse (400), validation (422), param parse (400) — all present if handler has the pattern
 - [ ] Default/catch-all error case (500) included as the last row
 - [ ] Error messages match the actual strings from `errors.New("...")` in the code, not generic placeholders
-- [ ] Row ordering: handler errors (ascending status) → usecase sentinels (handler switch order) → catch-all 500
+- [ ] Row ordering: handler errors (ascending status) → usecase sentinels (switch order if the handler switches, else usecase code order) → domain-service errors (after their triggering usecase error) → catch-all 500
 
 ### Text Consistency
 - [ ] Endpoint display name: exact PascalCase split, no articles (`AcceptConsent` → `Accept Consent`)

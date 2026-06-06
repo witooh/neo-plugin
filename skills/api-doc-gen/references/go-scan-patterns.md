@@ -443,6 +443,10 @@ Then add a sub-table for the inner data object.
 
 **If no wrapper** (direct struct return), document the struct fields as the top-level response.
 
+**List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields — `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
+
+**Error envelope:** the per-endpoint Error Responses table documents status + message only. If the API returns a structured error body (e.g. `{success:false, error:{code,message}}`), show that shape once in `index.md` § Common Error Responses, not in every endpoint.
+
 ### Response Discovery Fallbacks
 
 If you cannot find a named response struct in `response.go`, check these alternatives in order:
@@ -949,8 +953,9 @@ id, err := uuid.Parse(c.Params("id")); ...            // → row: 400 | invalid 
 
 List error rows in this order — no deviation:
 1. Handler-level errors (400, 422) — ascending by status code
-2. Usecase sentinel errors — in the order they appear in the handler's `errors.Is` switch (top to bottom)
-3. Catch-all `500 | internal server error` — always last row
+2. Usecase sentinel errors — if the handler has an `errors.Is`/error-map switch, in switch order; otherwise usecase code order (top to bottom)
+3. Domain-service typed errors — immediately after the usecase error that triggers the service call
+4. Catch-all `500 | internal server error` — always last row
 
 ## Scan Strategy
 

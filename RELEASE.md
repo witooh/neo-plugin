@@ -5,6 +5,38 @@ Notable changes per release. The version here tracks the `version` field in
 field on every commit (local-path marketplaces don't auto-update) and add the
 matching entry below.
 
+## 0.7.0 — 2026-06-06
+
+### api-doc-gen — two-layer verification + quality pass
+
+Generated API docs are now proven against the code by an independent layer, not
+just self-checked, and the skill's instructions are de-duplicated and tightened.
+
+**Added**
+- `assets/doccheck.py` (Layer 1) — a stdlib "tripwire" comparing `docs/api/`
+  against Go source (endpoint coverage, field count, M/O, JSON + index-link
+  validity); confident mismatches → ERROR, unverifiable spots → NOTE for Layer 2
+- `references/api-doc-verifier.md` (Layer 2) — a read-only fresh-eyes verifier
+  role for the judgment checks a script can't do (error-row tracing, step
+  counting, custom types, field-cell correctness, response metadata, structural
+  consistency)
+- Step 4 rewritten as two layers (script loop → optional fresh-eyes, default
+  yes); `Agent` added to the skill's tools; an L1/L2 ownership map in the
+  § Verification Checklist
+
+**Changed**
+- Fixed an M/O contradiction (non-pointer non-bool without `required` → M
+  everywhere) and aligned error row-ordering to 4-tier across SKILL + references
+- De-duplicated the M/O, field-description, and step-classification rules — SKILL
+  now carries a brief essence and points to the single source in references
+- Added edge-case rules: 204/no-body, non-Go halt, monorepo, undocumented-route
+  opt-out, inline-query ordering, list/error envelope variants, and handler files
+  exporting multiple methods / bound to multiple routes
+
+**Notes**
+- `open-collection`'s references to § Verification Checklist / § M/O
+  Classification are unchanged (anchors preserved)
+
 ## 0.6.0 — 2026-06-06
 
 ### Callout discipline — a design doc is the current desired state, not a changelog
