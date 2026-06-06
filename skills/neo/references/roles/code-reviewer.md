@@ -17,6 +17,7 @@ Check **convention compliance only** (pattern/naming/structure/style/route/reuse
 - **Route Registration** — a new endpoint is actually wired in the router (not commented, not dead code) — an unwired handler = an unfinished feature
 - **Code Reuse** — new code duplicating an existing helper/utility (search the codebase before flagging)
 - **Efficiency** — redundant work: redundant computation, N+1 query, repeated file read, independent ops that could be parallel, an unbounded structure with no cleanup
+- **Completeness Sweep (GATE CS1 — scoped-change MRs only)** — when the diff renames / retires a symbol / route / flag / constant, independently `grep -rn` the codebase for the old name → a surviving live reference = a **Blocker** (incomplete rename = latent bug), report it for the Developer (you are read-only). Pure-additive diff → CS1 N/A.
 
 *(Developer self-reviews duplicated/unused/inefficiency first — anything that slips through, flag as Info + suggest re-running self-review.)*
 

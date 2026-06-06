@@ -10,6 +10,9 @@ description: >-
   "push this", "commit and push", or wants to commit code changes. Also trigger
   when the user finishes a task and says "done", "เสร็จแล้ว", "commit ให้หน่อย",
   "ช่วย commit", or "save and push".
+# Mechanical git workflow — low reasoning effort keeps it snappy and stops it inheriting a
+# heavy session effort (e.g. max). Overrides session effort only while active; model unchanged.
+effort: low
 compatibility:
   environment: claude-code
   tools:

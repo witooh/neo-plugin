@@ -12,12 +12,14 @@ Question count: **≤3 → list inline** in the output · **≥4 → write a fil
 The `docs/open-questions-*.md` files are **ephemeral**. Once the answers are folded into the canonical doc (AC / design / test), **delete the file in the same turn**. The fold is not done until (a) the canonical doc reflects every answer **and** (b) the file is deleted. Leaving the file behind = a recurring user complaint — don't.
 
 ## 3. HTML doc verification (doc-roles only: BA / Architect / QA)
-After writing or editing any HTML design doc, run the 2 linters from `ASSET_DIR` (the orchestrator gives the path) until **both report `PASS — 0 error(s)`** before returning `DONE`:
+After writing or editing any HTML design doc, run the verification gate — the two linters below **plus GATE CS1 (completeness sweep)** — and **re-run after every fix until all report `PASS — 0 error(s)`** before returning `DONE`:
 ```
 python3 <ASSET_DIR>/lint.py docs/design                 # per-file structure
 python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document references
 ```
-Then eyeball the semantic self-check the scripts can't cover (see `html-output.md` §7). The model cannot trust a single self re-read for cross-file references — the scripts are the gate.
+**GATE CS1 — Completeness Sweep (SCOPED-CHANGE tasks only: retire / rename / migrate / modify-with-removal).** Derive the retired/renamed target(s) from the orchestrator-passed scope + your own diff (your role file says how to derive). For each target, `grep -rn` `docs/design` (and the codebase when the change removes/renames a user-visible token) for live references — PASS = **zero stale references** (a rename also requires the new name present). Greenfield / pure-additive task → CS1 N/A (no old token; rely on your role's forward-coverage gate). **No derivable target → REPORT `CS1: sweep skipped — no target` in the output (never silent-skip).** CS1 is a **measurable** gate: loop until green; **~3 rounds with no progress → stop and escalate to the orchestrator** (state the residual stale references) — never return a fake PASS.
+
+Then eyeball the semantic self-check the scripts can't cover (see `html-output.md` §7). The model cannot trust a single self re-read for cross-file references or completeness — the scripts + grep are the gate.
 
 ## 4. Status line (end of every output)
 Close with a single line: **`Status:`** followed by one of

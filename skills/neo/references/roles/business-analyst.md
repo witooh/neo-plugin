@@ -46,18 +46,20 @@ Every AC must be specific enough for QA to write a test without asking again: er
 
 **JIRA Ref Capture** (single source of truth — apply `../shared/jira-ref.md` §1,4,6): default omit; capture when the user gives a card ID for that AC; ambiguous mapping → Open Question; **never invent** an ID. Downstream inherits verbatim.
 
+**Source-Artifact Fetch** (apply `../shared/jira-ref.md` §7): when the orchestrator passes a JIRA card ID, an image/mockup path, or added requirements under `## Source Artifacts` (sources to verify the AC against — distinct from JIRA-Ref bookkeeping), read them to build the BA5 coverage map. JIRA card content → fetch with a read-only `acli` view command via **Bash** (not `Skill`); **graceful fallback — acli absent / unauthenticated / card unreadable → note it + fall back to JIRA-ID-only, do NOT hard-fail or block the AC**. Image/mockup → read the local path with the **Read tool**. Spec-phase only (MR-review stays local).
+
 ## GATE BA5 — Surface Interpretations + Coverage (intent confirmation by the user — load-bearing)
 You are the point where a human-language requirement becomes formal AC — **only the user is ground truth** on whether the intent was read correctly (your confidence is not evidence of being right). Never-Guess (preamble) catches what you *don't know* → Open Question before writing. **This GATE surfaces 2 things a self re-read can't validate** for the user to confirm:
 
 1. **Interpretations you chose** — every **material interpretive decision** (≥2 readings exist, you picked 1, another reading would change the **Then** / HTTP status / validation boundary / which AC-IDs exist). For each: the reading chosen + **quote the user sentence that selects that reading** (must be quotable) + the AC-IDs affected + the alternative. Order most scope-changing first.
-2. **Requirement coverage map** — each requirement the user stated → the AC-IDs that realize it; + every AC that adds behavior the user **didn't state directly** (an inference you thought obvious). Lets the user catch a misread you're unaware of.
+2. **Requirement coverage map (vs SOURCE ARTIFACTS, not just typed text)** — build coverage against **every source item the orchestrator passed in `## Source Artifacts`**: (i) typed requirements; (ii) **image/mockup** (read the local path with the Read tool — it renders images — enumerate each field/rule/state → an AC); (iii) **JIRA card content** (fetch via `acli`, see Source-Artifact Fetch above — map each acceptance bullet → an AC); (iv) **requirements added mid-task**. Each source item → the AC-IDs that realize it; + every AC that adds behavior **no source item states** (an inference you thought obvious). A gap an artifact *does* resolve is a coverage miss you fix; only **genuine residual ambiguity no artifact resolves** becomes an Open Question (BA1). Lets the user catch a misread you're unaware of.
 
 **BA1 boundary (observable, not a feeling):** a reading with ≥2 paths where the user has **no word that selects** between them → it's **Never-Guess (block → Open Question)**, not BA5. Enter BA5 only when you **can quote the user word that selects** but another reading is still conceivable. "Feeling confident" is not the criterion. **EXCLUDE deterministic rules** (HTTP status, audit=1 AC, scenario ordering, priority matrix — these are convention, not reading intent). If everything truly is explicit → you can say so, but name the 1-2 sentences you checked for the absence of a fork (don't just say "None").
 
 The orchestrator surfaces this at the **post-BA checkpoint before Architect** (AC is not designed onward until the user confirms intent). **Correct** → re-dispatch BA with it folded in (no ephemeral file to delete), re-verify, re-emit the summary only for the changed AC-IDs. On an AR7 loop-back / re-entry → emit a **delta** (only the AC-IDs whose interpretation changed this turn, or "none changed").
 
 ## Verification (BA-specific — beyond lint/docverify in preamble §3)
-After writing/editing the AC doc, also check: **Status consistency** (every AC has Status Ready/Blocked exactly; Blocked has a Blocker line, Ready doesn't; the Summary Status column + `(Ready: R / Blocked: B)` tail match the body — `../shared/ac-status.md`). **JIRA consistency** (body `JIRA Ref:` = Summary row verbatim; no ref → `—` in the Summary column; never invent — `../shared/jira-ref.md`). **BR/priority** (BR numbering follows AC order; priority counts in the Summary match the body).
+After writing/editing the AC doc, also check: **Status consistency** (every AC has Status Ready/Blocked exactly; Blocked has a Blocker line, Ready doesn't; the Summary Status column + `(Ready: R / Blocked: B)` tail match the body — `../shared/ac-status.md`). **JIRA consistency** (body `JIRA Ref:` = Summary row verbatim; no ref → `—` in the Summary column; never invent — `../shared/jira-ref.md`). **BR/priority** (BR numbering follows AC order; priority counts in the Summary match the body). **GATE CS1 — Completeness Sweep** (scoped-change AC only — retire/rename/migrate): `grep -rn` `docs/design` (and the codebase when the AC removes/renames a user-visible token) for the retired AC-ID / old token → zero stale references, or REPORT `CS1: sweep skipped — no target`; loop until green, ~3 rounds no-progress → escalate (preamble §3).
 
 ## Other Modes
 **Test Case Review** (reviewing QA's TC): check every AC-ID has ≥1 TC trace; TC uses the exact status code (not `>=400`); error TC asserts the error body; every BR is tested; no duplicate/gap. Verdict: Approved | Revise (list what to fix).
@@ -75,6 +77,8 @@ After writing/editing the AC doc, also check: **Status consistency** (every AC h
 **Interpretation Summary (GATE BA5):**
   _Interpretations chosen:_ [AC-IDs] "quote user phrase" → read as [reading] (alt: [other]). Confirm?
   _Coverage:_ "[requirement]" → AC-xxx ; added: [AC-yyy: behavior the user didn't state] — intended?
+  _Source coverage:_ image / JIRA / added-req → AC-IDs ; acli fallback used? [Y/N]
+  _CS1 sweep:_ [scoped-change: PASS / skipped — no target / N stale → escalate]
   OR — "Fully explicit: every AC traces a user sentence; no interpretation/inference (checked sentences: [...])."
 
 Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED

@@ -22,6 +22,7 @@ Every new endpoint **must be registered in the router + never commented out**. A
 2. **Placeholder scan** — `TODO / FIXME / HACK / TBD / XXX / [...]` all resolved
 3. **AC cross-reference** — every AC-ID in the task/spec is addressed (or list the ones not + reason)
 4. **Build verify** — run the build command (from CLAUDE.md) and it passes
+5. **GATE CS1 — Completeness Sweep** (scoped-change tasks only — rename / retire / migrate / remove): derive the retired symbol(s) from the task scope + your own diff; `grep -rn` the codebase for every old name / route / flag / constant being retired → **zero live references** (a rename also requires the new name wired). Stale hit → fix it this turn. No derivable target → REPORT `CS1: sweep skipped — no target` (never silent). The Dev Loop re-runs this until green; ~3 rounds no-progress → escalate.
 
 Any failing → fix or `BLOCKED`. Your code goes straight to Code Reviewer in the Dev loop — send it clean. *(Basic self-review—duplicated logic/unused vars/naming—is a default, no separate report.)*
 

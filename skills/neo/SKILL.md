@@ -52,13 +52,14 @@ Beyond these 5 phases: **Diagnose**(System Analyzer) — find root cause before 
    - **Doc chain (Spec→Design→TestSpec) flows continuously**, no checkpoint between — except **BA5 intent**: after Spec, if BA returns an *Interpretation Summary* → show it verbatim + `AskUserQuestion` Confirm-all/Correct/Continue **before** Design **[CP2]** (AC must have user-confirmed intent before it is designed onward)
    - **Before Build** (writing code = hard to reverse) → checkpoint to review the spec **[CP3]**
    - **Verify phase parallel** — dispatch E2E ∥ CR ∥ Security in a **single message** (multi-Agent-call), 1 checkpoint after all return
-4. **Finalize** — checklist + summary **[CP-final]**
+4. **Finalize** — checklist + summary **[CP-final]**. **If a writer ran isolated with no downstream looped-verifier in the subset (L2 applies):** ask here — folded into CP-final, **not** a new checkpoint — _"run an independent fresh-eyes verify of <role>'s output? (default yes)"_; on yes, dispatch the verify-only-mode role (§ Verification L2) before the summary.
 
 **Checkpoints at 4 points only:** CP1 plan · CP2 BA5 intent · CP3 before build / before posting the MR comment · CP-final. The rest flows continuously (decision: fast + control the key points).
 
 ## Verification (keep independent verify, cut loop ceremony)
-- **Doc adversarial (inline):** downstream verifies upstream **before** producing its own work — Architect attacks BA's AC (AR7), QA attacks Architect's design (Q7). On a Blocker defect → downstream returns `BLOCKED` + `Upstream Verification: DEFECTS` → you **re-dispatch upstream once** (paste findings verbatim) → upstream fixes + re-verifies → re-dispatch downstream. Still failing → **escalate to the user**. Judgment defect → Open Question → user. *(No budget/max-iteration ceremony — loop 1 round per edge then escalate.)*
-- **Dev Loop:** Build → Verify(E2E ∥ CR ∥ Security) → if E2E fails or CR/Security has a Blocker/Critical → re-dispatch Developer (paste findings) → re-verify. **Exit when:** E2E passes (Ready ACs) **and** CR + Security have no Blocker/Critical. Looping ~3 rounds with no improvement → escalate (never silently approve, never drop findings). Warning/Info do not block.
+- **Doc adversarial + loop-on-measurable (L1):** downstream verifies upstream **before** its own work (Architect→AR7, QA→Q7, BA→TC-review). **Semantic/judgment** defect → re-dispatch upstream **1 round** (paste findings) → still failing → **escalate to the user** (no objective measure to converge on); Judgment → Open Question → user. **Measurable** defect (AC/coverage count, a retired token still live, a CS1 stale reference) → **loop until evidence-green**: re-dispatch upstream with findings → fix + re-verify → repeat **until the count/grep is green OR ~3 rounds no-progress → escalate** (never silent, never fake-green). Stop on **evidence, not confidence**. *(Still no budget/max-iteration ceremony — "evidence-green OR ~N rounds" only.)*
+- **Independent fresh-eyes (L2):** if **no downstream looped-verifier is in this run's phase subset** (the writer runs isolated / is last-in-chain), get fresh eyes on its output by **reusing the natural downstream role in verify-only mode** — isolated BA → Architect **AR7-only**; isolated Architect → QA **Q7-only**; isolated QA → BA **TC-review**. **Ask the user first, folded into CP-final** (default = yes); **no 5th checkpoint**. **Collision rule:** skip L2 **iff a downstream looped-verifier is already in the phase subset** (it provides fresh-eyes when its phase runs).
+- **Dev Loop:** Build → Verify(E2E ∥ CR ∥ Security) → if E2E fails or CR/Security has a Blocker/Critical **or a CS1 stale reference** → re-dispatch Developer (paste findings) → re-verify. **Exit when:** E2E passes (Ready ACs) **and** CR + Security have no Blocker/Critical **and CS1 is green**. Looping ~3 rounds with no improvement → escalate (never silently approve, never drop findings). Warning/Info do not block.
 - **All-Blocked guard:** before Build, count Ready ACs from BA — 0 Ready → skip the Dev Loop + escalate to the user (nothing to implement).
 
 ## Delegation (point-to-read)
@@ -76,6 +77,11 @@ ASSET_DIR = <NEO_DIR>/assets
 ## Context / Artifacts (read from path — orchestrator must not paste content)
 - prior artifact: docs/design/<usecase>/<file>.html
 - project conventions: CLAUDE.md (only the relevant section)
+
+## Source Artifacts (Spec/BA verification — pass when present; orchestrator must not paste content)
+- mockup/image: <local path>            # BA reads via the Read tool
+- JIRA card (source, for AC verify): <ABC-123>   # BA fetches content via acli (jira-ref §7), graceful fallback
+- added requirements (mid-task): <inline note or path>
 
 End with Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 """)

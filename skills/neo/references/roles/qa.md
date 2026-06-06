@@ -20,6 +20,9 @@ Before writing TC you must have both: **API Contract** (endpoint + exact HTTP st
 ## GATE Q7 — Adversarial Verify of the design (first, in Test Spec mode — load-bearing)
 Before writing TC, **attack the Architect's design / API contract adversarially**. An independent role (you) catches the semantic gaps the author overlooked. Find: **Uncovered AC** (an AC with no endpoint/behavior realizing it) · **Untestable contract** (a response/error shape that can't be asserted — no status code/error structure/observable signal) · **Design↔AC contradiction** (status/validation/error conflicts the AC) · **Missing error contract** (an AC failure path with no error response). Return an **Upstream Verification** (`CLEAN | DEFECTS`): Self-fixable → Blocker (loop back to Architect); Judgment → Open Question; Warning → note. **If the root cause is the AC itself** (the contract is faithful but the AC is untestable) → classify it to **BA** (a 2-hop loop). Found a Blocker → `Status: BLOCKED` + write no TC this turn.
 
+**Verify-only mode (L2 fresh-eyes):** when the orchestrator dispatches you to **verify the Architect's design without a TestSpec task** (isolated-Architect backstop), run Q7 only and write no TC.
+**Loop-on-measurable (L1):** semantic Q7 defects stay **1 round back to Architect → still failing → escalate**; a **measurable** defect (uncovered-AC count, a retired endpoint still in the contract, coverage-count off) **loops until green OR ~3 rounds no-progress → escalate**.
+
 ## GATE Q3 — E2E Execution (Dev Loop mode only)
 E2E exists in the project → **must run** on every Dev Loop review. E2E fails from the current change → Sign-Off = **Blocked**. Fails from pre-existing (unrelated to the change) → **Warning**, doesn't block. Never Approved without running the suite. No E2E → note + assess whether to add one.
 
@@ -32,6 +35,7 @@ E2E exists in the project → **must run** on every Dev Loop review. E2E fails f
 6. **Status propagation (Q6)** — TC inherit AC Status: trace a Blocked AC → TC `Tags: @blocked` + copy the Blocker verbatim, exclude from E2E/sign-off, place in the Deferred section; trace a Ready AC → Ready (omit tags). Never treat Blocked as Ready or drop it (loses the coverage trace) — math + all-Blocked guard see `../shared/ac-status.md`
 7. **JIRA inheritance** — inherit verbatim from the traced AC (`../shared/jira-ref.md` §2): same ID/order/casing; dedup-union when tracing several AC; OMIT the body line + `—` in the Summary column when the AC has none; **never invent** (escalate to BA to add it at the AC first)
 8. **Count consistency** — the numbers in the header/summary (e.g. "47 test cases") must match the actual count of TC listed — verify before finalizing
+9. **GATE CS1 — Completeness Sweep** (scoped-change TC only — an AC-ID / endpoint retired or renamed): `grep -rn` `docs/design` (and, in Dev-Loop / MR, the test suite) for the old AC-ID / token → zero stale `Traces To` / references, or REPORT `CS1: sweep skipped — no target`; loop until green, ~3 rounds → escalate (preamble §3)
 
 **API Behavior coverage floor** — every change tested must cover at least: happy path · 404 not-found · 400 validation · **401/403 auth** · edge cases from the AC. (⏸ Deferred = `@blocked` only [upstream not final, not counted in sign-off]; ⚠️ Blocked = a TC that **could have run** but is stuck on environment/runtime — different; ⚠️ = not yet passing)
 
@@ -47,7 +51,7 @@ Ready for merge when: (1) E2E of the **Ready TC** all pass (Blocked `@blocked` d
 3. run E2E + gen the execution report (per template): map TC → result, Execution Summary, Defect Summary (if failing), Deferred Test Cases (always present when there's a Blocked AC)
 
 ## MR Review Mode (rows 8a/8b — read-only)
-**Tools:** `Read` + `Bash` (run the existing suite only) — **no Write**. Stay black-box: read the MR description + diff metadata + (8b) design docs; **don't read production source** to judge AC compliance — prove it by **running the TC that trace each AC** (behavioral evidence). Running E2E needs checking out the branch + a test env; can't run → **Warning**, doesn't block (don't fabricate).
+**Tools:** `Read` + `Bash` (run the existing suite only) — **no Write**. Stay black-box: read the MR description + diff metadata + (8b) design docs; **don't read production source** to judge AC compliance — prove it by **running the TC that trace each AC** (behavioral evidence). Running E2E needs checking out the branch + a test env; can't run → **Warning**, doesn't block (don't fabricate). MR review does **not** fetch live JIRA (`../phase-map.md` § MR); CS1 in MR mode greps the diff / suite only.
 - **8a (no card):** run the existing E2E + report regression vs pre-existing (pre-existing → Warning). No compliance table
 - **8b (with card):** the orchestrator gives the card ID + paths (`acceptance-criteria.html`, `test-cases.html`, `traceability.html`). Filter the AC/TC whose JIRA Ref = card → run the traced TC (+ full-suite regression) → build an **AC/TC compliance table** (1 row/AC): `Code matches?` ✅ (all traced TC pass) / ❌ (a TC fails) / ⚠️ (AC has no TC, or E2E can't run, or AC not in the MR); TC-IDs; TC result; `If mismatch` state something specific and actionable (e.g. "AC-003 expects 409 on duplicate but TC-003 got 200 — check the duplicate-check path"). No auto-fix — report only
 
