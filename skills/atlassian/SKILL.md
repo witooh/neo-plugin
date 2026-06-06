@@ -1,0 +1,137 @@
+---
+name: atlassian
+description: >
+  Interact with Jira and Confluence from the terminal via the `acli` (Atlassian CLI)
+  tool — view/search/create/edit/transition/assign/comment on Jira work items, manage
+  sprints, boards and projects, and read Confluence pages or manage spaces, all without
+  a browser. This skill is also the **acli reference** the `neo` skill points to: it
+  gives the command *map* plus the judgment `--help` can't (JQL, workflows, safety),
+  and for exact flags it has you run `acli <path> --help`. Trigger when the user wants a
+  direct, ad-hoc Jira/Confluence CLI action — "ดู issue ของฉัน", "view my issues",
+  "transition ไป In Progress", "move ticket to In Progress", "สร้าง bug ใน Jira",
+  "create a Jira task", "search ด้วย JQL", "find unassigned bugs", "ดู sprint ปัจจุบัน",
+  "current sprint", "bulk transition", "assign ให้ฉัน", "ดู Confluence page",
+  "list spaces", or any raw acli operation. NOTE — route elsewhere, NOT here: verifying
+  AC / test cases / design against a JIRA card, or any dev-workflow that only *reads* a
+  card → the `neo` skill (it runs read-only acli inline); publishing generated API docs
+  to Confluence → the `api-doc` skill (acli cannot write pages). This skill is for
+  direct Jira/Confluence operations the user asks for explicitly.
+compatibility:
+  environment: claude-code
+  tools:
+    - Bash
+    - Read
+effort: low
+metadata:
+  version: "2.0"
+---
+
+# Atlassian CLI (acli) Skill
+
+Use the `acli` CLI (installed at `/opt/homebrew/bin/acli`) to drive Jira and Confluence
+from the terminal. This skill is the plugin's **acli reference** — the `neo` skill names it
+as the source for acli usage (`skills/neo/references/shared/jira-ref.md`).
+
+It is a **thin shell over `acli --help`**: this file gives you the *command map*, the
+*JQL / workflow domain knowledge*, and the *safety discipline* — none of which `--help`
+provides. It deliberately does **not** re-list every flag, because `acli`'s own help
+already documents them better and stays current with the installed binary.
+
+## Self-discovery protocol (read first)
+
+Before composing any `acli` command whose subcommands or flags you are not 100% sure of:
+
+1. **Run `acli <path> --help` first.** Walk the tree top-down:
+   `acli jira --help` → `acli jira workitem --help` → `acli jira workitem search --help`.
+2. **Treat the installed binary's `--help` as the source of truth** over any example in
+   this file. The CLI evolves and may run ahead of this file; the binary is authoritative
+   for exact flag names, defaults, and examples.
+3. Most commands print runnable **examples** in their `--help` — copy that shape rather
+   than guessing.
+
+## Command map (where things live — run `--help` for the flags)
+
+**Jira** — `acli jira <group> <cmd>`:
+
+| Group | Commands |
+|-------|----------|
+| `auth` | `status`, `login`, `logout`, `switch` |
+| `workitem` | `view`, `search`, `create`, `create-bulk`, `edit`, `transition`, `assign`, `comment`, `clone`, `link`, `watcher`, `attachment`, `archive`, `unarchive`, `delete` |
+| `sprint` | `view`, `create`, `update`, `delete`, `list-workitems` |
+| `board` | `search`, `get`, `create`, `delete`, `list-sprints`, `list-projects` |
+| `project` | `list`, `view`, `create` |
+| `field` / `filter` / `dashboard` | metadata lookups — run `--help` for subcommands |
+
+**Confluence** — `acli confluence <group> <cmd>`:
+
+| Group | Commands |
+|-------|----------|
+| `auth` | `status`, `login`, `logout`, `switch` |
+| `page` | `view` **only** — acli cannot create/update pages (see *Confluence limits*) |
+| `space` | `list`, `view`, `create`, `update`, `archive`, `restore` |
+| `blog` | run `--help` for subcommands |
+
+## Auth bootstrap
+
+```bash
+acli jira auth status          # or: acli confluence auth status
+```
+
+If not authenticated, the fastest path is an API token:
+
+```bash
+echo <token> | acli jira auth login --site "yoursite.atlassian.net" --email "you@example.com" --token
+# or browser OAuth:
+acli jira auth login --web
+```
+
+If `acli` is missing entirely: `brew install atlassian/tap/acli`.
+
+## Safety gates (always apply)
+
+`acli` mutations are real and often irreversible. Reads are free; **writes need care.**
+
+- **Default to read-only.** `view` / `search` / `--count` never need confirmation.
+- **Preview before any bulk mutation.** For an edit / transition / assign / delete driven
+  by `--jql`, first run the *same JQL* through search to see the exact set:
+  ```bash
+  acli jira workitem search --jql "<the JQL>" --count
+  acli jira workitem search --jql "<the JQL>" --fields "key,summary,status"
+  ```
+  Show the user what will be affected and get explicit confirmation **before** mutating.
+  Never fire `--jql ... --yes` on a mutation without previewing first.
+- **Destructive ops** (`delete`, `archive`, bulk `transition` to a terminal state) — confirm
+  with the user and name the affected keys.
+- **Verify after write.** After an `edit` / `transition`, re-read the item to confirm the
+  change landed: `acli jira workitem view KEY-123 --json`.
+- Use `--yes` only *after* the user has confirmed; add `--ignore-errors` on bulk ops so a
+  single failure doesn't halt the rest.
+
+## JQL
+
+Search is the workhorse — `acli jira workitem search --jql "<query>"`. For ready-to-use
+JQL (my issues, sprint scope, by status / type / priority, functions, operators), read
+[`references/jql-patterns.md`](references/jql-patterns.md).
+
+## Common workflows
+
+For multi-command recipes (daily standup, start / finish an issue, bulk-close a sprint,
+find unassigned bugs) — each with its safety steps inline — read
+[`references/workflows.md`](references/workflows.md).
+
+## Confluence limits
+
+`acli confluence page` can only **view** — it cannot create or update pages. So:
+
+- Creating / updating a Confluence page → use the Confluence REST API directly (curl).
+- **Publishing generated API docs to Confluence → use the `api-doc` skill** (it owns the
+  REST publish + round-trip verify). Do not reimplement that here.
+- Space lifecycle (`list` / `view` / `create` / `update` / `archive` / `restore`) *is*
+  supported via acli.
+
+## Output tips
+
+- `--json` — parse output or chain into another command.
+- `--csv` — tabular reports.
+- `--paginate` — fetch all results (required for `project list`; overrides `--limit`).
+- `--fields "key,summary,status"` — trim columns to only what you need.

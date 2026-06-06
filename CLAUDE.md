@@ -22,7 +22,7 @@ skills/<name>/
   references/*.md     # role specs / templates pulled in by the skill body
 ```
 
-Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0; the `bruno` hand-authoring skill was removed in 0.9.0.)
+Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`, `atlassian`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0; the `bruno` hand-authoring skill was removed in 0.9.0; `atlassian` — the `acli` Jira/Confluence reference + direct-ops skill, and the acli source `neo`'s BA already points to (`skills/neo/references/shared/jira-ref.md §7`) — was added in 0.10.0 as a lean "thin shell over `acli --help`" rework of the user-global skill.)
 
 ## How the pieces wire together
 
