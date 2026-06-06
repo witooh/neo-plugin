@@ -2,7 +2,7 @@
 
 Templates for every file this skill writes. Section ordering, indentation, and the markdown structure inside `docs:` are part of the contract — follow them exactly so output is byte-stable across runs.
 
-For schema-level details on each key, see [`yaml-reference.md`](yaml-reference.md). For Go-side scanning and field/error rules referenced from the `docs:` markdown, read [`../../api-doc-gen/references/go-scan-patterns.md`](../../api-doc-gen/references/go-scan-patterns.md) and [`../../api-doc-gen/references/api-doc-template.md`](../../api-doc-gen/references/api-doc-template.md).
+For schema-level details on each key, see [`yaml-reference.md`](yaml-reference.md). For Go-side scanning and field/error rules referenced from the `docs:` markdown, read [`go-scan-patterns.md`](go-scan-patterns.md) and [`api-doc-template.md`](api-doc-template.md).
 
 ---
 
@@ -13,6 +13,21 @@ opencollection: 1.0.0
 
 info:
   name: <Service Name>
+
+docs: |-
+  # <Service Name> API
+
+  <Overview — "<Service Name> provides APIs for <domain>. <one sentence on capabilities>.">
+
+  ## Common Error Responses
+
+  | Status | Error Message | Description |
+  | ------ | ------------- | ----------- |
+  | 400 | invalid request | Request body or query param invalid |
+  | 401 | unauthorized | Missing or invalid authentication |
+  | 403 | forbidden | Insufficient permissions |
+  | 404 | not found | Resource does not exist |
+  | 500 | internal server error | Unexpected server-side failure |
 
 bundled: false
 
@@ -28,6 +43,10 @@ extensions:
 | Placeholder | Source |
 |-------------|--------|
 | `<Service Name>` | CLAUDE.md project name, or `info.title` from go.mod if available. |
+| `docs:` overview | CLAUDE.md/README project description → the `<Service> provides APIs for <domain>.` formula (see [`api-doc-template.md`](api-doc-template.md) § Index Template). |
+| `docs:` Common Error Responses | The cross-cutting errors every endpoint can return (401/403/500 + generic 400/404). Per-endpoint error tables must NOT repeat these. |
+
+> **Collection-root `docs:` is the service overview.** It replaces the old markdown `index.md`. The `publish` command syncs this block to the Confluence **parent page**. Keep it to overview + common errors — per-endpoint detail lives in each request's `docs:`.
 
 ---
 
@@ -193,9 +212,9 @@ docs: |-
 
 ## 5. `docs:` Markdown — Section Rules
 
-The `docs:` block inside each request file is a faithful copy of the `api-doc-gen` per-endpoint template — **without** the breadcrumb line. Use H1 for the endpoint name (it is the top-level heading of an embedded doc).
+The `docs:` block inside each request file is a faithful copy of the per-endpoint template in [`api-doc-template.md`](api-doc-template.md) — **without** the breadcrumb line. Use H1 for the endpoint name (it is the top-level heading of an embedded doc).
 
-All field/error rules below come from [`../../api-doc-gen/references/api-doc-template.md`](../../api-doc-gen/references/api-doc-template.md). Do **not** redefine them here; pull from there. Below is the short version for cross-reference.
+All field/error rules below come from [`api-doc-template.md`](api-doc-template.md). Do **not** redefine them here; pull from there. Below is the short version for cross-reference.
 
 ### 5.1 Header bullets
 
@@ -205,7 +224,7 @@ All field/error rules below come from [`../../api-doc-gen/references/api-doc-tem
 - **Auth:** `Bearer token` | `API Key` | `None`
 ```
 
-The documented path always uses `{param}` braces (matching api-doc-gen), even though the YAML URL uses `:param` for Bruno. Two different audiences: humans read `{}`, Bruno's runner reads `:`.
+The documented path always uses `{param}` braces (the human-readable doc convention), even though the YAML URL uses `:param` for Bruno. Two different audiences: humans read `{}`, Bruno's runner reads `:`.
 
 ### 5.2 Field tables
 
@@ -215,7 +234,7 @@ Columns are always exactly:
 | Field Name | Description | Type | Mandatory | Example | Remark |
 ```
 
-Apply [`../../api-doc-gen/references/api-doc-template.md`](../../api-doc-gen/references/api-doc-template.md) § Field Table Conventions for:
+Apply [`api-doc-template.md`](api-doc-template.md) § Field Table Conventions for:
 - **M/O classification** — `binding:"required"` → M, pointer → O, `omitempty` → O, **`bool` without required → O**, non-pointer non-bool without required → M
 - **Field descriptions** — apply the 9-rule table top-down, first match wins
 - **Example values** — UUID → `"uuid-v4"`, enum → first value, timestamp → `"2024-01-01T10:00:00+07:00"`, boolean → `true`, names → fixed realistic value from the lookup table
@@ -234,7 +253,7 @@ Fenced JSON code block with the same example values used in the field-table `Exa
 Numbered list, one step per distinct action.
 
 - **Priority 1 — header comments:** if the usecase function has a `### Logical` comment with `Step N:` lines, transcribe verbatim. Sub-steps (`Step 4.1:`) become nested list items.
-- **Priority 2 — code-derived:** apply the counting rules from `api-doc-gen` § Step 2 — repo/service/external calls, sentinel-returning `if`/`switch` (even inside loops), state-changing side effects count as 1 step each. Error propagation, stdlib calls, struct construction, entity mutation without I/O, logging, metrics, context enrichment, early success returns, and final returns do **not** count.
+- **Priority 2 — code-derived:** apply the counting rules from [`go-scan-patterns.md`](go-scan-patterns.md) § Step Classification Examples — repo/service/external calls, sentinel-returning `if`/`switch` (even inside loops), state-changing side effects count as 1 step each. Error propagation, stdlib calls, struct construction, entity mutation without I/O, logging, metrics, context enrichment, early success returns, and final returns do **not** count.
 
 ### 5.5 Error Responses
 
@@ -262,7 +281,7 @@ This is the part most people get wrong. The same path parameter appears in **thr
 |-------|------|-----|
 | `http.url` (YAML string) | `:id` | Bruno's runner reads this to identify path params for substitution. |
 | `http.params` (YAML list) | `name: id, type: path` | Required so Bruno's UI shows an editable param field. |
-| `docs:` markdown (Path Parameters table + Path bullet) | `{id}` | Human-readable convention from api-doc-gen. |
+| `docs:` markdown (Path Parameters table + Path bullet) | `{id}` | Human-readable doc convention. |
 
 Regardless of the framework's syntax in source code (`/:id` for Gin/Chi/Echo, `/{id}` for Gorilla, `/:id` for Fiber), the generator always normalizes:
 - `:id` in the YAML URL string

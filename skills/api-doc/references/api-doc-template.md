@@ -1,80 +1,49 @@
 # API Documentation Templates
 
-Templates for multi-file API documentation. The output is a directory structure with an index file and individual endpoint files grouped by domain.
+Content templates + field/error conventions for API docs. The output is an **OpenCollection** workspace; this markdown is what gets embedded in the `docs:` blocks — the **Index Template** content goes in the collection-root `docs:` (`opencollection.yml`), the **Per-Endpoint Template** content goes in each request `.yml`'s `docs:`. See [`request-template.md`](request-template.md) for the YAML packaging.
 
 ```
-docs/api/
-├── index.md                      ← Index Template
+<collection>/
+├── opencollection.yml            ← collection-root docs: ← Index Template (overview + common errors)
 ├── <group>/
-│   ├── <endpoint-name>.md        ← Per-Endpoint Template
+│   ├── <endpoint>.yml            ← request docs: ← Per-Endpoint Template
 │   └── ...
 └── ...
 ```
 
 ---
 
-## Index Template (`docs/api/index.md`)
+## Index Template (collection-root `docs:` in `opencollection.yml`)
 
-Use this template for the index file that serves as the entry point for all API docs.
+This is the **collection-root `docs:` block** — service overview + common errors, published to the Confluence parent page. Keep it to exactly these two parts: **no** per-endpoint table (Bruno's folder tree + Confluence's child pages provide navigation) and **no** Version/Base-URL lines. It must match the packaging in [`request-template.md`](request-template.md) §1.
 
 ```markdown
-# <Service Name> API Documentation
+# <Service Name> API
 
-**Version:** <X.Y>
-**Base URL:** `/api/v<N>`
-
-## Overview
-
-<Service name> provides APIs for <domain>. <One sentence about main capabilities>.
-
----
-
-## Endpoints
-
-### <Group Name> (e.g., Consent)
-
-| Method | Path | Endpoint | File |
-|--------|------|----------|------|
-| `POST` | `/api/v1/consents` | Accept Consent | [accept-consent](consent/accept-consent.md) |
-| `GET` | `/api/v1/consents/{citizen_id}` | Get Consents by Citizen | [get-consents-by-citizen](consent/get-consents-by-citizen.md) |
-| `GET` | `/api/v1/consents/{id}` | Get Consent | [get-consent](consent/get-consent.md) |
-| `DELETE` | `/api/v1/consents/{id}/revoke` | Revoke Consent | [revoke-consent](consent/revoke-consent.md) |
-
-### <Group Name> (e.g., Channel)
-
-| Method | Path | Endpoint | File |
-|--------|------|----------|------|
-| `POST` | `/api/v1/channels` | Create Channel | [create-channel](channel/create-channel.md) |
-| `GET` | `/api/v1/channels` | Get All Channels | [get-all-channels](channel/get-all-channels.md) |
-
----
+<Service Name> provides APIs for <domain>. <One sentence about main capabilities.>
 
 ## Common Error Responses
 
-All endpoints may return the following common errors:
-
-| Status | Error Message         | Description                         |
-| ------ | --------------------- | ----------------------------------- |
-| 400    | invalid request       | Request body or query param invalid |
-| 401    | unauthorized          | Missing or invalid authentication   |
-| 403    | forbidden             | Insufficient permissions            |
-| 404    | not found             | Resource does not exist             |
-| 500    | internal server error | Unexpected server-side failure      |
+| Status | Error Message | Description |
+| ------ | ------------- | ----------- |
+| 400 | invalid request | Request body or query param invalid |
+| 401 | unauthorized | Missing or invalid authentication |
+| 403 | forbidden | Insufficient permissions |
+| 404 | not found | Resource does not exist |
+| 500 | internal server error | Unexpected server-side failure |
 ```
 
 ---
 
 ## Per-Endpoint Template (individual file)
 
-Each file contains exactly ONE endpoint. Do not include document headers or TOC — those live in `index.md`.
+Each request's `docs:` contains exactly ONE endpoint. Omit the breadcrumb line (it has no place in an embedded `docs:` block); the service overview + common errors live in the collection-root `docs:`, not here.
 
 **Endpoint display name** (`# <Name>`): PascalCase → space-separated words. `AcceptConsent` → `Accept Consent`. No articles (a/an/the), no extra words — exact PascalCase split only.
 
 **Endpoint description** (line below `# <Name>`): `<Verb> <resource>[ by/for <qualifier>]`. Verb from HTTP method: POST→Create, GET(single)→Retrieve, GET(list)→List, PUT→Update, PATCH→Partially update, DELETE→Delete. No articles. Max 10 words.
 
 ````markdown
-> [API Documentation](../index.md) > [<Group Name>](./) > <Endpoint Name>
-
 # <Endpoint Name>
 
 <One sentence describing what this endpoint does.>
@@ -305,18 +274,18 @@ Max 8 words. Factual only.
 
 ## Verification Checklist
 
-This is the **single source of truth** for *what* must be checked — referenced by api-doc-gen's Step 4 + Validate Mode and by the `open-collection` skill. Do not duplicate these checks elsewhere; reference this checklist instead.
+This is the **single source of truth** for *what* must be checked — referenced by the `api-doc` skill's `gen` verify (Step 4 + Validate). Do not duplicate these checks elsewhere; reference this checklist instead.
 
-> **How api-doc-gen covers it — two layers.** `assets/doccheck.py` (**L1**, a deterministic script) mechanically covers: route↔file & index-link coverage · group/Method/Path/example presence · JSON-block validity · request/response field **count** (embedded structs expanded) · **M/O** for fields it can map to a struct. The **L2** fresh-eyes verifier (`api-doc-verifier.md`, items 1-9) covers everything else — error rows, step counting, custom-type enums, every Description/Example/Remark cell, field row ordering, success status code, auth type, JSON example fidelity, and structural (group / breadcrumb / version) consistency. Whatever L1 cannot resolve confidently it prints as a `NOTE` to focus L2 — so between the two layers, every item below is owned. (`open-collection` has no script, so it runs the whole list manually.)
+> **How `gen` covers it — two layers.** `assets/gencheck.py` (**L1**, a deterministic script) mechanically covers: route↔request-file coverage · `info`/`http`/Method/Path/`docs` presence · JSON validity (`http.body.data` + `docs:` fences) · request/response field **count** (embedded structs expanded) · **M/O** for fields it can map to a struct · `http.url` path-params ↔ `params` block. The **L2** fresh-eyes verifier (`api-doc-verifier.md`, items 1-9) covers everything else — error rows, step counting, custom-type enums, every Description/Example/Remark cell, field row ordering, success status code, auth type, JSON example fidelity, and structural (group / collection-root docs) consistency. Whatever L1 cannot resolve confidently it prints as a `NOTE` to focus L2 — so between the two layers, every item below is owned.
 
 ### Coverage & Structure
-- [ ] Every route in code has a corresponding `.md` file, and vice versa (no missing or orphan files)
-- [ ] Every endpoint file is listed in `index.md` endpoints table, and every index entry points to an existing file
-- [ ] Handler directory structure matches `docs/api/` directory structure (group consistency)
-- [ ] Every endpoint file has Method, Path, and at least one example
-- [ ] Breadcrumb navigation uses correct relative paths
-- [ ] JSON examples are valid (no trailing commas, correct types)
-- [ ] Version number in `index.md` header is up to date
+- [ ] Every route in code has a corresponding request `.yml` file, and vice versa (no missing or orphan files)
+- [ ] Collection-root `docs:` (`opencollection.yml`) carries the service overview + Common Error Responses table
+- [ ] Handler directory structure matches the `<collection>/<group>/` folder structure (group consistency)
+- [ ] Every request file has `info`/`http`/`settings`/`docs`, a Method, a Path, and at least one example
+- [ ] `http.url` path params (`:name`) are all declared in `http.params` with `type: path`
+- [ ] JSON examples are valid (no trailing commas, correct types) — both `http.body.data` and `docs:` fences
+- [ ] Service version in the collection-root `docs:` overview is up to date
 
 ### Field Completeness (critical — open struct source files to verify)
 - [ ] All field tables use `M`/`O` for Mandatory column

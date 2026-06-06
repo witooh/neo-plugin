@@ -22,7 +22,7 @@ skills/<name>/
   references/*.md     # role specs / templates pulled in by the skill body
 ```
 
-Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc-gen`, `confluence-api-doc`, `gitlab`, `commit`, `bruno`, `open-collection`. The README's table is the authoritative list of triggers.
+Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`, `bruno`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0.)
 
 ## How the pieces wire together
 
@@ -45,10 +45,10 @@ Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc-gen`, `conflu
 When the user asks to **bump the version, commit, or cut a release**, run this standing flow (the version bump is a hard rule — never commit with it unchanged):
 
 1. **Bump `version`** in `.claude-plugin/plugin.json` AND `.claude-plugin/marketplace.json` (keep both in sync). Semver by change type: patch = fix/docs, minor = new feature/skill, major = breaking. It's the only signal installed clients have that the plugin changed; local marketplaces don't auto-update (see "Publishing" below), so a stale version means users keep running old code.
-2. **Update `RELEASE.md`** — prepend a `## <version> — <YYYY-MM-DD>` entry summarizing the diff (Added / Changed / Notes; one entry per version, newest on top; keep older entries).
-3. **Tag the release** — one annotated tag per version bump, created *after* the commit lands: `git tag -a v<version> -m "neo-dev-toolkit <version> — <headline>"` (v-prefix). Push it alongside the branch when the user pushes (`git push origin <branch> && git push origin v<version>`).
+2. **Tag the release** — one annotated tag per version bump, created *after* the commit lands: `git tag -a v<version> -m "neo-dev-toolkit <version> — <headline>"` (v-prefix). Push it alongside the branch when the user pushes (`git push origin <branch> && git push origin v<version>`).
+3. **Publish a GitHub release** — this is the changelog home (there is no `RELEASE.md`). Once the tag is on `origin`, create a release against it with structured notes you write from the diff: a `### <headline>` line, then **Added** / **Changed** / **Removed** / **Notes** sections (same shape as the existing releases). `gh release create v<version> --title "v<version> — <headline>" --notes-file <tmp.md> --latest` — the newest release gets `--latest`; backfilling an older one uses `--latest=false`. Match the format of prior releases (`gh release list` / `gh release view v<x.y.z>` to check).
 
-The user runs `git commit` themselves — don't auto-commit. Always do steps 1–2 in the same turn as the request; provide (or run, once they've committed) the step-3 tag command.
+The user runs `git commit` themselves — don't auto-commit. Do step 1 in the same turn as the request; provide (or run, once they've committed) the step-2 tag command and the step-3 `gh release create`.
 
 ### Publishing changes (local marketplace)
 

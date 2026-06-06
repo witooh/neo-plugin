@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook for neo-dev-toolkit plugin.
 # Injects a reminder so Claude proactively invokes the bundled skills
-# (neo, brainstorm, improve, api-doc-gen, confluence-api-doc, gitlab, commit)
+# (neo, brainstorm, improve, api-doc, gitlab, commit)
 # whenever a user request matches their triggering contexts.
 
 set -euo pipefail
@@ -19,7 +19,7 @@ escape_for_json() {
 }
 
 session_context="<EXTREMELY_IMPORTANT>
-You have the neo-dev-toolkit plugin installed. It bundles seven skills — invoke them via the Skill tool whenever the user's request matches.
+You have the neo-dev-toolkit plugin installed. It bundles six skills — invoke them via the Skill tool whenever the user's request matches.
 
 1. **\`neo\`** — Route a software-development task to specialist agents (BA, Architect, QA, Developer, Code Reviewer, Security, System Analyzer) via phase-based analysis. Use for any task that touches AC, system design, code, test cases, API contracts, or security — including single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). Also the single entry point for GitLab MR work — **creating an MR (สร้าง MR) and reviewing an MR (review MR / ตรวจ MR)** in two modes (with a JIRA card → adds AC/TC compliance; without → code + security + regression); it invokes the \`gitlab\` skill for the glab I/O. The skill is an ORCHESTRATOR — do not implement specialist work yourself. Delegate every real task via the \`Agent\` tool (point-to-read), never implement yourself. Launch with \`/neo\`.
 
@@ -27,13 +27,11 @@ You have the neo-dev-toolkit plugin installed. It bundles seven skills — invok
 
 3. **\`improve\`** — Iteratively refine any output until a measurable finish-line condition holds — autonomous improve → self-evaluate loop modeled on Claude Code's \`/goal\`. Establishes ONE condition up front (asks 1-2 questions if vague), then loops without mid-loop checkpoints until met, stalled, or bound reached. Triggers: \"improve this\", \"make it better\", \"iterate\", \"refine\", \"ปรับปรุง\", \"ทำให้ดีขึ้น\".
 
-4. **\`api-doc-gen\`** — Generate or validate API docs from source. Triggers: \"gen api doc\", \"สร้าง api doc\", \"อัปเดต api doc\", \"document these endpoints\", \"api doc outdated\".
+4. **\`api-doc\`** — Generate API docs from Go source as a runnable Bruno OpenCollection (\`gen\`) and publish it to Confluence (\`publish\`); each command has a built-in two-layer verify (deterministic script + fresh-eyes/round-trip). Triggers: \"gen api doc\", \"สร้าง api doc\", \"อัปเดต api doc\", \"gen open collection\", \"สร้าง bruno จาก code\", \"document these endpoints\", \"api doc outdated\" → gen; \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\" → publish. For hand-authoring or curl/Postman conversion, use the \`bruno\` skill.
 
-5. **\`confluence-api-doc\`** — Sync docs/api/ to Confluence pages via acli + REST. Triggers: \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\".
+5. **\`gitlab\`** — Low-level GitLab \`glab\` execution arm — neo invokes it for MR create + review-comment posting; usable directly for lightweight ops: read/summarize an MR, update MR description, list MRs, view MR/CI status, fetch CI logs, approve MRs. Triggers: a bare GitLab MR URL, \"อ่าน MR\", \"ดู MR\", \"อัพเดท MR\", \"list MRs\", \"check pipeline\", \"approve MR\". NOTE: creating, reviewing, fixing, or addressing feedback on an MR route through \`neo\` — not here.
 
-6. **\`gitlab\`** — Low-level GitLab \`glab\` execution arm — neo invokes it for MR create + review-comment posting; usable directly for lightweight ops: read/summarize an MR, update MR description, list MRs, view MR/CI status, fetch CI logs, approve MRs. Triggers: a bare GitLab MR URL, \"อ่าน MR\", \"ดู MR\", \"อัพเดท MR\", \"list MRs\", \"check pipeline\", \"approve MR\". NOTE: creating, reviewing, fixing, or addressing feedback on an MR route through \`neo\` — not here.
-
-7. **\`commit\`** — Smart git commit workflow with protected-branch guard, rebase onto base, secret-aware staging, and conventional commit messages. ALWAYS use this skill whenever the user asks to commit — do not run \`git commit\` directly. Triggers: \"commit\", \"/commit\", \"commit changes\", \"save my work\", \"push this\", \"commit and push\", \"commit ให้หน่อย\", \"ช่วย commit\", \"เสร็จแล้ว\", \"save and push\".
+6. **\`commit\`** — Smart git commit workflow with protected-branch guard, rebase onto base, secret-aware staging, and conventional commit messages. ALWAYS use this skill whenever the user asks to commit — do not run \`git commit\` directly. Triggers: \"commit\", \"/commit\", \"commit changes\", \"save my work\", \"push this\", \"commit and push\", \"commit ให้หน่อย\", \"ช่วย commit\", \"เสร็จแล้ว\", \"save and push\".
 
 Single-file fixes, quick questions, and pure research tasks do NOT need these skills — answer directly.
 </EXTREMELY_IMPORTANT>"

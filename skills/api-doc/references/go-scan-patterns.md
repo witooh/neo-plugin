@@ -445,7 +445,7 @@ Then add a sub-table for the inner data object.
 
 **List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields — `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
 
-**Error envelope:** the per-endpoint Error Responses table documents status + message only. If the API returns a structured error body (e.g. `{success:false, error:{code,message}}`), show that shape once in `index.md` § Common Error Responses, not in every endpoint.
+**Error envelope:** the per-endpoint Error Responses table documents status + message only. If the API returns a structured error body (e.g. `{success:false, error:{code,message}}`), show that shape once in the collection-root `docs:` § Common Error Responses, not in every endpoint.
 
 ### Response Discovery Fallbacks
 

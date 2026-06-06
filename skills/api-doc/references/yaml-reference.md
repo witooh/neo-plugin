@@ -25,6 +25,19 @@ opencollection: 1.0.0
 info:
   name: <Service Name>
 
+docs: |-
+  # <Service Name> API
+
+  <Overview paragraph — what the service does.>
+
+  ## Common Error Responses
+
+  | Status | Error Message | Description |
+  | ------ | ------------- | ----------- |
+  | 400 | invalid request | Request body or query param invalid |
+  | 401 | unauthorized | Missing or invalid authentication |
+  | 500 | internal server error | Unexpected server-side failure |
+
 bundled: false
 
 extensions:
@@ -38,6 +51,7 @@ extensions:
 |-----|----------|-------|
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
+| `docs` | yes | Collection-root markdown (`\|-` block) — service overview + Common Error Responses table. `publish` syncs it to the Confluence **parent page**. Replaces the old `index.md`. See [`request-template.md`](request-template.md) §1 + [`api-doc-template.md`](api-doc-template.md) § Index Template. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
 | `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` and `.git`. |
 
@@ -190,7 +204,7 @@ docs: |-
   ...
 ```
 
-Block-scalar markdown. Structure mirrors the `api-doc-gen` per-endpoint template — see [`request-template.md`](request-template.md) for the full layout.
+Block-scalar markdown. Structure mirrors the per-endpoint template — see [`request-template.md`](request-template.md) for the full layout.
 
 ---
 
@@ -254,7 +268,7 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 ## Reference Files Pointed To By This Skill
 
-When the skill needs deeper context on a specific area, it reads these from the sibling `api-doc-gen` skill (same plugin, no duplication):
+When the skill needs deeper context on a specific area, it reads these siblings in the same `api-doc/references/` directory:
 
-- [`../../api-doc-gen/references/go-scan-patterns.md`](../../api-doc-gen/references/go-scan-patterns.md) — Go route/handler/usecase/struct scanning patterns (1000+ lines).
-- [`../../api-doc-gen/references/api-doc-template.md`](../../api-doc-gen/references/api-doc-template.md) — Field/error documentation conventions (M/O rules, field-description formulas, example-value lookup, verification checklist).
+- [`go-scan-patterns.md`](go-scan-patterns.md) — Go route/handler/usecase/struct scanning patterns (1000+ lines).
+- [`api-doc-template.md`](api-doc-template.md) — Field/error documentation conventions (M/O rules, field-description formulas, example-value lookup, verification checklist).
