@@ -123,6 +123,14 @@ find unassigned bugs) — each with its safety steps inline — read
 
 `acli confluence page` can only **view** — it cannot create or update pages. So:
 
+- **Reading a page body:** `page view --id <ID>` alone prints only the metadata table —
+  *not* the content. To get the body, request it explicitly and feed the **raw XHTML to
+  the model** (don't strip the tags — you lose table / heading / code structure):
+  ```bash
+  acli confluence page view --id <ID> --body-format storage --json | jq -r '.body.storage.value'
+  ```
+  Use `storage` by default (leanest, structure-clean); if the page is macro-heavy and the
+  output fills with `<ac:…>` tags, switch to `--body-format view` (fully rendered HTML).
 - Creating / updating a Confluence page → use the Confluence REST API directly (curl).
 - **Publishing generated API docs to Confluence → use the `api-doc` skill** (it owns the
   REST publish + round-trip verify). Do not reimplement that here.
