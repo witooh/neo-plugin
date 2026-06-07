@@ -45,12 +45,12 @@ Some implementation work is **not owned by a single AC** — it unblocks several
 
 ## 7. Lifecycle — who writes when (every write is a BA dispatch)
 
-1. **At the Spec phase** (card-keyed work): BA creates the task-file **skeleton** — one row per AC with `Readiness` (mirrored from the AC), `Build = pending`, and `Depends-on` (from each AC's `Blocker:` id). The skeleton needs nothing from later phases.
-2. **After the Design phase**: BA **refreshes** the task-file — reads `traceability.html` to fill sub-task checklists (big ACs) and the Shared-prerequisites lane. This is a **separate dispatch**; it never blocks the Spec write waiting on a design artifact.
+1. **At the Spec phase** (card-keyed work): BA writes one row per AC with `Readiness` (mirrored from the AC), `Build = pending`, and `Depends-on` (from each AC's `Blocker:` id).
+2. **Sub-tasks + Shared-prerequisites — fill them whenever the design exists on disk**, i.e. whenever `docs/design/<usecase>/traceability.html` is present (**NOT** only when the Design phase ran in this session — a re-run on an already-analysed card has it on disk): read its per-AC design-element mapping -> fill sub-task checklists for big ACs + the Shared-prerequisites lane. **Also seed the Shared-prerequisites lane from the shared `Blocker:` refs** already in the file — two or more ACs sharing a blocker/dependency are a shared prerequisite, derivable even before any traceability exists.
 3. **After each Dev-Loop batch exits green**: the orchestrator dispatches BA in **tracker-sync** mode to set those ACs' `Build = done` and tick their sub-tasks. Updating per batch (not only at the end) keeps progress crash-resilient across sessions.
 4. **At Blocker-resolved re-entry**: after the existing re-entry flow mutates the AC document (`Blocked -> Ready`), the **same** BA dispatch mirrors the promoted ids into the task-file (`Readiness -> Ready`, **preserve** `Build`).
 
-**Spec-only work** (e.g. "create AC" with no Design phase): write the skeleton and note that sub-tasks / shared-prerequisites are *pending Design* — a valid state, not an error (Build cannot occur in a Spec-only run anyway). The post-Design refresh fills them when Design later runs.
+**Defer only when design is genuinely absent.** If no `traceability.html` exists yet (a true greenfield Spec-only run), write the skeleton — still seed the Shared-prerequisites lane from shared `Blocker:` refs — and note `sub-task checklists pending Design`. **Never write "pending Design" when `traceability.html` already exists on disk** (a re-run on an already-analysed card): fill the sub-tasks immediately. (Build cannot occur in a Spec-only run anyway, so the skeleton state is still valid.)
 
 ## 8. Completeness sweep — include the task-file
 
