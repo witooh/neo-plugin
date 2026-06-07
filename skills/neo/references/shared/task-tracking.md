@@ -8,6 +8,8 @@
 
 The task-file exists **only** for work that carries a JIRA card ID. Ad-hoc / general requests (no card) keep the existing flow and never get a task-file. For card-keyed work the task-file is **mandatory before the Build phase** — the orchestrator enforces this with a pre-Build guard that mirrors the All-Blocked guard (an unnamed routing check, not a numbered gate): card-keyed work with no current task-file → the orchestrator dispatches BA to create it before any Build.
 
+**One AC document, many cards.** A usecase's AC document can be shared by several cards (e.g. sub-operations each tracked by a different card). Card X's task-file lists **only the ACs that card X tracks** — those whose AC `JIRA Ref` (the ac-card `jira` value) includes X — not every AC in the document. Scope the rows from the `jira` field, never the document as a whole. **Pointer / cross-ref ACs:** an AC pulled in only because it cross-references this card while its real implementation is another AC (e.g. `AC-014` is a pointer to `AC-007`) still gets its row, but its `Build` is the reference `→ AC-007` (not a progress value) and it is **excluded from both roll-up tallies** (`Readiness` and `Build`) — a visibility row, not a counted work item, so the work and its readiness are tallied once on the AC that owns it. Its row still shows the mirrored `Readiness` value so the cross-reference stays visible.
+
 ## 2. The task-file — `docs/tasks/<card-id>/plan.md`
 
 - **One markdown file per card.** Markdown **by design** — the orchestrator reads it to route/resume, exactly as it reads `docs/design/INDEX.md` / `VERSION.md`. It is **out of scope of `lint.py` / `docverify.py`** and is a registered markdown exception (`html-output.md` §8). **Never** author it as `.html`; never point the HTML verifiers at `docs/tasks/`.
@@ -55,3 +57,9 @@ Some implementation work is **not owned by a single AC** — it unblocks several
 ## 8. Completeness sweep — include the task-file
 
 For a **scoped change** that retires or renames an AC id on card-keyed work, the stale-reference completeness sweep (the same grep the doc roles run for retire / rename tasks) must also cover `docs/tasks/<card-id>/plan.md` — a retired AC id left in the task-file is a stale reference. Markdown only; never convert it to `.html` to "match" the design docs.
+
+## 9. Sections beyond the table — Notes (optional), no copied blockers
+
+Beyond the header, roll-up, `Shared prerequisites`, and `Tasks` table, the task-file may end with **one optional `Notes` section** — a few lean tracking-level bullets (e.g. the All-Blocked-guard status, cross-AC build order, a "this blocker is independent" caveat). Keep it scannable: bullets, not prose.
+
+Do **not** add a `Blockers` section that copies each AC's blocker text out of the AC document. Blocker detail is owned by the AC document (the `<blocker>` body is the source of truth); duplicating it here is redundant, drifts out of sync when the AC changes, and breaks the "tracking index, not prose" rule. The task-file captures the blocker only as **structure** — the `Depends-on` column (the dependency id) and the `Shared prerequisites` lane (the pending work); for the full reason an AC is blocked, the reader follows `Source AC`.

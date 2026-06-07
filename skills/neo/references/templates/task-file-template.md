@@ -30,24 +30,32 @@ Updated: <session marker or YYYY-MM-DD>
 |--------|-----------|-------------|------------|------------------------------------|
 | AC-001 | Ready     | done        | -          | -                                  |
 | AC-002 | Blocked   | pending     | AC-019     | -                                  |
+| AC-014 | Ready     | → AC-007    | AC-007     | -                                  |
 | AC-019 | Blocked   | pending     | -          | [ ] step a  [ ] step b  [ ] step c |
 | AC-016 | Ready     | in-progress | -          | [x] layer 1  [x] layer 2  [ ] layer 3 |
+
+## Notes
+
+- <lean tracking note — e.g. All-Blocked-guard status, build order, an independence caveat>
+- <omit this whole section when there is nothing tracking-level to say>
+- (never a `Blockers` section — blocker detail stays in the AC document; §9)
 ```
 
 ### Field rules
 
 - **Header line** — `<CARD-ID>` plus a short title; keep the `[resume index ...]` tag so a reader knows it is machine-read and markdown-by-design.
 - **`Source AC`** — relative path to the usecase `acceptance-criteria.html` this card maps to (the AC document is the source of `Readiness`).
-- **Roll-up line** — `Readiness` counts mirror the AC document's `(Ready: R / Blocked: B)` tail; `Build` counts are computed from the Tasks table. Both must match the rows below (no stale roll-up).
+- **Roll-up line** — counts are over **this card's tracked rows** (a subset of the AC document when the doc is shared by several cards), **excluding pointer rows** (`Build = → AC-NNN`): `Readiness` = Ready / total-tracked, `Build` = done / in-progress / pending. For a single-card usecase this equals the AC document's `(Ready: R / Blocked: B)` tail. Both must match the rows below (no stale roll-up).
 - **`Shared prerequisites` section** — work that unblocks **two or more** ACs (`task-tracking.md` §6), derived from the Architect `traceability.html` design-element mapping + shared `Depends-on`. **Omit the whole section** when there are none (e.g. a Spec-only skeleton before Design). `Unblocks` lists the AC ids it gates.
-- **`Tasks` table — one row per AC:**
-  - `AC-ID` — every AC id from the AC document, in document order.
+- **`Tasks` table — one row per tracked AC:**
+  - `AC-ID` — every AC id **whose `JIRA Ref` includes this card**, in document order (one AC document shared by N cards → each card lists only the ACs it tracks; `../shared/task-tracking.md` §1). A **pointer / cross-ref AC** (its work is another AC, e.g. `AC-014` → `AC-007`) still gets a row — see `Build`.
   - `Readiness` — `Ready` or `Blocked`, **mirrored verbatim** from the AC `Status` (never re-derived). This column is **not** the AC `Status` field; it is a copy. Never write a progress value here.
-  - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`.
+  - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`. A **pointer AC** carries the reference `→ AC-NNN` instead of a progress value and is **excluded from the roll-up counts** (`../shared/task-tracking.md` §1).
   - `Depends-on` — the AC id(s) this AC must follow (from its `Blocker:` dependency id or obvious build order); `-` when none.
   - `Sub-tasks` — checkboxes **only for a big AC** (`task-tracking.md` §5); `-` otherwise. Before Design exists, leave `-` and add a one-line note `sub-tasks/shared-prerequisites pending Design`.
+- **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). **Do NOT** add a `Blockers` section copying the AC document's blocker text — blocker detail lives in the AC document; the task-file carries it only as the `Depends-on` column + the `Shared prerequisites` lane.
 
-### Notes
+### Authoring notes
 
 - **No `Status` column.** `Status` is reserved by `ac-status.md` §1 (readiness, `Ready`/`Blocked`); reusing the name here would collide. Use `Readiness` + `Build`.
 - **Language-neutral.** Fill content in the consuming project's working language; this template ships no hardcoded language.
