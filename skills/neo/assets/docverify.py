@@ -45,6 +45,7 @@ WHAT IT CHECKS  (all read from the SOURCE HTML authoring tags <ac-card>/<tc-card
 
   every page in the folder  (callout discipline — html-output.md §5.1):
     C1  no version/changelog <callout-box> on a spec page (-> VERSION.md)   -> ERROR
+        (start-anchored, or a mid-text version + a change-verb co-signal)
     C2  no doc-vs-code gap <callout-box> (-> gap-analysis.md + chat report) -> ERROR
     C3  <= 6 hand-authored callouts/page outside a <h2 id="notes"> region   -> WARNING
         (Notes-region callouts are exempt — that IS the correct home; a card's
@@ -322,22 +323,30 @@ def check_cross(ac_cards, tc_cards, errors):
 #      (api-contracts/traceability/index too), not just the card docs. ----
 
 DENSITY_CAP = 6                                                 # non-exempt callouts/page → warn
-VERSION_RE = re.compile(r'^\s*v?\d+\.\d+(?:\.\d+)?\b', re.I)    # body STARTS with a semver token
+_SEMVER = r'\d+\.\d+(?:\.\d+)?'                                 # X.Y[.Z] — shared by both version detectors
+VERSION_RE = re.compile(r'^\s*v?' + _SEMVER + r'\b', re.I)     # body STARTS with an (optional-v) semver token
 GAP_PHRASES = ("doc-vs-code", "doc vs code", "code-compliance gap", "compliance gap",
                "plumbing gap", "rate plumbing", "implementation gap", "not yet implement",
-               "not implemented", "re-aligned", "realigned", "supersede")  # substring → also supersedes/-d
+               "not implemented", "re-align", "realign", "supersede")  # substrings → also -ed/-ment/-ing, supersedes/-d
 # words that ALSO occur in legit spec prose ("cache is stale", "data drift between regions")
 # — a gap only WITH a code-pointer co-signal (CODE_SIGNAL), never on their own:
 GAP_WEAK = ("gap", "plumbing", "verified", "migration", "drift", "stale")
 CODE_SIGNAL = re.compile(r'\b(code|grep|adapter|port|handler|implement)\b', re.I)
+# mid-text version + change-verb co-signal (mirrors the GAP_WEAK tier). VERSION_MIDTEXT
+# REQUIRES the "v" prefix (+ a dot) so "Base 0.5%" / bare "v2" / "API v2.0" never match alone.
+VERSION_MIDTEXT = re.compile(r'\bv' + _SEMVER + r'\b', re.I)
+CHANGE_VERB = re.compile(r'\b(closed|added|removed|refined|revised|clarified|promoted|'
+                         r'demoted|deprecated|introduced|renamed|resolved|bumped|'
+                         r'released|superseded|reverted)\b', re.I)
 
 
 def classify_callout(text):
-    """'version' | 'gap' | 'ok'. version wins (anchored at body-start, so a mid-sentence
-       "in v2 we will…" is NOT flagged). 'gap' needs a STRONG phrase, or a WEAK word AND
-       a code-pointer co-signal — so a legit spec note ("…verified against
-       GetProductResponse") stays 'ok', but "plumbing gap … port" is a gap. Tuned to the
-       real corpus; widen GAP_PHRASES as new docs surface."""
+    """'version' | 'gap' | 'ok'. A start-anchored version wins outright. 'gap' needs a STRONG
+       phrase, or a WEAK word AND a code-pointer co-signal — so a legit spec note ("…verified
+       against GetProductResponse") stays 'ok', but "plumbing gap … port" is a gap. A mid-text
+       version is changelog only WITH a change-verb co-signal (so "…CLOSED v1.5.1…" flags, but
+       a bare "v2" / "API v2.0" with no verb stays 'ok'). Tuned to the real corpus; widen
+       GAP_PHRASES as new docs surface."""
     if VERSION_RE.match(text):
         return "version"
     low = text.lower()
@@ -345,6 +354,8 @@ def classify_callout(text):
         return "gap"
     if any(re.search(r'\b' + re.escape(w) + r'\b', low) for w in GAP_WEAK) and CODE_SIGNAL.search(low):
         return "gap"
+    if VERSION_MIDTEXT.search(low) and CHANGE_VERB.search(low):
+        return "version"
     return "ok"
 
 
