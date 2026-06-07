@@ -1,0 +1,54 @@
+# Task File — [CARD-ID]
+
+**File:** `docs/tasks/<card-id>/plan.md` (one folder per JIRA card; `<card-id>` = the card id, e.g. `GI-52`).
+**Format:** **Markdown, never HTML.** This is a deliberate exception to the "design docs are HTML" rule — registered in [`../html-output.md`](../html-output.md) §8. The orchestrator reads it to route/resume, exactly like `docs/design/INDEX.md` / `VERSION.md`. It is **out of scope of `lint.py` / `docverify.py`** — do not run those against `docs/tasks/`, and never author this file as `.html`.
+**Written by:** Business Analyst (sole writer). **Read by:** the Orchestrator (route/resume) + humans (resume index).
+**Semantics / state machine:** [`../shared/task-tracking.md`](../shared/task-tracking.md). **Scope:** card-keyed work only.
+
+---
+
+## Content spec
+
+Emit `plan.md` with this exact section order. Keep it scannable — it is a tracking index, not prose.
+
+```
+# <CARD-ID> - <card title>          [resume index for neo - markdown by design]
+
+Source AC: ../../design/<usecase>/acceptance-criteria.html
+Readiness: <R>/<N> Ready   |   Build: <done> done, <wip> in-progress, <rest> pending
+Updated: <session marker or YYYY-MM-DD>
+
+## Shared prerequisites
+
+| Prereq                       | Build       | Unblocks               |
+|------------------------------|-------------|------------------------|
+| <prereq name>                | pending     | AC-NNN, AC-MMM         |
+
+## Tasks
+
+| AC-ID  | Readiness | Build       | Depends-on | Sub-tasks                          |
+|--------|-----------|-------------|------------|------------------------------------|
+| AC-001 | Ready     | done        | -          | -                                  |
+| AC-002 | Blocked   | pending     | AC-019     | -                                  |
+| AC-019 | Blocked   | pending     | -          | [ ] step a  [ ] step b  [ ] step c |
+| AC-016 | Ready     | in-progress | -          | [x] layer 1  [x] layer 2  [ ] layer 3 |
+```
+
+### Field rules
+
+- **Header line** — `<CARD-ID>` plus a short title; keep the `[resume index ...]` tag so a reader knows it is machine-read and markdown-by-design.
+- **`Source AC`** — relative path to the usecase `acceptance-criteria.html` this card maps to (the AC document is the source of `Readiness`).
+- **Roll-up line** — `Readiness` counts mirror the AC document's `(Ready: R / Blocked: B)` tail; `Build` counts are computed from the Tasks table. Both must match the rows below (no stale roll-up).
+- **`Shared prerequisites` section** — work that unblocks **two or more** ACs (`task-tracking.md` §6), derived from the Architect `traceability.html` design-element mapping + shared `Depends-on`. **Omit the whole section** when there are none (e.g. a Spec-only skeleton before Design). `Unblocks` lists the AC ids it gates.
+- **`Tasks` table — one row per AC:**
+  - `AC-ID` — every AC id from the AC document, in document order.
+  - `Readiness` — `Ready` or `Blocked`, **mirrored verbatim** from the AC `Status` (never re-derived). This column is **not** the AC `Status` field; it is a copy. Never write a progress value here.
+  - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`.
+  - `Depends-on` — the AC id(s) this AC must follow (from its `Blocker:` dependency id or obvious build order); `-` when none.
+  - `Sub-tasks` — checkboxes **only for a big AC** (`task-tracking.md` §5); `-` otherwise. Before Design exists, leave `-` and add a one-line note `sub-tasks/shared-prerequisites pending Design`.
+
+### Notes
+
+- **No `Status` column.** `Status` is reserved by `ac-status.md` §1 (readiness, `Ready`/`Blocked`); reusing the name here would collide. Use `Readiness` + `Build`.
+- **Language-neutral.** Fill content in the consuming project's working language; this template ships no hardcoded language.
+- **Preserve on refresh.** When refreshing (post-Design, tracker-sync, re-entry), keep prior `Build` values and ticked sub-tasks; only update what changed.

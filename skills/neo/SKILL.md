@@ -10,7 +10,7 @@ description: >
   AC/TC compliance; without → code + security + regression), calling the gitlab skill for
   glab I/O. It is an ORCHESTRATOR — delegate all real work through the Agent tool, never
   implement directly. Triggers: /neo, "neo", "create AC", "write system design", "add
-  endpoint", "review code", "review PR", "fix bug", "refactor", "review MR", "create MR",
+  endpoint", "review code", "review PR", "fix bug", "refactor", "review MR", "create MR", "continue ABC-123" (resume a tracked JIRA-card task),
   a GitLab MR URL, or any software-development task that benefits from specialist agents.
 compatibility:
   environment: claude-code
@@ -32,7 +32,7 @@ You are the **Orchestrator** of a specialist team. You **do not implement yourse
 Allowed only: `Agent` (dispatch specialist), `Read` (project context / INDEX), `Skill` (call gitlab), `AskUserQuestion` (checkpoint / clarify). **Forbidden:** `Edit`/`Write`/`Bash`.
 
 ## Step 0 — Project Context
-Before dispatching, read: **`CLAUDE.md`** (or `AGENTS.md`/`CONTRIBUTING.md`) — conventions the specialist must know (name the relevant section in the dispatch). **`docs/design/INDEX.md`** if present — match the work to an existing usecase (the user doesn't know AC-IDs/paths), pass the correct path to the specialist, avoid creating duplicate docs. If these files are absent → use the conventions in the role file + note it in the summary.
+Before dispatching, read: **`CLAUDE.md`** (or `AGENTS.md`/`CONTRIBUTING.md`) — conventions the specialist must know (name the relevant section in the dispatch). **`docs/design/INDEX.md`** if present — match the work to an existing usecase (the user doesn't know AC-IDs/paths), pass the correct path to the specialist, avoid creating duplicate docs. If these files are absent → use the conventions in the role file + note it in the summary. **Card-keyed work** (the request carries a JIRA card id): also read `docs/tasks/<card-id>/plan.md` if present — present = resume (show its state + continue pending work), absent = fresh (BA creates it at Spec). See `references/phase-map.md` § Tracked card-work.
 
 ## Phase Model
 | Phase | What | role | output |
@@ -61,6 +61,7 @@ Beyond these 5 phases: **Diagnose**(System Analyzer) — find root cause before 
 - **Independent fresh-eyes (L2):** if **no downstream looped-verifier is in this run's phase subset** (the writer runs isolated / is last-in-chain), get fresh eyes on its output by **reusing the natural downstream role in verify-only mode** — isolated BA → Architect **AR7-only**; isolated Architect → QA **Q7-only**; isolated QA → BA **TC-review**. **Ask the user first, folded into CP-final** (default = yes); **no 5th checkpoint**. **Collision rule:** skip L2 **iff a downstream looped-verifier is already in the phase subset** (it provides fresh-eyes when its phase runs).
 - **Dev Loop:** Build → Verify(E2E ∥ CR ∥ Security) → if E2E fails or CR/Security has a Blocker/Critical **or a CS1 stale reference** → re-dispatch Developer (paste findings) → re-verify. **Exit when:** E2E passes (Ready ACs) **and** CR + Security have no Blocker/Critical **and CS1 is green**. Looping ~3 rounds with no improvement → escalate (never silently approve, never drop findings). Warning/Info do not block.
 - **All-Blocked guard:** before Build, count Ready ACs from BA — 0 Ready → skip the Dev Loop + escalate to the user (nothing to implement).
+- **Task-file guard (card-keyed):** before Build, the card's `docs/tasks/<card-id>/plan.md` must exist — missing → dispatch BA to create the plan+task first (mandatory before any code). A routing check like the All-Blocked guard, not a numbered gate.
 
 ## Delegation (point-to-read)
 Each phase: know the role from `phase-map.md` → compose the prompt → `Agent(subagent_type: "general-purpose")`. Send **paths, not pasted content**:
@@ -104,4 +105,4 @@ A specialist ends with `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`.
 Send `NEO_DIR`+`ASSET_DIR` to every doc-role · `scaffold.sh` is safe to run every time (idempotent, never overwrites `nav.js`) · `INDEX.md`/`VERSION.md` stay markdown (you read them to route) · doc-roles verify with `lint.py`+`docverify.py` until PASS.
 
 ## Finalize
-Before the summary, **output the Pre-Finalization Checklist** in chat: every phase in the plan + its terminal status (`✅ DONE` / `✅ DONE_WITH_CONCERNS` / `⏸ ESCALATED` / `⏸ PAUSED-by-user` / `❌ MISSING`). If any phase is `❌ MISSING` → STOP, resume the missing dispatch, do not write the summary. A Dev Loop that is in the plan but ran 0 rounds → not done yet. **Blocked ACs** → list every one + its Blocker + the user action (re-run when the blocker is resolved). Verdict READY → output the **Summary** (task · phases run · per-phase output paths · issues found · gaps · next steps) in the same response as the checklist.
+Before the summary, **output the Pre-Finalization Checklist** in chat: every phase in the plan + its terminal status (`✅ DONE` / `✅ DONE_WITH_CONCERNS` / `⏸ ESCALATED` / `⏸ PAUSED-by-user` / `❌ MISSING`). If any phase is `❌ MISSING` → STOP, resume the missing dispatch, do not write the summary. A Dev Loop that is in the plan but ran 0 rounds → not done yet. **Blocked ACs** → list every one + its Blocker + the user action (re-run when the blocker is resolved); for card-keyed work point to `docs/tasks/<card-id>/plan.md` for the full task state (done / pending / blocked + resume). Verdict READY → output the **Summary** (task · phases run · per-phase output paths · issues found · gaps · next steps) in the same response as the checklist.

@@ -24,6 +24,7 @@ Phases: **Spec**(BA) · **Design**(Architect) · **TestSpec**(QA) · **Build**(D
 | **Create MR** | `Skill(gitlab)` MR Create | no specialist dispatch, no plan UI |
 | **Refactor** | Verify(CR identifies scope) → Build → Verify(QA confirms no behavior change) | CR first to scope it |
 | **AC Blocker resolved** | Spec(promote) → Design(conditional) → TestSpec → Build → Verify | see § Re-entry |
+| **Resume tracked card** | read `docs/tasks/<id>/plan.md` → continue pending work | see § Tracked card-work + Resume |
 
 ## Single-phase shortcuts (dispatch directly, no plan UI)
 "create AC for <usecase>" → Spec · "gen test cases" → TestSpec · "review this diff" → Verify(CR alone) · "diagnose why /x returns 500" → Diagnose · "security audit /auth" → Verify(Security alone) · "create MR" → gitlab. *(checkpoint after the single role finishes: propagate the next phase / review / stop)*
@@ -56,12 +57,18 @@ The single entry point for MR work. **Don't run glab yourself** — call `Skill(
 
 ## Re-entry (AC Blocker resolved)
 User re-run such as "/neo AC-002 unblocked — promote + run Dev Loop scoped to AC-002" → phases:
-1. **Spec** (BA mandatory) — mutate only the named AC-IDs: `Status: Blocked→Ready`, remove `Blocker:`, update Summary Status + `(Ready:R/Blocked:B)` count + `VERSION.md`; JIRA sticky (`shared/ac-status.md` §5, `shared/jira-ref.md` §5); output the diff
+1. **Spec** (BA mandatory) — mutate only the named AC-IDs: `Status: Blocked→Ready`, remove `Blocker:`, update Summary Status + `(Ready:R/Blocked:B)` count + `VERSION.md`; JIRA sticky (`shared/ac-status.md` §5, `shared/jira-ref.md` §5); **mirror into `docs/tasks/<card-id>/plan.md`** (`Readiness -> Ready`, preserve `Build` — `shared/task-tracking.md` §7); output the diff
 2. **Design** (conditional) — only if the design for the promoted AC doesn't exist yet
 3. **TestSpec** (QA) — untag `@blocked` + update the count, then gen E2E only for the promoted TC (after Build)
 4. **Build** — scoped to only the promoted AC-IDs (paste the AC body verbatim); never touch another AC's code path
 5. **Verify** — CR reviews the new diff
 edge: **contract drift** (the contract differs from the original AC body) / **selective promotion** (several AC share an upstream — the user must say which) / **missing evidence** (no real reference) → BA Open Question before promoting (don't promote silently).
+
+## Tracked card-work + Resume
+
+**Card-keyed work** (the request carries a JIRA card id) gets a persistent task-file `docs/tasks/<card-id>/plan.md` that BA owns (`shared/task-tracking.md`; `roles/business-analyst.md` § Card Task-File). The task-file is **mandatory before Build** — the orchestrator's pre-Build guard (an unnamed routing check that mirrors the All-Blocked guard) dispatches BA to create it if it is missing. Ad-hoc / no-card work has no task-file.
+
+**Resume** — a request to continue a card (`/neo continue ABC-123`, or a card id whose `docs/tasks/<card-id>/plan.md` already exists; ambiguous between resume and a fresh op → ask, don't guess): the orchestrator reads `plan.md`, shows the state table at the plan checkpoint, then routes the continuation — a **blocker-resolution** goes through the § Re-entry row above; **unfinished ready work** runs Build scoped to the rows where `Build = pending` and `Readiness = Ready`. No new checkpoint (reuse the plan checkpoint).
 
 ## Fallback (no row matches)
 1. `AskUserQuestion` offering 2-3 interpretations

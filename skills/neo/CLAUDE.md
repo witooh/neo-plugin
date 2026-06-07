@@ -14,7 +14,7 @@ Scoped guidance for anyone (human or Claude) **editing files under `skills/neo/`
 - **`NEO_DIR` / `ASSET_DIR` handoff is mandatory on every dispatch.** The specialist is `general-purpose` and does not know the skill's install path. `ASSET_DIR = <NEO_DIR>/assets`. **Missing either = a doc-role cannot build HTML and fails silently.**
 - **Load-bearing gates — 18 IDs / 64 occurrences.** Verify the count is unchanged before/after any edit (see § Verify). Current inventory:
   `CS1`×23 · `AR7`×8 · `BA5`×8 · `Q7`×6 · `AR4`×4 · `BA1`×2 · `D4`×2 · `CR3` `Q1` `Q3` `Q4` `Q6` `SEC2` `SA1` `SA2` `SA3` `SA4` `SA5` ×1 each.
-  These encode real behavior (CS1 completeness-sweep · BA5 intent confirm + source-artifact coverage · AR7/Q7 doc-adversarial + verify-only mode · AR4 traceability count-match · D4 route-reg · CR3 · SEC2 secrets→Critical · SA1–5 prod-safety). Renaming/removing one silently drops a guard — don't, unless you also remove its enforcement deliberately and update this count. *(Counts move when gates are cited in new prose — re-measure with the § Verify grep and write the observed numbers, never a guess.)*
+  These encode real behavior (CS1 completeness-sweep · BA5 intent confirm + source-artifact coverage · AR7/Q7 doc-adversarial + verify-only mode · AR4 traceability count-match · D4 route-reg · CR3 · SEC2 secrets→Critical · SA1–5 prod-safety). Renaming/removing one silently drops a guard — don't, unless you also remove its enforcement deliberately and update this count. *(Counts move when gates are cited in new prose — re-measure with the § Verify grep and write the observed numbers, never a guess.)* **Two pre-Build guards are intentionally ID-less** — the All-Blocked guard and the card Task-file guard (`shared/task-tracking.md`) are routing checks, not numbered gates; don't give them IDs (that would inflate this count and is unnecessary — the orchestrator enforces them by prose).
 - **HTML asset coupling** (`references/html-output.md` + `assets/`):
   - `scaffold.sh` is idempotent and **must never overwrite `nav.js`** — a writer that regenerates `nav.js` breaks navigation.
   - `components.js` must load **before** `app.js` (classic script order).
@@ -51,7 +51,8 @@ references/
   shared/preamble.md           universal agent header (read first on every dispatch)
   shared/ac-status.md          Ready/Blocked state machine + Sign-Off math
   shared/jira-ref.md           JIRA Ref capture → inherit-verbatim → sticky
-  templates/*.md               per-artifact content specs (read by the role that emits it)
+  shared/task-tracking.md      Build progress axis + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)
+  templates/*.md               per-artifact content specs (read by the role that emits it; incl. task-file-template.md)
 assets/                        scaffold.sh + lint.py + docverify.py + JS/CSS/HTML (English already)
 ```
 

@@ -52,3 +52,7 @@ When an upstream dependency finalizes and the user re-invokes scoped to specific
 - **QA** removes the `@blocked` tag + `Blocker:` field for the promoted TCs, updates the Summary `Status` column, removes them from the Deferred table, updates the count; then (Dev Loop mode) generates E2E specs for the now-Ready TCs only.
 - **Dev Loop** is scoped to **ONLY** the promoted AC-IDs, never the whole document.
 - **Edge cases** → return an Open Question *before* promoting: contract drift (resolved contract differs from the AC's assumptions), selective promotion (several Blocked ACs share an upstream — promote only the IDs the user named), missing evidence (no actual upstream reference supplied — reuse the Trigger B template in §2).
+
+## 6. Relationship to the build-tracker (progress is a separate axis)
+
+`Status` here is **readiness only** — it never encodes whether an AC has been built or verified. Implementation **progress** for card-keyed work lives in a separate axis (`Build`: `pending` / `in-progress` / `done`) inside the per-card task-file `docs/tasks/<card-id>/plan.md`, defined in [`task-tracking.md`](task-tracking.md). The AC document stays the **source of truth for readiness**; the task-file's `Readiness` column is a **mirror** of this `Status`, never a second writer. Never add a "done" / progress value to the `Status` field, and never infer readiness from progress (or vice versa). When a blocker resolves (§5), the same BA dispatch that mutates `Status` here also refreshes the task-file mirror (`Readiness -> Ready`, preserve `Build`).
