@@ -23,9 +23,10 @@ The task-file exists **only** for work that carries a JIRA card ID. Ad-hoc / gen
 | `Readiness` | a mirror of the AC `Status` (`Ready`/`Blocked`) | the AC document — read, not re-derived |
 | `Build` | the progress axis — `pending` -> `in-progress` -> `done` | the task-file (the state machine in §4) |
 | `Depends-on` | cross-AC ordering (e.g. AC-002 needs AC-019) | the AC's `Blocker:` dependency id (`ac-status.md` §2 format) + obvious build order |
-| `Sub-tasks` | intra-AC steps, **big AC only** | derived from the design (see §5) |
 
 `Readiness` is a **mirror, not a second writer** of readiness: the AC document stays the source of truth; the task-file copies it. When readiness changes (a blocker resolves), the same BA dispatch that mutates the AC document also refreshes this column (see §7).
+
+**Sub-tasks are not a column.** A big AC's intra-AC steps live in a `### <AC-ID> — sub-tasks` section **below the Tasks table** (§5), so the checklist renders as a real vertical task-list instead of being crammed into a single table cell.
 
 ## 4. `Build` state machine
 
@@ -37,7 +38,7 @@ A `Blocked` AC (Readiness) cannot reach `in-progress` / `done`; it stays `pendin
 
 ## 5. Sub-tasks — adaptive, big-AC only
 
-Do **not** give every AC a sub-task checklist — most ACs map to a single surface and need none (a one-field validation, a pointer / superseded AC, a wire-up to an existing method). Materialize a checklist **only for a big AC**: one whose design touches **two or more new or independent surfaces**, read from the Architect's per-AC design-element mapping in `traceability.html`. Signals of "big": an AC that needs a new adapter *and* a new port field *and* new selection logic; an AC with several independent layers (e.g. a multi-layer idempotency path). Each sub-task is a checkbox (`[ ]` / `[x]`); ticking them gives intra-session resume for the few ACs large enough that one session may not finish them.
+Do **not** give every AC a sub-task checklist — most ACs map to a single surface and need none (a one-field validation, a pointer / superseded AC, a wire-up to an existing method). Materialize a checklist **only for a big AC**: one whose design touches **two or more new or independent surfaces**, read from the Architect's per-AC design-element mapping in `traceability.html`. Signals of "big": an AC that needs a new adapter *and* a new port field *and* new selection logic; an AC with several independent layers (e.g. a multi-layer idempotency path). **Layout:** render each big AC's checklist as a `### <AC-ID> — sub-tasks` section **below the Tasks table** (never a table column — a markdown cell can't hold a readable multi-line checklist), one vertical GFM checklist per big AC in document order, each item `- [ ]` / `- [x]`. Ticking them gives intra-session resume for the few ACs large enough that one session may not finish them.
 
 ## 6. Shared prerequisites lane
 

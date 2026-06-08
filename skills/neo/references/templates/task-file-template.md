@@ -26,13 +26,23 @@ Updated: <session marker or YYYY-MM-DD>
 
 ## Tasks
 
-| AC-ID  | Readiness | Build       | Depends-on | Sub-tasks                          |
-|--------|-----------|-------------|------------|------------------------------------|
-| AC-001 | Ready     | done        | -          | -                                  |
-| AC-002 | Blocked   | pending     | AC-019     | -                                  |
-| AC-014 | Ready     | → AC-007    | AC-007     | -                                  |
-| AC-019 | Blocked   | pending     | -          | [ ] step a  [ ] step b  [ ] step c |
-| AC-016 | Ready     | in-progress | -          | [x] layer 1  [x] layer 2  [ ] layer 3 |
+| AC-ID  | Readiness | Build       | Depends-on |
+|--------|-----------|-------------|------------|
+| AC-001 | Ready     | done        | -          |
+| AC-002 | Blocked   | pending     | AC-019     |
+| AC-014 | Ready     | → AC-007    | AC-007     |
+| AC-016 | Ready     | in-progress | -          |
+| AC-019 | Blocked   | pending     | -          |
+
+### AC-016 — sub-tasks
+- [x] layer 1
+- [x] layer 2
+- [ ] layer 3
+
+### AC-019 — sub-tasks
+- [ ] step a
+- [ ] step b
+- [ ] step c
 
 ## Notes
 
@@ -52,11 +62,11 @@ Updated: <session marker or YYYY-MM-DD>
   - `Readiness` — `Ready` or `Blocked`, **mirrored verbatim** from the AC `Status` (never re-derived). This column is **not** the AC `Status` field; it is a copy. Never write a progress value here.
   - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`. A **pointer AC** carries the reference `→ AC-NNN` instead of a progress value and is **excluded from the roll-up counts** (`../shared/task-tracking.md` §1).
   - `Depends-on` — the AC id(s) this AC must follow (from its `Blocker:` dependency id or obvious build order); `-` when none.
-  - `Sub-tasks` — checkboxes **only for a big AC** (`task-tracking.md` §5); `-` otherwise. Before Design exists, leave `-` and add a one-line note `sub-tasks/shared-prerequisites pending Design`.
+- **`### <AC-ID> — sub-tasks` sections (below the `Tasks` table)** — a **big AC** (`task-tracking.md` §5) gets one: a vertical GFM checklist (`- [ ]` / `- [x]`), one section per big AC in document order, placed after the table and before `## Notes`. Most ACs are not big and get **no** section. **Never** put checkboxes in a table cell. Before Design exists, emit no sub-task sections and add the one-line note `sub-task checklists pending Design` under `## Notes`.
 - **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). **Do NOT** add a `Blockers` section copying the AC document's blocker text — blocker detail lives in the AC document; the task-file carries it only as the `Depends-on` column + the `Shared prerequisites` lane.
 
 ### Authoring notes
 
 - **No `Status` column.** `Status` is reserved by `ac-status.md` §1 (readiness, `Ready`/`Blocked`); reusing the name here would collide. Use `Readiness` + `Build`.
 - **Language-neutral.** Fill content in the consuming project's working language; this template ships no hardcoded language.
-- **Preserve on refresh.** When refreshing (post-Design, tracker-sync, re-entry), keep prior `Build` values and ticked sub-tasks; only update what changed.
+- **Preserve on refresh.** When refreshing (post-Design, tracker-sync, re-entry), keep prior `Build` values and ticked sub-task checkboxes (in their sections); only update what changed.
