@@ -46,52 +46,71 @@ The KB is committed and read by the whole team, so a pointer must resolve for **
 
 - **Topic-named files, not source-mirrors.** A digest is named for its **topic** (`account-eligibility.md`, `account-opening-flow.md`) and may aggregate facts from several sources. The Librarian **composes/curates** the KB by topic — it does **not** mirror each source 1:1.
 - **Current correct state only.** A digest states what is true *now* — the same philosophy as a design doc (`html-output.md §5.1`). It is not a changelog and not a conflict log; the change trail is **`VERSION.md`** (§6).
-- **Every fact carries an inline source tag**, so provenance survives without 1:1 files: `txn limit/txn: 60,000 [confluence:NEOACCT]`, `KYC re-run at open [GI-52]`, `multi-currency required [verbal:BA 2026-06-10]`. The tag resolves to an INDEX row (§6).
+- **Every fact carries an inline source tag**, so provenance survives without 1:1 files: `txn limit/txn: 60,000 [confluence:NEOACCT]`, `KYC re-run at open [GI-52]`, `multi-currency required [verbal:BA 2026-06-10]`. The tag resolves to an INDEX Sources entry (§6).
 - **KB content mirrors the source's language** — it may be non-English. The language-neutral rule binds **skill files** (`skills/neo/**`), not runtime `docs/knowledge/` digests.
 
 ## 6. VERSION.md (whole-KB version + changelog) + INDEX.md (discovery)
 
-The KB mirrors the `docs/design/` split — a **`VERSION.md`** changelog + an **`INDEX.md`** discovery index, both plain tables the Orchestrator reads (no prose, no Notes).
+The KB mirrors the `docs/design/` split — a **`VERSION.md`** changelog (one section per version) + an **`INDEX.md`** discovery index (one section per topic / source), both Orchestrator-readable (no freeform prose, no Notes).
 
-**`docs/knowledge/VERSION.md`** — one **whole-KB version** (not per source) + a changelog, newest first. It bumps on every ingest / re-ingest / conflict resolution; this is the human-readable "what changed".
+**`docs/knowledge/VERSION.md`** — one **whole-KB version** (not per source) + a changelog, newest first: one `## v<N> — <date>` section per version with **Sources** / **Change** bullets. It bumps on every ingest / re-ingest / conflict resolution; this is the human-readable "what changed".
 
 ```
 # Knowledge Base — version history
 Current: v1.2
 
-| Version | Date | Change | Sources |
-|---|---|---|---|
-| 1.2 | 2026-06-10 | OQ-1 resolved: GI-52 authoritative on campaign rate (Confluence BFID-0001-A + NEOX-1427/1398 stale) | GI-52, confluence:NEOACCT |
-| 1.1 | 2026-06-10 | re-ingest GI-52 (txn limit 50k → 60k) | GI-52 |
-| 1.0 | 2026-06-10 | initial ingest | GI-52, confluence:NEOACCT, image:neobank-flow |
+## v1.2 — 2026-06-10
+- **Sources:** GI-52, confluence:NEOACCT
+- **Change:** OQ-1 resolved: GI-52 authoritative on campaign rate (Confluence BFID-0001-A + NEOX-1427/1398 stale)
+
+## v1.1 — 2026-06-10
+- **Sources:** GI-52
+- **Change:** re-ingest GI-52 (txn limit 50k → 60k)
+
+## v1.0 — 2026-06-10
+- **Sources:** GI-52, confluence:NEOACCT, image:neobank-flow
+- **Change:** initial ingest
 ```
 
-**`docs/knowledge/INDEX.md`** — a discovery index: a **Topics** table (find the knowledge) + a **Sources** table (resolve an inline `[tag]` to its origin + carry each source's `hash` for staleness). **No `version` column** — version is whole-KB in `VERSION.md`.
+**`docs/knowledge/INDEX.md`** — a discovery index: a **Topics** section (find the knowledge; one `### <Topic> — <file>` entry with **Covers** / **Keywords** bullets) + a **Sources** section (resolve an inline `[tag]` to its origin + carry each source's `hash` for staleness; one `### <source-tag> (<type>)` entry with **Locator** / **Hash** / **Topics** bullets). **No version field** — version is whole-KB in `VERSION.md`.
 
 ```
 # Knowledge Base — index
 
 ## Topics
-| Topic | File | Covers | Keywords |
-|---|---|---|---|
-| Account eligibility | account-eligibility.md | re-validate at open: Customer Group / Age / Account Limit | eligibility, KYC, account limit |
-| Campaign & rate | campaign-rate.md | campaign validation + final rate | campaign, G5_NOV_26, bonus |
+
+### Account eligibility — account-eligibility.md
+- **Covers:** re-validate at open: Customer Group / Age / Account Limit
+- **Keywords:** eligibility, KYC, account limit
+
+### Campaign & rate — campaign-rate.md
+- **Covers:** campaign validation + final rate
+- **Keywords:** campaign, G5_NOV_26, bonus
 
 ## Sources
-| source-tag | type | portable locator | hash | topics |
-|---|---|---|---|---|
-| GI-52 | jira | https://.../browse/GI-52 | a1b2c3 | account-eligibility, campaign-rate |
-| confluence:NEOACCT | confluence | https://.../wiki/.../NEOACCT | d4e5f6 | account-opening-flow, account-eligibility |
-| verbal:BA-2026-06-10 | verbal | (attribution) | | account-eligibility |
+
+### GI-52 (jira)
+- **Locator:** https://.../browse/GI-52
+- **Hash:** a1b2c3
+- **Topics:** account-eligibility, campaign-rate
+
+### confluence:NEOACCT (confluence)
+- **Locator:** https://.../wiki/.../NEOACCT
+- **Hash:** d4e5f6
+- **Topics:** account-opening-flow, account-eligibility
+
+### verbal:BA-2026-06-10 (verbal)
+- **Locator:** (attribution)
+- **Topics:** account-eligibility
 ```
 
-`hash` = first hex of SHA-256 of fetched content at ingest (staleness, KB3); blank for verbal / orphan. Topics = the searchable discovery layer; Sources = provenance + staleness state.
+**Hash** = first hex of SHA-256 of fetched content at ingest (staleness, KB3); the bullet is omitted for verbal / orphan. Topics = the searchable discovery layer; Sources = provenance + staleness state.
 
 ## 7. Gates KB1 / KB2 / KB3 (defined here; enforced by `roles/librarian.md`)
 
-- **GATE KB1 — Ingest soundness.** Every digest fact has a **portable source pointer** (§4 precedence; **never** a local path), and the source has an INDEX row. For a **last-resort / non-text** source (image / html) the extraction is **thorough** and **verified once at ingest** against the best-available ground truth: re-fetchable (jira/confluence/url) → against the source via its URL; **verbal / orphan → user-confirmed** (the digest is the durable record). Fail → `BLOCKED`.
-- **GATE KB2 — Manifest integrity.** Every ingested source has exactly one INDEX Sources row (`source-tag → type → locator → hash → topics`) and is named in a `VERSION.md` changelog entry; `VERSION.md` carries a current whole-KB version; every inline `[tag]` resolves to an INDEX row; no orphan tag and no orphan row. Measurable — loop until green.
-- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest, bumps the whole-KB version in `VERSION.md` (+ a changelog row), and reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
+- **GATE KB1 — Ingest soundness.** Every digest fact has a **portable source pointer** (§4 precedence; **never** a local path), and the source has an INDEX Sources entry. For a **last-resort / non-text** source (image / html) the extraction is **thorough** and **verified once at ingest** against the best-available ground truth: re-fetchable (jira/confluence/url) → against the source via its URL; **verbal / orphan → user-confirmed** (the digest is the durable record). Fail → `BLOCKED`.
+- **GATE KB2 — Manifest integrity.** Every ingested source has exactly one INDEX Sources entry (`### <source-tag> (<type>)` + **Locator** / **Hash** / **Topics** bullets) and is named in a `VERSION.md` changelog entry; `VERSION.md` carries a current whole-KB version; every inline `[tag]` resolves to an INDEX Sources entry; no orphan tag and no orphan entry. Measurable — loop until green.
+- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest, bumps the whole-KB version in `VERSION.md` (+ a changelog entry), and reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
 
 ## 8. Conflict ownership — surfaced, never AI-resolved
 
@@ -100,9 +119,9 @@ Two sources can disagree (the card says limit 50k, Confluence says 60k). The KB 
 1. **Detect** — the Librarian (at ingest, best-effort across a topic's sources) or BA (at Spec, when it cannot write a single AC value — its existing Never-Guess) notices the clash.
 2. **Surface** — relay it to the user as an Open Question (transient; not stored as a standing artifact). The AI may **propose** ("GI-52 looks stale → 60k"), never **decide**.
 3. **User decides.**
-4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain) **and logs the resolution as a `VERSION.md` changelog row** (which source won + why); the **BA** applies the corrected value to the AC + re-verifies (AC domain).
+4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain) **and logs the resolution as a `VERSION.md` changelog entry** (which source won + why); the **BA** applies the corrected value to the AC + re-verifies (AC domain).
 
-There is **no `conflicts.md`** and **no inline conflict markers in digests** — a digest holds only the current correct state, and the resolution (which source won + why) is **one `VERSION.md` changelog row**, not a per-digest section. A conflict is often **staleness in disguise** (§9) — ask "genuinely disagree, or is one source stale?" first.
+There is **no `conflicts.md`** and **no inline conflict markers in digests** — a digest holds only the current correct state, and the resolution (which source won + why) is **one `VERSION.md` changelog entry**, not a per-digest section. A conflict is often **staleness in disguise** (§9) — ask "genuinely disagree, or is one source stale?" first.
 
 ## 9. Recursion + staleness
 
@@ -111,4 +130,4 @@ There is **no `conflicts.md`** and **no inline conflict markers in digests** —
 
 ## 10. No catch-all Notes
 
-A KB artifact has **no freeform `## Notes` section**. Every fact gets a purposeful home — a topic line, an inline `[source]` tag, or an INDEX row. If a piece of information has no purposeful home, it is not recorded. (Same discipline as `html-output.md §5.1` callout-routing; a generic Notes bucket invites noise and drift.)
+A KB artifact has **no freeform `## Notes` section**. Every fact gets a purposeful home — a topic line, an inline `[source]` tag, or an INDEX entry. If a piece of information has no purposeful home, it is not recorded. (Same discipline as `html-output.md §5.1` callout-routing; a generic Notes bucket invites noise and drift.)
