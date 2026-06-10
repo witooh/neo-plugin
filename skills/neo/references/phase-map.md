@@ -7,11 +7,12 @@ The orchestrator uses this file to choose which phases the work touches. **Read 
 2. find the matching row → get the **phase subset** (in propagation order)
 3. dispatch in order (checkpoints per SKILL § Flow). No row matches → ask the user (don't invent)
 
-Phases: **Spec**(BA) · **Design**(Architect) · **TestSpec**(QA) · **Build**(Developer) · **Verify**(QA-E2E ∥ Code Reviewer ∥ Security) · **Diagnose**(System Analyzer — bug/incident only).
+Phases: **Ingest**(Librarian — an external source → `docs/knowledge/`, when one must be ingested first) · **Spec**(BA) · **Design**(Architect) · **TestSpec**(QA) · **Build**(Developer) · **Verify**(QA-E2E ∥ Code Reviewer ∥ Security) · **Diagnose**(System Analyzer — bug/incident only).
 
 ## Phase Selection Table
 | Trigger / artifact | Phases (propagation order) | Notes |
 |---|---|---|
+| **source artifact present** (a jira/confluence/image/html/text/verbal source named in the task, not yet in `docs/knowledge/`) | Ingest → (then the task's normal subset) | Librarian ingests it once; the chain then reads `docs/knowledge/` (`shared/knowledge-base.md`). See § Ingest-first guard |
 | create/modify **AC** | Spec → Design → TestSpec | Architect re-validates the design covers the new AC; QA updates test cases |
 | create/modify **System Design** | Design → TestSpec → Build | QA reassesses testability; Developer updates if already started |
 | create/modify **Test Cases** | TestSpec → (BA review AC coverage) | BA reviews that tests cover every AC-ID; don't dispatch Developer unless an AC gap is found |
@@ -27,7 +28,7 @@ Phases: **Spec**(BA) · **Design**(Architect) · **TestSpec**(QA) · **Build**(D
 | **Resume tracked card** | read `docs/tasks/<id>/plan.md` → continue pending work | see § Tracked card-work + Resume |
 
 ## Single-phase shortcuts (dispatch directly, no plan UI)
-"create AC for <usecase>" → Spec · "gen test cases" → TestSpec · "review this diff" → Verify(CR alone) · "diagnose why /x returns 500" → Diagnose · "security audit /auth" → Verify(Security alone) · "create MR" → gitlab. *(checkpoint after the single role finishes: propagate the next phase / review / stop)*
+"create AC for <usecase>" → Spec · "gen test cases" → TestSpec · "review this diff" → Verify(CR alone) · "diagnose why /x returns 500" → Diagnose · "security audit /auth" → Verify(Security alone) · "create MR" → gitlab · "ingest <source>" / "remember <verbal note>" → Ingest (Librarian). *(checkpoint after the single role finishes: propagate the next phase / review / stop)*
 
 ## Behavior-impact Decision (modifying existing code)
 Does the code change touch **observable behavior** (must propagate Spec/Design) or is it internal-only? Reason from input/output/side-effect/error — not from diff size:
@@ -39,7 +40,7 @@ Does the code change touch **observable behavior** (must propagate Spec/Design) 
 Can't decide → ask the user at the checkpoint after Build.
 
 ## Verification model (see SKILL § Verification — summary)
-**Doc adversarial + loop-on-measurable:** Design verifies Spec (AR7), TestSpec verifies Design (Q7) **before** producing work; BA closes the loop on test cases via the "modify Test Cases" row (BA review). **Semantic** defect → 1 round back → escalate; **measurable** defect (count / grep / CS1 stale reference) → **loop until evidence-green, ~3 rounds → escalate**. **Independent fresh-eyes (L2):** an isolated / last-in-chain writer with no downstream looped-verifier in the subset → orchestrator asks at CP-final, then dispatches the natural downstream role in verify-only mode (collision rule: skip iff a downstream looped verifier is already in the subset). **CS1 completeness sweep:** scoped-change tasks (rename / retire / migrate) self-grep for stale references — docs via BA/Architect/QA, code via Developer + CR (looped by the Dev Loop). **Dev Loop:** Build→Verify auto-loops until E2E passes + CR/Security clean + CS1 green, ~3 rounds then escalate. Cut the budget/max-iter ceremony — keep the independent verify.
+**Doc adversarial + loop-on-measurable:** Design verifies Spec (AR7), TestSpec verifies Design (Q7) **before** producing work; BA closes the loop on test cases via the "modify Test Cases" row (BA review). **Semantic** defect → 1 round back → escalate; **measurable** defect (count / grep / CS1 stale reference) → **loop until evidence-green, ~3 rounds → escalate**. **Independent fresh-eyes (L2):** an isolated / last-in-chain writer with no downstream looped-verifier in the subset → orchestrator asks at CP-final, then dispatches the natural downstream role in verify-only mode (collision rule: skip iff a downstream looped verifier is already in the subset). **CS1 completeness sweep:** scoped-change tasks (rename / retire / migrate) self-grep for stale references — docs via BA/Architect/QA, code via Developer + CR (looped by the Dev Loop). **Dev Loop:** Build→Verify auto-loops until E2E passes + CR/Security clean + CS1 green, ~3 rounds then escalate. Cut the budget/max-iter ceremony — keep the independent verify. **KB ingest (Librarian):** gates KB1/KB2/KB3 (`shared/knowledge-base.md` §7) guard portable provenance + manifest integrity + source staleness; the ingest-first guard (§ Ingest-first guard) is an ID-less routing check like the task-file guard. KB3 source-drift is **reported**, never auto re-verified — the user decides any re-spec.
 
 ## MR Workflows
 The single entry point for MR work. **Don't run glab yourself** — call `Skill(gitlab)` for every I/O (fetch / create / update / post comment / CI logs).
@@ -69,6 +70,10 @@ edge: **contract drift** (the contract differs from the original AC body) / **se
 **Card-keyed work** (the request carries a JIRA card id) gets a persistent task-file `docs/tasks/<card-id>/plan.md` that BA owns (`shared/task-tracking.md`; `roles/business-analyst.md` § Card Task-File). The task-file is **mandatory before Build** — the orchestrator's pre-Build guard (an unnamed routing check that mirrors the All-Blocked guard) dispatches BA to create it if it is missing. Ad-hoc / no-card work has no task-file.
 
 **Resume** — a request to continue a card (`/neo continue ABC-123`, or a card id whose `docs/tasks/<card-id>/plan.md` already exists; ambiguous between resume and a fresh op → ask, don't guess): the orchestrator reads `plan.md`, shows the state table at the plan checkpoint, then routes the continuation — a **blocker-resolution** goes through the § Re-entry row above; **unfinished ready work** runs Build scoped to the rows where `Build = pending` and `Readiness = Ready` (the Build Plan's `### Ready to build now` tier surfaces exactly these). No new checkpoint (reuse the plan checkpoint).
+
+## Ingest-first guard
+
+When a task's dispatch carries an external source in `## Source Artifacts` (a jira card, confluence page, image/mockup, html/text file, or **verbal** knowledge stated in the prompt) that is **not yet in `docs/knowledge/`** (or whose source has gone **stale** — `shared/knowledge-base.md` §7 KB3), the orchestrator dispatches the **Librarian (Ingest phase)** to ingest it **before** the phase that needs it. An **unnamed routing check that mirrors the All-Blocked / Task-file guards — not a numbered gate.** Already-ingested + fresh → skip (no re-ingest). **Verbal** knowledge is passed **inline** to the Librarian (the one point-to-read exception — `shared/knowledge-base.md` §3). After ingest, BA reads `docs/knowledge/` (`shared/jira-ref.md` §7) and downstream reads it context-only (`shared/preamble.md` §5).
 
 ## Fallback (no row matches)
 1. `AskUserQuestion` offering 2-3 interpretations

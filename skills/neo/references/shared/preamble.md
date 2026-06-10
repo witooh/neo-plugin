@@ -31,3 +31,6 @@ Close with a single line: **`Status:`** followed by one of
 - **BLOCKED** — cannot proceed (explain why)
 
 Not DONE → always explain the reason afterward.
+
+## 5. Knowledge-base read scope (context-only — Architect / QA / Developer)
+The ingested knowledge base `docs/knowledge/` (`knowledge-base.md`) is **context, not spec**. Downstream roles **MAY read it** to disambiguate a requirement (the original card / diagram / verbal note behind an AC) — but the **acceptance-criteria document stays the binding spec**. If you find behavior in the KB that **no AC covers**, do **not** design or implement it from the KB → surface it and **loop back to BA** to add/confirm the AC first. This keeps AC the single source of truth and preserves BA's intent-confirmation. The KB is written only by the Librarian (`roles/librarian.md`); other roles read it, never write it.

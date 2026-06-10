@@ -12,9 +12,9 @@ Scoped guidance for anyone (human or Claude) **editing files under `skills/neo/`
 
 - **Point-to-read, never paste.** A dispatch sends *paths* (`NEO_DIR` + artifact paths); the specialist reads its own role spec from `references/roles/<role>.md`. The orchestrator must never paste role specs / artifacts / session history into the prompt. If you add a rule a specialist needs, put it in the role file — not in `SKILL.md`'s dispatch prompt.
 - **`NEO_DIR` / `ASSET_DIR` handoff is mandatory on every dispatch.** The specialist is `general-purpose` and does not know the skill's install path. `ASSET_DIR = <NEO_DIR>/assets`. **Missing either = a doc-role cannot build HTML and fails silently.**
-- **Load-bearing gates — 18 IDs / 64 occurrences.** Verify the count is unchanged before/after any edit (see § Verify). Current inventory:
-  `CS1`×23 · `AR7`×8 · `BA5`×8 · `Q7`×6 · `AR4`×4 · `BA1`×2 · `D4`×2 · `CR3` `Q1` `Q3` `Q4` `Q6` `SEC2` `SA1` `SA2` `SA3` `SA4` `SA5` ×1 each.
-  These encode real behavior (CS1 completeness-sweep · BA5 intent confirm + source-artifact coverage · AR7/Q7 doc-adversarial + verify-only mode · AR4 traceability count-match · D4 route-reg · CR3 · SEC2 secrets→Critical · SA1–5 prod-safety). Renaming/removing one silently drops a guard — don't, unless you also remove its enforcement deliberately and update this count. *(Counts move when gates are cited in new prose — re-measure with the § Verify grep and write the observed numbers, never a guess.)* **Two pre-Build guards are intentionally ID-less** — the All-Blocked guard and the card Task-file guard (`shared/task-tracking.md`) are routing checks, not numbered gates; don't give them IDs (that would inflate this count and is unnecessary — the orchestrator enforces them by prose).
+- **Load-bearing gates — 21 IDs / 93 occurrences.** Verify the count is unchanged before/after any edit (see § Verify). Current inventory:
+  `CS1`×23 · `KB1`×12 · `KB3`×10 · `AR7`×8 · `BA5`×8 · `KB2`×7 · `Q7`×6 · `AR4`×4 · `BA1`×2 · `D4`×2 · `CR3` `Q1` `Q3` `Q4` `Q6` `SEC2` `SA1` `SA2` `SA3` `SA4` `SA5` ×1 each.
+  These encode real behavior (CS1 completeness-sweep · BA5 intent confirm + source-artifact coverage · AR7/Q7 doc-adversarial + verify-only mode · AR4 traceability count-match · D4 route-reg · CR3 · SEC2 secrets→Critical · SA1–5 prod-safety · **KB1 portable provenance + verify-once-at-ingest · KB2 INDEX/manifest integrity · KB3 source staleness** — Librarian, `shared/knowledge-base.md` §7). Renaming/removing one silently drops a guard — don't, unless you also remove its enforcement deliberately and update this count. *(Counts move when gates are cited in new prose — re-measure with the § Verify grep and write the observed numbers, never a guess.)* **Three pre-Build guards are intentionally ID-less** — the All-Blocked guard, the card Task-file guard (`shared/task-tracking.md`), and the **Ingest-first guard** (`phase-map.md` § Ingest-first guard) are routing checks, not numbered gates; don't give them IDs (that would inflate this count and is unnecessary — the orchestrator enforces them by prose).
 - **HTML asset coupling** (`references/html-output.md` + `assets/`):
   - `scaffold.sh` is idempotent and **must never overwrite `nav.js`** — a writer that regenerates `nav.js` breaks navigation.
   - `components.js` must load **before** `app.js` (classic script order).
@@ -24,6 +24,7 @@ Scoped guidance for anyone (human or Claude) **editing files under `skills/neo/`
   - Doc-roles must run `lint.py` + `docverify.py` until both report `PASS — 0 error(s)` before returning `DONE`.
 - **Checkpoints at 4 points only:** CP1 plan · CP2 BA5 intent · CP3 before Build / before posting an MR comment · CP-final. Don't reintroduce per-role checkpoints (that was v2.6's slowness). (The L2 fresh-eyes ask is folded into CP-final — not a 5th checkpoint.)
 - **Verification is independent-verify, not ceremony.** Doc-adversarial loops back upstream **1 round on semantic/judgment defects** then escalates; **measurable defects (count/grep/CS1) loop until evidence-green, ~3 rounds no-progress → escalate** (same stall wording as the Dev Loop). L2 fresh-eyes reuses the downstream role in **verify-only mode** when a writer runs isolated (folded into CP-final). **Still no budget/max-iteration prose** — "evidence-green OR ~N rounds" only; never delete the independent verify itself.
+- **Knowledge base** (`shared/knowledge-base.md` + `roles/librarian.md`). `docs/knowledge/` is **markdown** (registered exception — `html-output.md §8`); the Librarian is its **sole writer**; downstream reads it **context-only** (AC stays binding — `preamble.md §5`). Conflicts are **user-decided**, applied in place by the Librarian (KB) + BA (AC) and trailed by git — **no `conflicts.md`**, no inline markers. **No catch-all `## Notes`** in any KB artifact. KB *content* may be non-English (the 0-Thai rule binds skill files only). The Ingest-first guard is ID-less (see the gate bullet).
 
 ## Language-neutral rule
 
@@ -52,7 +53,8 @@ references/
   shared/ac-status.md          Ready/Blocked state machine + Sign-Off math
   shared/jira-ref.md           JIRA Ref capture → inherit-verbatim → sticky
   shared/task-tracking.md      Build progress axis + Build Plan (dev work-breakdown) + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)
-  templates/*.md               per-artifact content specs (read by the role that emits it; incl. task-file-template.md)
+  shared/knowledge-base.md     KB definitions + gates KB1-3 (docs/knowledge/ ingested external knowledge; Librarian-written markdown)
+  templates/*.md               per-artifact content specs (read by the role that emits it; incl. task-file-template.md + knowledge-file-template.md)
 assets/                        scaffold.sh + lint.py + docverify.py + JS/CSS/HTML (English already)
 ```
 
@@ -63,7 +65,7 @@ assets/                        scaffold.sh + lint.py + docverify.py + JS/CSS/HTM
 1. **`references/roles/<role>.md`** — the new capsule (start from `shared/preamble.md` as the header; keep it distilled, gates + domain only).
 2. **`references/phase-map.md`** — add the routing row(s) so the orchestrator can select the new phase; a phase with no phase-map row is unreachable.
 3. **`SKILL.md`** — the Phase Model table + Flow if the dispatch order / checkpoints change; the `description` triggers if the new work is user-invokable.
-4. **`shared/preamble.md` pointer** — every role must read the preamble; doc-roles also read `html-output.md` + `ac-status.md` + `jira-ref.md` + their templates.
+4. **`shared/preamble.md` pointer** — every role must read the preamble; doc-roles also read `html-output.md` + `ac-status.md` + `jira-ref.md` + their templates. A **non-doc-role** (e.g. Librarian) reads its own defs/template (`shared/knowledge-base.md` + `templates/knowledge-file-template.md`) instead — it emits markdown, not HTML; never point it at `html-output.md`.
 5. **Cross-references** — if you rename a section other files cite (e.g. `ac-status.md §4`, `phase-map.md § Re-entry`), grep and fix every citation. Copy-verbatim carries old names — check `.md` *and* asset comments.
 6. **Repo root** — README trigger table + `hooks/session-start` overview block (per root `CLAUDE.md` § Editing skills) if the trigger surface changed.
 
@@ -71,10 +73,10 @@ assets/                        scaffold.sh + lint.py + docverify.py + JS/CSS/HTM
 
 1. **Gate grep before/after** — count must be identical:
    ```
-   grep -rohE '\b(BA|AR|SEC|CR|SA|Q|D|CS)[0-9]+\b' skills/neo/references skills/neo/SKILL.md | sort | uniq -c
+   grep -rohE '\b(BA|AR|SEC|CR|SA|Q|D|CS|KB)[0-9]+\b' skills/neo/references skills/neo/SKILL.md | sort | uniq -c
    ```
 2. **Thai/non-ASCII scan = 0** (snippet above).
-3. **Cross-ref integrity** — every `<file> §<section>` citation still resolves (grep the section headings).
+3. **Cross-ref integrity** — every `<file> §<section>` citation still resolves (grep the section headings); incl. the KB citations (`knowledge-base.md`, `librarian.md`, `preamble.md §5`, `jira-ref.md §7`, `phase-map.md § Ingest-first guard`, `html-output.md §8`).
 4. **Asset gate** (if you touched `assets/` or HTML) — run `lint.py` + `docverify.py` on a sample `docs/design/<usecase>` and confirm `PASS`.
 5. **Runtime proof** (only the user can do this) — reinstall (`/plugin marketplace update neo` → uninstall → install), then `/neo create AC for <usecase>` + an MR-review dry-run; confirm dispatch + lint/docverify PASS + English output.
 6. **Bump `version`** in `.claude-plugin/plugin.json` + `marketplace.json` (root `CLAUDE.md` § Before every commit). Don't reuse the `neo` skill `metadata.version` for that — they're separate.

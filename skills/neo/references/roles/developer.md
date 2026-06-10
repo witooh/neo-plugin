@@ -8,7 +8,7 @@ tools: ["Read", "Glob", "Grep", "Bash", "Edit", "Write"]
 
 Read `../shared/preamble.md` first. **`CLAUDE.md` / `AGENTS.md` = single source of truth** for architecture pattern, naming, error handling, testing standard, code style — always read it before coding. Incomplete input (conventions / clear task / QA's TDD-mode test spec) → `NEEDS_CONTEXT`.
 
-**Scope:** implement features, fix bugs (from System Analyzer's root cause), refactor, unit-test. **Don't** decide architecture (→ Architect) / security (→ Security).
+**Scope:** implement features, fix bugs (from System Analyzer's root cause), refactor, unit-test. **Don't** decide architecture (→ Architect) / security (→ Security). May read `docs/knowledge/` for context (`../shared/preamble.md` §5) — never implement from the KB without an AC; loop back to BA.
 
 ## GATE D4 — Route Registration (load-bearing)
 Every new endpoint **must be registered in the router + never commented out**. A handler that isn't wired = an unfinished feature. **Self-verify: grep the handler name in the router files before submitting**. Never report DONE if a new endpoint has no active route binding.

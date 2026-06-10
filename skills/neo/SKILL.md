@@ -2,7 +2,7 @@
 name: neo
 description: >
   Task-aware orchestrator that routes software-development work to specialist agents
-  (BA, Architect, QA, Developer, Code Reviewer, Security, System Analyzer) by the phases
+  (BA, Architect, QA, Developer, Code Reviewer, Security, System Analyzer, Librarian) by the phases
   the work touches. Takes natural-language requests with no fixed workflow — selects only
   the phases needed. Handles both single-role ("create AC", "gen test cases", "review
   code/PR", "fix bug") and multi-role ("add endpoint", "refactor") work. The single entry
@@ -10,7 +10,7 @@ description: >
   AC/TC compliance; without → code + security + regression), calling the gitlab skill for
   glab I/O. It is an ORCHESTRATOR — delegate all real work through the Agent tool, never
   implement directly. Triggers: /neo, "neo", "create AC", "write system design", "add
-  endpoint", "review code", "review PR", "fix bug", "refactor", "review MR", "create MR", "continue ABC-123" (resume a tracked JIRA-card task),
+  endpoint", "review code", "review PR", "fix bug", "refactor", "review MR", "create MR", "ingest <source> / remember this" (into the knowledge base), "continue ABC-123" (resume a tracked JIRA-card task),
   a GitLab MR URL, or any software-development task that benefits from specialist agents.
 compatibility:
   environment: claude-code
@@ -37,13 +37,14 @@ Before dispatching, read: **`CLAUDE.md`** (or `AGENTS.md`/`CONTRIBUTING.md`) —
 ## Phase Model
 | Phase | What | role | output |
 |---|---|---|---|
+| **Ingest** | external source → curated knowledge (when a source must be ingested first) | Librarian | `docs/knowledge/*.md` + `INDEX.md` |
 | **Spec** | acceptance criteria | BA | `acceptance-criteria.html` |
 | **Design** | API contract + system design (verify AC inline) | Architect | `api-contracts.html`, `system-design/*.html` |
 | **TestSpec** | test cases (verify design inline) | QA | `test-cases.html` |
 | **Build** | implement | Developer | code |
 | **Verify** | E2E ∥ code review ∥ security (parallel) | QA + Code Reviewer + Security | report + findings |
 
-Beyond these 5 phases: **Diagnose**(System Analyzer) — find root cause before Build for a bug fix / incident (read-only). **Route** (select phases) + **Finalize** (checklist + summary) you do yourself. **Select the phase subset per `references/phase-map.md`** (task → phases) — read it before every plan, never guess. If no row matches → ask the user.
+Beyond these core phases: **Diagnose**(System Analyzer) — find root cause before Build for a bug fix / incident (read-only). **Route** (select phases) + **Finalize** (checklist + summary) you do yourself. **Select the phase subset per `references/phase-map.md`** (task → phases) — read it before every plan, never guess. If no row matches → ask the user.
 
 ## Flow
 1. **Route** — parse intent (action + target artifact) → read `references/phase-map.md` → get the phase subset
@@ -62,6 +63,7 @@ Beyond these 5 phases: **Diagnose**(System Analyzer) — find root cause before 
 - **Dev Loop:** Build → Verify(E2E ∥ CR ∥ Security) → if E2E fails or CR/Security has a Blocker/Critical **or a CS1 stale reference** → re-dispatch Developer (paste findings) → re-verify. **Exit when:** E2E passes (Ready ACs) **and** CR + Security have no Blocker/Critical **and CS1 is green**. Looping ~3 rounds with no improvement → escalate (never silently approve, never drop findings). Warning/Info do not block.
 - **All-Blocked guard:** before Build, count Ready ACs from BA — 0 Ready → skip the Dev Loop + escalate to the user (nothing to implement).
 - **Task-file guard (card-keyed):** before Build, the card's `docs/tasks/<card-id>/plan.md` must exist — missing → dispatch BA to create the plan+task first (mandatory before any code). A routing check like the All-Blocked guard, not a numbered gate.
+- **Ingest-first guard:** before a phase that needs an external source, that source (in `## Source Artifacts`) must already be in `docs/knowledge/` and fresh — missing/stale → dispatch the **Librarian (Ingest)** to curate it first (`references/phase-map.md` § Ingest-first guard, `references/shared/knowledge-base.md`). A routing check like the All-Blocked / Task-file guards, not a numbered gate.
 
 ## Delegation (point-to-read)
 Each phase: know the role from `phase-map.md` → compose the prompt → `Agent(subagent_type: "general-purpose")`. Send **paths, not pasted content**:
@@ -70,6 +72,7 @@ Agent(subagent_type: "general-purpose", description: "<3-5 words>", prompt: """
 # Role: <Name>  (role-id: <id>)
 Read first: <NEO_DIR>/references/shared/preamble.md + <NEO_DIR>/references/roles/<role>.md
 (doc-roles BA/Architect/QA also: <NEO_DIR>/references/html-output.md + the templates the role file points to + shared/{ac-status,jira-ref}.md)
+(Librarian also: <NEO_DIR>/references/shared/knowledge-base.md + <NEO_DIR>/references/templates/knowledge-file-template.md — NOT html-output; it is not a doc-role)
 ASSET_DIR = <NEO_DIR>/assets
 
 ## Task
@@ -79,9 +82,10 @@ ASSET_DIR = <NEO_DIR>/assets
 - prior artifact: docs/design/<usecase>/<file>.html
 - project conventions: CLAUDE.md (only the relevant section)
 
-## Source Artifacts (Spec/BA verification — pass when present; orchestrator must not paste content)
-- mockup/image: <local path>            # BA reads via the Read tool
-- JIRA card (source, for AC verify): <ABC-123>   # BA fetches content via acli (jira-ref §7), graceful fallback
+## Source Artifacts (external sources — the ingest-first guard sends these to the Librarian first; orchestrator must not paste content except inline verbal)
+- mockup/image: <local path>            # Librarian ingests → docs/knowledge/ (KB1); BA reads the digest
+- JIRA card (source, for AC verify): <ABC-123>   # Librarian ingests via acli → docs/knowledge/; BA reads the digest (jira-ref §7)
+- verbal knowledge (inline — the one point-to-read exception): <note from the user, e.g. "BA says limit 50k/txn">
 - added requirements (mid-task): <inline note or path>
 
 End with Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED

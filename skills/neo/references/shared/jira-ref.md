@@ -44,11 +44,11 @@ Each `it()` block is prefixed `[<TC-ID> - <JIRA-IDs> - <AC-IDs>]: <description>`
 - `JIRA Ref` is **not** a Blocker substitute — Blocker = upstream dependency that prevents implementation; JIRA Ref = the ticket this artifact was authored against. Both may coexist on one AC.
 - Do NOT auto-fill from git branch names, commit messages, or any source the user did not call out as the JIRA reference.
 
-## 7. Content fetch for source-verification (Business Analyst, Spec phase only)
+## 7. Content for source-verification — read the Knowledge Base first (Business Analyst, Spec phase only)
 
-§1-6 govern the JIRA **ID** as a bookkeeping field — the ID is captured and inherited, **never the card's content**. This section is the single exception: when the user points BA at a JIRA card as a **source artifact to verify the AC against** (the orchestrator passes it under `## Source Artifacts` in the dispatch — distinct from JIRA-Ref bookkeeping), BA may **fetch the card's content** to run the BA5 coverage check (each acceptance bullet / description rule in the card → an AC).
+§1-6 govern the JIRA **ID** as a bookkeeping field — the ID is captured and inherited, **never the card's content**. This section is the single exception: when the user points BA at a JIRA card as a **source artifact to verify the AC against** (the orchestrator passes it under `## Source Artifacts` — distinct from JIRA-Ref bookkeeping), BA needs the card's **content** to run the BA5 coverage check (each acceptance bullet / description rule → an AC).
 
-- **Fetch** with a read-only `acli` view command through **Bash** (the `atlassian` skill is the acli reference; a general-purpose specialist runs `acli` directly — it does **not** call a Skill). Read the card body only — never transition, comment, or edit the card.
-- **Graceful fallback (mandatory).** If `acli` is absent, unauthenticated, or the card is unreadable → **note it in the output and fall back to JIRA-ID-only** (§1). Do NOT hard-fail, do NOT block the AC.
-- **Scope: Spec/BA phase only.** MR-review stays local (`phase-map.md` § MR) — never fetch a live card there.
-- **Capture rules unchanged.** Fetched content informs the coverage check only; the `JIRA Ref` field still follows §1 (IDs only, never invent, downstream inherits verbatim). **Never** write fetched prose into the `JIRA Ref` field.
+- **Read the Knowledge Base first.** The ingest-first guard normally ensures the source is already ingested → read its digest in `docs/knowledge/` (curated, portable, the content the whole team shares — `knowledge-base.md`). This is the preferred source; do not re-fetch what is already ingested.
+- **Graceful fallback (mandatory).** If the source is **not** in the KB yet (ad-hoc run / the guard did not fire) or the digest is unreadable → fall back to a **read-only `acli` view** via **Bash** (the `atlassian` skill is the acli reference; a general-purpose specialist runs `acli` directly — not a Skill; read the card body only, never transition / comment / edit). If `acli` is absent / unauthenticated / the card is unreadable → **note it + fall back to JIRA-ID-only** (§1). Never hard-fail, never block the AC.
+- **Scope: Spec/BA phase only.** MR-review stays local (`phase-map.md` § MR) — never fetch a live card (or ingest) there.
+- **Capture rules unchanged.** KB / fetched content informs the coverage check only; the `JIRA Ref` field still follows §1 (IDs only, never invent, downstream inherits verbatim). **Never** write digest / fetched prose into the `JIRA Ref` field.
