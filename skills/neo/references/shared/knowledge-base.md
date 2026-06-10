@@ -22,7 +22,7 @@ docs/knowledge/
 
 ## 3. Source types + provenance
 
-| `source_type` | Fetch | Re-fetchable? | Ground truth for KB1 verify |
+| `source_type` | Fetch | Re-fetchable? | Ground truth for KB1/KB5 verify |
 |---|---|---|---|
 | `jira` | `acli jira workitem view <KEY> --json --fields *all` | yes (URL) | the live card |
 | `confluence` | `acli confluence page view --id <ID> --body-format storage --json` | yes (URL) | the live page |
@@ -47,7 +47,8 @@ The KB is committed and read by the whole team, so a pointer must resolve for **
 - **Topic-named files, not source-mirrors.** A digest is named for its **topic** (`account-eligibility.md`, `account-opening-flow.md`) and may aggregate facts from several sources. The Librarian **composes/curates** the KB by topic — it does **not** mirror each source 1:1.
 - **Current correct state only.** A digest states what is true *now* — the same philosophy as a design doc (`html-output.md §5.1`). It is not a changelog and not a conflict log; the change trail is **`VERSION.md`** (§6).
 - **Every fact carries an inline source tag**, so provenance survives without 1:1 files: `txn limit/txn: 60,000 [confluence:NEOACCT]`, `KYC re-run at open [GI-52]`, `multi-currency required [verbal:BA 2026-06-10]`. The tag resolves to an INDEX Sources entry (§6).
-- **KB content mirrors the source's language** — it may be non-English. The language-neutral rule binds **skill files** (`skills/neo/**`), not runtime `docs/knowledge/` digests.
+- **Contract clauses are quoted verbatim — never paraphrased, never translated.** Curation stays free to compose and group, but **any clause that constrains observable behavior** — input / output / error / state / condition / default / unit / ordering / cardinality / side-effect (e.g. a return list, a field list, an error list, an enum, a status transition) — is copied into the digest as the source's **original, unaltered wording**. Paraphrase silently drops a conjunct (`returns A **and** B` → `returns A`); translation is a second lossy transform on top. This is the rule **KB4** verifies (§7). Curation freedom remains for **non-contract context** (background, rationale, grouping).
+- **KB content mirrors the source's language** — a digest may be non-English; the language-neutral rule binds **skill files** (`skills/neo/**`), not runtime `docs/knowledge/` digests. A quoted contract clause keeps the **source's original language** even when the surrounding digest prose differs — never translate a contract clause to match the digest's language.
 
 ## 6. VERSION.md (whole-KB version + changelog) + INDEX.md (discovery)
 
@@ -106,11 +107,15 @@ Current: v1.2
 
 **Hash** = first hex of SHA-256 of fetched content at ingest (staleness, KB3); the bullet is omitted for verbal / orphan. Topics = the searchable discovery layer; Sources = provenance + staleness state.
 
-## 7. Gates KB1 / KB2 / KB3 (defined here; enforced by `roles/librarian.md`)
+## 7. Gates KB1 / KB2 / KB3 / KB4 / KB5 (defined here; enforced by `roles/librarian.md`)
 
 - **GATE KB1 — Ingest soundness.** Every digest fact has a **portable source pointer** (§4 precedence; **never** a local path), and the source has an INDEX Sources entry. For a **last-resort / non-text** source (image / html) the extraction is **thorough** and **verified once at ingest** against the best-available ground truth: re-fetchable (jira/confluence/url) → against the source via its URL; **verbal / orphan → user-confirmed** (the digest is the durable record). Fail → `BLOCKED`.
 - **GATE KB2 — Manifest integrity.** Every ingested source has exactly one INDEX Sources entry (`### <source-tag> (<type>)` + **Locator** / **Hash** / **Topics** bullets) and is named in a `VERSION.md` changelog entry; `VERSION.md` carries a current whole-KB version; every inline `[tag]` resolves to an INDEX Sources entry; no orphan tag and no orphan entry. Measurable — loop until green.
-- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest, bumps the whole-KB version in `VERSION.md` (+ a changelog entry), and reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
+- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest** — and because a refresh re-runs the same paraphrase/translate transform, it **re-runs KB4 (and KB5 for an in-scope type) on the refreshed facts** before it **bumps the whole-KB version in `VERSION.md` (+ a changelog entry), and reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
+- **GATE KB4 — Digest fidelity (L1, self-check).** The Librarian decomposes the source into **atomic clauses** (every acceptance bullet, every rule in the description, every item of a return / field / error / enum list). Each clause must **either** map to a digest fact **or** be logged as *belonging to another named topic* — name the owning topic; a bare "off-topic" is **not** allowed (it is the escape hatch that drops a clause). Every **contract clause** (§5) appears **verbatim in the source's original wording**. Applies to **all** source types **including verbal**. The coverage log is **transient** — surfaced in the Librarian's `Fidelity:` output line, **never persisted** in a digest (§10). Measurable → loop until every clause is accounted for. A dropped behavior-constraining clause → **`BLOCKED`** (never `DONE_WITH_CONCERNS`).
+- **GATE KB5 — Digest fidelity (L2, independent fresh-eyes, verify-at-ingest).** A **second Librarian in verify-only mode** — a separate dispatch with fresh context, **not** the ingesting agent re-reading its own work (that is only KB4) — **re-fetches the raw source**, reads the digest, reconstructs the source's **atomic-clause set from the digest alone**, and **diffs it clause-by-clause** against the raw source, flagging **omission** (in the source, missing from the digest) and **invention** (in the digest, absent from the source). Clause-level granularity is mandatory: a gist-level diff lets a *narrowed* clause (`returns A and B` → `returns A`) pass. Scope: **re-fetchable text** (jira / confluence / html / text) **+ image** (re-read); **verbal / orphan = N/A** (KB1 user-confirm is their net — nothing independent to re-fetch). **Mandatory at ingest** for an in-scope source. Any gap → loop back to the ingest Librarian → re-verify; **loop until the diff is clean OR ~3 rounds no-progress → escalate** (never silent, never fake-green).
+
+**The Ingest Loop (mirrors the Dev Loop).** `Ingest (Librarian — KB1/KB2/KB4) → Verify (second Librarian — KB5, in-scope sources) → gap → re-ingest → re-verify → exit when fidelity-green`. It **auto-loops** inside the Ingest phase: like `Build → Verify` it adds **no user checkpoint** — the orchestrator dispatches the verify pass automatically (`phase-map.md` § Ingest-first guard). ~3 rounds no-progress → escalate.
 
 ## 8. Conflict ownership — surfaced, never AI-resolved
 
@@ -119,15 +124,15 @@ Two sources can disagree (the card says limit 50k, Confluence says 60k). The KB 
 1. **Detect** — the Librarian (at ingest, best-effort across a topic's sources) or BA (at Spec, when it cannot write a single AC value — its existing Never-Guess) notices the clash.
 2. **Surface** — relay it to the user as an Open Question (transient; not stored as a standing artifact). The AI may **propose** ("GI-52 looks stale → 60k"), never **decide**.
 3. **User decides.**
-4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain) **and logs the resolution as a `VERSION.md` changelog entry** (which source won + why); the **BA** applies the corrected value to the AC + re-verifies (AC domain).
+4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain) — the corrected value must **satisfy KB4** (quoted verbatim from the now-authoritative source; a re-fetchable winner is a KB5 candidate) — **and logs the resolution as a `VERSION.md` changelog entry** (which source won + why); the **BA** applies the corrected value to the AC + re-verifies (AC domain).
 
 There is **no `conflicts.md`** and **no inline conflict markers in digests** — a digest holds only the current correct state, and the resolution (which source won + why) is **one `VERSION.md` changelog entry**, not a per-digest section. A conflict is often **staleness in disguise** (§9) — ask "genuinely disagree, or is one source stale?" first.
 
 ## 9. Recursion + staleness
 
 - **References — record all, ingest on-need (depth-1).** A source often cites others (GI-52's rule says "same criteria as GI-74"; a diagram cites a dozen cards). Record **all** transitive references in the digest / INDEX (free), but **ingest** a referenced source only **when a phase needs it** (demand-driven), and do **not** auto-recurse past it. A dependency cluster deeper than ~3 hops in one task → **escalate to the user** ("ingest the whole cluster, or scope it?"). **Attachments are a kind of reference** — listed at ingest (`acli jira workitem attachment`), ingested on-need, referenced to their parent (§4).
-- **Staleness — KB3.** See §7: re-hash on re-encounter → auto-refresh + bump the `VERSION.md` version + report; user decides re-spec.
+- **Staleness — KB3.** See §7: re-hash on re-encounter → auto-refresh (re-runs KB4/KB5 per §7) + bump the `VERSION.md` version + report; user decides re-spec.
 
 ## 10. No catch-all Notes
 
-A KB artifact has **no freeform `## Notes` section**. Every fact gets a purposeful home — a topic line, an inline `[source]` tag, or an INDEX entry. If a piece of information has no purposeful home, it is not recorded. (Same discipline as `html-output.md §5.1` callout-routing; a generic Notes bucket invites noise and drift.)
+A KB artifact has **no freeform `## Notes` section**. Every fact gets a purposeful home — a topic line, an inline `[source]` tag, or an INDEX entry. If a piece of information has no purposeful home, it is not recorded. (Same discipline as `html-output.md §5.1` callout-routing; a generic Notes bucket invites noise and drift.) The **KB4 coverage log** (which source clauses mapped, which belong to another topic) is **not** an exception — it is transient verification state surfaced in the Librarian's `Fidelity:` output, never written into a digest or a sibling file.

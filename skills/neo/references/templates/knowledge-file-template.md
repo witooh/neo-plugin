@@ -93,5 +93,5 @@ Current: v1.2
 ## Field rules
 
 - **Source tag format:** `[<KEY>]` for jira (`[GI-52]`), `[confluence:<short-name>]`, `[image:<filename>]`, `[verbal:<who>-<date>]`, `[url:<short-name>]`. A digest tag must match its INDEX `source-tag`.
-- **Language:** a digest mirrors its source's language and **may be non-English**; the language-neutral rule binds skill files only (`../shared/knowledge-base.md §5`). *(Placeholders above are English because this template is a skill file.)*
-- **Gates:** the Librarian runs KB1 (portable pointer + verify-once), KB2 (INDEX + VERSION integrity), KB3 (staleness → bump VERSION) before returning `DONE` (`../shared/knowledge-base.md §7`, `../roles/librarian.md`).
+- **Language:** a digest mirrors its source's language and **may be non-English**; the language-neutral rule binds skill files only (`../shared/knowledge-base.md §5`). A **contract clause** (any clause constraining observable behavior) is quoted **verbatim in the source's original wording** — never paraphrased, never translated, even when the surrounding digest prose is in another language (KB4). *(Placeholders above are English because this template is a skill file.)*
+- **Gates:** the Librarian runs KB1 (portable pointer + verify-once), KB2 (INDEX + VERSION integrity), KB3 (staleness → bump VERSION), **KB4** (atomic-clause fidelity self-check; contract clauses verbatim) and **KB5** (a second Librarian's fresh-eyes clause-level diff, in-scope sources) before returning `DONE` (`../shared/knowledge-base.md §7`, `../roles/librarian.md`).
