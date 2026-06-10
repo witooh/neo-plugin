@@ -37,7 +37,7 @@ Before dispatching, read: **`CLAUDE.md`** (or `AGENTS.md`/`CONTRIBUTING.md`) —
 ## Phase Model
 | Phase | What | role | output |
 |---|---|---|---|
-| **Ingest** | external source → curated knowledge (when a source must be ingested first) | Librarian | `docs/knowledge/*.md` + `INDEX.md` |
+| **Ingest** | external source → curated knowledge (when a source must be ingested first) | Librarian | `docs/knowledge/*.md` + `INDEX.md` + `VERSION.md` |
 | **Spec** | acceptance criteria | BA | `acceptance-criteria.html` |
 | **Design** | API contract + system design (verify AC inline) | Architect | `api-contracts.html`, `system-design/*.html` |
 | **TestSpec** | test cases (verify design inline) | QA | `test-cases.html` |

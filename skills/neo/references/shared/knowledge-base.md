@@ -12,7 +12,8 @@
 
 ```
 docs/knowledge/
-  INDEX.md              # the source manifest (§6) — one row per ingested source
+  VERSION.md            # whole-KB version + changelog (§6) — what changed, when
+  INDEX.md              # discovery index (§6) — find a topic; resolve a [tag] to its source
   <topic>.md            # a curated, topic-named digest (§5)
 ```
 
@@ -44,29 +45,53 @@ The KB is committed and read by the whole team, so a pointer must resolve for **
 ## 5. Curate by topic + inline source tags
 
 - **Topic-named files, not source-mirrors.** A digest is named for its **topic** (`account-eligibility.md`, `account-opening-flow.md`) and may aggregate facts from several sources. The Librarian **composes/curates** the KB by topic — it does **not** mirror each source 1:1.
-- **Current correct state only.** A digest states what is true *now* — the same philosophy as a design doc (`html-output.md §5.1`). It is not a changelog and not a conflict log; the change trail is **git history** of the file.
+- **Current correct state only.** A digest states what is true *now* — the same philosophy as a design doc (`html-output.md §5.1`). It is not a changelog and not a conflict log; the change trail is **`VERSION.md`** (§6).
 - **Every fact carries an inline source tag**, so provenance survives without 1:1 files: `txn limit/txn: 60,000 [confluence:NEOACCT]`, `KYC re-run at open [GI-52]`, `multi-currency required [verbal:BA 2026-06-10]`. The tag resolves to an INDEX row (§6).
 - **KB content mirrors the source's language** — it may be non-English. The language-neutral rule binds **skill files** (`skills/neo/**`), not runtime `docs/knowledge/` digests.
 
-## 6. INDEX.md — the source manifest (a table, no prose)
+## 6. VERSION.md (whole-KB version + changelog) + INDEX.md (discovery)
 
-`docs/knowledge/INDEX.md` is one **table**, one row per ingested **source** (not per topic file). It lets a reader resolve an inline `[tag]`, see which topics a source feeds, and check staleness:
+The KB mirrors the `docs/design/` split — a **`VERSION.md`** changelog + an **`INDEX.md`** discovery index, both plain tables the Orchestrator reads (no prose, no Notes).
+
+**`docs/knowledge/VERSION.md`** — one **whole-KB version** (not per source) + a changelog, newest first. It bumps on every ingest / re-ingest / conflict resolution; this is the human-readable "what changed".
 
 ```
-| source-tag | type | portable locator | hash | version | topics |
-|---|---|---|---|---|---|
-| GI-52 | jira | https://.../browse/GI-52 | a1b2c3 | 1 | account-eligibility, account-opening-flow |
-| NEOACCT | confluence | https://.../wiki/.../NEOACCT+-+Account+Service | d4e5f6 | 1 | account-opening-flow |
-| verbal:BA-2026-06-10 | verbal | (attribution) | | 1 | account-eligibility |
+# Knowledge Base — version history
+Current: v1.2
+
+| Version | Date | Change | Sources |
+|---|---|---|---|
+| 1.2 | 2026-06-10 | OQ-1 resolved: GI-52 authoritative on campaign rate (Confluence BFID-0001-A + NEOX-1427/1398 stale) | GI-52, confluence:NEOACCT |
+| 1.1 | 2026-06-10 | re-ingest GI-52 (txn limit 50k → 60k) | GI-52 |
+| 1.0 | 2026-06-10 | initial ingest | GI-52, confluence:NEOACCT, image:neobank-flow |
 ```
 
-No prose, no Notes — a manifest only. `hash` is computed at ingest from the fetched content (used for staleness, §9); for `verbal` / orphan sources it is left blank.
+**`docs/knowledge/INDEX.md`** — a discovery index: a **Topics** table (find the knowledge) + a **Sources** table (resolve an inline `[tag]` to its origin + carry each source's `hash` for staleness). **No `version` column** — version is whole-KB in `VERSION.md`.
+
+```
+# Knowledge Base — index
+
+## Topics
+| Topic | File | Covers | Keywords |
+|---|---|---|---|
+| Account eligibility | account-eligibility.md | re-validate at open: Customer Group / Age / Account Limit | eligibility, KYC, account limit |
+| Campaign & rate | campaign-rate.md | campaign validation + final rate | campaign, G5_NOV_26, bonus |
+
+## Sources
+| source-tag | type | portable locator | hash | topics |
+|---|---|---|---|---|
+| GI-52 | jira | https://.../browse/GI-52 | a1b2c3 | account-eligibility, campaign-rate |
+| confluence:NEOACCT | confluence | https://.../wiki/.../NEOACCT | d4e5f6 | account-opening-flow, account-eligibility |
+| verbal:BA-2026-06-10 | verbal | (attribution) | | account-eligibility |
+```
+
+`hash` = first hex of SHA-256 of fetched content at ingest (staleness, KB3); blank for verbal / orphan. Topics = the searchable discovery layer; Sources = provenance + staleness state.
 
 ## 7. Gates KB1 / KB2 / KB3 (defined here; enforced by `roles/librarian.md`)
 
 - **GATE KB1 — Ingest soundness.** Every digest fact has a **portable source pointer** (§4 precedence; **never** a local path), and the source has an INDEX row. For a **last-resort / non-text** source (image / html) the extraction is **thorough** and **verified once at ingest** against the best-available ground truth: re-fetchable (jira/confluence/url) → against the source via its URL; **verbal / orphan → user-confirmed** (the digest is the durable record). Fail → `BLOCKED`.
-- **GATE KB2 — Manifest integrity.** Every ingested source has exactly one INDEX row (`source-tag → type → locator → hash → version → topics`); every inline `[tag]` resolves to an INDEX row; no orphan tag and no orphan row. Measurable — loop until green.
-- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest + reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
+- **GATE KB2 — Manifest integrity.** Every ingested source has exactly one INDEX Sources row (`source-tag → type → locator → hash → topics`) and is named in a `VERSION.md` changelog entry; `VERSION.md` carries a current whole-KB version; every inline `[tag]` resolves to an INDEX row; no orphan tag and no orphan row. Measurable — loop until green.
+- **GATE KB3 — Staleness.** A **re-fetchable** source is re-hashed when encountered again; on hash drift the Librarian **auto-refreshes the digest, bumps the whole-KB version in `VERSION.md` (+ a changelog row), and reports** the drift (it does **not** auto re-verify downstream — the user decides whether to re-spec). One-shot binary / verbal = N/A (changes only when the user re-provides → manual re-ingest + version bump).
 
 ## 8. Conflict ownership — surfaced, never AI-resolved
 
@@ -75,14 +100,14 @@ Two sources can disagree (the card says limit 50k, Confluence says 60k). The KB 
 1. **Detect** — the Librarian (at ingest, best-effort across a topic's sources) or BA (at Spec, when it cannot write a single AC value — its existing Never-Guess) notices the clash.
 2. **Surface** — relay it to the user as an Open Question (transient; not stored as a standing artifact). The AI may **propose** ("GI-52 looks stale → 60k"), never **decide**.
 3. **User decides.**
-4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain); the **BA** applies the corrected value to the AC + re-verifies (AC domain). **git history is the change trail.**
+4. **Apply** — split by sole-writer domain: the **Librarian** edits the topic digest **in place** to the correct value (KB domain) **and logs the resolution as a `VERSION.md` changelog row** (which source won + why); the **BA** applies the corrected value to the AC + re-verifies (AC domain).
 
-There is **no `conflicts.md`**, **no inline conflict markers**, and **no OPEN→RESOLVED lifecycle** — the digest holds only the current correct state; `git diff` shows what changed. A conflict is often **staleness in disguise** (§9) — ask "genuinely disagree, or is one source stale?" first.
+There is **no `conflicts.md`** and **no inline conflict markers in digests** — a digest holds only the current correct state, and the resolution (which source won + why) is **one `VERSION.md` changelog row**, not a per-digest section. A conflict is often **staleness in disguise** (§9) — ask "genuinely disagree, or is one source stale?" first.
 
 ## 9. Recursion + staleness
 
 - **References — record all, ingest on-need (depth-1).** A source often cites others (GI-52's rule says "same criteria as GI-74"; a diagram cites a dozen cards). Record **all** transitive references in the digest / INDEX (free), but **ingest** a referenced source only **when a phase needs it** (demand-driven), and do **not** auto-recurse past it. A dependency cluster deeper than ~3 hops in one task → **escalate to the user** ("ingest the whole cluster, or scope it?"). **Attachments are a kind of reference** — listed at ingest (`acli jira workitem attachment`), ingested on-need, referenced to their parent (§4).
-- **Staleness — KB3.** See §7: re-hash on re-encounter → auto-refresh + report; user decides re-spec.
+- **Staleness — KB3.** See §7: re-hash on re-encounter → auto-refresh + bump the `VERSION.md` version + report; user decides re-spec.
 
 ## 10. No catch-all Notes
 
