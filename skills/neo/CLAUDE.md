@@ -51,7 +51,7 @@ references/
   shared/preamble.md           universal agent header (read first on every dispatch)
   shared/ac-status.md          Ready/Blocked state machine + Sign-Off math
   shared/jira-ref.md           JIRA Ref capture → inherit-verbatim → sticky
-  shared/task-tracking.md      Build progress axis + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)
+  shared/task-tracking.md      Build progress axis + Build Plan (dev work-breakdown) + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)
   templates/*.md               per-artifact content specs (read by the role that emits it; incl. task-file-template.md)
 assets/                        scaffold.sh + lint.py + docverify.py + JS/CSS/HTML (English already)
 ```

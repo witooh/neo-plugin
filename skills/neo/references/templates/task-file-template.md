@@ -18,11 +18,18 @@ Source AC: ../../design/<usecase>/acceptance-criteria.html
 Readiness: <R>/<N> Ready   |   Build: <done> done, <wip> in-progress, <rest> pending
 Updated: <session marker or YYYY-MM-DD>
 
-## Shared prerequisites
+## Build Plan
 
-| Prereq                       | Build       | Unblocks               |
-|------------------------------|-------------|------------------------|
-| <prereq name>                | pending     | AC-NNN, AC-MMM         |
+### Ready to build now
+- [ ] <work item> — <layer · file/method> · serves AC-NNN
+- [x] <built item>  — <layer · file/method> · serves AC-MMM
+(empty → `none — all unblocked work done; see Blocked on upstream`)
+
+### Blocked on upstream
+
+| Work item                    | Unblocks AC     | Waits for                  |
+|------------------------------|-----------------|----------------------------|
+| <shared work item>           | AC-NNN/MMM      | <pending upstream field>   |
 
 ## Tasks
 
@@ -33,16 +40,6 @@ Updated: <session marker or YYYY-MM-DD>
 | AC-014 | Ready     | → AC-007    | AC-007     |
 | AC-016 | Ready     | in-progress | -          |
 | AC-019 | Blocked   | pending     | -          |
-
-### AC-016 — sub-tasks
-- [x] layer 1
-- [x] layer 2
-- [ ] layer 3
-
-### AC-019 — sub-tasks
-- [ ] step a
-- [ ] step b
-- [ ] step c
 
 ## Notes
 
@@ -56,17 +53,16 @@ Updated: <session marker or YYYY-MM-DD>
 - **Header line** — `<CARD-ID>` plus a short title; keep the `[resume index ...]` tag so a reader knows it is machine-read and markdown-by-design.
 - **`Source AC`** — relative path to the usecase `acceptance-criteria.html` this card maps to (the AC document is the source of `Readiness`).
 - **Roll-up line** — counts are over **this card's tracked rows** (a subset of the AC document when the doc is shared by several cards), **excluding pointer rows** (`Build = → AC-NNN`): `Readiness` = Ready / total-tracked, `Build` = done / in-progress / pending. For a single-card usecase this equals the AC document's `(Ready: R / Blocked: B)` tail. Both must match the rows below (no stale roll-up).
-- **`Shared prerequisites` section** — work that unblocks **two or more** ACs (`task-tracking.md` §6), derived from the Architect `traceability.html` design-element mapping + shared `Depends-on`. **Omit the whole section** when there are none (e.g. a Spec-only skeleton before Design). `Unblocks` lists the AC ids it gates.
+- **`## Build Plan` section (above the `Tasks` table)** — the developer work-breakdown (`task-tracking.md` §5–§6), derived from the Architect `traceability.html` (`#ac-design` File/Method + `#pending` Surface area). Two tiers: **`### Ready to build now`** = a vertical GFM checklist (`- [ ]` / `- [x]`), one line per buildable unit whose serving AC(s) are all `Ready` and unbuilt, each naming `layer · file/method · serves AC-IDs`, list order = build order, with **no "big-AC only" gate** (small ACs get a one-line item too); empty → write `none — all unblocked work done; see Blocked on upstream`. **`### Blocked on upstream`** = a table `Work item | Unblocks AC | Waits for` for work gated by a pending upstream field / contract (not elaborated to file level). **Pointer ACs** contribute no item; **done** items read `- [x]` and are not re-stated elsewhere. Before Design exists, emit only a seeded `Blocked on upstream` tier (from shared `Blocker:` refs) + the note `Build Plan pending Design` under `## Notes`.
 - **`Tasks` table — one row per tracked AC:**
   - `AC-ID` — every AC id **whose `JIRA Ref` includes this card**, in document order (one AC document shared by N cards → each card lists only the ACs it tracks; `../shared/task-tracking.md` §1). A **pointer / cross-ref AC** (its work is another AC, e.g. `AC-014` → `AC-007`) still gets a row — see `Build`.
   - `Readiness` — `Ready` or `Blocked`, **mirrored verbatim** from the AC `Status` (never re-derived). This column is **not** the AC `Status` field; it is a copy. Never write a progress value here.
   - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`. A **pointer AC** carries the reference `→ AC-NNN` instead of a progress value and is **excluded from the roll-up counts** (`../shared/task-tracking.md` §1).
   - `Depends-on` — the AC id(s) this AC must follow (from its `Blocker:` dependency id or obvious build order); `-` when none.
-- **`### <AC-ID> — sub-tasks` sections (below the `Tasks` table)** — a **big AC** (`task-tracking.md` §5) gets one: a vertical GFM checklist (`- [ ]` / `- [x]`), one section per big AC in document order, placed after the table and before `## Notes`. Most ACs are not big and get **no** section. **Never** put checkboxes in a table cell. Before Design exists, emit no sub-task sections and add the one-line note `sub-task checklists pending Design` under `## Notes`.
-- **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). **Do NOT** add a `Blockers` section copying the AC document's blocker text — blocker detail lives in the AC document; the task-file carries it only as the `Depends-on` column + the `Shared prerequisites` lane.
+- **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). **Do NOT** add a `Blockers` section copying the AC document's blocker text — blocker detail lives in the AC document; the task-file carries it only as the `Depends-on` column + the Build Plan's `### Blocked on upstream` tier.
 
 ### Authoring notes
 
 - **No `Status` column.** `Status` is reserved by `ac-status.md` §1 (readiness, `Ready`/`Blocked`); reusing the name here would collide. Use `Readiness` + `Build`.
 - **Language-neutral.** Fill content in the consuming project's working language; this template ships no hardcoded language.
-- **Preserve on refresh.** When refreshing (post-Design, tracker-sync, re-entry), keep prior `Build` values and ticked sub-task checkboxes (in their sections); only update what changed.
+- **Preserve on refresh.** When refreshing (post-Design, tracker-sync, re-entry), keep prior `Build` values and ticked Build Plan checkboxes; only update what changed.

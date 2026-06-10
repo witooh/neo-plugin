@@ -68,7 +68,7 @@ edge: **contract drift** (the contract differs from the original AC body) / **se
 
 **Card-keyed work** (the request carries a JIRA card id) gets a persistent task-file `docs/tasks/<card-id>/plan.md` that BA owns (`shared/task-tracking.md`; `roles/business-analyst.md` § Card Task-File). The task-file is **mandatory before Build** — the orchestrator's pre-Build guard (an unnamed routing check that mirrors the All-Blocked guard) dispatches BA to create it if it is missing. Ad-hoc / no-card work has no task-file.
 
-**Resume** — a request to continue a card (`/neo continue ABC-123`, or a card id whose `docs/tasks/<card-id>/plan.md` already exists; ambiguous between resume and a fresh op → ask, don't guess): the orchestrator reads `plan.md`, shows the state table at the plan checkpoint, then routes the continuation — a **blocker-resolution** goes through the § Re-entry row above; **unfinished ready work** runs Build scoped to the rows where `Build = pending` and `Readiness = Ready`. No new checkpoint (reuse the plan checkpoint).
+**Resume** — a request to continue a card (`/neo continue ABC-123`, or a card id whose `docs/tasks/<card-id>/plan.md` already exists; ambiguous between resume and a fresh op → ask, don't guess): the orchestrator reads `plan.md`, shows the state table at the plan checkpoint, then routes the continuation — a **blocker-resolution** goes through the § Re-entry row above; **unfinished ready work** runs Build scoped to the rows where `Build = pending` and `Readiness = Ready` (the Build Plan's `### Ready to build now` tier surfaces exactly these). No new checkpoint (reuse the plan checkpoint).
 
 ## Fallback (no row matches)
 1. `AskUserQuestion` offering 2-3 interpretations
