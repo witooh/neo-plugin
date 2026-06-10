@@ -107,6 +107,29 @@ If `acli` is missing entirely: `brew install atlassian/tap/acli`.
 - Use `--yes` only *after* the user has confirmed; add `--ignore-errors` on bulk ops so a
   single failure doesn't halt the rest.
 
+## Reading scope — never expand `tested by` links
+
+When viewing or summarizing a Jira work item, its **`tested by`** links are **off-limits**.
+Do not follow them, do not fetch the linked test item, and do not list or even mention
+them — treat a `tested by` link as if it were not on the card. The user does not permit
+reading test artifacts reached through a `tested by` link.
+
+- **Identify it by link *type*, not by the target.** In `issuelinks` the restricted link
+  is the one whose `type.name` is **`Tests`** — it renders as **`tested by`** on the card
+  (the linked item is the Test Case / Test Scenario that tests this card). Only this type
+  is restricted.
+- **Every other link type is read normally** — `Relates` (`relates to`), `Dependency`
+  (`dependencies with`), `Blocks`, … — *even when the linked item is itself a Test Case /
+  Test Scenario*. The trigger is the link **type**, not the target's issue type. (So a
+  Test Scenario reached via `relates to` is still in-bounds.)
+- When you pull `issuelinks` (e.g. `--fields "issuelinks"`), **drop every entry whose
+  `type.name == "Tests"`** before reading or reporting, and never run a follow-up
+  `acli jira workitem view <KEY>` on an item you know only through that link.
+- Everything else on the card — description, AC, status, and all non-`tested by` links —
+  is read as usual.
+- **Only exception:** the user, in a later message, *explicitly* names and asks for the
+  `tested by` links. Absent that, never surface them.
+
 ## JQL
 
 Search is the workhorse — `acli jira workitem search --jql "<query>"`. For ready-to-use
