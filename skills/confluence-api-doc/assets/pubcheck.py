@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-pubcheck.py — TRIPWIRE for `api-doc publish`: Confluence storage-XHTML validation.
-Zero install: pure Python 3 (stdlib only). Companion to the api-doc skill's `publish`
-command — Layer 1 (pre-flight, before any push) + the `--roundtrip` comparator (Layer 2).
+pubcheck.py — TRIPWIRE for `confluence-api-doc`: Confluence storage-XHTML validation.
+Zero install: pure Python 3 (stdlib only). Companion to the confluence-api-doc skill —
+Layer 1a (pre-flight, before any push) + the `--roundtrip` comparator (Layer 1b).
 
 WHY THIS EXISTS
-  The publish path converts each page's markdown `docs:` into Confluence *storage*
+  The publish path converts each `docs/api/` page's markdown into Confluence *storage*
   XHTML and POSTs it. A malformed conversion (a dropped `]]>`, an unbalanced `<td>`,
   a leaked `<` ) can still return HTTP 200 and leave a *broken page*. REST status is
   not evidence the page is right. This script is the deterministic measure of what a
   machine can check about the storage BEFORE it ships, and a canonical comparator that
   confirms what Confluence stored matches what we sent.
 
-PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH (same as gencheck.py)
+PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH (same as doccheck.py / colcheck.py)
   • ERROR = a confident defect (storage won't parse, unbalanced table/list/CDATA, a
             bare unescaped `<`/`&`, a source table that vanished from the storage).
             The agent confirms + fixes the conversion, re-stages, re-runs.
@@ -203,7 +203,7 @@ def check_page(label, title, source, storage, errors, notes):
 
 def _count_md_tables(md):
     """Count markdown tables = a header row (| … |) immediately followed by a separator
-       row (|---|). Mirrors gencheck's table detection."""
+       row (|---|). Mirrors the markdown table detection in doccheck/colcheck."""
     lines, n, i = md.splitlines(), 0, 0
     while i < len(lines) - 1:
         if lines[i].strip().startswith('|') and re.match(r'^\|[\s:|-]+\|?\s*$', lines[i + 1].strip()):

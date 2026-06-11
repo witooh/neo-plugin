@@ -22,7 +22,7 @@ skills/<name>/
   references/*.md     # role specs / templates pulled in by the skill body
 ```
 
-Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `gitlab`, `commit`, `atlassian`. The README's table is the authoritative list of triggers. (`api-doc` is the consolidated gen+publish skill that replaced `api-doc-gen` + `open-collection` + `confluence-api-doc` in 0.8.0; the `bruno` hand-authoring skill was removed in 0.9.0; `atlassian` — the `acli` Jira/Confluence reference + direct-ops skill, and the acli source `neo`'s BA already points to (`skills/neo/references/shared/jira-ref.md §7`) — was added in 0.10.0 as a lean "thin shell over `acli --help`" rework of the user-global skill.)
+Skills currently bundled: `neo`, `brainstorm`, `improve`, `api-doc`, `open-collection`, `confluence-api-doc`, `gitlab`, `commit`, `atlassian`. The README's table is the authoritative list of triggers. (The **API-doc family is md-hub**: `api-doc` generates Markdown API docs in `docs/api/` from Go source — the single source of truth — while `open-collection` (a runnable Bruno OpenCollection) and `confluence-api-doc` (Confluence pages) each *derive* from that Markdown, and each carries its own **three-layer verify** (L1 script · L2 fresh-eyes · L3 completeness sweep). They were consolidated into one `api-doc` gen+publish skill in 0.8.0, then re-split md-hub in 0.15.0; the `bruno` hand-authoring skill was removed in 0.9.0; `atlassian` — the `acli` Jira/Confluence reference + direct-ops skill, and the acli source `neo`'s BA already points to (`skills/neo/references/shared/jira-ref.md §7`) — was added in 0.10.0 as a lean "thin shell over `acli --help`" rework of the user-global skill.)
 
 ## How the pieces wire together
 

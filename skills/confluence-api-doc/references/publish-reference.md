@@ -1,26 +1,24 @@
-# Publish Reference — OpenCollection → Confluence
+# Publish Reference — docs/api Markdown → Confluence
 
-Heavy detail for the `api-doc` skill's **`publish`** command: auth, page-tree mapping, markdown→Confluence storage conversion, REST sync, and the two-layer verify (pre-flight `pubcheck.py` + round-trip). The SKILL.md `publish` section points here; it does not restate this.
+Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, markdown→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, mirroring the collection's folder tree. Input is an **OpenCollection workspace only** (`opencollection.yml` at the root). Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, mirroring the `docs/api/` directory tree. Input is a **`docs/api/` Markdown directory only** (`index.md` at the root — the output of the `api-doc` skill). Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
-<collection>/                          Confluence page tree
-├── opencollection.yml  (docs:)   →    Parent page (overview + common errors)   ← NEW vs old skill
+docs/api/                              Confluence page tree
+├── index.md                      →    Parent page (overview + common errors)
 ├── consent/
-│   ├── folder.yml                →    Consent (domain group page)
-│   ├── accept-consent.yml        →    POST: /api/v1/consents
-│   └── revoke-consent.yml        →    DELETE: /api/v1/consents/:id/revoke
+│   ├── accept-consent.md         →    POST: /api/v1/consents
+│   └── revoke-consent.md         →    DELETE: /api/v1/consents/{id}/revoke
 └── channel/
-    ├── folder.yml                →    Channel (domain group page)
-    └── create-channel.yml        →    POST: /api/v1/channels
+    └── create-channel.md         →    POST: /api/v1/channels
 ```
 
 ---
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — a collection root containing `opencollection.yml`. If it is missing, STOP: `publish` only takes an OpenCollection workspace (run `gen` first).
+1. **Source path** — a `docs/api/` directory containing `index.md`. If it is missing, STOP: this skill publishes the Markdown docs (run the `api-doc` skill first to produce them).
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -34,23 +32,16 @@ acli auth status
 
 Resolve the write token at Step P7 (REST needs it; reads use acli's oauth).
 
-## Step P3 — Scan the collection
+## Step P3 — Scan the markdown
 
-Skip `opencollection.yml` and `environments/`. For each group subdirectory:
-- **Group display name** ← that folder's `folder.yml` `info.name`; fall back to the directory name → Title Case. Skip `health/`.
-- For each `*.yml` request file (exclude `folder.yml`):
-  - `info.type` must be `http` (skip + warn otherwise).
-  - `http.method` (e.g. `POST`) and `http.url` — strip the leading `{{…}}` token (e.g. `{{baseUrl}}`) to get the path. Path params keep their `:id` form.
-  - Page title = `<METHOD>: <path>` (e.g. `POST: /api/v1/consents`).
-  - Page body = the request's `docs:` block (markdown).
-- **Collection-root overview (the fix):** read `opencollection.yml`'s top-level `docs:` block — this is the **parent page** body (service overview + Common Error Responses). The old confluence-api-doc skill left the parent untouched; `publish` now syncs it.
+The directory structure is the source of truth — no heading-based discovery needed. Skip `index.md` here (it is the parent page, handled below). For each group subdirectory:
+- **Group display name** ← the directory name → Title Case (`consent` → `Consent`). Skip `health/`.
+- For each `*.md` endpoint file:
+  - Read the `- **Method:**` and `- **Path:**` bullets near the top; **page title = `<METHOD>: <path>`** (e.g. `POST: /api/v1/consents`). The path keeps its documented `{id}` form.
+  - **Page body = the whole file**, minus the breadcrumb line (the first line starting with `>`) and the H1 heading (it becomes the page title, not in-body). Everything else — field tables, examples, business logic, error table — is the page content.
+- **Service overview (parent page):** read `index.md` — its overview paragraph + **Common Error Responses** section become the **parent page** body. The `index.md` endpoints table is navigation only; Confluence's child-page tree replaces it, so it is not synced.
 
-### YAML extraction (pick the most reliable available)
-1. `yq -r '.info.type' f.yml` … `yq -r '.docs' f.yml` (decodes block scalars cleanly) — preferred.
-2. `python3 -c "import yaml,sys; print(yaml.safe_load(open(sys.argv[1]))['docs'])" f.yml` — fallback.
-3. Manual: find `docs: |-` (or `|`,`>-`,`>`), take subsequent lines indented ≥2 spaces, dedent; stop at the first non-indented non-empty line.
-
-Validate before converting: empty `docs:` → skip + warn; missing `http.method`/`http.url` → skip + warn.
+Validate before converting: an endpoint file with no `**Method**`/`**Path**` bullet → skip + warn; an empty file → skip + warn.
 
 ## Step P4 — Map to the page tree
 
@@ -72,7 +63,7 @@ acli confluence page view --id <PAGE_ID> --include-version --json   # → versio
 
 ## Step P6 — Convert markdown → Confluence storage (the risk area)
 
-**Pre-processing (per page):** strip the H1 heading (it becomes the page title, not in-body). OpenCollection emits no breadcrumb, so there is none to strip. Decode the `docs:` block scalar and dedent to column 0 before parsing.
+**Pre-processing (per page):** strip the **breadcrumb** line (the first line starting with `>`) and the **H1** heading (it becomes the page title, not in-body). The remaining markdown is already at column 0 — parse it as-is.
 
 **CRITICAL — processing order matters:**
 
@@ -115,11 +106,11 @@ Correct:
 </ol>
 ```
 
-## Verify L1 — pre-flight (`pubcheck.py`), BEFORE any push
+## Verify L1a — pre-flight (`pubcheck.py`), BEFORE any push
 
-Stage each converted page in a **gitignored** scratch dir `.api-doc-publish/` as **two** artifacts — a `<page>.json` manifest for this pre-flight, and the raw storage at `storage/<page>.xml` so the L2 round-trip has a standalone file to diff later:
+Stage each converted page in a **gitignored** scratch dir `.api-doc-publish/` as **two** artifacts — a `<page>.json` manifest for this pre-flight, and the raw storage at `storage/<page>.xml` so the L1b round-trip has a standalone file to diff later:
 ```
-.api-doc-publish/<page>.json          {"title": "POST: /api/v1/consents", "source": "<the docs: markdown>", "storage": "<converted XHTML>"}
+.api-doc-publish/<page>.json          {"title": "POST: /api/v1/consents", "source": "<the endpoint markdown>", "storage": "<converted XHTML>"}
 .api-doc-publish/storage/<page>.xml   <converted XHTML>   (raw — byte-identical to the manifest's "storage")
 ```
 Then run pre-flight on the manifests (the non-recursive glob ignores the `storage/` subdir, so each page is checked once):
@@ -142,15 +133,15 @@ curl -s -X POST "${CONFLUENCE_URL}/wiki/rest/api/content" -u "${EMAIL}:${API_TOK
 curl -s -X PUT "${CONFLUENCE_URL}/wiki/rest/api/content/${PAGE_ID}" -u "${EMAIL}:${API_TOKEN}" \
   -H "Content-Type: application/json" -d '{"version":{"number":N},"title":"…","type":"page","body":{"storage":{"value":"…","representation":"storage"}}}'
 ```
-Group page ancestor = parent ID; endpoint page ancestor = its group page ID; parent page is updated by its own ID. HTTP 200 = accepted (but NOT proof the content is right — that is L2's job).
+Group page ancestor = parent ID; endpoint page ancestor = its group page ID; parent page is updated by its own ID. HTTP 200 = accepted (but NOT proof the content is right — that is the round-trip's job).
 
-## Verify L2 — round-trip, AFTER push
+## Verify L1b — round-trip, AFTER push
 
 For each pushed page, re-fetch the stored storage and compare to what we sent:
 ```bash
 acli confluence page view --id <PAGE_ID> --body-format storage --json   # → .body.storage.value
 ```
-Write the re-fetched value to `.api-doc-publish/refetched/<page>.xml`, then compare it against the staged storage file written in L1:
+Write the re-fetched value to `.api-doc-publish/refetched/<page>.xml`, then compare it against the staged storage file written in L1a:
 ```bash
 python3 <ASSET_DIR>/pubcheck.py --roundtrip .api-doc-publish/storage/<page>.xml .api-doc-publish/refetched/<page>.xml
 ```
@@ -170,9 +161,9 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `opencollection.yml` at source | STOP — `publish` needs a collection; run `gen` first |
-| request `.yml` unparseable / missing `info.type`/`http.method`/`http.url` | skip + list in warnings; don't abort |
-| empty/missing `docs:` block | skip + warn (no content to publish) |
+| no `docs/api/index.md` at source | STOP — this skill needs the markdown docs; run the `api-doc` skill first |
+| endpoint `.md` missing `**Method**`/`**Path**` bullet | skip + list in warnings; don't abort |
+| empty endpoint `.md` file | skip + warn (no content to publish) |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
 | HTTP 404 on a page | verify page ID (may be deleted) |
 | HTTP 409 version conflict | re-fetch version with acli, retry |

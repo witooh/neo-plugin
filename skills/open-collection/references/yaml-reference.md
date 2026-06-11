@@ -2,7 +2,7 @@
 
 Authoritative key/section reference for files this skill writes. Distilled from the OpenCollection spec ([docs](https://docs.usebruno.com/opencollection-yaml/structure-reference)) and the steering files used in the `tcrb/bruno-api-documents` workspace.
 
-This skill writes a **subset** of the spec — only the sections needed to represent a request generated from Go source. Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless detected in code.
+This skill writes a **subset** of the spec — only the sections needed to represent a runnable request derived from the `docs/api/` markdown. Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the markdown calls for them.
 
 ---
 
@@ -13,7 +13,7 @@ This skill writes a **subset** of the spec — only the sections needed to repre
 | `opencollection.yml` | Collection root. One per collection. Holds `info` + bundling/ignore config. |
 | `environments/<NAME>.yml` | One file per environment. Holds variables (including secrets). |
 | `<folder>/folder.yml` | Folder metadata + inherited headers/auth for child requests. |
-| `<folder>/<request>.yml` | One HTTP request. `info` + `http` + (optional `runtime`) + `settings` + (optional `examples`) + (optional `docs`). |
+| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `settings`. No `docs` — the documentation stays in `docs/api/` markdown. |
 
 ---
 
@@ -24,19 +24,6 @@ opencollection: 1.0.0
 
 info:
   name: <Service Name>
-
-docs: |-
-  # <Service Name> API
-
-  <Overview paragraph — what the service does.>
-
-  ## Common Error Responses
-
-  | Status | Error Message | Description |
-  | ------ | ------------- | ----------- |
-  | 400 | invalid request | Request body or query param invalid |
-  | 401 | unauthorized | Missing or invalid authentication |
-  | 500 | internal server error | Unexpected server-side failure |
 
 bundled: false
 
@@ -51,7 +38,6 @@ extensions:
 |-----|----------|-------|
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
-| `docs` | yes | Collection-root markdown (`\|-` block) — service overview + Common Error Responses table. `publish` syncs it to the Confluence **parent page**. Replaces the old `index.md`. See [`request-template.md`](request-template.md) §1 + [`api-doc-template.md`](api-doc-template.md) § Index Template. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
 | `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` and `.git`. |
 
@@ -108,7 +94,7 @@ request:
 |-----|----------|-------|
 | `info.name` | yes | Display name (e.g., `Consent`, `Channel`). Derived from the handler subdirectory. |
 | `info.type` | yes | Always `folder`. |
-| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in the order groups appear in the route registration file. |
+| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in the order groups appear under `docs/api/`. |
 | `request.headers` | no | Headers inherited by every request inside this folder. Lift here when every request shares the same header. |
 | `request.auth` | no | Auth inherited by child requests. Values: `inherit`, `none`, or an explicit auth block (see Auth Types). |
 
@@ -122,11 +108,9 @@ Section order (this skill emits in exactly this order):
 info: ...
 http: ...
 settings: ...
-docs: |-
-  ...
 ```
 
-No `runtime` section. No `examples` section. The user opted out of generating tests/assertions/scripts.
+No `docs`, `runtime`, or `examples` section — the collection is runnable-only (documentation stays in `docs/api/` markdown; tests/assertions/scripts are opted out).
 
 ### `info`
 
@@ -172,7 +156,7 @@ http:
 | Key | Required | Notes |
 |-----|----------|-------|
 | `method` | yes | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`. |
-| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params, regardless of framework syntax in source (`:id` → `:id`, `{id}` → `:id`). |
+| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params — convert the markdown's documented `{id}` form to `:id`. |
 | `params` | no | All path **and** query params declared explicitly. `type: path` or `type: query`. Path params must match the placeholders in the URL string. |
 | `headers` | no | Per-request headers only. Folder-level shared headers belong in `folder.yml`. |
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
@@ -187,24 +171,6 @@ settings:
 ```
 
 Always emit `encodeUrl: true` at minimum (per steering rule 4). Other settings (`timeout`, `followRedirects`, `maxRedirects`) are only emitted when the user has explicitly asked or the source code suggests them.
-
-### `docs`
-
-```yaml
-docs: |-
-  # <Name>
-
-  <Description>
-
-  - **Method:** `POST`
-  - **Path:** `/api/v1/consents`
-  - **Auth:** `Bearer token`
-
-  ## Request Body
-  ...
-```
-
-Block-scalar markdown. Structure mirrors the per-endpoint template — see [`request-template.md`](request-template.md) for the full layout.
 
 ---
 
@@ -257,18 +223,16 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 1. **Always quote URLs containing `{{vars}}` or `:params`.** Unquoted `{` starts a YAML flow mapping and breaks parsing.
 2. **Use `|-` block scalar for JSON `body.data`** so newlines and indentation are preserved literally.
-3. **Use `|-` block scalar for `docs:`** so markdown formatting survives.
-4. **Two-space indentation throughout.** No tabs.
-5. **List items use `- key: value` form**, one item per block — easier to diff than the flow form `[{...}, {...}]`.
-6. **Strings that look like booleans, numbers, dates, or `yes/no/null` must be quoted.** Example: `value: "1"` not `value: 1` when the variable should be a string. The skill always quotes `param.value` strings.
-7. **`seq` is an integer**, not a string. Write `seq: 10`, not `seq: "10"`.
-8. **Comments are allowed (`# ...`)** but the skill avoids them in generated files — the doc lives in `docs:` instead.
+3. **Two-space indentation throughout.** No tabs.
+4. **List items use `- key: value` form**, one item per block — easier to diff than the flow form `[{...}, {...}]`.
+5. **Strings that look like booleans, numbers, dates, or `yes/no/null` must be quoted.** Example: `value: "1"` not `value: 1` when the variable should be a string. The skill always quotes `param.value` strings.
+6. **`seq` is an integer**, not a string. Write `seq: 10`, not `seq: "10"`.
+7. **Comments are allowed (`# ...`)** but the skill avoids them in generated files.
 
 ---
 
-## Reference Files Pointed To By This Skill
+## Reference Files
 
-When the skill needs deeper context on a specific area, it reads these siblings in the same `api-doc/references/` directory:
+- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **markdown input contract** (§0: which `docs/api/` markdown element maps to which collection field).
 
-- [`go-scan-patterns.md`](go-scan-patterns.md) — Go route/handler/usecase/struct scanning patterns (1000+ lines).
-- [`api-doc-template.md`](api-doc-template.md) — Field/error documentation conventions (M/O rules, field-description formulas, example-value lookup, verification checklist).
+The shape of the `docs/api/` markdown itself (field tables, examples, error rows) is owned by the **`api-doc`** skill — this skill only reads the runnable bits out of it, it does not redefine them.
