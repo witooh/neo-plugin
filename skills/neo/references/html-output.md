@@ -19,7 +19,7 @@ The skill carries the canonical design system in its `assets/` directory. The Or
 | `_shell.html` | the page skeleton template (placeholders) |
 | `components.html` | **living style guide** — every component with a copy-paste HTML pattern + when-to-use |
 | `lint.py` | structural HTML linter — per-file (your verify gate) |
-| `docverify.py` | cross-document linter — resolves references BETWEEN docs (AC↔test-case traces, coverage, status/JIRA propagation) |
+| `docverify.py` | cross-document linter — resolves references BETWEEN docs (AC↔test-case traces, coverage, status/JIRA propagation) + execution evidence (every Ready AC has a PASSING test in `test-report.html` — X6) |
 | `scaffold.sh` | idempotent installer that stamps the above into a project |
 
 **mermaid** is loaded from a pinned CDN (no vendoring): `https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js`.
@@ -199,11 +199,11 @@ After writing or editing ANY page, run BOTH bundled linters and fix until clean:
 
 ```
 python3 <ASSET_DIR>/lint.py docs/design                 # per-file structure
-python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document references
+python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document refs + (once test-report.html exists) X6 execution evidence
 # expect (each): PASS — 0 error(s)
 ```
 
-`lint.py` is **syntax-level** (tag balance, unescaped `<`, bad `&`, `.card` missing `data-status`), one file at a time. `docverify.py` is **cross-document** — it mechanically enforces the reference-level items of the self-check below (every id in the Summary matches a card; every `<tc-card traces=>` resolves to a real AC; every AC is covered; Blocked→Blocked status + verbatim JIRA propagation) across the AC and test-case docs, so you need not hand-verify those. It does NOT check meaning beyond references. Still eyeball the rest of the **semantic self-check**:
+`lint.py` is **syntax-level** (tag balance, unescaped `<`, bad `&`, `.card` missing `data-status`), one file at a time. `docverify.py` is **cross-document** — it mechanically enforces the reference-level items of the self-check below (every id in the Summary matches a card; every `<tc-card traces=>` resolves to a real AC; every AC is covered; Blocked→Blocked status + verbatim JIRA propagation) across the AC and test-case docs — and, once `test-report.html` exists, that every Ready AC is traced by a test case that **PASSED** there (X6, execution evidence) — so you need not hand-verify those. It does NOT check meaning beyond references. Still eyeball the rest of the **semantic self-check**:
 - every `.card` `data-status` matches the `.status-badge` it shows (**automatic for `<ac-card>` / `<tc-card>`**, a standalone `<status-badge status="…">` derives its own label, and **`<trace-matrix>`** + **`<ac-summary>`** + **`<tc-summary>`** derive each table row's status from its card — all from one `status=`; only hand-written `.card` / `span.status-badge` / hand summary+matrix tables can drift);
 - every AC/TC id in the body also appears in the Summary table (and vice-versa) — **`<ac-summary>`** / **`<tc-summary>`** / **`<tc-deferred>`** derive each row from the matching card (can't drift; a `<ac>`/`<tc ref>` pointing at no card shows blank cells);
 - every `.gwt` has given/when/then (in G-A-W-T order for `<tc-card>` AND clauses);

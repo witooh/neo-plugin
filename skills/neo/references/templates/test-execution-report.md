@@ -6,7 +6,7 @@ This execution report is emitted as **`test-report.html`** (interactive HTML), *
 - Status badge mapping (only `ready|blocked|pending` exist): **✅ Pass → `data-status="ready"`**, **❌ Fail → `data-status="blocked"`**, **⏸ Deferred / ⚠️ Blocked → `data-status="pending"`**. Keep the ✅/❌/⏸ emoji in the text too.
 - Execution Summary / Defect Summary / Deferred Test Cases → `table.data-table[data-sortable]`.
 - Pass / Fail / Blocked / Not-Run / Deferred totals → `.stat-grid` > `.stat-card` (optionally a `.bar` > `.bar__seg.ready|.blocked`). The `⏸ Deferred` count covers `@blocked` TCs (which are also listed in the separate Deferred Test Cases table); omit the Deferred stat-card when the count is 0.
-- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` until `PASS`. Escape `<`/`>`/`&` in prose (§6).
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` then `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>` until `PASS` — **GATE X6** reads this report and requires every **Ready** AC to be traced by a ✅ Pass here (❌ Fail / ⏸ Deferred / absent for a Ready AC fails the gate; a Blocked AC's `@blocked` TC is exempt). Escape `<`/`>`/`&` in prose (§6).
 
 ---
 

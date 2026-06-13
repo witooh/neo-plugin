@@ -15,7 +15,7 @@ The `docs/open-questions-*.md` files are **ephemeral**. Once the answers are fol
 After writing or editing any HTML design doc, run the verification gate — the two linters below **plus GATE CS1 (completeness sweep)** — and **re-run after every fix until all report `PASS — 0 error(s)`** before returning `DONE`:
 ```
 python3 <ASSET_DIR>/lint.py docs/design                 # per-file structure
-python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document references
+python3 <ASSET_DIR>/docverify.py docs/design/<usecase>  # cross-document refs + (once test-report.html exists) X6: every Ready AC traced by a PASSING test
 ```
 **GATE CS1 — Completeness Sweep (SCOPED-CHANGE tasks only: retire / rename / migrate / modify-with-removal).** Derive the retired/renamed target(s) from the orchestrator-passed scope + your own diff (your role file says how to derive). For each target, `grep -rn` `docs/design` (and the codebase when the change removes/renames a user-visible token) for live references — PASS = **zero stale references** (a rename also requires the new name present). Greenfield / pure-additive task → CS1 N/A (no old token; rely on your role's forward-coverage gate). **No derivable target → REPORT `CS1: sweep skipped — no target` in the output (never silent-skip).** CS1 is a **measurable** gate: loop until green; **~3 rounds with no progress → stop and escalate to the orchestrator** (state the residual stale references) — never return a fake PASS.
 

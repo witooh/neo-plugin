@@ -48,7 +48,7 @@ Ready for merge when: (1) E2E of the **Ready TC** all pass (Blocked `@blocked` d
 ## Workflow (Dev Loop): doc → E2E code → report
 1. gen/update the test case doc (per template)
 2. write the E2E spec (`../templates/e2e-playwright.md`): bootstrap if not present; folder matching `docs/design/{usecase}/`; Workflow Chain → `{usecase}.precondition.ts`; `{usecase}.e2e.ts` with `it()` prefix `[<TC-ID> - <JIRA-IDs> - <AC-IDs>]` (omit the JIRA segment when none); **skip `@blocked` TC**; run `npm test` until it passes
-3. run E2E + gen the execution report (per template): map TC → result, Execution Summary, Defect Summary (if failing), Deferred Test Cases (always present when there's a Blocked AC)
+3. run E2E + gen the execution report (per template): map TC → result, Execution Summary, Defect Summary (if failing), Deferred Test Cases (always present when there's a Blocked AC). Then run `docverify.py` (preamble §3) — **GATE X6** now reads `test-report.html` and fails unless every **Ready** AC is traced by a TC that **PASSED** here (a Ready AC with only ❌/⏸/absent results blocks Sign-Off — fix the code or run the test, never hand-wave it); a Blocked AC's `@blocked`/deferred TC is exempt
 
 ## MR Review Mode (rows 8a/8b — read-only)
 **Tools:** `Read` + `Bash` (run the existing suite only) — **no Write**. Stay black-box: read the MR description + diff metadata + (8b) design docs; **don't read production source** to judge AC compliance — prove it by **running the TC that trace each AC** (behavioral evidence). Running E2E needs checking out the branch + a test env; can't run → **Warning**, doesn't block (don't fabricate). MR review does **not** fetch live JIRA (`../phase-map.md` § MR); CS1 in MR mode greps the diff / suite only.

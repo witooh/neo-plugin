@@ -43,6 +43,15 @@ WHAT IT CHECKS  (all read from the SOURCE HTML authoring tags <ac-card>/<tc-card
         (jira-ref.md §2/§4 — verbatim; never invented, dropped, or reordered)
     X5  every <ac-card traces> TC-id exists in the test-case doc            -> ERROR
 
+  execution evidence  AC <-> test cases <-> test-report.html  (only when ALL THREE exist):
+    X6  every READY AC is traced by >= 1 <tc-card> that PASSED              -> ERROR
+        (data-status="ready" in test-report.html; ❌Fail / ⏸Deferred / absent
+         do NOT satisfy it). Blocked ACs + their @blocked/deferred TCs are
+         EXEMPT (X3/T4 — a deferred test is correctly not expected to pass);
+         a READY AC with NO tracing TC is X2's coverage gap, not X6's. Closes
+         "scoped-pass != feature-complete": a feature can no longer read DONE
+         while a ready AC has no PASSING test run. (mapping: test-execution-report.md)
+
   every page in the folder  (callout discipline — html-output.md §5.1):
     C1  no version/changelog <callout-box> on a spec page (-> VERSION.md)   -> ERROR
         (start-anchored, or a mid-text version + a change-verb co-signal)
@@ -61,6 +70,8 @@ STAGE-AWARE
   skipped, so a half-finished usecase folder (AC written, tests not yet) does not
   false-fail. QA — last in the BA->Architect->QA chain, with every doc present —
   is where the full cross-file set runs: downstream verifying upstream, mechanically.
+  Once test-report.html also exists (QA's Dev-Loop execution), X6 additionally requires
+  every ready AC to have a PASSING tracing test — the final, execution-evidence stage.
 
 ROBUSTNESS
   Parsing is case-insensitive (the DOM lowercases custom-element names), quote-aware
@@ -75,7 +86,8 @@ DELIBERATELY NOT CHECKED
   free-form with no stable custom-element schema to parse — a check there would be
   guesswork. It stays covered by AR4 + the downstream adversarial verify pass.
   The <trace-matrix> (AC->TC) derives from on-page <ac-card>s in the browser and is
-  covered here at the source level by X1/X2/X5.
+  covered here at the source level by X1/X2/X5, and at the execution level by X6
+  (a traced TC must actually PASS in test-report.html, not merely be authored).
 
 USAGE
   python3 docverify.py DIR        # every usecase folder under DIR (recursive)
@@ -86,6 +98,7 @@ import re, sys, pathlib
 
 AC_DOC = "acceptance-criteria.html"
 TC_DOC = "test-cases.html"
+REPORT_DOC = "test-report.html"
 
 
 # ---- noise stripping (mirror lint.py: comments + script/style/pre/code are not live markup) ----
@@ -169,6 +182,30 @@ def parse_cards(html, tag):
             "blocker":  has_nonempty_child(inner, "blocker"),
         })
     return cards
+
+
+_CARD_DIV_RE = re.compile(r'<div\b' + _QUOTED_OR_NONGT + r'>', re.I)
+
+
+def parse_report_results(html):
+    """X6 input — test-report.html renders each TC result as a canonical .card div
+       <div class="card" id="TC-NNN" data-status="ready|blocked|pending"> (mapping in
+       test-execution-report.md: ✅Pass→ready, ❌Fail→blocked, ⏸Deferred/⚠️Blocked→
+       pending). Returns {TC-id: data-status} for every .card div carrying an id.
+       A NEW matcher, NOT parse_cards(): the report uses the EXPANDED .card div, not
+       the <tc-card> authoring tag. Reuses attr(); the "card" split-token test mirrors
+       lint.py so link-card / *-card are not mistaken for a result; strip_noise()
+       upstream keeps a .card inside <pre>/<code>/comment from being read as live."""
+    out = {}
+    for m in _CARD_DIV_RE.finditer(html):
+        open_tag = m.group(0)
+        if "card" not in (attr(open_tag, "class") or "").split():
+            continue
+        tid = attr(open_tag, "id")
+        if not tid:
+            continue
+        out[tid] = (attr(open_tag, "data-status") or "").lower() or None
+    return out
 
 
 def parse_refs(html, parent_tag):
@@ -317,6 +354,47 @@ def check_cross(ac_cards, tc_cards, errors):
                 errors.append(f"{ac['id']}: traces {tc} which is not a TC in {TC_DOC}")
 
 
+def check_execution(ac_cards, tc_cards, results, errors):
+    """X6 — execution evidence: every READY AC must be traced by >= 1 test case that
+       PASSED (data-status="ready") in test-report.html. Closes "scoped-pass !=
+       feature-complete": a feature can no longer read DONE while a ready AC has no
+       PASSING test run. EXEMPT: Blocked ACs + their @blocked/deferred TCs (X3/T4 — a
+       deferred test is correctly not expected to pass), so iterate ready ACs only. An
+       AC with NO tracing TC is X2's coverage gap, not X6's (skip — no double report).
+       `results` = {TC-id: data-status} from parse_report_results(); a legacy AC doc
+       (no status anywhere) treats every AC as ready, mirroring check_card_basics.
+       check_usecase runs this ONLY when test-report.html exists (stage-aware), so the
+       pre-report phases never false-fail. Per-usecase like X1/X2/X5 — an AC whose
+       tests live in another usecase folder is out of scope (locality assumption)."""
+    ac_by_id = {c["id"]: c for c in ac_cards if c["id"]}
+    legacy = bool(ac_cards) and not any(c["status"] for c in ac_cards)
+    ready_ac = {i for i, c in ac_by_id.items()
+                if c["status"] == "ready" or (legacy and c["status"] != "blocked")}
+
+    tracing = {}                                                  # ready AC -> [tracing TC ids]
+    for tc in tc_cards:
+        tid = tc["id"] or "<tc-card with no id>"
+        for ac in tc["traces"]:
+            if ac in ready_ac:
+                tracing.setdefault(ac, []).append(tid)
+
+    human = {"ready": "Pass", "blocked": "Fail", "pending": "Deferred/Blocked"}
+    for ac in sorted(ready_ac):                                   # X6
+        tcs = sorted(tracing.get(ac, []))
+        if not tcs:                                               # X2 owns "no tracing TC"
+            continue
+        if any(results.get(t) == "ready" for t in tcs):          # >= 1 tracing TC passed → covered
+            continue
+        if all(t not in results for t in tcs):                    # case (b) — none executed
+            errors.append(f"{ac}: tracing test case(s) {', '.join(tcs)} absent from "
+                          f"{REPORT_DOC} — no execution evidence")
+        else:                                                     # case (a) — ran, none passed
+            res = ", ".join((f"{t}={results[t]}({human.get(results[t], results[t] or 'no-status')})"
+                             if t in results else f"{t}=absent") for t in tcs)
+            errors.append(f"{ac}: no tracing test case PASSED in {REPORT_DOC} "
+                          f"(traced by {', '.join(tcs)}; results: {res}) — feature not proven complete")
+
+
 # ---- callout discipline (html-output.md §5.1): a spec page = current desired state.
 #      version/changelog + doc-vs-code gap notes must NOT live in a <callout-box> on the
 #      page — they belong in VERSION.md / gap-analysis.md. Run on EVERY page in the folder
@@ -427,11 +505,25 @@ def check_usecase(folder):
     else:
         skipped.append(TC_DOC)
 
+    report_results = None
+    report_path = folder / REPORT_DOC
+    if report_path.exists():
+        html = load(report_path)
+        loaded[REPORT_DOC] = html                                 # stash for the callout pass — no re-read
+        report_results = parse_report_results(html)
+
     if ac_cards is not None and tc_cards is not None:
         check_cross(ac_cards, tc_cards, errors)
         checked.append("cross-file AC<->TC")
+        if report_results is not None:                            # X6 — execution evidence (stage-aware)
+            check_execution(ac_cards, tc_cards, report_results, errors)
+            checked.append("execution evidence AC<->TC<->report")
+        else:
+            skipped.append("execution evidence AC<->TC<->report (test-report.html absent)")
     elif ac_cards is not None:
         skipped.append("cross-file AC<->TC (test-cases.html absent)")
+        if report_path.exists():
+            skipped.append("execution evidence AC<->TC<->report (test-cases.html absent)")
 
     # callout discipline — EVERY page in the folder (api-contracts/traceability/index too,
     # which the card-based checks above never open). Skips _shell/_partials.
