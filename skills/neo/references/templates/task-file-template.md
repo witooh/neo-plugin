@@ -45,7 +45,7 @@ Updated: <session marker or YYYY-MM-DD>
 
 - <lean tracking note — e.g. All-Blocked-guard status, build order, an independence caveat>
 - <omit this whole section when there is nothing tracking-level to say>
-- (never a `Blockers` section — blocker detail stays in the AC document; §9)
+- (never re-narrate owned-elsewhere content — a blocker / decision / ADR lives in its own source; §9)
 ```
 
 ### Field rules
@@ -59,7 +59,7 @@ Updated: <session marker or YYYY-MM-DD>
   - `Readiness` — `Ready` or `Blocked`, **mirrored verbatim** from the AC `Status` (never re-derived). This column is **not** the AC `Status` field; it is a copy. Never write a progress value here.
   - `Build` — `pending` / `in-progress` / `done` (the progress axis, `task-tracking.md` §4). A `Blocked` row stays `pending`. A **pointer AC** carries the reference `→ AC-NNN` instead of a progress value and is **excluded from the roll-up counts** (`../shared/task-tracking.md` §1).
   - `Depends-on` — the AC id(s) this AC must follow (from its `Blocker:` dependency id or obvious build order); `-` when none.
-- **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). **Do NOT** add a `Blockers` section copying the AC document's blocker text — blocker detail lives in the AC document; the task-file carries it only as the `Depends-on` column + the Build Plan's `### Blocked on upstream` tier.
+- **`## Notes` (optional)** — the file may end with a few lean tracking bullets (guard status, build order, an independence caveat); bullets, not prose (`../shared/task-tracking.md` §9). A bullet earns its place only as tracking-level structure with **no other home**. **Do NOT re-narrate anything owned elsewhere** — a blocker (AC document), a decision / ADR (its decision record · `VERSION.md` · `gap-analysis.md`), or progress / what-landed (the `Build` column + the Build Plan item): reference it by id / column / section, never copy its prose, and never duplicate a Build Plan item. (No `Blockers` section.)
 
 ### Authoring notes
 

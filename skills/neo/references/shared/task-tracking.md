@@ -67,8 +67,15 @@ Two tiers:
 
 For a **scoped change** that retires or renames an AC id on card-keyed work, the stale-reference completeness sweep (the same grep the doc roles run for retire / rename tasks) must also cover `docs/tasks/<card-id>/plan.md` — a retired AC id left in the task-file is a stale reference. Markdown only; never convert it to `.html` to "match" the design docs.
 
-## 9. Sections beyond the table — Notes (optional), no copied blockers
+## 9. Sections beyond the table — Notes (optional), nothing re-narrated from elsewhere
 
 Beyond the header, roll-up, `Build Plan`, and `Tasks` table, the task-file may end with **one optional `Notes` section** — a few lean tracking-level bullets (e.g. the All-Blocked-guard status, cross-AC build order, a "this blocker is independent" caveat). Keep it scannable: bullets, not prose.
 
-Do **not** add a `Blockers` section that copies each AC's blocker text out of the AC document. Blocker detail is owned by the AC document (the `<blocker>` body is the source of truth); duplicating it here is redundant, drifts out of sync when the AC changes, and breaks the "tracking index, not prose" rule. The task-file captures the blocker only as **structure** — the `Depends-on` column (the dependency id) and the Build Plan's `### Blocked on upstream` tier (the pending work); for the full reason an AC is blocked, the reader follows `Source AC`.
+**A Notes bullet earns its place only when it is tracking-level structure with no other home.** Anything already **owned elsewhere** is referenced — by id / column / section — **never re-narrated** here; re-narrating it is redundant, drifts out of sync when the source changes, and breaks the "tracking index, not prose" rule:
+
+- a **blocker** → owned by the AC document (the `<blocker>` body); captured here only as the `Depends-on` column + the Build Plan `### Blocked on upstream` tier. **Never a `Blockers` section** copying the AC's blocker text; for the full reason an AC is blocked, the reader follows `Source AC`.
+- a **decision / resolution / ADR** → owned by its decision record (the ADR · the `VERSION.md` changelog · `gap-analysis.md`); cite it by id, do not restate the rationale, who-approved, or the chosen-vs-rejected options.
+- **what was built / progress** → owned by the `Tasks`-table `Build` column + the Build Plan item (its `- [x]` and any built-here note); don't add a parallel status / "what landed" narrative in Notes.
+- a **changelog** → `VERSION.md`; a **doc-vs-code gap** → `gap-analysis.md`.
+
+**No duplication with the Build Plan.** A Notes bullet must not restate what a Build Plan item already owns (its `layer · file/method · serves AC` detail) — §5's "Done items are not duplicated elsewhere" binds Notes too. When in doubt, cut the bullet and let the reader follow the id.
