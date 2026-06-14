@@ -12,7 +12,8 @@ description: >
   delegates API documentation tasks. NOTE: this skill produces the **Markdown docs
   only** — generating a runnable Bruno OpenCollection *from* those docs is the
   `open-collection` skill; publishing them to Confluence is the `confluence-api-doc`
-  skill. It is not a curl/Postman/OpenAPI converter or an interactive editor.
+  skill; generating an **OpenAPI 3.2** spec from the same Go source is the `openapi-doc`
+  skill. It is not a curl/Postman converter or an interactive editor.
 compatibility:
   environment: claude-code
   tools:
@@ -137,9 +138,10 @@ Report any whole endpoint/group that the pipeline silently dropped; fix → re-r
 ---
 
 ## What this skill is NOT
+- **Not** the OpenAPI-spec generator — emitting an OpenAPI 3.2 spec to `docs/openapi/` from the same Go source is the **`openapi-doc`** skill (its sibling).
 - **Not** a Bruno OpenCollection generator — deriving a runnable collection from `docs/api/` is the **`open-collection`** skill.
 - **Not** a Confluence publisher — pushing `docs/api/` to Confluence is the **`confluence-api-doc`** skill.
-- **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive editor.
+- **Not** a hand-authoring / curl-Postman converter or interactive editor.
 - The verify script is a **tripwire**: a flag means inspect, a NOTE means a human/fresh-eyes call. Full coverage of the [Verification Checklist](references/api-doc-template.md#verification-checklist) comes from L1 (mechanical) + L2 (judgment) + L3 (completeness) together.
 
 ## Expanding to other languages

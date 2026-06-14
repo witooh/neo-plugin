@@ -2,18 +2,20 @@
 name: open-collection
 description: >
   Generate a **runnable** Bruno OpenCollection from existing `docs/api/` Markdown API
-  docs — one request `.yml` per endpoint, grouped by domain, with `environments/` and
-  `folder.yml` auth. The collection is **runnable-only** (URLs, params, bodies, headers,
+  docs **or** a `docs/openapi/` OpenAPI 3.2 spec — one request `.yml` per endpoint, grouped
+  by domain, with `environments/` and `folder.yml` auth. The collection is **runnable-only** (URLs, params, bodies, headers,
   auth, envs); the documentation stays in the Markdown. Also update or validate an
   existing collection against the Markdown. Built-in **three-layer verify** (deterministic
   script + independent fresh-eyes agent + completeness sweep). Trigger on:
   "gen open collection", "สร้าง open collection", "สร้าง bruno จาก api doc",
   "อัปเดต bruno collection", "scaffold opencollection.yml from docs",
-  "make a runnable collection from the api docs", "bruno from markdown". Also trigger
-  when neo delegates collection generation. NOTE: generating the Markdown docs themselves
-  from Go source is the `api-doc` skill; publishing the docs to Confluence is the
-  `confluence-api-doc` skill. Input is `docs/api/` Markdown — if it does not exist, run
-  `api-doc` first. Not a curl/Postman/OpenAPI converter or an interactive editor.
+  "make a runnable collection from the api docs", "bruno from markdown",
+  "bruno from openapi", "สร้าง bruno จาก openapi spec". Also trigger when neo delegates
+  collection generation. NOTE: generating the Markdown docs from Go source is the `api-doc`
+  skill; generating the OpenAPI spec is `openapi-doc`; publishing to Confluence is
+  `confluence-api-doc`. Input is the `docs/api/` Markdown or the `docs/openapi/` spec
+  (auto-prefers the spec when both exist) — if neither exists, run `api-doc` / `openapi-doc`
+  first. Not a curl/Postman converter or an interactive editor.
 compatibility:
   environment: claude-code
   tools:
@@ -29,7 +31,7 @@ compatibility:
 
 # Open Collection
 
-Turn `docs/api/` Markdown API docs into a **runnable** Bruno OpenCollection — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`. The Markdown is the **single source of truth**; this skill only produces the *runnable* artifact (method, URL, path/query params, request body, headers, auth, environments) and embeds **no `docs:`** blocks. The result is verified against the Markdown on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
+Turn the `docs/api/` Markdown API docs **or** a `docs/openapi/` OpenAPI 3.2 spec into a **runnable** Bruno OpenCollection — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`. The chosen source is the **single source of truth** (already verified against Go by `api-doc`/`openapi-doc`); this skill only produces the *runnable* artifact (method, URL, path/query params, request body, headers, auth, environments) and embeds **no `docs:`** blocks. The result is verified against that source on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill").
 
@@ -56,13 +58,15 @@ Auto-detect (user can override): no `opencollection.yml` at the target → **Gen
 
 ---
 
-## Step 1 · Locate the Markdown source + collection root + context
-- **Markdown source** — default `docs/api/` (the `api-doc` skill's output). **No `docs/api/index.md`** → **STOP**: there is nothing to convert; run the `api-doc` skill first. In a monorepo, scope to the chosen service's `docs/api/`.
+## Step 1 · Locate the source + collection root + context
+- **Source (auto, prefer openapi)** — if `docs/openapi/openapi.yaml` exists → source = the **OpenAPI spec**; else if `docs/api/index.md` exists → source = the **Markdown**; else **STOP** (run `openapi-doc` or `api-doc` first). When **both** exist, prefer the spec. An explicit user request ("from the markdown" / "use the openapi spec") overrides the auto-pick — then run `colcheck.py` with the matching `--md` / `--spec` flag. **State the chosen source** in the run output. In a monorepo, scope to the chosen service.
 - **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing `bruno/` | `bruno-collection/` | `open-collection/` at the repo root → else propose `<repo-root>/bruno/<service>/` and **confirm before writing**.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `LOCAL` `baseUrl` — a small config peek, not a Go scan), and known environments (LOCAL/SIT/UAT/PROD).
 
-## Step 2 · Read the Markdown endpoints
-Read [`references/request-template.md`](references/request-template.md) **§0 — the input contract**. For each `docs/api/<group>/<endpoint>.md` (skip `index.md`), extract only the runnable bits: `**Method**` → `http.method`; `**Path**` (`{id}` form) → `http.url` (`:id`) + a `params` row per path param; `**Auth**` → folder/request auth; `## Path Parameters` / `## Query Parameters` tables → `params`; the `## Request Example` ` ```json ` block → `http.body.data` **verbatim**. **Do not re-scan Go** — the Markdown was already verified against the code by `api-doc`.
+## Step 2 · Read the source endpoints
+Read [`references/request-template.md`](references/request-template.md) — **§0** (Markdown source) or **§0b** (OpenAPI spec source), per the source chosen in Step 1. **Do not re-scan Go** — the source was already verified against the code by `api-doc`/`openapi-doc`.
+- **Markdown source** — for each `docs/api/<group>/<endpoint>.md` (skip `index.md`), extract the runnable bits: `**Method**` → `http.method`; `**Path**` (`{id}` form) → `http.url` (`:id`) + a `params` row per path param; `**Auth**` → folder/request auth; the Path/Query tables → `params`; the `## Request Example` ` ```json ` block → `http.body.data` **verbatim**.
+- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source <bundled-spec> --output <collection-root> --collection-name "<service>" --collection-format=opencollection` (it resolves `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0b**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
 
 ## Step 3 · Generate / Update / Validate
 Write using [`references/request-template.md`](references/request-template.md) (per-file templates) + [`references/yaml-reference.md`](references/yaml-reference.md) (schema):
@@ -75,9 +79,10 @@ Write using [`references/request-template.md`](references/request-template.md) (
 
 ### verify-L1 · Script tripwire (always)
 ```
-python3 <ASSET_DIR>/colcheck.py <collection-root> --md docs/api/
+python3 <ASSET_DIR>/colcheck.py <collection-root> --md docs/api/        # markdown source
+python3 <ASSET_DIR>/colcheck.py <collection-root> --spec docs/openapi/  # openapi spec source
 ```
-It mechanically checks Markdown↔collection coverage (missing/orphan request files, folder.yml per group), `http.method`/`http.url` vs the Markdown `**Method**`/`**Path**`, `http.body.data` == the Markdown `## Request Example`, `http.url` path-params ↔ `params`, `body.data` JSON validity, `seq` uniqueness, and that every `{{var}}` is defined in `environments/`. **Tripwire, not ground truth** — a flag means "inspect this".
+Pass the flag for the source chosen in Step 1 (with neither, it auto-prefers the spec when `docs/openapi/openapi.yaml` exists). It mechanically checks source↔collection coverage (missing/orphan request files, folder.yml per group), `http.method`/`http.url` vs the source, `http.body.data` == the source's runnable example, `http.url` path-params ↔ `params`, `body.data` JSON validity, `seq` uniqueness, and that every `{{var}}` is defined in `environments/`. In `--spec` mode coverage + body fidelity match the collection to the spec by (method, path); the structural + env checks are identical (and `--spec` needs PyYAML). **Tripwire, not ground truth** — a flag means "inspect this".
 - **exit 0** → go to L1.5.
 - **exit 1** → for each ERROR, open the actual `.yml`/`.md`: real mismatch → fix → re-run; genuine false positive → skip + record under Warnings. **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate.** Never fake a green run.
 - Collect every **`NOTE`** line (each ends `needs fresh-eyes`) — they feed L2.
@@ -110,12 +115,12 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** fix the files → re-run `colcheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full inventory straight from `docs/api/`** (every group folder, every endpoint `.md`, every `{{var}}` referenced) and confirm: every endpoint has a request `.yml`, every group has a `folder.yml`, every referenced variable has an `environments/` entry, and no request file is an orphan. Report any whole endpoint/group/variable the pipeline silently dropped; fix → re-run L1.
+L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full inventory straight from the chosen source** (`docs/api/` markdown: every group folder + endpoint `.md`; or `docs/openapi/` spec: every operation in the root `paths:`) plus every `{{var}}` referenced, and confirm: every endpoint/operation has a request `.yml`, every group has a `folder.yml`, every referenced variable has an `environments/` entry, and no request file is an orphan. Report any whole endpoint/group/variable the pipeline silently dropped; fix → re-run L1.
 
 ### Output
 ```
 ## Open Collection — <Generate / Update / Validate>
-**Collection:** <root>   **Source:** docs/api/
+**Collection:** <root>   **Source:** <docs/api/ markdown | docs/openapi/ spec>
 **Structure:** opencollection.yml · environments/(…) · <group>/(folder.yml + N requests) …
 **Changes:** Created … / Updated … / Removed …
 **Verification (three-layer):**
@@ -130,7 +135,7 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 ---
 
 ## What this skill is NOT
-- **Not** the Markdown generator — producing `docs/api/` from Go is the **`api-doc`** skill (run it first; this skill reads its output).
+- **Not** a source generator — producing the `docs/api/` Markdown from Go is the **`api-doc`** skill, and the `docs/openapi/` spec is **`openapi-doc`** (run one first; this skill reads their output).
 - **Not** a Confluence publisher — that is the **`confluence-api-doc`** skill.
 - **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive editor.
 - **Not** a documentation carrier — the collection holds no `docs:`; the Markdown remains the single source of truth.

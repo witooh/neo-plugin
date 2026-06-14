@@ -28,6 +28,29 @@ Input is one markdown file per endpoint at `docs/api/<group>/<endpoint>.md` (the
 
 ---
 
+## 0b. Reading the OpenAPI spec source (the alternate input contract)
+
+When the source is `docs/openapi/` (the `openapi-doc` skill's split spec — preferred when it exists), the **runnable** bits come from each **operation** instead of a markdown file. **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
+
+| OpenAPI element | → Collection field |
+|---|---|
+| `servers[0].url` | the `{{baseUrl}}` env value (host/base) |
+| a `paths.<path>.<method>` operation | one request `.yml` (folder = its `tags[0]`) |
+| `summary` | request `info.name` |
+| the method + path key | `http.method` + `http.url` = `"{{baseUrl}}<path with {id}→:id>"` |
+| `parameters` (`in: path`) | a `params` row `type: path` (+ `:id` in the url) |
+| `parameters` (`in: query`) | a `params` row `type: query` |
+| `security` (`bearerAuth`/`apiKey`/`[]`) | request/folder `auth` (§3) — `bearerAuth`→bearer, `apiKey`→apikey, `[]`→none |
+| `requestBody.content.*.examples.default.value` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
+| `responses` / `x-business-logic` / `x-error-catalog` | not used (doc-only — they stay in the spec) |
+
+- **Grouping** comes from the operation's `tags[0]` (→ collection folder), mirroring the spec's `paths/<group>/` layout.
+- `components/schemas/*` are resolved only to shape the body example — they are not emitted into the collection.
+- An operation with no `requestBody` → request has **no** `http.body`.
+- The spec is split with `$ref`; resolve refs (Bruno's importer does this; a hand-map follows them) before reading an operation whole.
+
+---
+
 ## 1. `opencollection.yml`
 
 Runnable-only — **no `docs:` block** (overview lives in `docs/api/index.md`).

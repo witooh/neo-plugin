@@ -2,7 +2,7 @@
 
 Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, markdown→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, mirroring the `docs/api/` directory tree. Input is a **`docs/api/` Markdown directory only** (`index.md` at the root — the output of the `api-doc` skill). Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, mirroring the source tree. Input is a **`docs/api/` Markdown directory** (`index.md` at the root — the `api-doc` output) **or** a **`docs/openapi/` OpenAPI 3.2 split spec** (`openapi.yaml` at the root — the `openapi-doc` output); when both exist, prefer the spec. The spec is **reconstructed** into the same logical page shape the markdown has (§ Step P3 OpenAPI source), so everything downstream (P6 conversion, the deterministic checks, fresh-eyes) is identical. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
 docs/api/                              Confluence page tree
@@ -18,7 +18,7 @@ docs/api/                              Confluence page tree
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — a `docs/api/` directory containing `index.md`. If it is missing, STOP: this skill publishes the Markdown docs (run the `api-doc` skill first to produce them).
+1. **Source path + select** — prefer `docs/openapi/openapi.yaml` (OpenAPI source); else `docs/api/index.md` (Markdown source); if neither exists, STOP (run `openapi-doc` / `api-doc` first). An explicit "from the markdown" / "use the openapi spec" overrides; state the chosen source in the report.
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -42,6 +42,22 @@ The directory structure is the source of truth — no heading-based discovery ne
 - **Service overview (parent page):** read `index.md` — its overview paragraph + **Common Error Responses** section become the **parent page** body. The `index.md` endpoints table is navigation only; Confluence's child-page tree replaces it, so it is not synced.
 
 Validate before converting: an endpoint file with no `**Method**`/`**Path**` bullet → skip + warn; an empty file → skip + warn.
+
+### Step P3 (OpenAPI source) — reconstruct pages from the spec
+
+When the source is `docs/openapi/` (preferred when present) there is no pre-rendered markdown page — **reconstruct** each page's body from the operation, then feed it to the same P6 conversion. Read the root `openapi.yaml` (`paths` → `$ref` path files, `servers`, `tags`, `components`), resolve `$ref`s, and for each operation build the page:
+
+- **Page title** = `<METHOD>: <path>` (uppercased method + the path key, keeping the `{id}` form). **Group** = the operation's `tags[0]` → Title Case. Skip `health`.
+- **Page body** — the same logical shape api-doc's markdown has, so P6 converts it identically:
+  - intro paragraph ← `summary` + `description`;
+  - **Path/Query Parameters** tables ← `parameters` (`in: path` / `in: query`): Field / Description / Type / Mandatory (from `required`) / Example / Remark;
+  - **Request Body** table ← the `requestBody` schema's `properties` (`required[]` → M/O; nested `$ref` → a sub-table); **Request Example** ← `requestBody…examples.default.value`;
+  - **Response** table + **Response Example** ← the success `responses.<2xx>` schema + its example;
+  - **Business Logic** numbered list ← **`x-business-logic`** (one item per `step`; `substeps` indented);
+  - **Error Responses** table ← **`x-error-catalog`** (Status / Message / Description per entry), merged with each error `responses.<NNN>.description`.
+- **Parent page body** ← `info.description` (overview) + a Common Error Responses table built from `components.responses` / the shared error schema.
+
+`x-business-logic` and `x-error-catalog` are **custom extensions** standard OpenAPI renderers ignore — this skill reads them explicitly so the published page keeps the business logic + per-sentinel errors (without this they would silently vanish). Validate before converting: an operation with no `responses` → skip + warn.
 
 ## Step P4 — Map to the page tree
 
@@ -161,7 +177,8 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `docs/api/index.md` at source | STOP — this skill needs the markdown docs; run the `api-doc` skill first |
+| neither `docs/api/index.md` nor `docs/openapi/openapi.yaml` at source | STOP — run the `api-doc` or `openapi-doc` skill first to produce a source |
+| OpenAPI source: an operation drops `x-business-logic` / `x-error-catalog` on the page | the reconstruction skipped a custom extension — re-read the operation (standard renderers ignore `x-*`) |
 | endpoint `.md` missing `**Method**`/`**Path**` bullet | skip + list in warnings; don't abort |
 | empty endpoint `.md` file | skip + warn (no content to publish) |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
