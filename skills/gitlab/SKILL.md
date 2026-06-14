@@ -19,7 +19,7 @@ compatibility:
     - Bash
     - Read
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # GitLab Skill (Claude Code)
@@ -114,8 +114,29 @@ From the commits and diff, generate a structured MR description:
 - <concise description of each change>
 
 ## Files Changed
-<key files with what changed in each — not every file, focus on the important ones>
+<key files and what changed in each — render as a `| File | Change |` table when several files are touched; focus on the important files, not every one>
+
+## Verification
+<test outcomes per suite — unit / e2e / lint — concrete: what ran + what it proves, never a bare pass-count>
+<AC-coverage table when the work is tied to an AC/spec — see legend below>
 ```
+
+**Table-first rule:** when content is a set of comparable items — test/AC coverage, error codes, file-by-file changes, before/after — render it as a **markdown table**, not a bullet list. Tables make row-wise data scannable; keep bullets for prose-like points that don't share columns.
+
+**`## Verification` rules:**
+
+- Report each suite **concretely** — name what ran and what it proves, not just "X passed / Y failed". E.g. `unit: 42/42 — token refresh + expiry edges` · `e2e: 3/3 — login → refresh → logout` · `lint: clean`.
+- When the work is tied to an **AC / spec**, add an **AC-coverage table** — one row per AC: `| AC | check | status |`, where `check` is how that AC is verified (which test or manual step) and `status` is one value from the legend.
+- **Legend:** ✅ e2e-verified · ⚠️ covered-but-weak · ⚪ unit-only · ⏸ todo
+- **Never gloss over gaps.** If an AC is unit-only, weak, or untested, mark it honestly (⚪ / ⚠️ / ⏸) — do not inflate partial coverage into "all pass". Surfacing the gap is the point of this section.
+
+Example — an AC-coverage table for `## Verification`:
+
+| AC                         | check                         | status          |
+| -------------------------- | ----------------------------- | --------------- |
+| AC-1 login returns JWT     | `auth_e2e_test.go::TestLogin` | ✅ e2e-verified |
+| AC-2 refresh rotates token | `token_test.go::TestRefresh`  | ⚪ unit-only    |
+| AC-3 lockout after 5 fails | —                             | ⏸ todo         |
 
 The description must accurately reflect what the commits and diff show. Read the actual code changes — do not just paraphrase commit messages. If commits are messy or unclear, the description should still be clear and well-organized based on what the diff reveals.
 
@@ -196,7 +217,7 @@ Compare with the existing MR description to understand what's new or changed sin
 
 ### Step 4: Generate Updated Description
 
-Write a new description covering ALL changes (original + new), using the same structure as MR Create Step 3:
+Write a new description covering ALL changes (original + new), using the same structure as MR Create Step 3 — including the **table-first rule**, the `## Verification` section, and the AC-coverage legend defined there:
 
 ```
 ## Summary
@@ -206,10 +227,14 @@ Write a new description covering ALL changes (original + new), using the same st
 <complete grouped list of all changes>
 
 ## Files Changed
-<updated file list>
+<updated file list — `| File | Change |` table when several files are touched>
+
+## Verification
+<test outcomes per suite — unit / e2e / lint — concrete, never a bare pass-count>
+<AC-coverage table (`| AC | check | status |`, same legend as Step 3) when tied to an AC/spec>
 ```
 
-Do NOT just append new changes to the old description — rewrite the entire description to be coherent and comprehensive. The description should read as if it was written fresh for the current state of the branch.
+Do NOT just append new changes to the old description — rewrite the entire description to be coherent and comprehensive. The description should read as if it was written fresh for the current state of the branch. Re-verify the `## Verification` results against the current branch state — refresh each AC status from the latest test run and mark any gaps honestly; never carry over stale "all pass" claims from the previous description.
 
 ### Step 5: Update MR and Report
 
