@@ -50,7 +50,7 @@ references/
   html-output.md               HTML form + the lint/docverify contract
   system-analyzer-cli-tools.md System Analyzer's read-only tooling
   roles/<role>.md              distilled role capsule (specialist point-to-reads this)
-  shared/preamble.md           universal agent header (read first on every dispatch)
+  shared/preamble.md           universal agent header (read first on every dispatch) + report-discipline (§6)
   shared/ac-status.md          Ready/Blocked state machine + Sign-Off math
   shared/jira-ref.md           JIRA Ref capture → inherit-verbatim → sticky
   shared/task-tracking.md      Build progress axis + Build Plan (dev work-breakdown) + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)

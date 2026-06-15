@@ -33,8 +33,7 @@ Architecture decision (new pattern/service boundary) → `NEEDS_CONTEXT` (Archit
 ```
 ## Developer
 **Task:** ...
-**Changes:** [file path]: [what changed + why]
-**Code / Tests:** [implementation + unit test code]
+**Changes:** [file:line]: [what changed + why]
 **Notes:** [what QA / Security should know]
 
 Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
