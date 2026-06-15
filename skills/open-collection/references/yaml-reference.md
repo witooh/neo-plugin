@@ -2,7 +2,7 @@
 
 Authoritative key/section reference for files this skill writes. Distilled from the OpenCollection spec ([docs](https://docs.usebruno.com/opencollection-yaml/structure-reference)) and the steering files used in the `tcrb/bruno-api-documents` workspace.
 
-This skill writes a **subset** of the spec — only the sections needed to represent a runnable request derived from the `docs/api/` markdown. Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the markdown calls for them.
+This skill writes a **subset** of the OpenCollection spec — only the sections needed to represent a runnable request derived from the `bruno/openapi/` OpenAPI spec. Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the OpenAPI spec calls for them.
 
 ---
 
@@ -13,7 +13,7 @@ This skill writes a **subset** of the spec — only the sections needed to repre
 | `opencollection.yml` | Collection root. One per collection. Holds `info` + bundling/ignore config. |
 | `environments/<NAME>.yml` | One file per environment. Holds variables (including secrets). |
 | `<folder>/folder.yml` | Folder metadata + inherited headers/auth for child requests. |
-| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `settings`. No `docs` — the documentation stays in `docs/api/` markdown. |
+| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `settings`. No `docs` — the documentation stays in the `bruno/openapi/` OpenAPI spec. |
 
 ---
 
@@ -92,9 +92,9 @@ request:
 
 | Key | Required | Notes |
 |-----|----------|-------|
-| `info.name` | yes | Display name (e.g., `Consent`, `Channel`). Derived from the handler subdirectory. |
+| `info.name` | yes | Display name (e.g., `Consent`, `Channel`). Derived from the operation's `tags[0]`. |
 | `info.type` | yes | Always `folder`. |
-| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in the order groups appear under `docs/api/`. |
+| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in the order the `tags` appear in the spec. |
 | `request.headers` | no | Headers inherited by every request inside this folder. Lift here when every request shares the same header. |
 | `request.auth` | no | Auth inherited by child requests. Values: `inherit`, `none`, or an explicit auth block (see Auth Types). |
 
@@ -110,7 +110,7 @@ http: ...
 settings: ...
 ```
 
-No `docs`, `runtime`, or `examples` section — the collection is runnable-only (documentation stays in `docs/api/` markdown; tests/assertions/scripts are opted out).
+No `docs`, `runtime`, or `examples` section — the collection is runnable-only (documentation stays in the `bruno/openapi/` OpenAPI spec; tests/assertions/scripts are opted out).
 
 ### `info`
 
@@ -156,7 +156,7 @@ http:
 | Key | Required | Notes |
 |-----|----------|-------|
 | `method` | yes | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`. |
-| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params — convert the markdown's documented `{id}` form to `:id`. |
+| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params — convert the operation's path-key `{id}` form to `:id`. |
 | `params` | no | All path **and** query params declared explicitly. `type: path` or `type: query`. Path params must match the placeholders in the URL string. |
 | `headers` | no | Per-request headers only. Folder-level shared headers belong in `folder.yml`. |
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
@@ -233,6 +233,6 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 ## Reference Files
 
-- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **markdown input contract** (§0: which `docs/api/` markdown element maps to which collection field).
+- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **OpenAPI-spec input contract** (§0: which OpenAPI operation element maps to which collection field).
 
-The shape of the `docs/api/` markdown itself (field tables, examples, error rows) is owned by the **`api-doc`** skill — this skill only reads the runnable bits out of it, it does not redefine them.
+The shape of the `bruno/openapi/` OpenAPI spec itself (operations, schemas, examples) is owned by the **`openapi-doc`** skill — this skill only reads the runnable bits out of it, it does not redefine them.

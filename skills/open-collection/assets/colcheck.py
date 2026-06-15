@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
 """
-colcheck.py — TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ docs/api markdown OR docs/openapi spec).
-Zero install: pure Python 3 (stdlib only; uses PyYAML if present, else a safe fallback).
+colcheck.py — TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ bruno/openapi spec).
+Zero install: pure Python 3 (stdlib only; uses PyYAML if present).
 Layer-1 of the open-collection skill's three-layer verify.
 
 WHY THIS EXISTS
-  open-collection derives a *runnable* collection from the `docs/api/` markdown
-  (the single source of truth, already verified against Go by the `api-doc` skill).
-  So this script verifies the collection against the MARKDOWN — never against Go.
+  open-collection derives a *runnable* collection from the `bruno/openapi/` OpenAPI 3.2
+  split spec (the single source of truth, already verified against Go by the `openapi-doc`
+  skill). So this script verifies the collection against the SPEC — never against Go.
   The thing that can silently drift is the transform: a request whose URL, method,
-  path-params, or runnable body no longer matches the markdown it came from. This is
+  path-params, or runnable body no longer matches the operation it came from. This is
   the DETERMINISTIC, independent measure of that, so "verify passed" rests on
   evidence, not the writer's confidence (same principle as neo's lint.py/docverify.py).
 
 PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
   A flag RAISES A SIGNAL for a human/agent to inspect — it does not "prove" wrong:
-    • ERROR = a mismatch the script is confident about (a markdown endpoint with no
-              request file, a method/path/body that diverges from the markdown, a url
-              path-param not declared, a {{var}} with no environment entry). The agent
-              confirms each before fixing; a genuine false positive is skipped + noted,
-              never blindly "fixed". Loop until ERRORs clear OR ~3 rounds stall.
+    • ERROR = a mismatch the script is confident about (a spec operation with no request
+              file, a method/path/body that diverges from the spec, a url path-param not
+              declared, a {{var}} with no environment entry). The agent confirms each
+              before fixing; a genuine false positive is skipped + noted, never blindly
+              "fixed". Loop until ERRORs clear OR ~3 rounds stall.
     • NOTE  = something the script deliberately CANNOT verify confidently (auth
               semantic mapping, header completeness, env-var *values*). Printed for the
               Layer-2 fresh-eyes verifier; each ends in "needs fresh-eyes"; never fails.
 
-WHAT IT CHECKS  (collection ↔ markdown; ordered high→low confidence)
-  K1 Coverage   every docs/api/<group>/<endpoint>.md has a request .yml & vice versa
-                (missing / orphan = ERROR); every group with endpoints has a folder.yml.
-  K2 Method/Path  request http.method == markdown **Method**; http.url path (minus the
-                {{...}} prefix) == markdown **Path** (with {id} normalised to :id).
-  K3 Body       if the markdown has a `## Request Example`, http.body.data must equal it
+WHAT IT CHECKS  (collection ↔ openapi spec; ordered high→low confidence)
+  K1 Coverage   every spec operation has a request .yml & vice versa (matched by
+                (method, suffix-tolerant path); missing / orphan = ERROR); every group
+                with endpoints has a folder.yml.
+  K2 Method/Path  request http.method == the operation's method; http.url path (minus the
+                {{...}} prefix) == the operation's path (matching already proved by K1).
+  K3 Body       if the operation has a requestBody example, http.body.data must equal it
                 (parsed JSON compare); body present on exactly one side = ERROR.
   K4 Structure  every request .yml has info.name + http.method + http.url · url path
                 params (:name) ⇔ params(type: path) · http.body.data parses · seq unique
@@ -37,23 +38,21 @@ WHAT IT CHECKS  (collection ↔ markdown; ordered high→low confidence)
   K5 Env        every {{var}} a request references (excluding {{process.env.*}}) is
                 defined in some environments/*.yml.
 
-  NOTE sources: auth mapping (markdown **Auth** → folder/request auth) is judgment;
-  a missing PyYAML/yq degrades the http-block checks to NOTE; no environments/ dir
-  degrades K5 to a NOTE.
+  NOTE sources: auth mapping (operation security → folder/request auth) is judgment;
+  no environments/ dir degrades K5 to a NOTE.
 
-DUAL SOURCE
-  open-collection can derive the collection from the `docs/api/` markdown OR a
-  `docs/openapi/` OpenAPI 3.2 split spec (the openapi-doc skill's output). Pass --md or
-  --spec to pick; with neither, the spec is preferred when `docs/openapi/openapi.yaml`
-  exists, else markdown. In spec mode coverage + body fidelity match the collection to the
-  spec by (method, path) — request files are named by operation, not by stem — while the
-  per-request structure (K4) and env (K5) checks are reused unchanged. Spec mode needs PyYAML.
+SOURCE
+  open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.2 split spec
+  (the openapi-doc skill's output). The collection is matched to the spec by (method,
+  path) — request files Bruno's importer emits are named by operation, not by stem — so
+  coverage + body fidelity compare operations, while the per-request structural (K4) and
+  env (K5) checks are reused unchanged. Needs PyYAML.
 
 USAGE
-  python3 colcheck.py <collection-root>          --md docs/api/        # vs markdown
-  python3 colcheck.py <collection-root>          --spec docs/openapi/  # vs openapi spec
-  python3 colcheck.py <collection>/consent/x.yml --md docs/api/        # one request file
-  (--md / --spec also accept =PATH; arg order is irrelevant.)
+  python3 colcheck.py <collection-root>          --spec bruno/openapi/  # vs openapi spec
+  python3 colcheck.py <collection>/consent/x.yml --spec bruno/openapi/  # one request file
+  (--spec also accepts =PATH; arg order is irrelevant. With no flag the spec defaults to
+   bruno/openapi/.)
 Exit code: 0 = no ERROR (NOTEs/WARNINGs ok), 1 = at least one ERROR.
 """
 import re, sys, json, pathlib
@@ -63,66 +62,19 @@ try:
     import yaml                      # PyYAML — full YAML structural checks when present
     HAVE_YAML = True
 except Exception:
-    HAVE_YAML = False                # fallback: degrade http-block checks to NOTE
+    HAVE_YAML = False                # without it the OpenAPI spec cannot be read
 
 
-RE_JSON_BLOCK = re.compile(r'```json\s*\n(.*?)```', re.S)
 RE_LEADING_VAR = re.compile(r'^\{\{[^}]*\}\}')           # a leading {{baseUrl}}-style token in a url
 RE_VAR = re.compile(r'\{\{\s*([^}]+?)\s*\}\}')           # any {{var}} reference
-RE_MD_METHOD = re.compile(r'(?im)^\s*[-*]\s*\*\*Method:\*\*\s*`?([A-Za-z]+)`?')
-RE_MD_PATH   = re.compile(r'(?im)^\s*[-*]\s*\*\*Path:\*\*\s*`([^`]+)`')
-RE_MD_AUTH   = re.compile(r'(?im)^\s*[-*]\s*\*\*Auth:\*\*\s*(.+?)\s*$')
-
-
-# ───────────────────────── markdown source reading ─────────────────────────
-
-def split_sections(md):
-    """{heading_text: section_body} split on `## ` (H2) headings; text before the first
-       H2 is keyed ''. Heading text lowercased + trimmed."""
-    parts = re.split(r'^##\s+(.+?)\s*$', md, flags=re.M)
-    out = {'': parts[0]}
-    for i in range(1, len(parts), 2):
-        out[parts[i].strip().lower()] = parts[i + 1]
-    return out
-
-
-def read_md_endpoint(path):
-    """Pull the runnable bits out of one docs/api endpoint markdown file."""
-    text = path.read_text(encoding='utf-8', errors='replace')
-    m, p, a = RE_MD_METHOD.search(text), RE_MD_PATH.search(text), RE_MD_AUTH.search(text)
-    out = {'method': m.group(1).upper() if m else None,
-           'path': p.group(1).strip() if p else None,
-           'auth': a.group(1).strip().strip('`').strip() if a else None,
-           'body_raw': None, 'body_json': None}
-    secs = split_sections(text)
-    if 'request example' in secs:
-        blocks = RE_JSON_BLOCK.findall(secs['request example'])
-        if blocks:
-            out['body_raw'] = blocks[0].strip()
-            try:
-                out['body_json'] = json.loads(out['body_raw'])
-            except Exception:
-                out['body_json'] = '__INVALID__'
-    return out
-
-
-def collect_md_endpoints(md_root):
-    """{ '<group>/<stem>': Path } for every endpoint markdown (index.md excluded)."""
-    out = {}
-    for f in sorted(md_root.rglob('*.md')):
-        if f.name == 'index.md':
-            continue
-        out[f.relative_to(md_root).with_suffix('').as_posix()] = f
-    return out
 
 
 # ───────────────────────── OpenAPI spec source reading ─────────────────────────
-# open-collection is dual-source: it can derive the collection from the `docs/api/`
-# markdown (above) OR from a `docs/openapi/` OpenAPI 3.2 split spec. In spec mode the
-# collection is matched to the spec by (method, path) — the request files Bruno's
-# importer emits are named by operation, not by the markdown stem — so coverage + body
-# fidelity compare operations, while the per-request structural (K4) and env (K5) checks
-# are reused unchanged. Needs PyYAML; without it spec mode degrades to NOTE.
+# open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.2 split spec.
+# The collection is matched to the spec by (method, path) — the request files Bruno's
+# importer emits are named by operation, not by stem — so coverage + body fidelity compare
+# operations, while the per-request structural (K4) and env (K5) checks are reused
+# unchanged. Needs PyYAML; without it spec reading is unavailable.
 
 def norm_template(p):
     """A URL path template normalised for comparison: params → {}, single leading slash."""
@@ -138,7 +90,7 @@ def _url_path(url):
 
 
 def _spec_auth(op):
-    """Operation security → the markdown-style **Auth** label, for the auth NOTE."""
+    """Operation security → an auth label ('Bearer token'/'API Key'/'None'), for the auth NOTE."""
     sec = op.get('security')
     if sec == []:
         return 'None'
@@ -170,7 +122,7 @@ def _spec_body(op):
 
 def collect_spec_ops(spec_root):
     """[{method, rel_path, full_path, auth, body_json, body_raw}] for every operation in a
-       docs/openapi split spec. Returns None when PyYAML is absent or the root is missing."""
+       bruno/openapi split spec. Returns None when PyYAML is absent or the root is missing."""
     if not HAVE_YAML:
         return None
     root = spec_root if spec_root.is_file() else (spec_root / 'openapi.yaml')
@@ -220,7 +172,7 @@ def _op_matches(op, method, req_norm):
 
 
 def match_spec_op(spec_ops, method, req_norm):
-    """The unique spec op matching this request, shaped like a markdown endpoint dict
+    """The unique spec op matching this request, shaped like an endpoint dict
        (path=None so the path-string compare is skipped — matching already proved it)."""
     if not spec_ops:
         return None
@@ -311,26 +263,7 @@ def norm_yaml_path(url):
     return RE_LEADING_VAR.sub('', (url or '').strip()).strip()
 
 
-def md_path_to_colon(p):
-    """Markdown documented path ({id}) → Bruno URL form (:id)."""
-    return re.sub(r'\{([A-Za-z_]\w*)\}', r':\1', (p or '').strip())
-
-
 # ───────────────────────── checks ─────────────────────────
-
-def check_coverage(md_keys, yml_keys, col_root, errors):
-    for k in sorted(md_keys - yml_keys):
-        errors.append((k + '.yml', 'ERROR',
-                       f'markdown endpoint "{k}.md" has no request file in the collection'))
-    for k in sorted(yml_keys - md_keys):
-        errors.append((k + '.yml', 'ERROR',
-                       f'request file has no matching markdown endpoint "{k}.md" (orphan)'))
-    groups = {k.rsplit('/', 1)[0] for k in md_keys if '/' in k}
-    for g in sorted(groups):
-        if not (col_root / g / 'folder.yml').exists():
-            errors.append((g + '/folder.yml', 'ERROR',
-                           f'group "{g}" has endpoints but no folder.yml'))
-
 
 def check_coverage_spec(spec_ops, request_files, col_root, errors):
     """Spec-mode coverage: every spec operation has a request file, and no request file
@@ -389,17 +322,12 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
             except json.JSONDecodeError as e:
                 errors.append((rel, 'ERROR', f'http.body.data invalid JSON ({e.msg} line {e.lineno})'))
 
-        # K2/K3 — compare against the source (markdown endpoint or openapi spec operation)
+        # K2/K3 — compare against the openapi spec operation
         ep = resolve_source(key, method, norm_template(norm_yaml_path(url)))
         if ep is not None:
             if ep['method'] and method and ep['method'] != method:
                 errors.append((rel, 'ERROR',
                                f'http.method {method} ≠ source method {ep["method"]}'))
-            if ep['path']:
-                want, got = md_path_to_colon(ep['path']), norm_yaml_path(url)
-                if want and got and want != got:
-                    errors.append((rel, 'ERROR',
-                                   f'http.url path "{got}" ≠ source path "{want}"'))
             # K3 body fidelity
             md_has = ep['body_json'] is not None
             yml_has = r['body_type'] == 'json' and bool(r['body_data'])
@@ -440,18 +368,13 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
 # ───────────────────────── main ─────────────────────────
 
 def parse_args(argv):
-    """(collection-target, md-arg, spec-arg). --md / --spec each consume a value (space or
-       =); the first bare token is the collection target. Either source flag may be omitted
-       — main resolves the default (prefer the openapi spec when present)."""
-    positional, md_arg, spec_arg = [], None, None
+    """(collection-target, spec-arg). --spec consumes a value (space or =); the first bare
+       token is the collection target. --spec may be omitted — main defaults to bruno/openapi."""
+    positional, spec_arg = [], None
     it = iter(argv)
     for a in it:
-        if a == '--md':
-            md_arg = next(it, 'docs/api')
-        elif a.startswith('--md='):
-            md_arg = a[len('--md='):]
-        elif a == '--spec':
-            spec_arg = next(it, 'docs/openapi')
+        if a == '--spec':
+            spec_arg = next(it, 'bruno/openapi')
         elif a.startswith('--spec='):
             spec_arg = a[len('--spec='):]
         elif a.startswith('--'):
@@ -459,7 +382,7 @@ def parse_args(argv):
         else:
             positional.append(a)
     target = pathlib.Path(positional[0]) if positional else pathlib.Path('.')
-    return target, md_arg, spec_arg
+    return target, spec_arg
 
 
 def _bucket():
@@ -467,7 +390,7 @@ def _bucket():
 
 
 def main():
-    target, md_arg, spec_arg = parse_args(sys.argv[1:])
+    target, spec_arg = parse_args(sys.argv[1:])
 
     if not target.exists():
         print(f"colcheck: {target} not found — nothing to check")
@@ -490,52 +413,25 @@ def main():
         print("colcheck: no request .yml files or opencollection.yml — nothing to check")
         sys.exit(0)
 
-    # ---- resolve the source: openapi spec (preferred) or markdown ----
+    # ---- source: the openapi spec at bruno/openapi/ ----
     errors, notes, seq_seen = [], [], defaultdict(dict)
-    md_root = pathlib.Path(md_arg) if md_arg else pathlib.Path('docs/api')
-    spec_root = pathlib.Path(spec_arg) if spec_arg else pathlib.Path('docs/openapi')
-    if spec_arg:
-        source = 'spec'
-    elif md_arg:
-        source = 'md'
-    elif (spec_root / 'openapi.yaml').exists():
-        source = 'spec'                                  # auto: prefer the openapi spec
-    else:
-        source = 'md'
-    print(f"colcheck: source = {source} "
-          f"({'spec ' + str(spec_root) if source == 'spec' else 'markdown ' + str(md_root)})")
+    spec_root = pathlib.Path(spec_arg) if spec_arg else pathlib.Path('bruno/openapi')
+    print(f"colcheck: source = spec {spec_root}")
 
-    if source == 'spec':
-        spec_ops = collect_spec_ops(spec_root)
-        if spec_ops is None:
-            if not HAVE_YAML:
-                print("colcheck: --spec source needs PyYAML to read the OpenAPI spec — install "
-                      "pyyaml, or verify against the markdown with --md docs/api/.")
-            else:
-                print(f"colcheck: openapi spec {spec_root} not found or unreadable — run the "
-                      f"openapi-doc skill first, or pass --spec <path>.")
-            sys.exit(1)
-        resolve_source = lambda key, method, npath: match_spec_op(spec_ops, method, npath)
-        if target.is_dir():
-            check_coverage_spec(spec_ops, request_files, col_root, errors)
-    else:
-        if not md_root.exists():
-            print(f"colcheck: markdown source {md_root} not found — open-collection needs the "
-                  f"docs/api/ markdown (run the api-doc skill first). Pass --md <path> if it lives elsewhere.")
-            sys.exit(1)
-        md_endpoints = collect_md_endpoints(md_root)
-        resolve_source = lambda key, method, npath: (
-            read_md_endpoint(md_endpoints[key]) if key in md_endpoints else None)
-        if target.is_dir():
-            yml_keys = {f.relative_to(col_root).with_suffix('').as_posix() for f in request_files}
-            check_coverage(set(md_endpoints), yml_keys, col_root, errors)
+    spec_ops = collect_spec_ops(spec_root)
+    if spec_ops is None:
+        if not HAVE_YAML:
+            print("colcheck: reading the OpenAPI spec needs PyYAML — install pyyaml (or yq).")
+        else:
+            print(f"colcheck: openapi spec {spec_root} not found or unreadable — run the "
+                  f"openapi-doc skill first, or pass --spec <path>.")
+        sys.exit(1)
+    resolve_source = lambda key, method, npath: match_spec_op(spec_ops, method, npath)
+    if target.is_dir():
+        check_coverage_spec(spec_ops, request_files, col_root, errors)
 
     env_vars = collect_env_vars(col_root)
 
-    if not HAVE_YAML:
-        notes.append(('(global)', 'PyYAML not installed — YAML structural checks (http block, '
-                                  'path params, body, seq, env) degraded to per-file NOTEs; install '
-                                  'PyYAML or yq for the full open-collection verify (needs fresh-eyes)'))
     if env_vars is None:
         notes.append(('(global)', 'no environments/ directory — {{var}} reference checks (K5) '
                                   'skipped; needs fresh-eyes'))

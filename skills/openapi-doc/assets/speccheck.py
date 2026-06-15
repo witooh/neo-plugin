@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """
-speccheck.py — TRIPWIRE cross-checker for openapi-doc output (docs/openapi/ split spec vs Go code).
+speccheck.py — TRIPWIRE cross-checker for openapi-doc output (bruno/openapi/ split spec vs Go code).
 Zero install: pure Python 3 (stdlib only; uses PyYAML if present, else degrades the
 spec-structure checks to NOTE). OPTIONALLY runs a real OpenAPI validator
 (redocly / spectral / openapi-spec-validator) if one is on PATH. Layer-1 of the
 openapi-doc skill's three-layer verify.
 
 WHY THIS EXISTS
-  openapi-doc emits an OpenAPI 3.2 split-YAML spec from Go source. Like api-doc's
-  doccheck.py, this is the DETERMINISTIC, independent measure of the things a machine
-  CAN count, so "verify passed" rests on evidence, not the writer's confidence. It
-  reuses doccheck.py's Go-parsing engine verbatim (the Go-reading rules are identical;
-  only the output format — YAML spec instead of markdown — differs).
+  openapi-doc emits an OpenAPI 3.2 split-YAML spec from Go source. This is the
+  DETERMINISTIC, independent measure of the things a machine CAN count, so "verify
+  passed" rests on evidence, not the writer's confidence.
 
-PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH  (same contract as doccheck.py)
+PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
     • ERROR = a mismatch the script is confident about (a route with no path operation,
               a dangling $ref, a struct field with no schema property, a required[] that
               contradicts the tags, a 2xx-less operation). The agent confirms each before
@@ -44,8 +42,8 @@ WHAT IT CHECKS  (ordered high→low confidence)
   (covered by S1 when PyYAML is present, and by the external validator when one is on PATH).
 
 USAGE
-  python3 speccheck.py docs/openapi/            --src .        # whole spec vs ./ source
-  python3 speccheck.py docs/openapi/openapi.yaml --src ./svc   # root + everything it $refs
+  python3 speccheck.py bruno/openapi/            --src .        # whole spec vs ./ source
+  python3 speccheck.py bruno/openapi/openapi.yaml --src ./svc   # root + everything it $refs
   (--src also accepts --src=PATH; arg order is irrelevant. --src = repo root, where
    go.mod lives — usually ".")
 Exit code: 0 = no ERROR (NOTEs/WARNINGs ok), 1 = at least one ERROR.
@@ -60,8 +58,7 @@ except Exception:
     HAVE_YAML = False                # fallback: degrade S1/S4/S5/S6/S7 to NOTE
 
 
-# ═════════════════════ Go source parsing (verbatim from doccheck.py) ═════════════════════
-# These rules are identical to api-doc's — keep in sync with skills/api-doc/assets/doccheck.py.
+# ═════════════════════ Go source parsing ═════════════════════
 
 RE_FIELD = re.compile(
     r'^\s*([A-Za-z_]\w*)\s+([\*\[\]\w.]+)\s*(?:`([^`]*)`)?\s*(?://.*)?$')
@@ -220,7 +217,7 @@ def load_yaml(path):
 
 def collect_spec_files(spec_root):
     """(root_path, [path files], [schema/response component files]). spec_root may be the
-       docs/openapi dir or the root openapi.yaml itself."""
+       bruno/openapi dir or the root openapi.yaml itself."""
     if spec_root.is_file():
         root = spec_root
         base = spec_root.parent
@@ -523,7 +520,7 @@ def parse_args(argv):
             continue
         else:
             positional.append(a)
-    target = pathlib.Path(positional[0]) if positional else pathlib.Path('docs/openapi')
+    target = pathlib.Path(positional[0]) if positional else pathlib.Path('bruno/openapi')
     return target, src
 
 

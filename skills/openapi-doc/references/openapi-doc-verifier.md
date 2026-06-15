@@ -65,7 +65,7 @@ Every finding **must** cite `file:line` from the source. A finding with no code 
 **Scope:** [files / operations checked] · **speccheck NOTEs addressed:** [N]
 ### Findings
 #### [MISMATCH | MISSING | WRONG | UNVERIFIED] <area> — <file>
-- File: docs/openapi/<paths|components>/<file>.yaml
+- File: bruno/openapi/<paths|components>/<file>.yaml
 - Issue: [what is wrong]
 - Evidence: <source path:line> — [the actual code]
 - Fix: [what the spec should say]

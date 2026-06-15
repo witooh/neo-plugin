@@ -3,7 +3,7 @@
 Templates for a **split OpenAPI 3.2.0 spec**. The output is a directory: a root document plus one Path Item file per URL path and one schema file per Go type, wired with `$ref`.
 
 ```
-docs/openapi/
+bruno/openapi/
 ├── openapi.yaml                       ← Root: openapi/info/servers/tags/paths-$refs/components
 ├── paths/
 │   └── <group>/<path>.yaml            ← one Path Item Object per URL path (all its methods)
@@ -14,7 +14,7 @@ docs/openapi/
 
 **Target version:** `openapi: 3.2.0` (JSON-Schema 2020-12 dialect — union-type nullability, `examples` arrays). Do **NOT** use the OpenAPI 3.0 `nullable: true` keyword or the singular schema-level `example:` (both are wrong/deprecated for 3.1+).
 
-**File granularity — one Path Item per distinct URL path.** OpenAPI keys a path to exactly one Path Item Object, so all HTTP methods on the same path live in **one** file (unlike api-doc's one-file-per-handler). Most resources have distinct paths per endpoint, so this usually collapses to one endpoint per file; when a path carries two methods (e.g. `GET` + `DELETE` on `/consents/{id}`), both operations share the file. Group folder = handler group, same as api-doc.
+**File granularity — one Path Item per distinct URL path.** OpenAPI keys a path to exactly one Path Item Object, so all HTTP methods on the same path live in **one** file (not one file per handler). Most resources have distinct paths per endpoint, so this usually collapses to one endpoint per file; when a path carries two methods (e.g. `GET` + `DELETE` on `/consents/{id}`), both operations share the file. Group folder = handler group.
 
 **File naming** — kebab of the path within the group, params rendered `by-<param>`, trailing action kept: `/channels` → `channels.yaml`, `/channels/{id}` → `channels-by-id.yaml`, `/consents/{id}/revoke` → `consents-by-id-revoke.yaml`.
 
@@ -22,7 +22,7 @@ docs/openapi/
 
 ---
 
-## Root Template (`docs/openapi/openapi.yaml`)
+## Root Template (`bruno/openapi/openapi.yaml`)
 
 ```yaml
 openapi: 3.2.0
@@ -70,15 +70,15 @@ components:
       $ref: "./components/responses/InternalServerError.yaml"
 ```
 
-- `info.title` = `<Service> API`; `info.version` = the API version from `CLAUDE.md`/router; `info.description` = the overview paragraph (≤2 sentences, `<Service> provides APIs for <domain>.` pattern — same rule as api-doc's index overview).
+- `info.title` = `<Service> API`; `info.version` = the API version from `CLAUDE.md`/router; `info.description` = the overview paragraph (≤2 sentences, `<Service> provides APIs for <domain>.` pattern).
 - `servers[].url` = the versioned base (e.g. `/api/v1`); each `paths` key is the path **relative to that base** (so `/api/v1/consents` → key `/consents`).
-- `tags[]` = one per handler group (Title Case), mirrors api-doc's group sections.
+- `tags[]` = one per handler group (Title Case).
 - `paths` maps each URL path to a `$ref` of its Path Item file.
-- Common errors (the api-doc "Common Error Responses" that live in `index.md` only) → `components.responses`, each a `$ref` to a file under `components/responses/`. Per-endpoint operations reference these instead of redeclaring 401/403/etc.
+- Common errors → `components.responses`, each a `$ref` to a file under `components/responses/`. Per-endpoint operations reference these instead of redeclaring 401/403/etc.
 
 ---
 
-## Path Item Template (`docs/openapi/paths/<group>/<path>.yaml`)
+## Path Item Template (`bruno/openapi/paths/<group>/<path>.yaml`)
 
 One file = one Path Item Object = all methods for that URL path.
 
@@ -161,7 +161,7 @@ post:
 
 ---
 
-## Schema Component Template (`docs/openapi/components/schemas/<GoTypeName>.yaml`)
+## Schema Component Template (`bruno/openapi/components/schemas/<GoTypeName>.yaml`)
 
 One file per Go type. File name = the Go type name **as-is** (`AcceptConsentRequest.yaml`, `ConsentItem.yaml`) — never abbreviate/rename.
 
@@ -192,7 +192,7 @@ properties:
 
 ## Go → OpenAPI 3.2 mapping (master table)
 
-| api-doc rule (markdown) | OpenAPI 3.2 target |
+| Documented element | OpenAPI 3.2 target |
 |---|---|
 | `# <Name>` heading | operation `summary` (PascalCase split) |
 | description line | operation `description` (CommonMark) |
@@ -211,7 +211,7 @@ properties:
 | Nested `**X Object:**` sub-table | separate `components/schemas/X.yaml` + `$ref` |
 | Embedded struct (e.g. `BaseResponse`) | `allOf: [{$ref: Base}, {type: object, ...}]` |
 | Wrapper envelope `{success,data,message}` | wrapper schema whose `data` `$ref`s the inner schema |
-| `index.md` header/overview/common-errors | root `info` + `servers` + `tags` + `components.responses` |
+| service overview + common errors | root `info` + `servers` + `tags` + `components.responses` |
 
 ---
 
@@ -290,7 +290,7 @@ x-business-logic:
 
 ## Error Responses (`responses` + x-error-catalog)
 
-OpenAPI keys responses by **status code**, but api-doc lists **one row per sentinel** even when several share a status. To keep that fidelity, each error status gets one `responses.<NNN>` entry, and where multiple distinct sentinels share that status they are enumerated in **`x-error-catalog`** (which `confluence-api-doc` renders back into the Error Responses table):
+OpenAPI keys responses by **status code**, but distinct error sentinels each need **one row** even when several share a status. To keep that fidelity, each error status gets one `responses.<NNN>` entry, and where multiple distinct sentinels share that status they are enumerated in **`x-error-catalog`** (which `confluence-api-doc` renders back into the Error Responses table):
 
 ```yaml
 responses:
@@ -313,7 +313,7 @@ Rules (single source for tracing/consolidation/order: [`go-scan-patterns.md`](go
 - One sentinel = one `x-error-catalog` entry (even when several share a status); `message` matches the actual code string; dedup the same sentinel from multiple methods.
 - Wrapped repo/external errors → a single catch-all `"500"` (`$ref` `InternalServerError.yaml`); do not trace into repos.
 - Generic 401/403/404/500 → `$ref` the shared `components/responses/*.yaml`; do not redeclare per endpoint.
-- Status-key order ascending; within a status, `x-error-catalog` follows the api-doc Rule 5 order (handler errors → usecase sentinels [switch order or code order] → domain-service errors → catch-all).
+- Status-key order ascending; within a status, `x-error-catalog` follows the standard order (handler errors → usecase sentinels [switch order or code order] → domain-service errors → catch-all).
 
 ---
 
@@ -415,7 +415,7 @@ Populate each property's `description` from the Go field name (apply the FIRST m
 
 ## Example value conventions (for `examples: [...]`)
 
-Same deterministic conventions as api-doc, emitted as the single element of the property's `examples` array (and assembled into the operation-level `examples.default.value` body/response):
+Deterministic example conventions, emitted as the single element of the property's `examples` array (and assembled into the operation-level `examples.default.value` body/response):
 
 | Type | Convention | Value |
 |---|---|---|

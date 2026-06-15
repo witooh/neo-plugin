@@ -14,7 +14,7 @@ description: >
   "list spaces", or any raw acli operation. NOTE — route elsewhere, NOT here: verifying
   AC / test cases / design against a JIRA card, or any dev-workflow that only *reads* a
   card → the `neo` skill (it runs read-only acli inline); publishing generated API docs
-  to Confluence → the `api-doc` skill (acli cannot write pages). This skill is for
+  to Confluence → the `confluence-api-doc` skill (acli cannot write pages). This skill is for
   direct Jira/Confluence operations the user asks for explicitly.
 compatibility:
   environment: claude-code
@@ -155,7 +155,7 @@ find unassigned bugs) — each with its safety steps inline — read
   Use `storage` by default (leanest, structure-clean); if the page is macro-heavy and the
   output fills with `<ac:…>` tags, switch to `--body-format view` (fully rendered HTML).
 - Creating / updating a Confluence page → use the Confluence REST API directly (curl).
-- **Publishing generated API docs to Confluence → use the `api-doc` skill** (it owns the
+- **Publishing generated API docs to Confluence → use the `confluence-api-doc` skill** (it owns the
   REST publish + round-trip verify). Do not reimplement that here.
 - Space lifecycle (`list` / `view` / `create` / `update` / `archive` / `restore`) *is*
   supported via acli.
