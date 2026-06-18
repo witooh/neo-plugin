@@ -32,6 +32,7 @@ extensions:
     ignore:
       - node_modules
       - .git
+      - openapi
 ```
 
 | Key | Required | Notes |
@@ -39,14 +40,14 @@ extensions:
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
-| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` and `.git`. |
+| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules`, `.git`, and `openapi` (the nested OpenAPI spec dir, not a request folder). |
 
 ---
 
 ## `environments/<NAME>.yml`
 
 ```yaml
-name: LOCAL
+name: local
 variables:
   - name: baseUrl
     value: http://localhost:8080
@@ -59,7 +60,7 @@ variables:
 
 | Key | Required | Notes |
 |-----|----------|-------|
-| `name` | yes | Environment name (LOCAL, SIT, UAT, PROD). Uppercase per the steering convention. |
+| `name` | yes | Environment name (local, sit, uat, prod). Lowercase. |
 | `variables[].name` | yes | Variable identifier (used in `{{name}}` interpolation). |
 | `variables[].value` | yes | String. Leave `""` for secrets — never commit real credentials. |
 | `variables[].secret` | no | `true` masks the value in Bruno's UI/logs. Use for tokens, PINs, biometric data. |

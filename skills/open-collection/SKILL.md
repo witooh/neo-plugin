@@ -39,8 +39,8 @@ Turn a `bruno/openapi/` OpenAPI 3.2 spec into a **runnable** Bruno OpenCollectio
 <collection-root>/
 ├── opencollection.yml          ← collection root config (info + ignore; no docs:)
 ├── environments/
-│   ├── LOCAL.yml               ← baseUrl + one var per {{name}} seen
-│   └── SIT.yml
+│   ├── local.yml               ← baseUrl + one var per {{name}} seen
+│   └── sit.yml
 ├── <group>/
 │   ├── folder.yml              ← display name, seq, shared headers + auth
 │   ├── <endpoint>.yml          ← one runnable request (info → http → settings)
@@ -48,7 +48,7 @@ Turn a `bruno/openapi/` OpenAPI 3.2 spec into a **runnable** Bruno OpenCollectio
 └── ...
 ```
 
-The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
+The `<collection-root>` is normally `bruno/` itself — the read-only `openapi/` spec dir (written by `openapi-doc`, this skill's source) sits inside it alongside the `<group>/` folders. The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
 
 ## Mode
 
@@ -58,12 +58,12 @@ Auto-detect (user can override): no `opencollection.yml` at the target → **Gen
 
 ## Step 1 · Locate the source + collection root + context
 - **Source** — the **OpenAPI spec** at `bruno/openapi/openapi.yaml`; if it does not exist → **STOP** (run `openapi-doc` first). In a monorepo, scope to the chosen service's `bruno/openapi/`.
-- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/<service>/` and **confirm before writing**. **Never** use `bruno/openapi/` as the collection root — it is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; keep the collection a sibling of it (e.g. `bruno/<service>/`).
-- Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `LOCAL` `baseUrl` — a small config peek, not a Go scan), and known environments (LOCAL/SIT/UAT/PROD).
+- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** use `bruno/openapi/` as the collection root — it is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; the spec lives in the `openapi/` subdirectory **inside** the collection root (`bruno/openapi/` under `bruno/`), so set the root to `bruno/` — never to `bruno/openapi/`.
+- Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
 
 ## Step 2 · Read the source endpoints
 Read [`references/request-template.md`](references/request-template.md) — **§0** (OpenAPI spec source). **Do not re-scan Go** — the spec was already verified against the code by `openapi-doc`.
-- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source <bundled-spec> --output <collection-root> --collection-name "<service>" --collection-format=opencollection` (it resolves `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
+- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source <bundled-spec> --output <collection-root> --collection-name "<Service Name>" --collection-format=opencollection` (it resolves `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
 
 ## Step 3 · Generate / Update / Validate
 Write using [`references/request-template.md`](references/request-template.md) (per-file templates) + [`references/yaml-reference.md`](references/yaml-reference.md) (schema):

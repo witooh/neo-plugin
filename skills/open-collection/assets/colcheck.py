@@ -218,7 +218,8 @@ def read_request_yaml(path):
 
 def collect_requests(target):
     """[request .yml files] under a collection root — excludes opencollection.yml,
-       folder.yml, and anything under environments/. Recursive so nested groups count."""
+       folder.yml, the openapi/ spec dir, and anything under environments/. Recursive
+       so nested groups count."""
     if target.is_file():
         return [target]
     files = []
@@ -226,6 +227,8 @@ def collect_requests(target):
         if f.name in ('opencollection.yml', 'folder.yml'):
             continue
         if 'environments' in f.relative_to(target).parts:
+            continue
+        if f.relative_to(target).parts[:1] == ('openapi',):  # the bruno/openapi/ spec dir nested in the root
             continue
         files.append(f)
     return files

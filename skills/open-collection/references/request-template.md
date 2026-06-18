@@ -46,6 +46,7 @@ extensions:
     ignore:
       - node_modules
       - .git
+      - openapi
 ```
 
 `<Service Name>` ← CLAUDE.md project name, or `info.title` from go.mod if available.
@@ -54,7 +55,7 @@ extensions:
 
 ## 2. `environments/<NAME>.yml`
 
-One file per environment. Names are uppercase per steering convention.
+One file per environment. Names are lowercase.
 
 ```yaml
 name: <ENV_NAME>
@@ -67,8 +68,8 @@ variables:
 ```
 
 **Default environments to emit** (unless project config says otherwise):
-- `LOCAL.yml` — `baseUrl: http://localhost:<port>` (read the port from `main.go`/config — a small peek, not a Go scan; fallback `8080`)
-- `SIT.yml` — `baseUrl: ""` (leave empty for the user)
+- `local.yml` — `baseUrl: http://localhost:<port>` (read the port from `main.go`/config — a small peek, not a Go scan; fallback `8080`)
+- `sit.yml` — `baseUrl: ""` (leave empty for the user)
 
 **Variable discovery:**
 1. Scan every request's `http.url`, headers, and auth blocks for `{{varName}}` placeholders — emit one variable per unique name.
