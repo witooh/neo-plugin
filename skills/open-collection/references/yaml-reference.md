@@ -108,10 +108,11 @@ Section order (this skill emits in exactly this order):
 ```yaml
 info: ...
 http: ...
+runtime: ...    # AC-scenario mode only (assertions)
 settings: ...
 ```
 
-No `docs`, `runtime`, or `examples` section — the collection is runnable-only (documentation stays in the `bruno/openapi/` OpenAPI spec; tests/assertions/scripts are opted out).
+In **Spec mode** the collection is runnable-only — no `docs`, `runtime`, or `examples` section (documentation stays in the `bruno/openapi/` OpenAPI spec). In **AC-scenario mode** request files additionally carry a `runtime.assertions` block (HTTP status + stable error code — see the `runtime` section below); `docs` and `examples` stay omitted in both modes.
 
 ### `info`
 
@@ -163,6 +164,30 @@ http:
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
 | `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. |
 | `auth` | yes | `inherit` (default — read from `folder.yml`), `none`, or an explicit auth block. |
+
+### `runtime` (AC-scenario mode only)
+
+Emitted **only** in AC-scenario mode (see `request-template.md` §8). Carries declarative response assertions; in Spec mode there is no `runtime` block.
+
+```yaml
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+    - expression: res.body.error
+      operator: eq
+      value: "DENOMINATION_NOT_SUPPORTED"
+```
+
+| Key | Required | Notes |
+|-----|----------|-------|
+| `assertions[].expression` | yes | What to assert — `res.status` (mandatory, one per request) or `res.body.<field>` for a stable error code. |
+| `assertions[].operator` | yes | `eq` for status/code; `isNotEmpty` when an error body is expected but no stable code exists. |
+| `assertions[].value` | for `eq` | Quoted string — the expected status (`"400"`) or stable error code (`"DENOMINATION_NOT_SUPPORTED"`). Never a human message string. |
+| `assertions[].disabled` | no | Omitted in this skill — assertions stay enabled so `bru run` validates them. |
+
+A JS `runtime.scripts` block with `type: tests` can also express assertions, but this skill uses the **declarative `assertions`** form — byte-stable and machine-parseable by `colcheck.py`.
 
 ### `settings`
 

@@ -41,6 +41,14 @@ WHAT IT CHECKS  (collection ↔ openapi spec; ordered high→low confidence)
   NOTE sources: auth mapping (operation security → folder/request auth) is judgment;
   no environments/ dir degrades K5 to a NOTE.
 
+  AC-SCENARIO MODE (--mode scenario, auto when --design is given): one request per Ready AC
+  (ac-<nnn>-*.yml) instead of one per endpoint. K1 coverage becomes "every Ready AC has a
+  request" (a request for a Blocked / unknown AC = ERROR); K3 body equality is OFF (the body
+  varies per scenario by design → NOTE); a new K6 requires a runtime.assertions res.status
+  assertion; an unresolved endpoint degrades to a NOTE (the AC may target a rule / unbuilt
+  endpoint). K2-method, K4, K5 are reused unchanged. Inputs: acceptance-criteria.html (required)
+  + test-cases.html (optional enrichment: per-AC endpoint + expected HTTP status) under --design.
+
 SOURCE
   open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.1 single-file spec
   (the openapi-doc skill's output). The collection is matched to the spec by (method,
@@ -51,11 +59,12 @@ SOURCE
 USAGE
   python3 colcheck.py <collection-root>          --spec bruno/openapi/  # vs openapi spec
   python3 colcheck.py <collection>/consent/x.yml --spec bruno/openapi/  # one request file
-  (--spec also accepts =PATH; arg order is irrelevant. With no flag the spec defaults to
-   bruno/openapi/.)
+  python3 colcheck.py <scenario-root> --spec bruno/openapi/ --design docs/design/<usecase>  # AC-scenario
+  (--spec/--design also accept =PATH; arg order is irrelevant. With no flag the spec defaults
+   to bruno/openapi/. --mode scenario is implied by --design.)
 Exit code: 0 = no ERROR (NOTEs/WARNINGs ok), 1 = at least one ERROR.
 """
-import re, sys, json, pathlib
+import re, sys, json, pathlib, html
 from collections import defaultdict
 
 try:
@@ -181,7 +190,7 @@ def read_request_yaml(path):
     text = path.read_text(encoding='utf-8', errors='replace')
     out = {'ok': True, 'mode': 'yaml' if HAVE_YAML else 'manual', 'text': text,
            'info': {}, 'http': {}, 'method': None, 'url': None,
-           'body_type': None, 'body_data': None, 'params': []}
+           'body_type': None, 'body_data': None, 'params': [], 'runtime': {}}
     if HAVE_YAML:
         try:
             d = yaml.safe_load(text)
@@ -202,6 +211,8 @@ def read_request_yaml(path):
         out['body_data'] = body.get('data') if isinstance(body.get('data'), str) else None
         params = out['http'].get('params')
         out['params'] = [p for p in params if isinstance(p, dict)] if isinstance(params, list) else []
+        rt = d.get('runtime')
+        out['runtime'] = rt if isinstance(rt, dict) else {}      # surfaced for scenario-mode K6; spec mode ignores it
     return out
 
 
@@ -248,6 +259,90 @@ def collect_env_vars(root):
     return names
 
 
+# ───────────────────────── scenario-mode design-doc reading (AC / TC) ─────────────────────────
+# AC-scenario mode joins the spec (contract anchor) with neo's docs/design/<usecase>/ HTML:
+# acceptance-criteria.html → AC inventory + Ready/Blocked; test-cases.html (optional) → per-AC
+# endpoint + expected HTTP status. Parsed from the AUTHORING form (<ac-card>/<tc-card> in the
+# file, NOT the browser-expanded .card) by regex — no HTML-parser dependency.
+
+RE_AC_CARD     = re.compile(r'<ac-card\b([^>]*)>', re.I)
+RE_TC_CARD     = re.compile(r'<tc-card\b([^>]*)>(.*?)</tc-card>', re.I | re.S)
+RE_ATTR_ID     = re.compile(r'\bid\s*=\s*"(AC-\d+)"', re.I)
+RE_ATTR_STATUS = re.compile(r'\bstatus\s*=\s*"(ready|blocked)"', re.I)
+RE_ATTR_TRACES = re.compile(r'\btraces\s*=\s*"([^"]*)"', re.I)
+RE_ATTR_ENDPT  = re.compile(r'\bendpoint\s*=\s*"([^"]*)"', re.I)
+RE_RES_BLOCK   = re.compile(r'<res\b[^>]*>(.*?)</res>', re.I | re.S)
+RE_HTTP_STATUS = re.compile(r'HTTP\s+(\d{3})')
+RE_AC_DIGITS   = re.compile(r'(\d+)')
+RE_AC_IN_NAME  = re.compile(r'^ac-(\d+)', re.I)
+RE_AC_ID       = re.compile(r'AC-\d+', re.I)           # an AC-ID token anywhere (e.g. inside a traces= list)
+
+
+def _ac_num(ac):
+    """The integer in an AC-ID string ('AC-007' → 7), or None."""
+    m = RE_AC_DIGITS.search(ac or '')
+    return int(m.group(1)) if m else None
+
+
+def _ac_num_from_name(name):
+    """The AC number from a scenario request filename ('ac-007-foo.yml' → 7), or None."""
+    m = RE_AC_IN_NAME.match(name or '')
+    return int(m.group(1)) if m else None
+
+
+def _read_design(design_dir, name):
+    """Text of design_dir/<name>, or None when it is missing/unreadable."""
+    f = design_dir / name
+    if not f.exists():
+        return None
+    try:
+        return f.read_text(encoding='utf-8', errors='replace')
+    except Exception:
+        return None
+
+
+def parse_ac_inventory(design_dir):
+    """{ 'AC-NNN': 'ready'|'blocked' } from acceptance-criteria.html. Captures each <ac-card>
+       opening tag, then reads id/status as independent attributes (order-insensitive).
+       Returns None when the file is missing/unreadable (it is the required scenario input)."""
+    text = _read_design(design_dir, 'acceptance-criteria.html')
+    if text is None:
+        return None
+    inv = {}
+    for m in RE_AC_CARD.finditer(text):
+        attrs = m.group(1)
+        mid = RE_ATTR_ID.search(attrs)
+        if not mid:
+            continue
+        mst = RE_ATTR_STATUS.search(attrs)
+        inv[mid.group(1)] = (mst.group(1).lower() if mst else 'ready')
+    return inv
+
+
+def parse_tc_scenarios(design_dir):
+    """{ ac_num: {'endpoint': 'METHOD /path'|None, 'http_status': 'NNN'|None} } from the optional
+       test-cases.html. A <tc-card traces=...> may trace several AC-IDs. Returns {} when absent."""
+    text = _read_design(design_dir, 'test-cases.html')
+    if text is None:
+        return {}
+    out = {}
+    for m in RE_TC_CARD.finditer(text):
+        attrs, inner = m.group(1), m.group(2)
+        mtr = RE_ATTR_TRACES.search(attrs)
+        if not mtr:
+            continue
+        mep = RE_ATTR_ENDPT.search(attrs)
+        endpoint = html.unescape(mep.group(1)).strip() if mep else None
+        mres = RE_RES_BLOCK.search(inner)
+        mh = RE_HTTP_STATUS.search(html.unescape(mres.group(1))) if mres else None
+        http_status = mh.group(1) if mh else None
+        for ac in RE_AC_ID.findall(mtr.group(1)):
+            n = _ac_num(ac)
+            if n is not None:
+                out[n] = {'endpoint': endpoint, 'http_status': http_status}
+    return out
+
+
 # ───────────────────────── path helpers ─────────────────────────
 
 def norm_yaml_path(url):
@@ -276,7 +371,37 @@ def check_coverage_spec(spec_ops, request_files, col_root, errors):
             errors.append((rel, 'ERROR', f'request {m} {n} matches no spec operation (orphan)'))
 
 
-def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_seen):
+def check_coverage_scenario(ac_inventory, request_files, col_root, errors):
+    """Scenario coverage (matched by the AC number in the filename `ac-<nnn>-*.yml`): every Ready
+       AC has >=1 request; no request maps to a Blocked or unknown AC-ID. N requests : 1 endpoint
+       is fine (no by-endpoint orphan check in this direction)."""
+    num_status, num_label = {}, {}
+    for ac, st in ac_inventory.items():
+        n = _ac_num(ac)
+        if n is not None:
+            num_status[n], num_label[n] = st, ac
+    seen = set()
+    for f in request_files:
+        rel = f.relative_to(col_root).as_posix()
+        n = _ac_num_from_name(f.name)
+        if n is None:
+            errors.append((rel, 'ERROR',
+                           'scenario request filename carries no AC-ID (expected ac-<nnn>-*.yml)'))
+            continue
+        seen.add(n)
+        if n not in num_status:
+            errors.append((rel, 'ERROR',
+                           f'request maps to AC-{n:03d}, absent from acceptance-criteria.html (orphan/stale AC)'))
+        elif num_status[n] == 'blocked':
+            errors.append((rel, 'ERROR',
+                           f'request generated for Blocked {num_label[n]} — Blocked ACs are excluded (list + skip)'))
+    for n in sorted(num_status):
+        if num_status[n] == 'ready' and n not in seen:
+            errors.append(('(coverage)', 'ERROR', f'Ready {num_label[n]} has no scenario request file'))
+
+
+def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_seen,
+                  src_mode='spec', tc_scenarios=None):
     rel = path.relative_to(col_root).as_posix()
     key = rel[:-4] if rel.endswith('.yml') else rel
     r = read_request_yaml(path)
@@ -316,29 +441,45 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
 
         # K2/K3 — compare against the openapi spec operation
         ep = resolve_source(key, method, norm_template(norm_yaml_path(url)))
-        if ep is not None:
+        if ep is None:
+            if src_mode == 'scenario':
+                notes.append((rel, 'request endpoint not found in the spec — the AC may target a '
+                                   'rule or an endpoint not yet in the spec; needs fresh-eyes'))
+        else:
             if ep['method'] and method and ep['method'] != method:
                 errors.append((rel, 'ERROR',
                                f'http.method {method} ≠ source method {ep["method"]}'))
-            # K3 body fidelity
-            md_has = ep['body_json'] is not None
-            yml_has = r['body_type'] == 'json' and bool(r['body_data'])
-            if ep['body_json'] == '__INVALID__':
-                notes.append((rel, 'source request example is not valid JSON — '
-                                   'body fidelity unchecked; needs fresh-eyes'))
-            elif md_has and not yml_has:
-                errors.append((rel, 'ERROR',
-                               'the source has a request example but the request has no http.body'))
-            elif yml_has and not md_has:
-                errors.append((rel, 'ERROR',
-                               'request has an http.body but the source has no request example'))
-            elif md_has and yml_has:
-                try:
-                    if json.loads(r['body_data']) != ep['body_json']:
-                        errors.append((rel, 'ERROR',
-                                       'http.body.data differs from the source request example'))
-                except json.JSONDecodeError:
-                    pass                                 # already reported above
+            if src_mode == 'scenario':
+                # K3 equality is NOT an ERROR in scenario mode (bodies vary per scenario by design);
+                # surface only the bodies that actually diverge from the base example for fresh-eyes.
+                if (r['body_type'] == 'json' and bool(r['body_data'])
+                        and ep['body_json'] not in (None, '__INVALID__')):
+                    try:
+                        if json.loads(r['body_data']) != ep['body_json']:
+                            notes.append((rel, 'scenario body differs from the base example by design — '
+                                               'confirm it matches the AC GIVEN/WHEN; needs fresh-eyes'))
+                    except json.JSONDecodeError:
+                        pass                                 # K4 already flags invalid JSON
+            else:
+                # K3 body fidelity
+                md_has = ep['body_json'] is not None
+                yml_has = r['body_type'] == 'json' and bool(r['body_data'])
+                if ep['body_json'] == '__INVALID__':
+                    notes.append((rel, 'source request example is not valid JSON — '
+                                       'body fidelity unchecked; needs fresh-eyes'))
+                elif md_has and not yml_has:
+                    errors.append((rel, 'ERROR',
+                                   'the source has a request example but the request has no http.body'))
+                elif yml_has and not md_has:
+                    errors.append((rel, 'ERROR',
+                                   'request has an http.body but the source has no request example'))
+                elif md_has and yml_has:
+                    try:
+                        if json.loads(r['body_data']) != ep['body_json']:
+                            errors.append((rel, 'ERROR',
+                                           'http.body.data differs from the source request example'))
+                    except json.JSONDecodeError:
+                        pass                                 # already reported above
             # auth mapping is judgment → fresh-eyes
             if ep['auth']:
                 notes.append((rel, f'source auth = "{ep["auth"]}" — confirm the request/'
@@ -352,6 +493,24 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
                 if v not in env_vars:
                     errors.append((rel, 'ERROR',
                                    f'references {{{{{v}}}}} but no environments/*.yml defines it'))
+
+        # K6 — scenario assertion presence (scenario mode only): a res.status assertion is mandatory
+        if src_mode == 'scenario':
+            assertions = r['runtime'].get('assertions')
+            assertions = assertions if isinstance(assertions, list) else []
+            sa = next((a for a in assertions
+                       if isinstance(a, dict) and a.get('expression') == 'res.status'), None)
+            sval = str(sa.get('value')).strip() if sa else ''
+            if not (sval.isdigit() and len(sval) == 3):
+                errors.append((rel, 'ERROR',
+                               'scenario request has no runtime.assertions res.status assertion '
+                               'with a 3-digit value'))
+            elif tc_scenarios:
+                n = _ac_num_from_name(path.name)
+                tc = tc_scenarios.get(n) if n is not None else None
+                if tc and tc.get('http_status') and tc['http_status'] != sval:
+                    notes.append((rel, f'asserted res.status {sval} differs from the test case '
+                                       f'expected HTTP {tc["http_status"]}; needs fresh-eyes'))
     else:
         notes.append((rel, 'no YAML parser (PyYAML/yq absent) — http-block, path-param, body, '
                            'seq and env checks skipped for this file; needs fresh-eyes'))
@@ -360,21 +519,33 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
 # ───────────────────────── main ─────────────────────────
 
 def parse_args(argv):
-    """(collection-target, spec-arg). --spec consumes a value (space or =); the first bare
-       token is the collection target. --spec may be omitted — main defaults to bruno/openapi."""
-    positional, spec_arg = [], None
+    """(collection-target, spec-arg, design-arg, mode). --spec/--design consume a value (space
+       or =); the first bare token is the collection target. --mode is spec|scenario (default
+       spec; auto scenario when --design is given). --spec may be omitted — main defaults to
+       bruno/openapi."""
+    positional, spec_arg, design_arg, mode = [], None, None, None
     it = iter(argv)
     for a in it:
         if a == '--spec':
             spec_arg = next(it, 'bruno/openapi')
         elif a.startswith('--spec='):
             spec_arg = a[len('--spec='):]
+        elif a == '--design':
+            design_arg = next(it, None)
+        elif a.startswith('--design='):
+            design_arg = a[len('--design='):]
+        elif a == '--mode':
+            mode = next(it, None)
+        elif a.startswith('--mode='):
+            mode = a[len('--mode='):]
         elif a.startswith('--'):
             continue
         else:
             positional.append(a)
     target = pathlib.Path(positional[0]) if positional else pathlib.Path('.')
-    return target, spec_arg
+    if mode not in ('spec', 'scenario'):
+        mode = 'scenario' if design_arg else 'spec'
+    return target, spec_arg, design_arg, mode
 
 
 def _bucket():
@@ -382,7 +553,7 @@ def _bucket():
 
 
 def main():
-    target, spec_arg = parse_args(sys.argv[1:])
+    target, spec_arg, design_arg, mode = parse_args(sys.argv[1:])
 
     if not target.exists():
         print(f"colcheck: {target} not found — nothing to check")
@@ -408,7 +579,11 @@ def main():
     # ---- source: the openapi spec at bruno/openapi/ ----
     errors, notes, seq_seen = [], [], defaultdict(dict)
     spec_root = pathlib.Path(spec_arg) if spec_arg else pathlib.Path('bruno/openapi')
-    print(f"colcheck: source = spec {spec_root}")
+    design_dir = pathlib.Path(design_arg) if design_arg else pathlib.Path('docs/design')
+    if mode == 'scenario':
+        print(f"colcheck: source = spec {spec_root} + design {design_dir} (scenario mode)")
+    else:
+        print(f"colcheck: source = spec {spec_root}")
 
     spec_ops = collect_spec_ops(spec_root)
     if spec_ops is None:
@@ -419,8 +594,21 @@ def main():
                   f"openapi-doc skill first, or pass --spec <path>.")
         sys.exit(1)
     resolve_source = lambda key, method, npath: match_spec_op(spec_ops, method, npath)
+
+    ac_inventory, tc_scenarios = None, None
+    if mode == 'scenario':
+        ac_inventory = parse_ac_inventory(design_dir)
+        if ac_inventory is None:
+            print(f"colcheck: scenario mode needs acceptance-criteria.html under {design_dir} — "
+                  f"run the neo skill first, or pass --design <usecase-dir>.")
+            sys.exit(1)
+        tc_scenarios = parse_tc_scenarios(design_dir)
+
     if target.is_dir():
-        check_coverage_spec(spec_ops, request_files, col_root, errors)
+        if mode == 'scenario':
+            check_coverage_scenario(ac_inventory, request_files, col_root, errors)
+        else:
+            check_coverage_spec(spec_ops, request_files, col_root, errors)
 
     env_vars = collect_env_vars(col_root)
 
@@ -430,7 +618,8 @@ def main():
 
     for f in request_files:
         try:
-            check_request(f, col_root, resolve_source, env_vars, errors, notes, seq_seen)
+            check_request(f, col_root, resolve_source, env_vars, errors, notes, seq_seen,
+                          mode, tc_scenarios)
         except Exception as e:                           # one bad file can't blank the run
             errors.append((f.name, 'ERROR', f'colcheck crashed on this file ({e!r})'))
 
