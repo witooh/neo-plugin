@@ -126,7 +126,6 @@ def collect_spec_ops(spec_root):
     if not HAVE_YAML:
         return None
     root = spec_root if spec_root.is_file() else (spec_root / 'openapi.yaml')
-    base = root.parent
     if not root.exists():
         return None
     try:
@@ -139,19 +138,9 @@ def collect_spec_ops(spec_root):
     server_base = _url_path(servers[0].get('url')) if servers and isinstance(servers[0], dict) else ''
     ops = []
     for pathkey, entry in (rootdoc.get('paths') or {}).items():
-        pathdoc = None
-        if isinstance(entry, dict) and '$ref' in entry:
-            ref = entry['$ref'].split('#')[0]
-            pf = (base / ref).resolve()
-            if pf.exists():
-                try:
-                    pathdoc = yaml.safe_load(pf.read_text(encoding='utf-8', errors='replace'))
-                except Exception:
-                    pathdoc = None
-        elif isinstance(entry, dict):
-            pathdoc = entry
-        if not isinstance(pathdoc, dict):
+        if not isinstance(entry, dict):
             continue
+        pathdoc = entry            # single-file: every path item is inline
         for method in ('get', 'put', 'post', 'delete', 'patch', 'options', 'head'):
             op = pathdoc.get(method)
             if not isinstance(op, dict):

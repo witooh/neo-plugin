@@ -18,7 +18,7 @@ PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
               before fixing; a genuine false positive is skipped + noted, never blindly
               "fixed". Loop until ERRORs clear OR ~3 rounds stall.
     • NOTE  = something the script deliberately CANNOT verify confidently (error tracing
-              + x-error-catalog, x-business-logic step counting, custom-type enums, a
+              + x-error-catalog, custom-type enums, a
               composed allOf schema, an ambiguous request/response context, a schema it
               could not match with confidence). Printed for the Layer-2 fresh-eyes
               verifier; each ends "needs fresh-eyes"; NOTEs never fail the run.
@@ -36,7 +36,6 @@ WHAT IT CHECKS  (ordered high→low confidence)
                       property (undocumented) -> ERROR. allOf/no-match/ambiguous -> NOTE.
   S5 required[]       for mapped schemas, recompute M/O from tags vs required[] -> ERROR.
   S6 Status/security  each operation has a 2xx; security refs a defined scheme -> ERROR.
-  S7 x-business-logic non-trivial operation missing it -> NOTE.
   + optional external OpenAPI validator (redocly/spectral → ERROR on fail;
     openapi-spec-validator → NOTE; a single-file spec resolves fully for all three).
 
@@ -57,7 +56,7 @@ try:
     import yaml                      # PyYAML — full spec-structure checks when present
     HAVE_YAML = True
 except Exception:
-    HAVE_YAML = False                # fallback: degrade S1/S2/S4/S5/S6/S7 to NOTE
+    HAVE_YAML = False                # fallback: degrade S1/S2/S4/S5/S6 to NOTE
 
 
 # ═════════════════════ Go source parsing ═════════════════════
@@ -358,7 +357,7 @@ def check_coverage(routes, path_keys, errors, notes):
 
 
 def scan_operations(paths, security_schemes, errors, notes):
-    """S1 (operation shape) + S6 (status/security) + S7 (x-business-logic) over every inline
+    """S1 (operation shape) + S6 (status/security) over every inline
        operation, and build schema→context(request/response) for S4/S5.
        `paths` = the document's `paths` dict. Returns {schema_name: set(['request','response'])}."""
     context = defaultdict(set)
@@ -387,9 +386,6 @@ def scan_operations(paths, security_schemes, errors, notes):
                 for scheme in (sec or {}).keys():
                     if security_schemes and scheme not in security_schemes:
                         errors.append((loc, 'ERROR', f'security "{scheme}" not in components.securitySchemes'))
-            # S7 x-business-logic presence (NOTE)
-            if 'x-business-logic' not in op:
-                notes.append((loc, 'no x-business-logic — step coverage needs fresh-eyes'))
             # error-tracing NOTE when an x-error-catalog is present
             if any('x-error-catalog' in (r or {}) for r in responses.values() if isinstance(r, dict)):
                 notes.append((loc, 'x-error-catalog present — sentinel tracing needs fresh-eyes'))
@@ -542,7 +538,7 @@ def main():
         notes.append(('(global)', 'PyYAML not installed — structure checks degraded to '
                                  'regex/NOTE; install pyyaml or a validator for full L1'))
 
-    # S1 operation shape + S6 + S7 + context for S4/S5, then S4 + S5 schemas
+    # S1 operation shape + S6 + context for S4/S5, then S4 + S5 schemas
     n_ops = n_schemas = 0
     if data is not None:
         paths = data.get('paths') or {}

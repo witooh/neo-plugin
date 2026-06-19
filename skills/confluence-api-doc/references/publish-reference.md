@@ -40,11 +40,10 @@ There is no pre-rendered markdown page — **reconstruct** each page's body from
   - **Path/Query Parameters** tables ← `parameters` (`in: path` / `in: query`): Field / Description / Type / Mandatory (from `required`) / Example / Remark;
   - **Request Body** table ← the `requestBody` schema's `properties` (`required[]` → M/O; nested `$ref` → a sub-table); **Request Example** ← `requestBody…examples.default.value`;
   - **Response** table + **Response Example** ← the success `responses.<2xx>` schema + its example;
-  - **Business Logic** numbered list ← **`x-business-logic`** (one item per `step`; `substeps` indented);
   - **Error Responses** table ← **`x-error-catalog`** (Status / Message / Description per entry), merged with each error `responses.<NNN>.description`.
 - **Parent page body** ← `info.description` (overview) + a Common Error Responses table built from `components.responses` / the shared error schema.
 
-`x-business-logic` and `x-error-catalog` are **custom extensions** standard OpenAPI renderers ignore — this skill reads them explicitly so the published page keeps the business logic + per-sentinel errors (without this they would silently vanish). Validate before converting: an operation with no `responses` → skip + warn.
+`x-error-catalog` is a **custom extension** standard OpenAPI renderers ignore — this skill reads it explicitly so the published page keeps the per-sentinel errors (without this they would silently vanish). Validate before converting: an operation with no `responses` → skip + warn.
 
 ## Step P4 — Map to the page tree
 
@@ -165,7 +164,7 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 | Scenario | Action |
 |---|---|
 | no `bruno/openapi/openapi.yaml` at source | STOP — run the `openapi-doc` skill first to produce the spec |
-| an operation drops `x-business-logic` / `x-error-catalog` on the page | the reconstruction skipped a custom extension — re-read the operation (standard renderers ignore `x-*`) |
+| an operation drops `x-error-catalog` on the page | the reconstruction skipped a custom extension — re-read the operation (standard renderers ignore `x-*`) |
 | an operation with no `responses` | skip + list in warnings; don't abort |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
 | HTTP 404 on a page | verify page ID (may be deleted) |

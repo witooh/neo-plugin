@@ -20,7 +20,7 @@ Input is the `bruno/openapi/openapi.yaml` single-file spec (the `openapi-doc` sk
 | `parameters` (`in: query`) | a `params` row `type: query` |
 | `security` (`bearerAuth`/`apiKey`/`[]`) | request/folder `auth` (§3) — `bearerAuth`→bearer, `apiKey`→apikey, `[]`→none |
 | `requestBody.content.*.examples.default.value` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
-| `responses` / `x-business-logic` / `x-error-catalog` | not used (doc-only — they stay in the spec) |
+| `responses` / `x-error-catalog` | not used (doc-only — they stay in the spec) |
 
 - **Grouping** comes from the operation's `tags[0]` (→ collection folder), mirroring the spec's `tags` grouping.
 - `components.schemas` entries are resolved only to shape the body example — they are not emitted into the collection.

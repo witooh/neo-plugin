@@ -4,8 +4,8 @@ description: >
   Generate an OpenAPI 3.1 spec from Go source as a **single-file** document at
   `bruno/openapi/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`,
   and every type under `components.schemas`, wired with internal `$ref` — or update/validate
-  an existing spec against the current code. Business-logic steps live in `x-business-logic` and per-sentinel
-  errors in `x-error-catalog`. Built-in **three-layer verify** (deterministic script +
+  an existing spec against the current code. Per-sentinel
+  errors live in `x-error-catalog`. Built-in **three-layer verify** (deterministic script +
   independent fresh-eyes agent + completeness sweep). Trigger on: "gen openapi",
   "generate openapi spec", "openapi from go", "swagger spec from code", "สร้าง openapi",
   "สร้าง openapi spec", "ทำ swagger spec", "อัปเดต openapi", "เช็ค openapi ตรงกับ code",
@@ -61,14 +61,14 @@ Auto-detect (user can override): no `bruno/openapi/openapi.yaml` → **Generate*
 Read [`references/go-scan-patterns.md`](references/go-scan-patterns.md) (route registration patterns + § Handler Directory Scanning). Find every route (method, path, handler), its group, and middleware (auth). A route matched by a `bruno/openapi/.docignore` glob or carrying a `// apidoc:ignore` comment above its registration is intentionally undocumented (internal/debug/health) — skip it in Generate/Update, treat it as expected-absent in Validate. (`speccheck.py` does not read `.docignore`, so an intentionally-skipped route surfaces as a coverage ERROR — confirm it and skip it as a known false positive per the Layer-1 loop below.)
 
 ## Step 3 · Extract per endpoint
-For each route, trace handler → usecase → repository and extract: request/response shape (path/query/body, success status — read the actual `c.JSON(NNN, …)`, don't guess), business-logic steps, and error responses. Apply the **single sources**, do not restate them:
-- Field extraction, error tracing, **step counting** (Priority 1 = `### Logical` / `Step N:` header comments verbatim; Priority 2 = code-derived: 1 step per repo/service/external call + per sentinel-returning `if`/`switch`; a repo call + its nil-check = 2 steps; not a step: error propagation, stdlib, struct construction, entity mutation without I/O, logging) → [`references/go-scan-patterns.md`](references/go-scan-patterns.md).
-- M/O → `required[]`, type mapping, nullability (union types), `x-business-logic`, `x-error-catalog`, example values, `$ref` wiring → [`references/openapi-doc-template.md`](references/openapi-doc-template.md).
+For each route, trace handler → usecase → repository and extract: request/response shape (path/query/body, success status — read the actual `c.JSON(NNN, …)`, don't guess) and error responses. Apply the **single sources**, do not restate them:
+- Field extraction, error tracing → [`references/go-scan-patterns.md`](references/go-scan-patterns.md).
+- M/O → `required[]`, type mapping, nullability (union types), `x-error-catalog`, example values, `$ref` wiring → [`references/openapi-doc-template.md`](references/openapi-doc-template.md).
 
 ## Step 4 · Generate / Update / Validate
 Write using [`references/openapi-doc-template.md`](references/openapi-doc-template.md) (Root + Path Item + Schema Component templates):
 - **Root keys** — `openapi: 3.1.0`, `info` (title/version/overview), `servers`, `tags` (one per group), `paths` (inline Path Items), and `components` (securitySchemes + shared error responses + schemas).
-- **`paths.<path>.<method>`** — one inline operation: `summary`/`description`/`operationId`/`security`/`x-business-logic`/`parameters`/`requestBody`/`responses`; schemas referenced via internal `$ref`; the runnable JSON body kept verbatim in `examples.default.value`.
+- **`paths.<path>.<method>`** — one inline operation: `summary`/`description`/`operationId`/`security`/`parameters`/`requestBody`/`responses`; schemas referenced via internal `$ref`; the runnable JSON body kept verbatim in `examples.default.value`.
 - **`components.schemas.<Type>`** — one entry per Go type; `required[]` from M/O; properties in struct order; embedded structs via `allOf`; nested types via internal `$ref`; per-sentinel errors via `x-error-catalog`.
 - **Byte-stable YAML** — fixed key order + 2-space block style (template § Byte-stable YAML rules) so Update diffs stay clean.
 - **Update** — diff against the existing `openapi.yaml`; touch the minimum; add/update/remove individual `paths` keys, operations, and `components.schemas` entries; refresh `tags` when a group changes. Preserve any manually-added `description` prose that isn't auto-generated.
@@ -87,7 +87,7 @@ python3 <ASSET_DIR>/speccheck.py bruno/openapi/ --src <project-root>
 Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the generated spec? (default: yes)"* — **no** → skip L2 (mark "skipped by user"); **yes** → L2.
 
 ### verify-L2 · Fresh-eyes verifier (independent agent)
-Dispatch a verifier that did **not** write the spec — it re-reads the Go source itself and checks only the judgment-level accuracy the script cannot (error tracing + `x-error-catalog`, `x-business-logic` step counting, `required[]` edge cases, custom-type enums, `description`/`examples`/nullability, success status, security mapping, example shape, `$ref` semantics):
+Dispatch a verifier that did **not** write the spec — it re-reads the Go source itself and checks only the judgment-level accuracy the script cannot (error tracing + `x-error-catalog`, `required[]` edge cases, custom-type enums, `description`/`examples`/nullability, success status, security mapping, example shape, `$ref` semantics):
 ```
 Agent(subagent_type: "general-purpose", description: "verify openapi spec", prompt: """
 # Role: OpenAPI Doc Verifier

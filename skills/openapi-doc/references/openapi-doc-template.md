@@ -88,17 +88,6 @@ post:
   operationId: acceptConsent
   security:
     - bearerAuth: []
-  x-business-logic:
-    - step: 1
-      text: Validate that referenced Purpose exists and is active
-    - step: 2
-      text: Check for existing consent for this Citizen + Purpose combination
-    - step: 3
-      text: Create new Consent record with status active
-    - step: 4
-      text: Create audit log entry for consent creation
-    - step: 5
-      text: Send notification to data subject via notification service
   requestBody:
     required: true
     content:
@@ -153,7 +142,6 @@ post:
 - **`operationId`** = lowerCamelCase of the handler function name (stable, unique).
 - **`tags`** = `[<Group>]`.
 - **`security`** = `[{bearerAuth: []}]` (JWT/Bearer) | `[{apiKey: []}]` (API key) | `[]` (none — explicit empty array).
-- **`x-business-logic`** — see § x-business-logic.
 - **`requestBody`** — omit entirely when the endpoint takes no body. `required: true` unless the body is optional. Schema is an internal `$ref`; the whole runnable JSON body goes in `examples.default.value` **verbatim** (so `open-collection`/Bruno get an intact runnable body).
 - **`responses`** — success status from the handler's actual return (`c.JSON(NNN,…)`, not guessed). `204 No Content` → a `"204": { description: No Content }` with no content block. Error statuses → see § Error Responses.
 
@@ -197,7 +185,6 @@ AcceptConsentRequest:
 | description line | operation `description` (CommonMark) |
 | `- **Method:**` / `- **Path:**` | the `paths.<path>.<httpMethod>` location itself |
 | `- **Auth:**` | operation `security` + a scheme in `components.securitySchemes` |
-| Business Logic steps | operation **`x-business-logic`** |
 | Path Parameters table | `parameters[]` with `in: path`, `required: true` |
 | Query Parameters table | `parameters[]` with `in: query`, `required` from M/O, `schema.default` for defaults |
 | Request Body table | `requestBody.content.application/json.schema` → `#/components/schemas` `$ref` |
@@ -264,26 +251,6 @@ Follow Go struct field order:
 3. For `parameters[]`: path params (path order) before query params; struct-based query params (struct order) before inline `c.Query()` params (handler first-appearance order); a param extracted both ways appears once.
 
 Within each schema, `properties` keys are emitted in this order (YAML preserves it). Keep key order **byte-stable** across runs.
-
----
-
-## x-business-logic (operation extension)
-
-Structured list of business-logic steps. Standard OpenAPI tools ignore `x-*`; `confluence-api-doc` parses this back into the page's Business Logic section, so it must be faithful.
-
-```yaml
-x-business-logic:
-  - step: 1
-    text: Validate that referenced Purpose exists and is active
-  - step: 4
-    text: Persist the consent
-    substeps:
-      - "4.1 Write the consent row"
-      - "4.2 Write the audit log"
-```
-
-- **Source & counting are rule-bound** (single source: [`go-scan-patterns.md`](go-scan-patterns.md) §Usecase Header Comment Detection + §Step Classification Examples). Priority 1: transcribe `### Logical` / `Step N:` header comments **verbatim** (one list entry per `Step N:`, sub-steps `4.1/4.2` → `substeps`). Priority 2 (no comments): code-derived — 1 step per repo/service/external call and per sentinel-returning `if`/`switch`; a repo call + its nil-check = 2 steps; NOT a step: error propagation, stdlib, struct construction, entity mutation without I/O, logging, metrics, early/final return.
-- `text` is one line per step; never add, drop, merge, or reword a Priority-1 step.
 
 ---
 
@@ -457,7 +424,7 @@ All `$ref`s are **internal JSON pointers** into the one document (no file paths)
 For clean Update-mode diffs and a simple L1 `$ref` check:
 - 2-space indentation, block style (no flow `{}`/`[]` except short inline examples and scalar arrays like `enum`/`required`/`examples`).
 - Fixed top-level key order: `openapi, info, servers, tags, paths, components`; within `components`: `securitySchemes, responses, schemas`. Emit `paths` keys in router-registration order, and `components.schemas` keys in first-reference order; keep both **byte-stable** across runs.
-- Fixed key order per object kind: **operation** = `tags, summary, description, operationId, security, x-business-logic, parameters, requestBody, responses`; **schema** = `type, format, enum, required, properties, items, allOf, additionalProperties, description, examples`; **parameter** = `name, in, required, description, schema, example`.
+- Fixed key order per object kind: **operation** = `tags, summary, description, operationId, security, parameters, requestBody, responses`; **schema** = `type, format, enum, required, properties, items, allOf, additionalProperties, description, examples`; **parameter** = `name, in, required, description, schema, example`.
 - Quote version strings (`version: "1.0"`) and any value that YAML could mis-type.
 - One trailing newline; no trailing whitespace.
 
@@ -467,7 +434,7 @@ For clean Update-mode diffs and a simple L1 `$ref` check:
 
 **Single source of truth** for *what* must be checked — referenced by the `openapi-doc` skill's Step 4 + Validate Mode. Do not duplicate elsewhere; reference this.
 
-> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · internal `$ref` resolution (every `#/components/...` pointer resolves) · route↔`paths`-key coverage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, `x-business-logic` step counting, custom-type enums, every `description`/`examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
+> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · internal `$ref` resolution (every `#/components/...` pointer resolves) · route↔`paths`-key coverage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, custom-type enums, every `description`/`examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
 
 ### Coverage & Structure
 - [ ] Every route in code has a `paths.<path>` entry, and every `paths` key maps to a real route (no orphan)
@@ -488,9 +455,6 @@ For clean Update-mode diffs and a simple L1 `$ref` check:
 - [ ] Property order follows Go struct field order (embedded first)
 - [ ] `description` follows the formula table; `examples` follow the value conventions and satisfy the `validate` tag
 - [ ] `examples.default.value` (request & response) includes all mandatory + ≥1 optional field and reflects the real (wrapped) shape
-
-### Business Logic (critical — open ALL usecase methods)
-- [ ] Source determined (Priority 1 header comments vs Priority 2 code-derived); `x-business-logic` step count matches the source; Priority-1 steps verbatim; conditional branches documented
 
 ### Response Metadata (critical)
 - [ ] Success status key matches the handler's actual return (not guessed)

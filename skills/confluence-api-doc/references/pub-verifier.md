@@ -21,8 +21,8 @@ Read each sampled page's **source** — the `bruno/openapi/` operation the page 
 3. **Tables** — the header row maps to the right columns (no shift); cells with link-bearing type columns (e.g. `array[[Type](#x)]`) converted correctly; no row dropped or merged.
 4. **Links + anchors** — `[text](url)` → `<a href="url">text</a>`; the `[[text](url)]` type-column form handled before normal links; intra-doc anchors resolve.
 5. **Inline formatting** — `**bold**`/`*italic*`/`` `code` `` preserved; bare `&`, `<`, `>` in prose escaped (but NOT inside code macros).
-6. **Page identity + completeness** — page title = `<METHOD>: <path>` matching the operation's method + path key; the title is not duplicated in-body; every reconstructed section (field tables, examples, business logic, error table) is present in the storage.
-7. **OpenAPI-source fidelity** — the reconstruction did not silently drop the `x-*` extensions: every `x-business-logic` step appears in the Business Logic list (right count + order) and every `x-error-catalog` entry has an Error Responses row (standard renderers ignore `x-*`, so this is the easiest thing to lose); the field tables match the operation's `parameters`/`requestBody`/`responses` schemas (`required[]` → M/O).
+6. **Page identity + completeness** — page title = `<METHOD>: <path>` matching the operation's method + path key; the title is not duplicated in-body; every reconstructed section (field tables, examples, error table) is present in the storage.
+7. **OpenAPI-source fidelity** — the reconstruction did not silently drop the `x-error-catalog` extension: every `x-error-catalog` entry has an Error Responses row (standard renderers ignore `x-*`, so this is the easiest thing to lose); the field tables match the operation's `parameters`/`requestBody`/`responses` schemas (`required[]` → M/O).
 
 ## Output
 
