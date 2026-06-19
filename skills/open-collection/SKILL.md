@@ -1,7 +1,7 @@
 ---
 name: open-collection
 description: >
-  Generate a **runnable** Bruno OpenCollection from a `bruno/openapi/` OpenAPI 3.2 spec —
+  Generate a **runnable** Bruno OpenCollection from a `bruno/openapi/` OpenAPI 3.1 spec —
   one request `.yml` per endpoint, grouped by domain, with `environments/` and `folder.yml`
   auth. The collection is **runnable-only** (URLs, params, bodies, headers,
   auth, envs); the documentation stays in the spec. Also update or validate an
@@ -29,7 +29,7 @@ compatibility:
 
 # Open Collection
 
-Turn a `bruno/openapi/` OpenAPI 3.2 spec into a **runnable** Bruno OpenCollection — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`. The spec is the **single source of truth** (already verified against Go by `openapi-doc`); this skill only produces the *runnable* artifact (method, URL, path/query params, request body, headers, auth, environments) and embeds **no `docs:`** blocks. The result is verified against the spec on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
+Turn a `bruno/openapi/` OpenAPI 3.1 spec into a **runnable** Bruno OpenCollection — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`. The spec is the **single source of truth** (already verified against Go by `openapi-doc`); this skill only produces the *runnable* artifact (method, URL, path/query params, request body, headers, auth, environments) and embeds **no `docs:`** blocks. The result is verified against the spec on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill").
 
@@ -63,7 +63,7 @@ Auto-detect (user can override): no `opencollection.yml` at the target → **Gen
 
 ## Step 2 · Read the source endpoints
 Read [`references/request-template.md`](references/request-template.md) — **§0** (OpenAPI spec source). **Do not re-scan Go** — the spec was already verified against the code by `openapi-doc`.
-- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source <bundled-spec> --output <collection-root> --collection-name "<Service Name>" --collection-format=opencollection` (it resolves `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
+- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source bruno/openapi/openapi.yaml --output <collection-root> --collection-name "<Service Name>" --collection-format=opencollection` (it resolves the internal `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
 
 ## Step 3 · Generate / Update / Validate
 Write using [`references/request-template.md`](references/request-template.md) (per-file templates) + [`references/yaml-reference.md`](references/yaml-reference.md) (schema):

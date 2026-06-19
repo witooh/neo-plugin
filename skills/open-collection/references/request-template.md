@@ -8,7 +8,7 @@ Templates for every file this skill writes when it turns the `bruno/openapi/` Op
 
 ## 0. Reading the OpenAPI spec source (the input contract)
 
-Input is the `bruno/openapi/` split spec (the `openapi-doc` skill's output). The **runnable** bits come from each **operation**; **do not re-scan Go** (the spec was already verified against the code). **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
+Input is the `bruno/openapi/openapi.yaml` single-file spec (the `openapi-doc` skill's output). The **runnable** bits come from each **operation**; **do not re-scan Go** (the spec was already verified against the code). **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
 
 | OpenAPI element | → Collection field |
 |---|---|
@@ -22,10 +22,10 @@ Input is the `bruno/openapi/` split spec (the `openapi-doc` skill's output). The
 | `requestBody.content.*.examples.default.value` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
 | `responses` / `x-business-logic` / `x-error-catalog` | not used (doc-only — they stay in the spec) |
 
-- **Grouping** comes from the operation's `tags[0]` (→ collection folder), mirroring the spec's `paths/<group>/` layout.
-- `components/schemas/*` are resolved only to shape the body example — they are not emitted into the collection.
+- **Grouping** comes from the operation's `tags[0]` (→ collection folder), mirroring the spec's `tags` grouping.
+- `components.schemas` entries are resolved only to shape the body example — they are not emitted into the collection.
 - An operation with no `requestBody` → request has **no** `http.body`.
-- The spec is split with `$ref`; resolve refs (Bruno's importer does this; a hand-map follows them) before reading an operation whole.
+- The spec uses internal `$ref` (`#/components/...`); resolve refs (Bruno's importer does this; a hand-map follows them) before reading an operation whole.
 
 ---
 

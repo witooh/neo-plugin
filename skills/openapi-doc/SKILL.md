@@ -1,15 +1,15 @@
 ---
 name: openapi-doc
 description: >
-  Generate an OpenAPI 3.2 spec from Go source as a **split-YAML** document in
-  `bruno/openapi/` — a root `openapi.yaml` plus one Path Item file per URL path and one
-  schema file per type, wired with `$ref` — or update/validate an existing spec against
-  the current code. Business-logic steps live in `x-business-logic` and per-sentinel
+  Generate an OpenAPI 3.1 spec from Go source as a **single-file** document at
+  `bruno/openapi/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`,
+  and every type under `components.schemas`, wired with internal `$ref` — or update/validate
+  an existing spec against the current code. Business-logic steps live in `x-business-logic` and per-sentinel
   errors in `x-error-catalog`. Built-in **three-layer verify** (deterministic script +
   independent fresh-eyes agent + completeness sweep). Trigger on: "gen openapi",
   "generate openapi spec", "openapi from go", "swagger spec from code", "สร้าง openapi",
   "สร้าง openapi spec", "ทำ swagger spec", "อัปเดต openapi", "เช็ค openapi ตรงกับ code",
-  "openapi 3.2 from code", "validate openapi against code". Also trigger when neo
+  "openapi 3.1 from code", "validate openapi against code". Also trigger when neo
   delegates OpenAPI spec generation. NOTE: this skill produces the **OpenAPI spec
   only** — a runnable Bruno OpenCollection is the `open-collection` skill; publishing to
   Confluence is `confluence-api-doc`. It is not a curl/Postman converter or an
@@ -29,7 +29,7 @@ compatibility:
 
 # OpenAPI Doc
 
-Generate an **OpenAPI 3.2.0** spec from source as a **split-YAML** document under `bruno/openapi/` — a root `openapi.yaml`, one Path Item file per URL path, and one schema file per Go type, wired with `$ref`. It reads the Go source and **Go is the single source of truth**; the spec is verified against Go independently. Each spec is verified on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**, never on the writing agent's confidence.
+Generate an **OpenAPI 3.1.0** spec from source as a **single-file** document at `bruno/openapi/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`, and every Go type under `components.schemas`, wired with internal `$ref` (`#/components/...`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor). It reads the Go source and **Go is the single source of truth**; the spec is verified against Go independently. Each spec is verified on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**, never on the writing agent's confidence.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Currently optimized for Go (Fiber, Echo, Chi, Gin).
 
@@ -37,19 +37,13 @@ Generate an **OpenAPI 3.2.0** spec from source as a **split-YAML** document unde
 
 ```
 bruno/openapi/
-├── openapi.yaml                    ← root: openapi/info/servers/tags/paths-$refs/components
-├── paths/
-│   └── <group>/<path>.yaml         ← one Path Item Object per URL path (all its methods)
-└── components/
-    ├── schemas/<GoTypeName>.yaml    ← one schema per Go type
-    └── responses/<CommonError>.yaml ← shared error responses (401/403/404/400/500)
+└── openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
 ```
 
-- **Grouping** — each subdirectory under the handler base directory = one group = a `tags` entry + a `paths/<group>/` folder.
-- **File granularity** — one Path Item file per **distinct URL path** (OpenAPI keys a path to one object, so all methods on a path share the file). Usually one endpoint per file; a path with two methods (`GET`+`DELETE`) shares one.
-- **File naming** — kebab of the path within the group, params `by-<param>` (`/channels/{id}` → `channels-by-id.yaml`).
+- **One document** — `info`/`servers`/`tags`, every path inline under `paths:`, every Go type under `components.schemas`, shared errors under `components.responses`, auth under `components.securitySchemes`; all cross-refs are internal JSON pointers (`#/components/...`), so the file renders in any viewer with no external fetch.
+- **Grouping** — each handler group = one `tags` entry; each operation carries `tags: [<Group>]`.
+- **Paths** — one inline Path Item per **distinct URL path** (OpenAPI keys a path to one object, so all methods on a path share that key). A path with two methods (`GET`+`DELETE`) lists both operations under the one key.
 - **Path params** — native `{param}` form.
-- **Root `openapi.yaml`** `$ref`s every path file and declares shared securitySchemes + common error responses.
 
 ## Mode
 
@@ -73,18 +67,18 @@ For each route, trace handler → usecase → repository and extract: request/re
 
 ## Step 4 · Generate / Update / Validate
 Write using [`references/openapi-doc-template.md`](references/openapi-doc-template.md) (Root + Path Item + Schema Component templates):
-- **`openapi.yaml`** — `openapi: 3.2.0`, `info` (title/version/overview), `servers`, `tags` (one per group), `paths` as a `$ref` map, and `components` (securitySchemes + shared error responses).
-- **`paths/<group>/<path>.yaml`** — one Path Item: each method's `summary`/`description`/`operationId`/`security`/`x-business-logic`/`parameters`/`requestBody`/`responses`; schemas referenced via `$ref`; the runnable JSON body kept verbatim in `examples.default.value`.
-- **`components/schemas/<Type>.yaml`** — one schema per Go type; `required[]` from M/O; properties in struct order; embedded structs via `allOf`; nested types via `$ref`; per-sentinel errors via `x-error-catalog`.
+- **Root keys** — `openapi: 3.1.0`, `info` (title/version/overview), `servers`, `tags` (one per group), `paths` (inline Path Items), and `components` (securitySchemes + shared error responses + schemas).
+- **`paths.<path>.<method>`** — one inline operation: `summary`/`description`/`operationId`/`security`/`x-business-logic`/`parameters`/`requestBody`/`responses`; schemas referenced via internal `$ref`; the runnable JSON body kept verbatim in `examples.default.value`.
+- **`components.schemas.<Type>`** — one entry per Go type; `required[]` from M/O; properties in struct order; embedded structs via `allOf`; nested types via internal `$ref`; per-sentinel errors via `x-error-catalog`.
 - **Byte-stable YAML** — fixed key order + 2-space block style (template § Byte-stable YAML rules) so Update diffs stay clean.
-- **Update** — diff against existing files; touch the minimum; create/update/remove individual files; move a path file if its handler changed group; regenerate the root `paths:`/`tags:`. Preserve any manually-added `description` prose that isn't auto-generated.
+- **Update** — diff against the existing `openapi.yaml`; touch the minimum; add/update/remove individual `paths` keys, operations, and `components.schemas` entries; refresh `tags` when a group changes. Preserve any manually-added `description` prose that isn't auto-generated.
 - **Validate** — no writes; run the verify layers below as a pure check and produce a report.
 
 ### verify-L1 · Script tripwire (always)
 ```
 python3 <ASSET_DIR>/speccheck.py bruno/openapi/ --src <project-root>
 ```
-`<project-root>` = the repo root where `go.mod` lives (usually `.`). It mechanically checks root/operation well-formedness, `$ref` resolution, route↔path-file coverage, per-schema property count + `required[]` vs Go structs, status/security sanity, and — **if a real OpenAPI validator (`redocly`/`spectral`/`openapi-spec-validator`) is on PATH** — runs it for structural validation. **Tripwire, not ground truth** — a flag means "inspect this".
+`<project-root>` = the repo root where `go.mod` lives (usually `.`). It mechanically checks root/operation well-formedness, internal `$ref` resolution, route↔`paths`-key coverage, per-schema property count + `required[]` vs Go structs, status/security sanity, and — **if a real OpenAPI validator (`redocly`/`spectral`/`openapi-spec-validator`) is on PATH** — runs it for structural validation. **Tripwire, not ground truth** — a flag means "inspect this".
 - **exit 0** → go to L1.5.
 - **exit 1** → for each ERROR, open the actual struct/route/spec file: real mismatch → fix → re-run; genuine false positive (e.g. a `.docignore`'d route, or an `openapi-spec-validator` complaint about split `$ref`s) → skip + record under Warnings (never blindly "fix"). **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate** with the remaining ERRORs. Never fake a green run.
 - Collect every **`NOTE`** line (each ends `needs fresh-eyes`) — they feed L2; NOTEs don't fail the run.
@@ -105,8 +99,8 @@ Independently verify the spec just generated. Check ONLY judgment-level accuracy
 (not the script's mechanical checks). Read the Go source yourself.
 
 ## Spec under review
-bruno/openapi/openapi.yaml + bruno/openapi/paths/<group>/<file>.yaml + the
-bruno/openapi/components/schemas/*.yaml they $ref (list the files just created/updated)
+bruno/openapi/openapi.yaml (the single-file spec just created/updated — list the
+`paths` keys + `components.schemas` entries that changed)
 
 ## speccheck NOTEs to focus on
 <paste every NOTE line from L1>
@@ -120,21 +114,21 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** fix the files → re-run `speccheck.py` to confirm nothing regressed. Do not auto-redispatch; if findings are deep, offer a second fresh-eyes round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect what is *present*; L3 catches what is **missing entirely** — a whole path that silently never got a file, which L1's best-effort route regex can miss. Re-derive the **full endpoint inventory straight from the router-setup file yourself** (read it, don't lean on the script), then confirm:
-- every registered route (minus `.docignore` / `// apidoc:ignore`) has a `paths/<group>/` operation,
-- every path file maps to a real route (no orphan), and is `$ref`'d from the root `paths:`,
-- the `$ref` graph has no dangling or orphan schema (every `$ref` resolves; every `components/schemas` file is referenced),
+L1/L2 inspect what is *present*; L3 catches what is **missing entirely** — a whole path that silently never got an entry, which L1's best-effort route regex can miss. Re-derive the **full endpoint inventory straight from the router-setup file yourself** (read it, don't lean on the script), then confirm:
+- every registered route (minus `.docignore` / `// apidoc:ignore`) has a `paths.<path>` operation,
+- every `paths` key maps to a real route (no orphan),
+- the internal `$ref` graph has no dangling or orphan schema (every `#/components/...` `$ref` resolves; every `components.schemas` entry is referenced),
 - `tags` covers every group.
 Report any whole path/group/schema the pipeline silently dropped; fix → re-run L1 to confirm.
 
 ### Output
 ```
 ## OpenAPI Doc — <Generate / Update / Validate>
-**Doc root:** bruno/openapi/   **Structure:** openapi.yaml · paths/(N files) · components/schemas/(M files)
+**Doc root:** bruno/openapi/openapi.yaml   **Structure:** paths (N operations) · components.schemas (M schemas)
 **Changes:** Created … / Updated … / Removed …
 **Verification (three-layer):**
 - L1 speccheck.py: ✅ PASS (0 ERROR) / ❌ ESCALATED (N ERROR after ~3 rounds) · loop rounds: 0-3
-  · $ref ✅ · coverage ✅ · property/required [X/Y] · status/security ✅ · validator <redocly|spectral|none>
+  · internal $ref ✅ · coverage ✅ · property/required [X/Y] · status/security ✅ · validator <redocly|spectral|none>
 - L2 fresh-eyes: ✅ Clean / ⚠️ N findings fixed / ⏭ Skipped / ⏸ Not run
 - L3 completeness sweep: ✅ all routes + $refs covered / ⚠️ N silent omissions fixed
 - Verdict: ✅ all green / ⚠️ warnings / ⏸ escalated

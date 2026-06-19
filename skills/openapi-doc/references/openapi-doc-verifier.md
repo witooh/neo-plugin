@@ -12,7 +12,7 @@ You are an **independent verifier** dispatched by the openapi-doc skill *after* 
 
 ## Division of labor — do NOT re-do the script's job
 
-The Layer-1 script `speccheck.py` already measured everything *mechanical*: root/operation well-formedness, `$ref` file resolution, route↔path-file coverage + root-`paths` linkage, property **count** (struct ↔ schema, embedded expanded), **`required[]`** for fields it could map, security-scheme resolution, inline-example JSON validity, and — when a real OpenAPI validator is on PATH — structural validation. **Do not re-check those.** Your scope is ONLY the judgment-level accuracy a regex/structural script cannot reach — the spots `speccheck.py` printed as `NOTE` lines (each ending in `needs fresh-eyes`), plus the items in *What to verify* below. Reading the same source the author read, independently, against the same rules, is what catches the errors the script structurally cannot.
+The Layer-1 script `speccheck.py` already measured everything *mechanical*: root/operation well-formedness, internal `$ref` resolution, route↔`paths`-key coverage, property **count** (struct ↔ schema, embedded expanded), **`required[]`** for fields it could map, security-scheme resolution, inline-example JSON validity, and — when a real OpenAPI validator is on PATH — structural validation. **Do not re-check those.** Your scope is ONLY the judgment-level accuracy a regex/structural script cannot reach — the spots `speccheck.py` printed as `NOTE` lines (each ending in `needs fresh-eyes`), plus the items in *What to verify* below. Reading the same source the author read, independently, against the same rules, is what catches the errors the script structurally cannot.
 
 speccheck reads property **keys**, `required[]`, `$ref` targets, and example JSON *syntax*. Everything else — the `description`/`examples`/nullability of each property, property order, success status semantics, security mapping, `x-business-logic` counting, `x-error-catalog` accuracy, the example's *shape* — is yours (items below). If you do not check it, nothing does.
 
@@ -20,7 +20,7 @@ speccheck reads property **keys**, `required[]`, `$ref` targets, and example JSO
 
 - `SKILL_DIR/references/go-scan-patterns.md` — §Error Tracing Patterns, §Step Classification Examples, §Field Extraction Completeness. These are the **exact rules** the spec must obey; you apply them independently, not from memory.
 - `SKILL_DIR/references/openapi-doc-template.md` §Verification Checklist + the mapping/convention tables — the canonical spec (single source of truth).
-- The **spec files under review** (paths in your dispatch) — read the root `openapi.yaml`, every `paths/<group>/*.yaml`, and every `components/schemas/*.yaml` referenced.
+- The **spec under review** (path in your dispatch) — read the single-file `bruno/openapi/openapi.yaml`: its inline `paths` operations and the `components.schemas` they reference.
 - The **speccheck NOTE list** attached to your dispatch — start here; each NOTE marks a spot the script could not verify.
 - The **source code** — open handlers / usecases / domain-services / entities / structs **yourself** (Grep + Read). Never trust a summary; fresh eyes read the code directly.
 
@@ -32,11 +32,11 @@ Anything unclear or unresolvable (a usecase you cannot locate, a genuinely ambig
 
 1. **Error-response accuracy** *(the script's weakest area — top priority)*. Per `go-scan-patterns.md §Error Tracing Patterns`: open **every** usecase method the handler calls **and** every domain-service method those call. Count distinct typed errors and compare to the operation's `responses` keys **and** its `x-error-catalog` entries. Confirm:
    - one sentinel = exactly **one `x-error-catalog` entry**, even when several share an HTTP status (OpenAPI keys responses by status, so per-sentinel fidelity lives in `x-error-catalog` — verify none collapsed away);
-   - wrapped repo/external errors (`fmt.Errorf("...: %w", err)`) → a **single catch-all `"500"`** (`$ref` the shared `InternalServerError`); not traced into repos;
+   - wrapped repo/external errors (`fmt.Errorf("...: %w", err)`) → a **single catch-all `"500"`** (`$ref` the shared `#/components/responses/InternalServerError`); not traced into repos;
    - the same sentinel from two methods = **one entry** (dedup by variable + status);
    - each `message` matches the actual format string in code (not generic);
    - handler-level errors present where the pattern exists: bind/parse → 400, validation → 422, param-parse → 400;
-   - generic 401/403/404 → `$ref` to `components/responses/*` (not redeclared inline);
+   - generic 401/403/404 → `$ref` to `#/components/responses/*` (not redeclared inline);
    - order: status keys ascending; within `x-error-catalog`, handler errors → usecase sentinels (switch order if the handler switches, else usecase code order) → domain-service errors → catch-all.
 2. **x-business-logic step counting** *(per `go-scan-patterns.md §Step Classification Examples`)*. First determine the source:
    - **Priority 1** — a `### Logical` / `Step N:` header comment exists → `x-business-logic` entries must match **verbatim** (no added/dropped/reworded step; sub-steps `4.1/4.2` → `substeps`).
@@ -52,7 +52,7 @@ Anything unclear or unresolvable (a usecase you cannot locate, a genuinely ambig
 6. **Response metadata** *(speccheck checks presence, not semantics)* — the success status **key** matches the handler's actual return (`c.Status(NNN)` / `c.JSON(NNN, ...)` / `c.SendStatus(NNN)`, not guessed; `204` → no content block); the operation's `security` matches the route group's middleware (JWT/Bearer → `bearerAuth`, API-key → `apiKey`, none → `[]`).
 7. **Example fidelity** — each operation's `requestBody`/`responses` `examples.default.value` includes all **mandatory** fields plus ≥1 optional, and its shape matches the referenced schema (including any wrapper envelope `{success,data,message}`). The request example body is the runnable body — confirm it is intact (downstream `open-collection` copies it verbatim).
 8. **Text formulas** *(per `openapi-doc-template.md`)* — `summary` (exact PascalCase split, no articles), `description` (`<Verb> <resource>`, verb from HTTP method, ≤10 words), `info.description` (≤2 sentences, `<Service> provides APIs for <domain>.` pattern). Spot-check; do not belabor.
-9. **Structural / `$ref` consistency** *(speccheck checks file existence; you check semantics)* — the handler group layout matches the `paths/<group>/` folders (a correctly-named file in the **wrong group** slips past the script); every `$ref` points at the *intended* target (right schema, not just *a* file that exists); `tags` cover every group; `info.version` is plausible and up to date.
+9. **Structural / `$ref` consistency** *(speccheck checks pointer resolution; you check semantics)* — each operation's `tags[0]` matches its true handler group (a mis-grouped `tags` slips past the script); every internal `$ref` points at the *intended* target (right schema, not just *a* component that exists); `tags` cover every group; `info.version` is plausible and up to date.
 
 ## Evidence rule
 
@@ -65,7 +65,7 @@ Every finding **must** cite `file:line` from the source. A finding with no code 
 **Scope:** [files / operations checked] · **speccheck NOTEs addressed:** [N]
 ### Findings
 #### [MISMATCH | MISSING | WRONG | UNVERIFIED] <area> — <file>
-- File: bruno/openapi/<paths|components>/<file>.yaml
+- File: bruno/openapi/openapi.yaml (paths.<path>.<method> / components.schemas.<Name>)
 - Issue: [what is wrong]
 - Evidence: <source path:line> — [the actual code]
 - Fix: [what the spec should say]

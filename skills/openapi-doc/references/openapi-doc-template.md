@@ -1,31 +1,24 @@
-# OpenAPI 3.2 Spec Templates
+# OpenAPI 3.1 Spec Template
 
-Templates for a **split OpenAPI 3.2.0 spec**. The output is a directory: a root document plus one Path Item file per URL path and one schema file per Go type, wired with `$ref`.
+Template for a **single-file OpenAPI 3.1.0 spec**. The output is ONE document — `bruno/openapi/openapi.yaml` — holding `info`/`servers`/`tags`, every path inline under `paths:`, and every schema + shared response under `components:`, wired with **internal `$ref`** (`#/components/schemas/<Type>`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor) with no external fetch.
 
 ```
 bruno/openapi/
-├── openapi.yaml                       ← Root: openapi/info/servers/tags/paths-$refs/components
-├── paths/
-│   └── <group>/<path>.yaml            ← one Path Item Object per URL path (all its methods)
-└── components/
-    ├── schemas/<GoTypeName>.yaml       ← one schema per Go type
-    └── responses/<CommonError>.yaml    ← shared error responses (401/403/404/500/400)
+└── openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
 ```
 
-**Target version:** `openapi: 3.2.0` (JSON-Schema 2020-12 dialect — union-type nullability, `examples` arrays). Do **NOT** use the OpenAPI 3.0 `nullable: true` keyword or the singular schema-level `example:` (both are wrong/deprecated for 3.1+).
+**Target version:** `openapi: 3.1.0` (JSON-Schema 2020-12 dialect — union-type nullability, `examples` arrays, `oneOf`). Do **NOT** use the OpenAPI 3.0 `nullable: true` keyword or the singular schema-level `example:` (both are wrong/deprecated for 3.1). Do **not** emit `3.2.0` either — current tooling (Bruno's importer, Swagger, Redocly) does not yet recognize it and rejects the document; 3.1.0 covers every feature here.
 
-**File granularity — one Path Item per distinct URL path.** OpenAPI keys a path to exactly one Path Item Object, so all HTTP methods on the same path live in **one** file (not one file per handler). Most resources have distinct paths per endpoint, so this usually collapses to one endpoint per file; when a path carries two methods (e.g. `GET` + `DELETE` on `/consents/{id}`), both operations share the file. Group folder = handler group.
-
-**File naming** — kebab of the path within the group, params rendered `by-<param>`, trailing action kept: `/channels` → `channels.yaml`, `/channels/{id}` → `channels-by-id.yaml`, `/consents/{id}/revoke` → `consents-by-id-revoke.yaml`.
+**Single document — everything inline.** Paths live directly under `paths:` (no per-path files); schemas live under `components.schemas` (no per-type files); shared errors under `components.responses`. They reference each other with **internal JSON-pointer `$ref`** (`#/components/schemas/<Type>`), which resolves within the one document in every tool. A path that carries two methods (e.g. `GET` + `DELETE` on `/consents/{id}`) lists both operations under that one path key.
 
 **Path params** — native OpenAPI `{param}` form (no `:id` conversion).
 
 ---
 
-## Root Template (`bruno/openapi/openapi.yaml`)
+## Document skeleton (`bruno/openapi/openapi.yaml`)
 
 ```yaml
-openapi: 3.2.0
+openapi: 3.1.0
 info:
   title: <Service Name> API
   version: "<X.Y>"
@@ -40,15 +33,19 @@ tags:
     description: <one line on the group>
 paths:
   /consents:
-    $ref: "./paths/consent/consents.yaml"
-  /consents/{citizen_id}:
-    $ref: "./paths/consent/consents-by-citizen.yaml"
+    post:
+      # … operation … (see § Operation)
   /consents/{id}:
-    $ref: "./paths/consent/consents-by-id.yaml"
+    get:
+      # …
+    delete:
+      # …
   /consents/{id}/revoke:
-    $ref: "./paths/consent/consents-by-id-revoke.yaml"
+    post:
+      # …
   /channels:
-    $ref: "./paths/channel/channels.yaml"
+    get:
+      # …
 components:
   securitySchemes:
     bearerAuth:
@@ -59,28 +56,29 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-  responses:
-    Unauthorized:
-      $ref: "./components/responses/Unauthorized.yaml"
-    Forbidden:
-      $ref: "./components/responses/Forbidden.yaml"
-    NotFound:
-      $ref: "./components/responses/NotFound.yaml"
-    InternalServerError:
-      $ref: "./components/responses/InternalServerError.yaml"
+  responses:                       # shared common errors (see § Shared error responses)
+    Unauthorized: { … }
+    Forbidden: { … }
+    NotFound: { … }
+    BadRequest: { … }
+    InternalServerError: { … }
+  schemas:                         # one entry per Go type (see § Schema)
+    AcceptConsentRequest: { … }
+    ConsentResponse: { … }
+    Error: { … }
 ```
 
 - `info.title` = `<Service> API`; `info.version` = the API version from `CLAUDE.md`/router; `info.description` = the overview paragraph (≤2 sentences, `<Service> provides APIs for <domain>.` pattern).
 - `servers[].url` = the versioned base (e.g. `/api/v1`); each `paths` key is the path **relative to that base** (so `/api/v1/consents` → key `/consents`).
 - `tags[]` = one per handler group (Title Case).
-- `paths` maps each URL path to a `$ref` of its Path Item file.
-- Common errors → `components.responses`, each a `$ref` to a file under `components/responses/`. Per-endpoint operations reference these instead of redeclaring 401/403/etc.
+- `paths` maps each URL path to an **inline** Path Item Object (all its methods).
+- `components.schemas` = one entry per Go type; `components.responses` = shared common errors; `components.securitySchemes` = the auth schemes. Operations reference these via `#/components/...`.
 
 ---
 
-## Path Item Template (`bruno/openapi/paths/<group>/<path>.yaml`)
+## Operation (a `paths.<path>.<method>` entry)
 
-One file = one Path Item Object = all methods for that URL path.
+Each HTTP method on a path is one Operation Object, written inline under its path key.
 
 ```yaml
 post:
@@ -106,7 +104,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/AcceptConsentRequest.yaml"
+          $ref: "#/components/schemas/AcceptConsentRequest"
         examples:
           default:
             value:
@@ -122,7 +120,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: "../../components/schemas/ConsentResponse.yaml"
+            $ref: "#/components/schemas/ConsentResponse"
           examples:
             default:
               value:
@@ -130,13 +128,13 @@ post:
                 status: active
                 created_at: "2024-01-01T10:00:00+07:00"
     "400":
-      $ref: "../../components/responses/BadRequest.yaml"
+      $ref: "#/components/responses/BadRequest"
     "422":
       description: Business rule violation
       content:
         application/json:
           schema:
-            $ref: "../../components/schemas/Error.yaml"
+            $ref: "#/components/schemas/Error"
       x-error-catalog:
         - status: 422
           message: purpose not found
@@ -145,9 +143,9 @@ post:
           message: consent already exists
           meaning: Duplicate consent for this citizen + purpose
     "401":
-      $ref: "../../components/responses/Unauthorized.yaml"
+      $ref: "#/components/responses/Unauthorized"
     "500":
-      $ref: "../../components/responses/InternalServerError.yaml"
+      $ref: "#/components/responses/InternalServerError"
 ```
 
 - **`summary`** = endpoint display name, exact PascalCase split, no articles (`AcceptConsent` → `Accept Consent`).
@@ -156,43 +154,44 @@ post:
 - **`tags`** = `[<Group>]`.
 - **`security`** = `[{bearerAuth: []}]` (JWT/Bearer) | `[{apiKey: []}]` (API key) | `[]` (none — explicit empty array).
 - **`x-business-logic`** — see § x-business-logic.
-- **`requestBody`** — omit entirely when the endpoint takes no body. `required: true` unless the body is optional. Schema is a `$ref`; the whole runnable JSON body goes in `examples.default.value` **verbatim** (so `open-collection`/Bruno get an intact runnable body).
+- **`requestBody`** — omit entirely when the endpoint takes no body. `required: true` unless the body is optional. Schema is an internal `$ref`; the whole runnable JSON body goes in `examples.default.value` **verbatim** (so `open-collection`/Bruno get an intact runnable body).
 - **`responses`** — success status from the handler's actual return (`c.JSON(NNN,…)`, not guessed). `204 No Content` → a `"204": { description: No Content }` with no content block. Error statuses → see § Error Responses.
 
 ---
 
-## Schema Component Template (`bruno/openapi/components/schemas/<GoTypeName>.yaml`)
+## Schema (a `components.schemas.<GoTypeName>` entry)
 
-One file per Go type. File name = the Go type name **as-is** (`AcceptConsentRequest.yaml`, `ConsentItem.yaml`) — never abbreviate/rename.
+One entry per Go type, keyed by the Go type name **as-is** (`AcceptConsentRequest`, `ConsentItem`) — never abbreviate/rename.
 
 ```yaml
-type: object
-required: [field_name, items]
-properties:
-  field_name:
-    type: string
-    description: What this field does
-    examples: [example_value]
-  items:
-    type: array
-    description: List of item objects
+AcceptConsentRequest:
+  type: object
+  required: [field_name, items]
+  properties:
+    field_name:
+      type: string
+      description: What this field does
+      examples: [example_value]
     items:
-      $ref: "./ConsentItem.yaml"
-  flag:
-    type: boolean
-    description: Whether the flag is set
-    examples: [true]
+      type: array
+      description: List of item objects
+      items:
+        $ref: "#/components/schemas/ConsentItem"
+    flag:
+      type: boolean
+      description: Whether the flag is set
+      examples: [true]
 ```
 
 - **`required: [...]`** lists the json names of all **M** fields (see § M/O). Omit the key entirely if no field is mandatory.
 - **`properties`** in **Go struct field order** (embedded fields first — see § Property Ordering).
-- Each property carries `type`, `description`, and `examples` (array form); plus `enum`, `items`, `format`, `default` where applicable.
+- Each property carries `type`, `description`, and `examples` (array form); plus `enum`, `items`, `format`, `default` where applicable. Nested struct types → internal `$ref: "#/components/schemas/<Type>"`.
 
 ---
 
-## Go → OpenAPI 3.2 mapping (master table)
+## Go → OpenAPI 3.1 mapping (master table)
 
-| Documented element | OpenAPI 3.2 target |
+| Documented element | OpenAPI 3.1 target |
 |---|---|
 | `# <Name>` heading | operation `summary` (PascalCase split) |
 | description line | operation `description` (CommonMark) |
@@ -201,15 +200,15 @@ properties:
 | Business Logic steps | operation **`x-business-logic`** |
 | Path Parameters table | `parameters[]` with `in: path`, `required: true` |
 | Query Parameters table | `parameters[]` with `in: query`, `required` from M/O, `schema.default` for defaults |
-| Request Body table | `requestBody.content.application/json.schema` → `$ref` schema file |
+| Request Body table | `requestBody.content.application/json.schema` → `#/components/schemas` `$ref` |
 | Request Example (json) | `requestBody.content.*.examples.default.value` (verbatim) |
-| Response (NNN) field table | `responses.<NNN>.content.application/json.schema` → `$ref` schema file |
+| Response (NNN) field table | `responses.<NNN>.content.application/json.schema` → `#/components/schemas` `$ref` |
 | Response Example (json) | `responses.<NNN>.content.*.examples.default.value` (verbatim) |
 | Error Responses table | `responses.<NNN>` per status + **`x-error-catalog`** for per-sentinel detail |
 | Field row → property | `properties.<json>` with `type`/`description`/`examples` |
 | Mandatory (M/O) | membership in the schema's `required: [...]` array |
-| Nested `**X Object:**` sub-table | separate `components/schemas/X.yaml` + `$ref` |
-| Embedded struct (e.g. `BaseResponse`) | `allOf: [{$ref: Base}, {type: object, ...}]` |
+| Nested `**X Object:**` sub-table | a separate `components.schemas.X` entry + internal `$ref` |
+| Embedded struct (e.g. `BaseResponse`) | `allOf: [{$ref: "#/components/schemas/BaseResponse"}, {type: object, ...}]` |
 | Wrapper envelope `{success,data,message}` | wrapper schema whose `data` `$ref`s the inner schema |
 | service overview + common errors | root `info` + `servers` + `tags` + `components.responses` |
 
@@ -226,11 +225,11 @@ properties:
 | `time.Time` | `type: string`, `format: date-time` |
 | `[]T` | `type: array`, `items:` (`$ref` if `T` is a struct) |
 | `map[string]T` | `type: object`, `additionalProperties:` |
-| named struct `T` | `$ref: "./T.yaml"` |
+| named struct `T` | `$ref: "#/components/schemas/T"` |
 | `*T` (pointer) | the `T` mapping, **excluded from `required[]`** (see Nullability) |
 | custom `type X string` + const block | `type: string`, `enum: [...]` (all const values) |
 
-### Nullability (3.2 — JSON-Schema union types, NOT `nullable:`)
+### Nullability (3.1 — JSON-Schema union types, NOT `nullable:`)
 - A field that may serialize JSON `null` → `type: ["<base>", "null"]`, e.g. `type: ["string", "null"]`.
 - A pointer/`omitempty` field that is simply *absent* (not present-but-null) → keep the singular type and **leave it out of `required[]`**.
 - Do **not** emit `nullable: true` (3.0-only) and do **not** use a singular schema-level `example:` — always `examples: [ ... ]`.
@@ -264,7 +263,7 @@ Follow Go struct field order:
 2. Then the struct's own fields in declaration order.
 3. For `parameters[]`: path params (path order) before query params; struct-based query params (struct order) before inline `c.Query()` params (handler first-appearance order); a param extracted both ways appears once.
 
-Within each schema file, `properties` keys are emitted in this order (YAML preserves it). Keep key order **byte-stable** across runs.
+Within each schema, `properties` keys are emitted in this order (YAML preserves it). Keep key order **byte-stable** across runs.
 
 ---
 
@@ -299,7 +298,7 @@ responses:
     content:
       application/json:
         schema:
-          $ref: "../../components/schemas/Error.yaml"
+          $ref: "#/components/schemas/Error"
     x-error-catalog:
       - status: 422
         message: purpose not found
@@ -311,36 +310,40 @@ responses:
 
 Rules (single source for tracing/consolidation/order: [`go-scan-patterns.md`](go-scan-patterns.md) §Error Tracing Patterns + §Consolidation Rules):
 - One sentinel = one `x-error-catalog` entry (even when several share a status); `message` matches the actual code string; dedup the same sentinel from multiple methods.
-- Wrapped repo/external errors → a single catch-all `"500"` (`$ref` `InternalServerError.yaml`); do not trace into repos.
-- Generic 401/403/404/500 → `$ref` the shared `components/responses/*.yaml`; do not redeclare per endpoint.
+- Wrapped repo/external errors → a single catch-all `"500"` (`$ref` `#/components/responses/InternalServerError`); do not trace into repos.
+- Generic 401/403/404/500 → `$ref` the shared `#/components/responses/*`; do not redeclare per endpoint.
 - Status-key order ascending; within a status, `x-error-catalog` follows the standard order (handler errors → usecase sentinels [switch order or code order] → domain-service errors → catch-all).
 
 ---
 
-## Shared error responses (`components/responses/<CommonError>.yaml`)
+## Shared error responses (`components.responses.<CommonError>`)
 
-One file per common error, referenced from both the root `components.responses` and per-operation `responses`:
+One entry per common error under `components.responses`, referenced from per-operation `responses` via `#/components/responses/<Name>`:
 
 ```yaml
-# components/responses/Unauthorized.yaml
-description: Missing or invalid authentication
-content:
-  application/json:
-    schema:
-      $ref: "../schemas/Error.yaml"
+components:
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 ```
 
-Provide at least `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `BadRequest` (400), `InternalServerError` (500), plus a shared `Error` schema:
+Provide at least `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `BadRequest` (400), `InternalServerError` (500), plus a shared `Error` schema under `components.schemas`:
 
 ```yaml
-# components/schemas/Error.yaml
-type: object
-required: [message]
-properties:
-  message:
-    type: string
-    description: Error message
-    examples: [invalid request]
+components:
+  schemas:
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Error message
+          examples: [invalid request]
 ```
 
 ---
@@ -350,22 +353,24 @@ properties:
 When the handler wraps the payload (`{success, data, message}`), model the envelope as its own schema whose `data` `$ref`s the inner type (don't inline-duplicate the inner fields):
 
 ```yaml
-# components/schemas/ConsentEnvelope.yaml
-type: object
-required: [success, data]
-properties:
-  success:
-    type: boolean
-    examples: [true]
-  data:
-    $ref: "./ConsentResponse.yaml"
-  message:
-    type: ["string", "null"]
-    description: Optional message
-    examples: ["null"]
+components:
+  schemas:
+    ConsentEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          examples: [true]
+        data:
+          $ref: "#/components/schemas/ConsentResponse"
+        message:
+          type: ["string", "null"]
+          description: Optional message
+          examples: ["null"]
 ```
 
-List envelopes: `data: { type: array, items: { $ref: "./ConsentResponse.yaml" } }` plus `total`/`page` props. The operation's `responses.<NNN>.schema` then `$ref`s the envelope, and the `examples.default.value` shows the full wrapped shape.
+List envelopes: `data: { type: array, items: { $ref: "#/components/schemas/ConsentResponse" } }` plus `total`/`page` props. The operation's `responses.<NNN>.schema` then `$ref`s the envelope, and the `examples.default.value` shows the full wrapped shape.
 
 ---
 
@@ -374,21 +379,23 @@ List envelopes: `data: { type: array, items: { $ref: "./ConsentResponse.yaml" } 
 A struct embedding another (e.g. `ConsentResponse` embeds `BaseResponse`) composes via `allOf`:
 
 ```yaml
-# components/schemas/ConsentResponse.yaml
-allOf:
-  - $ref: "./BaseResponse.yaml"
-  - type: object
-    required: [id, status]
-    properties:
-      id:
-        type: string
-        description: Unique identifier of the consent
-        examples: [uuid-v4]
-      status:
-        type: string
-        enum: [active, inactive, revoked]
-        description: Current status
-        examples: [active]
+components:
+  schemas:
+    ConsentResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          required: [id, status]
+          properties:
+            id:
+              type: string
+              description: Unique identifier of the consent
+              examples: [uuid-v4]
+            status:
+              type: string
+              enum: [active, inactive, revoked]
+              description: Current status
+              examples: [active]
 ```
 
 If the embedded base is not separately modeled, expand its fields inline (in declaration order, before the own fields).
@@ -435,13 +442,13 @@ Deterministic example conventions, emitted as the single element of the property
 
 ## `$ref` wiring conventions (pin — keep byte-stable)
 
-- Root `paths.<path>` → `"./paths/<group>/<file>.yaml"`.
-- Root `components.responses.<X>` → `"./components/responses/<X>.yaml"`.
-- Path file → schema: `"../../components/schemas/<Name>.yaml"`.
-- Path file → shared response: `"../../components/responses/<Name>.yaml"`.
-- Schema file → schema (same dir): `"./<Name>.yaml"`.
-- Shared response → schema: `"../schemas/<Name>.yaml"`.
-- Always relative file paths (no JSON-pointer-into-root); quote the `$ref` value.
+All `$ref`s are **internal JSON pointers** into the one document (no file paths) — this is what makes the single file render in every tool:
+- Operation → schema: `"#/components/schemas/<Name>"`.
+- Operation → shared response: `"#/components/responses/<Name>"`.
+- Schema → schema (nested type / array items / envelope `data`): `"#/components/schemas/<Name>"`.
+- Embedded base in `allOf`: `"#/components/schemas/<Base>"`.
+- Shared response → error schema: `"#/components/schemas/Error"`.
+- Always quote the `$ref` value; never use a file path or a bare `#`.
 
 ---
 
@@ -449,6 +456,7 @@ Deterministic example conventions, emitted as the single element of the property
 
 For clean Update-mode diffs and a simple L1 `$ref` check:
 - 2-space indentation, block style (no flow `{}`/`[]` except short inline examples and scalar arrays like `enum`/`required`/`examples`).
+- Fixed top-level key order: `openapi, info, servers, tags, paths, components`; within `components`: `securitySchemes, responses, schemas`. Emit `paths` keys in router-registration order, and `components.schemas` keys in first-reference order; keep both **byte-stable** across runs.
 - Fixed key order per object kind: **operation** = `tags, summary, description, operationId, security, x-business-logic, parameters, requestBody, responses`; **schema** = `type, format, enum, required, properties, items, allOf, additionalProperties, description, examples`; **parameter** = `name, in, required, description, schema, example`.
 - Quote version strings (`version: "1.0"`) and any value that YAML could mis-type.
 - One trailing newline; no trailing whitespace.
@@ -459,20 +467,20 @@ For clean Update-mode diffs and a simple L1 `$ref` check:
 
 **Single source of truth** for *what* must be checked — referenced by the `openapi-doc` skill's Step 4 + Validate Mode. Do not duplicate elsewhere; reference this.
 
-> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · `$ref` resolution · route↔path-file coverage & root-`paths` linkage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, `x-business-logic` step counting, custom-type enums, every `description`/`examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
+> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · internal `$ref` resolution (every `#/components/...` pointer resolves) · route↔`paths`-key coverage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, `x-business-logic` step counting, custom-type enums, every `description`/`examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
 
 ### Coverage & Structure
-- [ ] Every route in code has a Path Item file, and every path file maps to a real route (no orphan)
-- [ ] Every path file is `$ref`'d from the root `paths:`; every `$ref` (paths/schemas/responses) resolves to an existing file
-- [ ] Handler group structure matches `paths/<group>/` folders
-- [ ] `openapi: 3.2.0`; `info.title`/`info.version` present; `servers` set
+- [ ] Every route in code has a `paths.<path>` entry, and every `paths` key maps to a real route (no orphan)
+- [ ] Every internal `$ref` (`#/components/schemas|responses/...`) resolves to a defined component; no file-path `$ref` remains
+- [ ] Handler group structure is reflected by `tags` (one per group) and each operation's `tags[0]`
+- [ ] `openapi: 3.1.0`; `info.title`/`info.version` present; `servers` set
 - [ ] Each operation has `summary`, `description`, `operationId`, `responses` (≥1 success 2xx)
 - [ ] Inline `examples.*.value` JSON is valid
 
 ### Schema Completeness (critical — open struct source files)
 - [ ] Every serializable struct field (exclude `json:"-"` + unexported) has a `properties` entry — none skipped
 - [ ] `required[]` correct per tags: required→listed, pointer→omitted, omitempty→omitted, **bool-without-required→omitted**, non-ptr-non-bool→listed
-- [ ] Embedded structs via `allOf` (or expanded in order); nested types each have their own `components/schemas/<GoType>.yaml` + `$ref`
+- [ ] Embedded structs via `allOf` (or expanded in order); nested types each have their own `components.schemas.<GoType>` entry + internal `$ref`
 - [ ] Custom types → `type: string` + full `enum`
 - [ ] Pointer/null-capable fields use `type: ["<t>","null"]` and/or are omitted from `required[]` (no `nullable:`)
 - [ ] Wrapper envelope modeled with `data` `$ref` if the handler wraps the payload
@@ -490,9 +498,11 @@ For clean Update-mode diffs and a simple L1 `$ref` check:
 
 ### Error Completeness (critical — open ALL usecase AND domain-service methods)
 - [ ] Every distinct sentinel has an `x-error-catalog` entry (one per sentinel even when sharing a status); messages match code strings; same sentinel deduped
-- [ ] Wrapped repo/external → single catch-all `"500"`; generic 401/403/404 → shared `components/responses` `$ref`
+- [ ] Wrapped repo/external → single catch-all `"500"`; generic 401/403/404 → shared `#/components/responses` `$ref`
 - [ ] Status keys ascending; `x-error-catalog` order = handler errors → usecase sentinels → domain-service errors → catch-all
 
 ### Text Consistency
 - [ ] `summary` = exact PascalCase split, no articles; `description` = `<Verb> <resource>`, verb from method, ≤10 words
 - [ ] `info.description` ≤2 sentences, `<Service> provides APIs for <domain>.` pattern
+</content>
+</invoke>

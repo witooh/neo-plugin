@@ -5,8 +5,8 @@ Zero install: pure Python 3 (stdlib only; uses PyYAML if present).
 Layer-1 of the open-collection skill's three-layer verify.
 
 WHY THIS EXISTS
-  open-collection derives a *runnable* collection from the `bruno/openapi/` OpenAPI 3.2
-  split spec (the single source of truth, already verified against Go by the `openapi-doc`
+  open-collection derives a *runnable* collection from the `bruno/openapi/` OpenAPI 3.1
+  single-file spec (the single source of truth, already verified against Go by the `openapi-doc`
   skill). So this script verifies the collection against the SPEC — never against Go.
   The thing that can silently drift is the transform: a request whose URL, method,
   path-params, or runnable body no longer matches the operation it came from. This is
@@ -42,7 +42,7 @@ WHAT IT CHECKS  (collection ↔ openapi spec; ordered high→low confidence)
   no environments/ dir degrades K5 to a NOTE.
 
 SOURCE
-  open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.2 split spec
+  open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.1 single-file spec
   (the openapi-doc skill's output). The collection is matched to the spec by (method,
   path) — request files Bruno's importer emits are named by operation, not by stem — so
   coverage + body fidelity compare operations, while the per-request structural (K4) and
@@ -70,7 +70,7 @@ RE_VAR = re.compile(r'\{\{\s*([^}]+?)\s*\}\}')           # any {{var}} reference
 
 
 # ───────────────────────── OpenAPI spec source reading ─────────────────────────
-# open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.2 split spec.
+# open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.1 single-file spec.
 # The collection is matched to the spec by (method, path) — the request files Bruno's
 # importer emits are named by operation, not by stem — so coverage + body fidelity compare
 # operations, while the per-request structural (K4) and env (K5) checks are reused
@@ -122,7 +122,7 @@ def _spec_body(op):
 
 def collect_spec_ops(spec_root):
     """[{method, rel_path, full_path, auth, body_json, body_raw}] for every operation in a
-       bruno/openapi split spec. Returns None when PyYAML is absent or the root is missing."""
+       bruno/openapi single-file spec. Returns None when PyYAML is absent or the root is missing."""
     if not HAVE_YAML:
         return None
     root = spec_root if spec_root.is_file() else (spec_root / 'openapi.yaml')

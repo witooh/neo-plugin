@@ -1,7 +1,7 @@
 ---
 name: confluence-api-doc
 description: >
-  Publish API docs to Confluence — from a `bruno/openapi/` OpenAPI 3.2 spec — one endpoint
+  Publish API docs to Confluence — from a `bruno/openapi/` OpenAPI 3.1 spec — one endpoint
   = one page under domain-group parent pages, with the service overview on the parent page.
   Reconstructs each page from the spec, converts to Confluence storage, and syncs
   via acli (auth/reads) + REST (writes), with a
@@ -29,7 +29,7 @@ compatibility:
 
 # Confluence API Doc
 
-Publish API docs to **Confluence** — from a `bruno/openapi/` OpenAPI 3.2 spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
+Publish API docs to **Confluence** — from a `bruno/openapi/` OpenAPI 3.1 spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is a `bruno/openapi/` OpenAPI spec (the `openapi-doc` output).
 

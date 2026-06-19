@@ -2,14 +2,14 @@
 
 Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, page→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, reconstructed from the spec's operations. Input is the **`bruno/openapi/` OpenAPI 3.2 split spec** (root `openapi.yaml` — the `openapi-doc` output). Each operation is **reconstructed** into a logical page shape (§ Step P3), then converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, reconstructed from the spec's operations. Input is the **`bruno/openapi/openapi.yaml` single-file OpenAPI 3.1 spec** (the `openapi-doc` output). Each operation is **reconstructed** into a logical page shape (§ Step P3), then converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
-bruno/openapi/                         Confluence page tree
-├── openapi.yaml (info)           →    Parent page (overview + common errors)
-├── paths/consent/…               →    POST: /api/v1/consents
+bruno/openapi/openapi.yaml             Confluence page tree
+├── info / components.responses   →    Parent page (overview + common errors)
+├── paths (tag: Consent)          →    POST: /api/v1/consents
 │                                       DELETE: /api/v1/consents/{id}/revoke
-└── paths/channel/…               →    POST: /api/v1/channels
+└── paths (tag: Channel)          →    POST: /api/v1/channels
 ```
 
 ---
@@ -32,7 +32,7 @@ Resolve the write token at Step P7 (REST needs it; reads use acli's oauth).
 
 ## Step P3 — Reconstruct pages from the spec
 
-There is no pre-rendered markdown page — **reconstruct** each page's body from the operation, then feed it to the P6 conversion. Read the root `openapi.yaml` (`paths` → `$ref` path files, `servers`, `tags`, `components`), resolve `$ref`s, and for each operation build the page:
+There is no pre-rendered markdown page — **reconstruct** each page's body from the operation, then feed it to the P6 conversion. Read `openapi.yaml` (inline `paths` operations, `servers`, `tags`, `components`), resolving internal `$ref`s (`#/components/...`), and for each operation build the page:
 
 - **Page title** = `<METHOD>: <path>` (uppercased method + the path key, keeping the `{id}` form). **Group** = the operation's `tags[0]` → Title Case. Skip `health`.
 - **Page body** — a logical page shape P6 can convert:
