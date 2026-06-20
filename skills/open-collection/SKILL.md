@@ -54,7 +54,7 @@ Turn a `bruno/openapi.yaml` OpenAPI 3.1 spec into a **runnable** Bruno OpenColle
 └── ...
 ```
 
-The `<collection-root>` is normally `bruno/` itself — the read-only `openapi.yaml` spec file (written by `openapi-doc`, this skill's source) sits inside it alongside the `<group>/` folders. The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
+The `<collection-root>` is normally `bruno/` itself — the read-only `openapi.yaml` spec (this skill's source, written by `openapi-doc`) and its generated `openapi.deref.yaml` view both sit inside it alongside the `<group>/` folders; neither `openapi.*` file is a request. The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
 
 ## Mode
 
@@ -68,7 +68,7 @@ Orthogonal to **Mode** above. **Spec** (default) — one request per endpoint fr
 
 ## Step 1 · Locate the source + collection root + context
 - **Source** — the **OpenAPI spec** at `bruno/openapi.yaml`; if it does not exist → **STOP** (run `openapi-doc` first). In a monorepo, scope to the chosen service's `bruno/openapi.yaml`.
-- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** point the collection root at the spec — `bruno/openapi.yaml` is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; it is a single file living **inside** the collection root (`bruno/openapi.yaml` under `bruno/`), so set the root to `bruno/` — the spec file itself is excluded from request collection, never emitted or treated as a request.
+- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** point the collection root at the spec — `bruno/openapi.yaml` is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; it lives **inside** the collection root (`bruno/openapi.yaml` under `bruno/`, alongside its generated `openapi.deref.yaml` view), so set the root to `bruno/` — both `openapi.*` files are excluded from request collection, never emitted or treated as a request.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
 - **AC-scenario mode** — also resolve the **usecase dir** under `docs/design/` (explicit path → request names a usecase → the only `docs/design/*/` → else `AskUserQuestion`) and read its `acceptance-criteria.html` (+ `test-cases.html` if present). Collection root defaults to a **separate** `bruno-scenarios/` when a general `bruno/` collection already exists (the two collection shapes must not share one root) — **confirm before writing**.
 

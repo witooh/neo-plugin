@@ -429,6 +429,18 @@ For clean Update-mode diffs and a simple L1 `$ref` check:
 
 ---
 
+## Dereferenced view (`bruno/openapi.deref.yaml`)
+
+A **generated companion** to the canonical spec, for viewers (Bruno API Designer, Swagger UI) that don't expand internal `$ref`. The `openapi-doc` skill emits it with `assets/deref.py` **after** the canonical passes verify — it is **derived, never hand-authored, and not separately verified** (its correctness is inherited from the canonical `bruno/openapi.yaml`). It is **not** governed by the Byte-stable YAML rules above (those pin the hand-authored canonical for clean Update diffs); the view's formatting comes from the dumper and is deterministic for a given canonical.
+
+- **What deref does** — replaces every internal `$ref` (`#/components/...`) with a deep copy of its target, recursively. When nothing is left to resolve, the now-redundant `components.schemas` + `components.responses` are dropped; `components.securitySchemes` stay (operations reference them by **name** via `security`, not `$ref`).
+- **`allOf` is preserved, not merged** — an `allOf` whose member is a `$ref` keeps the `allOf` with the base **inlined** (faithful dereference; no lossy flattening of `required[]`/`properties`).
+- **Recursive types** — a `$ref` pointing back into a type currently being expanded (self-referential / mutually-recursive struct) is **left in place** at the cycle (and reported); `components` is then kept so that pointer still resolves. The output is always finite and valid.
+- **Extensions pass through** — `x-error-catalog` and any other `x-*` keys are copied verbatim.
+- **Downstream still reads the canonical** — `open-collection` and `confluence-api-doc` consume `bruno/openapi.yaml`, never this view. Do not point them at `openapi.deref.yaml`.
+
+---
+
 ## Verification Checklist
 
 **Single source of truth** for *what* must be checked — referenced by the `openapi-doc` skill's Step 4 + Validate Mode. Do not duplicate elsewhere; reference this.

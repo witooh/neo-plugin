@@ -228,7 +228,7 @@ def collect_requests(target):
             continue
         if 'environments' in f.relative_to(target).parts:
             continue
-        if f.parent == target and f.stem == 'openapi':  # the root-level openapi spec, never a request (the real .yaml spec is already excluded by the *.yml glob above; this also guards a stray openapi.yml)
+        if f.parent == target and f.name.startswith('openapi.'):  # root-level openapi spec or its deref view, never a request (the real .yaml specs are already excluded by the *.yml glob above; this also guards a stray openapi.yml / openapi.deref.yml)
             continue
         files.append(f)
     return files

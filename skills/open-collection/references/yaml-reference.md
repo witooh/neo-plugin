@@ -32,7 +32,8 @@ extensions:
     ignore:
       - node_modules
       - .git
-      - openapi
+      - openapi.yaml
+      - openapi.deref.yaml
 ```
 
 | Key | Required | Notes |
@@ -40,7 +41,7 @@ extensions:
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
-| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules`, `.git`, and `openapi.yaml` (the OpenAPI spec file, not a request). |
+| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules`, `.git`, `openapi.yaml`, and `openapi.deref.yaml` (the OpenAPI spec file + its dereferenced view written by `openapi-doc` — neither is a request). |
 
 ---
 
