@@ -66,6 +66,7 @@ Read [`references/go-scan-patterns.md`](references/go-scan-patterns.md) (route r
 For each route, trace handler → usecase → repository and extract: request/response shape (path/query/body, success status — read the actual `c.JSON(NNN, …)`, don't guess) and error responses. Apply the **single sources**, do not restate them:
 - Field extraction, error tracing → [`references/go-scan-patterns.md`](references/go-scan-patterns.md).
 - M/O → `required[]`, type mapping, nullability (union types), `x-error-catalog`, example values, `$ref` wiring → [`references/openapi-doc-template.md`](references/openapi-doc-template.md).
+- **Description sources** — while tracing, capture each field's `description` signal (Go doc-comment / custom enum type / `validate`-`binding` tag / a usecase business rule) alongside its type + M/O, so every property's `description` is **grounded at extraction time**, not guessed at write time. Every property must end up with one (L1 enforces it); the field-name formula is the unconditional floor → [`references/openapi-doc-template.md` § Field `description` — source-priority ladder](references/openapi-doc-template.md).
 
 ## Step 4 · Generate / Update / Validate
 Write using [`references/openapi-doc-template.md`](references/openapi-doc-template.md) (Root + Path Item + Schema Component templates):
@@ -80,7 +81,7 @@ Write using [`references/openapi-doc-template.md`](references/openapi-doc-templa
 ```
 python3 <ASSET_DIR>/speccheck.py bruno/openapi.yaml --src <project-root>
 ```
-`<project-root>` = the repo root where `go.mod` lives (usually `.`). It mechanically checks root/operation well-formedness, internal `$ref` resolution, route↔`paths`-key coverage, per-schema property count + `required[]` vs Go structs, status/security sanity, and — **if a real OpenAPI validator (`redocly`/`spectral`/`openapi-spec-validator`) is on PATH** — runs it for structural validation. **Tripwire, not ground truth** — a flag means "inspect this".
+`<project-root>` = the repo root where `go.mod` lives (usually `.`). It mechanically checks root/operation well-formedness, internal `$ref` resolution, route↔`paths`-key coverage, per-schema property count + `required[]` vs Go structs, per-property `description` presence (pure-`$ref` + `{Envelope, ErrorEnvelope}` exempt), status/security sanity, and — **if a real OpenAPI validator (`redocly`/`spectral`/`openapi-spec-validator`) is on PATH** — runs it for structural validation. **Tripwire, not ground truth** — a flag means "inspect this".
 - **exit 0** → go to L1.5.
 - **exit 1** → for each ERROR, open the actual struct/route/spec file: real mismatch → fix → re-run; genuine false positive (e.g. a `.docignore`'d route, or an `openapi-spec-validator` complaint about split `$ref`s) → skip + record under Warnings (never blindly "fix"). **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate** with the remaining ERRORs. Never fake a green run.
 - Collect every **`NOTE`** line (each ends `needs fresh-eyes`) — they feed L2; NOTEs don't fail the run.
@@ -138,7 +139,7 @@ python3 <ASSET_DIR>/deref.py bruno/openapi.yaml -o bruno/openapi.deref.yaml
 **Changes:** Created … / Updated … / Removed …
 **Verification (three-layer):**
 - L1 speccheck.py: ✅ PASS (0 ERROR) / ❌ ESCALATED (N ERROR after ~3 rounds) · loop rounds: 0-3
-  · internal $ref ✅ · coverage ✅ · property/required [X/Y] · status/security ✅ · validator <redocly|spectral|none>
+  · internal $ref ✅ · coverage ✅ · property/required [X/Y] · description presence ✅/[N missing] · status/security ✅ · validator <redocly|spectral|none>
 - L2 fresh-eyes: ✅ Clean / ⚠️ N findings fixed / ⏭ Skipped / ⏸ Not run
 - L3 completeness sweep: ✅ all routes + $refs covered / ⚠️ N silent omissions fixed
 - Deref view: ✅ bruno/openapi.deref.yaml written (N recursive $ref kept) / ✅ in sync (Validate) / ⏭ skipped (no PyYAML)

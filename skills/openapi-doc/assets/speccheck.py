@@ -36,6 +36,11 @@ WHAT IT CHECKS  (ordered high→low confidence)
                       property (undocumented) -> ERROR. allOf/no-match/ambiguous -> NOTE.
   S5 required[]       for mapped schemas, recompute M/O from tags vs required[] -> ERROR.
   S6 Status/security  each operation has a 2xx; security refs a defined scheme -> ERROR.
+  S7 Descriptions     every components.schemas typed property has a non-empty `description`
+                      -> ERROR (pure-$ref + {Envelope,ErrorEnvelope} boilerplate exempt).
+                      Spec-only: runs even with no Go source; no PyYAML -> NOTE. Scope is
+                      components.schemas properties — inline operation objects (e.g. health)
+                      are out of scope by design.
   + optional external OpenAPI validator (redocly/spectral → ERROR on fail;
     openapi-spec-validator → NOTE; a single-file spec resolves fully for all three).
 
@@ -443,6 +448,49 @@ def check_schemas(schemas, context, name_sets, resolved, errors, notes):
                               '— required[] M/O needs fresh-eyes'))
 
 
+# ═════════════════════ S7 · description presence ═════════════════════
+
+DESC_ALLOWLIST = {'Envelope', 'ErrorEnvelope'}   # boilerplate response wrappers — exempt
+
+
+def check_descriptions(schemas, errors):
+    """S7 — every typed property under components.schemas carries a non-empty `description`.
+       Spec-only (independent of Go), so it runs even when no source is found — this is the
+       deterministic floor that stops a description-less property shipping silently.
+       Exempt: a pure-$ref property (its description lives on the $ref target) and the
+       {Envelope, ErrorEnvelope} boilerplate wrappers (described once, at the envelope)."""
+    for name, sch in (schemas or {}).items():
+        if not isinstance(sch, dict) or name in DESC_ALLOWLIST:
+            continue
+        _walk_props(sch, f'components.schemas.{name}', errors)
+
+
+def _walk_props(node, loc, errors):
+    """Recurse a schema node's own + inline-allOf-member properties: ERROR any typed property
+       with no description, then descend into nested objects / arrays-of-object. A property
+       with no `type` key is left alone (composed/$ref shapes — avoids false positives); a
+       `type: ["object","null"]` union still recurses via its `properties`."""
+    propsets = []
+    if isinstance(node.get('properties'), dict):
+        propsets.append(node['properties'])
+    for member in node.get('allOf', []) or []:            # inline object members only ($ref base skipped)
+        if isinstance(member, dict) and '$ref' not in member and isinstance(member.get('properties'), dict):
+            propsets.append(member['properties'])
+    for props in propsets:
+        for pname, p in props.items():
+            if not isinstance(p, dict):
+                continue
+            if '$ref' in p and 'type' not in p:           # pure-$ref → description on the target
+                continue
+            if 'type' in p and not str(p.get('description', '')).strip():
+                errors.append((loc, 'ERROR', f'property `{pname}` has no description'))
+            if p.get('type') == 'object' or isinstance(p.get('properties'), dict):
+                _walk_props(p, f'{loc}.{pname}', errors)
+            items = p.get('items')
+            if isinstance(items, dict) and (items.get('type') == 'object' or isinstance(items.get('properties'), dict)):
+                _walk_props(items, f'{loc}.{pname}[]', errors)
+
+
 # ═════════════════════ optional external validator ═════════════════════
 
 def run_external_validator(root, errors, notes):
@@ -549,6 +597,10 @@ def main():
         context = scan_operations(paths, security_schemes, errors, notes)
         if name_sets is not None:
             check_schemas(schemas, context, name_sets, resolved, errors, notes)
+        check_descriptions(schemas, errors)               # S7 — spec-only, runs without Go
+    elif not HAVE_YAML:
+        notes.append(('openapi.yaml', 'no PyYAML — components.schemas description presence (S7) '
+                                      'not checked; needs fresh-eyes'))
 
     # optional external validator
     run_external_validator(root, errors, notes)

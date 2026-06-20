@@ -368,9 +368,25 @@ If the embedded base is not separately modeled, expand its fields inline (in dec
 
 ---
 
-## Field `description` formulas
+## Field `description` — source-priority ladder
 
-Populate each property's `description` from the Go field name (apply the FIRST matching rule; max 8 words; factual only; do not inject qualifiers the formula doesn't specify):
+Every property under `components.schemas` **MUST** carry a `description` — **enforced by `speccheck.py` (S7)**: a typed property with no description is an ERROR (exempt: a pure-`$ref` property, whose description lives on its target, and the `{Envelope, ErrorEnvelope}` boilerplate wrappers). Populate it from the **highest rung you have evidence for**, and **never invent** — if nothing above the floor applies, use the floor:
+
+| Rung | Source (highest first) | What to write | Example |
+|---|---|---|---|
+| 1 | Go field **doc-comment** (`// …` above the field) | the comment, trimmed to a clause | `// resolved at open time` → `Resolved at open time` |
+| 2 | **Custom enum type** (`type X string` + `const` block) | the allowed values, in prose | `One of: S, G` |
+| 3 | **`validate`/`binding` tag** | the real constraint it encodes | `validate:"required,email"` → `Required email address` |
+| 4 | **Traceable usecase rule** (a condition visible in the handler→usecase code traced in Step 3) | the business condition | `Required when opening a savings account` |
+| 5 | **Formula floor** — field-name split (always available) | the name as a ≤8-word phrase | `branchNo` → `Branch number` |
+
+> **Rung 2 scope:** this only sets the `description` *prose*. The matching `enum:` array on the schema is a separate schema-constraint concern, governed by the **Custom types → `type: string` + full `enum`** rule in the Verification Checklist — not added by the description step.
+
+**Length:** terse by default — most fields, and **every** floor description, are ≤8 words. Expand to a single clause **only** when rung 2–4 carries real information (an enum set, a constraint, a when-required rule); never pad the floor.
+
+**Groundedness (never-guess):** a description must be derivable from the rung it cites in the source. Do not state business meaning that isn't visible in a comment, tag, enum, or traced usecase. When in doubt, drop to the floor — a mechanical name-split is *factual*; an invented sentence is not.
+
+**Rung 5 — the floor (unconditional).** When rungs 1–4 yield nothing, derive the description mechanically from the Go field name (apply the FIRST matching rule; ≤8 words; factual only; do not inject qualifiers the formula doesn't specify). The floor always produces a value, so no property is ever left bare for S7:
 
 | # | Pattern | Formula | Result |
 |---|---|---|---|
@@ -445,7 +461,7 @@ A **generated companion** to the canonical spec, for viewers (Bruno API Designer
 
 **Single source of truth** for *what* must be checked — referenced by the `openapi-doc` skill's Step 4 + Validate Mode. Do not duplicate elsewhere; reference this.
 
-> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · internal `$ref` resolution (every `#/components/...` pointer resolves) · route↔`paths`-key coverage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, custom-type enums, every `description`/`examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
+> **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: root/operation well-formedness · internal `$ref` resolution (every `#/components/...` pointer resolves) · route↔`paths`-key coverage · property **count** vs Go struct (embedded expanded) · **`required[]`** vs tags · **`description` presence** (every `components.schemas` typed property has one; pure-`$ref` + `{Envelope, ErrorEnvelope}` exempt) · security-scheme resolution · inline-example JSON validity · (optional) a real validator if one is on PATH. The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment: error tracing + `x-error-catalog`, custom-type enums, `description` **groundedness** (each one supported by its source rung, not invented) + `examples`/nullable detail, property order, success status, security mapping, example shape. **L3** re-derives the route inventory from the router to catch a whole path silently dropped. L1 prints whatever it cannot resolve as a `NOTE` to focus L2.
 
 ### Coverage & Structure
 - [ ] Every route in code has a `paths.<path>` entry, and every `paths` key maps to a real route (no orphan)
@@ -464,7 +480,7 @@ A **generated companion** to the canonical spec, for viewers (Bruno API Designer
 - [ ] Wrapper envelope modeled with `data` `$ref` if the handler wraps the payload
 - [ ] Inline `c.Query()` params present; `required:false` by default, `true` only if the handler errors when empty
 - [ ] Property order follows Go struct field order (embedded first)
-- [ ] `description` follows the formula table; `examples` follow the value conventions and satisfy the `validate` tag
+- [ ] Every property has a `description`, **grounded** per the source-priority ladder (floor = the formula table; bare property = ERROR, except exempt pure-`$ref` / `{Envelope, ErrorEnvelope}`); `examples` follow the value conventions and satisfy the `validate` tag
 - [ ] `examples.default.value` (request & response) includes all mandatory + ≥1 optional field and reflects the real (wrapped) shape
 
 ### Response Metadata (critical)
