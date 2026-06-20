@@ -1,14 +1,14 @@
 # Open Collection — Templates
 
-Templates for every file this skill writes when it turns the `bruno/openapi/` OpenAPI spec into a **runnable** Bruno OpenCollection. Section ordering and indentation are part of the contract — follow them exactly so output is byte-stable across runs.
+Templates for every file this skill writes when it turns the `bruno/openapi.yaml` OpenAPI spec into a **runnable** Bruno OpenCollection. Section ordering and indentation are part of the contract — follow them exactly so output is byte-stable across runs.
 
-**The collection carries no `docs:` blocks** — the human-readable documentation stays in the `bruno/openapi/` OpenAPI spec (the single source of truth), and Confluence publishing reads that spec directly (the `confluence-api-doc` skill). In **Spec mode** the request artifact is purely runnable — URLs, params, bodies, headers, auth, environments; **AC-scenario mode** (§8) additionally emits a `runtime.assertions` block per request. `docs:` stays omitted in both modes. For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
+**The collection carries no `docs:` blocks** — the human-readable documentation stays in the `bruno/openapi.yaml` OpenAPI spec (the single source of truth), and Confluence publishing reads that spec directly (the `confluence-api-doc` skill). In **Spec mode** the request artifact is purely runnable — URLs, params, bodies, headers, auth, environments; **AC-scenario mode** (§8) additionally emits a `runtime.assertions` block per request. `docs:` stays omitted in both modes. For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
 
 ---
 
 ## 0. Reading the OpenAPI spec source (the input contract)
 
-Input is the `bruno/openapi/openapi.yaml` single-file spec (the `openapi-doc` skill's output). The **runnable** bits come from each **operation**; **do not re-scan Go** (the spec was already verified against the code). **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
+Input is the `bruno/openapi.yaml` single-file spec (the `openapi-doc` skill's output). The **runnable** bits come from each **operation**; **do not re-scan Go** (the spec was already verified against the code). **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
 
 | OpenAPI element | → Collection field |
 |---|---|
@@ -187,7 +187,7 @@ Applies **only in AC-scenario mode** (SKILL.md `## Source mode`). Instead of one
 
 ### 8.0 Inputs + join order (AC-first · TC-enrichment · spec-anchored)
 
-Read from `docs/design/<usecase>/`; the spec at `bruno/openapi/openapi.yaml` stays the contract anchor.
+Read from `docs/design/<usecase>/`; the spec at `bruno/openapi.yaml` stays the contract anchor.
 
 | Need | Source (in order) | Grep target |
 |---|---|---|

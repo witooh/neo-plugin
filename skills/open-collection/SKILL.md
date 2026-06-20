@@ -1,7 +1,7 @@
 ---
 name: open-collection
 description: >
-  Generate a **runnable** Bruno OpenCollection from a `bruno/openapi/` OpenAPI 3.1 spec in one
+  Generate a **runnable** Bruno OpenCollection from a `bruno/openapi.yaml` OpenAPI 3.1 spec in one
   of two **source modes**. **Spec mode** (default): one request `.yml` per endpoint, grouped by
   domain, with `environments/` and `folder.yml` auth — **runnable-only** (URLs, params, bodies,
   headers, auth, envs); the documentation stays in the spec. **AC-scenario mode**: one request
@@ -17,7 +17,7 @@ description: >
   "runnable test scenarios from AC". Also trigger when neo delegates collection generation.
   NOTE: generating the OpenAPI spec from Go is the `openapi-doc` skill; generating the AC /
   test-case design docs is the `neo` skill (this skill only *reads* them); publishing to
-  Confluence is `confluence-api-doc`. Spec mode needs the `bruno/openapi/` spec; AC-scenario
+  Confluence is `confluence-api-doc`. Spec mode needs the `bruno/openapi.yaml` spec; AC-scenario
   mode also needs `docs/design/<usecase>/` — if a required input is missing, run the upstream
   skill first. Not a curl/Postman converter or an interactive editor.
 compatibility:
@@ -35,7 +35,7 @@ compatibility:
 
 # Open Collection
 
-Turn a `bruno/openapi/` OpenAPI 3.1 spec into a **runnable** Bruno OpenCollection in one of two **source modes** (see `## Source mode`): **Spec** — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`; or **AC-scenario** — one request per Ready AC with `runtime.assertions`. The spec is the **single source of truth** for the contract (already verified against Go by `openapi-doc`); the collection embeds **no `docs:`** blocks. The result is verified against the source on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
+Turn a `bruno/openapi.yaml` OpenAPI 3.1 spec into a **runnable** Bruno OpenCollection in one of two **source modes** (see `## Source mode`): **Spec** — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`; or **AC-scenario** — one request per Ready AC with `runtime.assertions`. The spec is the **single source of truth** for the contract (already verified against Go by `openapi-doc`); the collection embeds **no `docs:`** blocks. The result is verified against the source on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill").
 
@@ -54,7 +54,7 @@ Turn a `bruno/openapi/` OpenAPI 3.1 spec into a **runnable** Bruno OpenCollectio
 └── ...
 ```
 
-The `<collection-root>` is normally `bruno/` itself — the read-only `openapi/` spec dir (written by `openapi-doc`, this skill's source) sits inside it alongside the `<group>/` folders. The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
+The `<collection-root>` is normally `bruno/` itself — the read-only `openapi.yaml` spec file (written by `openapi-doc`, this skill's source) sits inside it alongside the `<group>/` folders. The directory mirrors the spec's path groups (operation `tags[0]` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the spec).
 
 ## Mode
 
@@ -67,14 +67,14 @@ Orthogonal to **Mode** above. **Spec** (default) — one request per endpoint fr
 ---
 
 ## Step 1 · Locate the source + collection root + context
-- **Source** — the **OpenAPI spec** at `bruno/openapi/openapi.yaml`; if it does not exist → **STOP** (run `openapi-doc` first). In a monorepo, scope to the chosen service's `bruno/openapi/`.
-- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** use `bruno/openapi/` as the collection root — it is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; the spec lives in the `openapi/` subdirectory **inside** the collection root (`bruno/openapi/` under `bruno/`), so set the root to `bruno/` — never to `bruno/openapi/`.
+- **Source** — the **OpenAPI spec** at `bruno/openapi.yaml`; if it does not exist → **STOP** (run `openapi-doc` first). In a monorepo, scope to the chosen service's `bruno/openapi.yaml`.
+- **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** point the collection root at the spec — `bruno/openapi.yaml` is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; it is a single file living **inside** the collection root (`bruno/openapi.yaml` under `bruno/`), so set the root to `bruno/` — the spec file itself is excluded from request collection, never emitted or treated as a request.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
 - **AC-scenario mode** — also resolve the **usecase dir** under `docs/design/` (explicit path → request names a usecase → the only `docs/design/*/` → else `AskUserQuestion`) and read its `acceptance-criteria.html` (+ `test-cases.html` if present). Collection root defaults to a **separate** `bruno-scenarios/` when a general `bruno/` collection already exists (the two collection shapes must not share one root) — **confirm before writing**.
 
 ## Step 2 · Read the source endpoints
 Read [`references/request-template.md`](references/request-template.md) — **§0** (OpenAPI spec source). **Do not re-scan Go** — the spec was already verified against the code by `openapi-doc`.
-- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source bruno/openapi/openapi.yaml --output <collection-root> --collection-name "<Service Name>" --collection-format=opencollection` (it resolves the internal `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
+- **OpenAPI spec source** — **prefer Bruno's native importer**: `bru import openapi --source bruno/openapi.yaml --output <collection-root> --collection-name "<Service Name>" --collection-format=opencollection` (it resolves the internal `$ref`s), then post-process to this skill's conventions (`{{baseUrl}}` env var, secret masking, `seq`, folder auth) and **strip any `docs:`** Bruno adds. If `bru` is unavailable, hand-map per **§0**: each operation → one request (`parameters` → `params`; `requestBody…examples.default.value` → `http.body.data` verbatim; `security` → auth; `servers[].url` → `{{baseUrl}}`).
 - **AC-scenario mode** — ignore the importer; read [`references/request-template.md`](references/request-template.md) **§8** and hand-map per the AC→request join: parse the AC inventory (`<ac-card id status>`), pull each AC's endpoint + scenario body + expected outcome from a tracing `<tc-card>` when present (else derive from the AC prose), and resolve the endpoint contract against the spec. `bru import openapi` is endpoint-driven and **must not** be used here.
 
 ## Step 3 · Generate / Update / Validate
@@ -90,9 +90,9 @@ Write using [`references/request-template.md`](references/request-template.md) (
 ### verify-L1 · Script tripwire (always)
 ```
 # Spec mode
-python3 <ASSET_DIR>/colcheck.py <collection-root> --spec bruno/openapi/
+python3 <ASSET_DIR>/colcheck.py <collection-root> --spec bruno/openapi.yaml
 # AC-scenario mode (--mode scenario is implied by --design)
-python3 <ASSET_DIR>/colcheck.py <collection-root> --spec bruno/openapi/ --design docs/design/<usecase>
+python3 <ASSET_DIR>/colcheck.py <collection-root> --spec bruno/openapi.yaml --design docs/design/<usecase>
 ```
 In **Spec mode** it mechanically checks spec↔collection coverage (missing/orphan request files, folder.yml per group), `http.method`/`http.url` vs the spec, `http.body.data` == the spec's runnable example, `http.url` path-params ↔ `params`, `body.data` JSON validity, `seq` uniqueness, and that every `{{var}}` is defined in `environments/`. In **AC-scenario mode** it instead checks **AC coverage** (every Ready AC has a request; no Blocked/orphan AC-ID), the `res.status` **assertion presence**, endpoint existence (N:1), plus the same path-param / JSON / env / seq checks — body↔example equality is **off** (scenario bodies vary by design → NOTE). Needs PyYAML. **Tripwire, not ground truth** — a flag means "inspect this".
 - **exit 0** → go to L1.5.
@@ -112,13 +112,13 @@ SKILL_DIR = <skill base dir>
 SOURCE_MODE = <Spec | AC-scenario>
 
 ## Task
-Independently verify the collection just written — in Spec mode against the bruno/openapi
+Independently verify the collection just written — in Spec mode against the bruno/openapi.yaml
 spec; in AC-scenario mode against the AC docs + spec (per col-verifier.md's mode branch).
 Check ONLY judgment-level accuracy (not the script's mechanical checks). Read the
 source yourself.
 
 ## Files under review
-<list the request .yml + folder.yml files just created/updated> + the bruno/openapi spec
+<list the request .yml + folder.yml files just created/updated> + the bruno/openapi.yaml spec
 + (AC-scenario mode) docs/design/<usecase>/acceptance-criteria.html (+ test-cases.html)
 
 ## colcheck NOTEs to focus on
@@ -130,12 +130,12 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** fix the files → re-run `colcheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect what is present; L3 catches what is **missing entirely**. In **Spec mode** re-enumerate the **full inventory straight from the spec** (`bruno/openapi/`: every operation in the root `paths:`) plus every `{{var}}` referenced, and confirm: every endpoint/operation has a request `.yml`, every group has a `folder.yml`, every referenced variable has an `environments/` entry, and no request file is an orphan. In **AC-scenario mode** re-enumerate the **AC inventory** instead (every Ready `<ac-card>` in `acceptance-criteria.html`) — confirm every Ready AC has a request, every Blocked AC is listed-and-skipped (never emitted), every referenced var has an env entry, and no request maps to an unknown AC. Report any whole endpoint/AC/group/variable the pipeline silently dropped; fix → re-run L1.
+L1/L2 inspect what is present; L3 catches what is **missing entirely**. In **Spec mode** re-enumerate the **full inventory straight from the spec** (`bruno/openapi.yaml`: every operation in the root `paths:`) plus every `{{var}}` referenced, and confirm: every endpoint/operation has a request `.yml`, every group has a `folder.yml`, every referenced variable has an `environments/` entry, and no request file is an orphan. In **AC-scenario mode** re-enumerate the **AC inventory** instead (every Ready `<ac-card>` in `acceptance-criteria.html`) — confirm every Ready AC has a request, every Blocked AC is listed-and-skipped (never emitted), every referenced var has an env entry, and no request maps to an unknown AC. Report any whole endpoint/AC/group/variable the pipeline silently dropped; fix → re-run L1.
 
 ### Output
 ```
 ## Open Collection — <Generate / Update / Validate> · <Spec | AC-scenario>
-**Collection:** <root>   **Source:** bruno/openapi/ spec  (+ docs/design/<usecase>/ in AC-scenario mode)
+**Collection:** <root>   **Source:** bruno/openapi.yaml spec  (+ docs/design/<usecase>/ in AC-scenario mode)
 **Structure:** opencollection.yml · environments/(…) · <group>/(folder.yml + N requests) …
 **Changes:** Created … / Updated … / Removed …
 **Verification (three-layer):**
@@ -151,7 +151,7 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. In **Spe
 ---
 
 ## What this skill is NOT
-- **Not** a source generator — producing the `bruno/openapi/` spec from Go is the **`openapi-doc`** skill (run it first; this skill reads its output).
+- **Not** a source generator — producing the `bruno/openapi.yaml` spec from Go is the **`openapi-doc`** skill (run it first; this skill reads its output).
 - **Not** a Confluence publisher — that is the **`confluence-api-doc`** skill.
 - **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive editor.
 - **Not** a documentation carrier — the collection holds no `docs:`; the OpenAPI spec remains the single source of truth.

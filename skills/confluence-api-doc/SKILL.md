@@ -1,7 +1,7 @@
 ---
 name: confluence-api-doc
 description: >
-  Publish API docs to Confluence — from a `bruno/openapi/` OpenAPI 3.1 spec — one endpoint
+  Publish API docs to Confluence — from a `bruno/openapi.yaml` OpenAPI 3.1 spec — one endpoint
   = one page under domain-group parent pages, with the service overview on the parent page.
   Reconstructs each page from the spec, converts to Confluence storage, and syncs
   via acli (auth/reads) + REST (writes), with a
@@ -13,7 +13,7 @@ description: >
   trigger when neo delegates API-doc publishing. NOTE: generating the OpenAPI spec from Go
   source is the `openapi-doc` skill; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
-  `bruno/openapi/` spec — if it does not exist, run
+  `bruno/openapi.yaml` spec — if it does not exist, run
   `openapi-doc` first. Not a general Confluence editor.
 compatibility:
   environment: claude-code
@@ -29,13 +29,13 @@ compatibility:
 
 # Confluence API Doc
 
-Publish API docs to **Confluence** — from a `bruno/openapi/` OpenAPI 3.1 spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
+Publish API docs to **Confluence** — from a `bruno/openapi.yaml` OpenAPI 3.1 spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
 
-`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is a `bruno/openapi/` OpenAPI spec (the `openapi-doc` output).
+`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is a `bruno/openapi.yaml` OpenAPI spec (the `openapi-doc` output).
 
 ## The spine
 
-1. **Gather** — the source is the **OpenAPI spec** at `bruno/openapi/openapi.yaml`; if it does not exist → STOP (run `openapi-doc` first). Then take the Confluence parent-page URL → page ID.
+1. **Gather** — the source is the **OpenAPI spec** at `bruno/openapi.yaml`; if it does not exist → STOP (run `openapi-doc` first). Then take the Confluence parent-page URL → page ID.
 2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
 3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the operation's method + path; **reconstruct** the page body from the operation — `summary`/`description` → intro, `parameters`/`requestBody`/`responses` schemas → field tables, the `examples.default.value` → example blocks, **`x-error-catalog` (+ response descriptions) → the Error Responses table** (standard tools drop `x-*`, so this skill must read it itself); parent body = `info.description` + the shared `components/responses`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
 4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
@@ -82,12 +82,12 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory. The verifier is read-only → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing entirely**. Re-enumerate every operation in the `bruno/openapi/` root `paths:` + every group, and confirm each maps to a created/updated Confluence page in the report, and that the parent overview (`info.description`) was synced. Report any group/endpoint silently skipped; fix → re-sync.
+L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing entirely**. Re-enumerate every operation in the `bruno/openapi.yaml` root `paths:` + every group, and confirm each maps to a created/updated Confluence page in the report, and that the parent overview (`info.description`) was synced. Report any group/endpoint silently skipped; fix → re-sync.
 
 ### Output
 ```
 ## Confluence API Doc — publish
-**Source:** bruno/openapi/ spec   **Parent page:** <id>
+**Source:** bruno/openapi.yaml spec   **Parent page:** <id>
 | Page | Type | Page ID | Status |
 | --- | --- | --- | --- |
 | (Service) Overview | Parent | … | Updated (v3→v4) |
@@ -103,7 +103,7 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 ---
 
 ## What this skill is NOT
-- **Not** a source generator — producing the `bruno/openapi/` spec from Go is the **`openapi-doc`** skill (run it first; this skill reads its output).
+- **Not** a source generator — producing the `bruno/openapi.yaml` spec from Go is the **`openapi-doc`** skill (run it first; this skill reads its output).
 - **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
 - **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
 - An HTTP 200 is **not** proof the content is right — that is the round-trip + fresh-eyes job.

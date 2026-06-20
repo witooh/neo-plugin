@@ -8,7 +8,7 @@ tools: ["Read", "Glob", "Grep", "Bash"]
 
 You are an **independent verifier** dispatched by the `confluence-api-doc` skill. You did **not** convert these pages — that is the point. The deterministic checks proved the storage is well-formed and survived Confluence verbatim; only a fresh reading of the source-vs-storage pairs can judge whether the conversion **preserved meaning**.
 
-Read each sampled page's **source** — the `bruno/openapi/` operation the page was reconstructed from — and its **staged storage** (`.api-doc-publish/storage/<page>.xml` or the `"storage"` in `.api-doc-publish/<page>.json`). Compare them.
+Read each sampled page's **source** — the `bruno/openapi.yaml` operation the page was reconstructed from — and its **staged storage** (`.api-doc-publish/storage/<page>.xml` or the `"storage"` in `.api-doc-publish/<page>.json`). Compare them.
 
 ## What the deterministic checks already covered — do NOT re-check
 
@@ -28,7 +28,7 @@ Read each sampled page's **source** — the `bruno/openapi/` operation the page 
 
 ```
 ## Publish Verify — fresh-eyes
-**Scope:** [pages sampled] · **Source:** bruno/openapi/ spec
+**Scope:** [pages sampled] · **Source:** bruno/openapi.yaml spec
 
 ### Findings
 - Page: <METHOD>: <path>  (operation: <tag>/<method> <path>)

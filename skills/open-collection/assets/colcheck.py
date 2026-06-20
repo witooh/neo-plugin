@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-colcheck.py — TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ bruno/openapi spec).
+colcheck.py — TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ bruno/openapi.yaml spec).
 Zero install: pure Python 3 (stdlib only; uses PyYAML if present).
 Layer-1 of the open-collection skill's three-layer verify.
 
 WHY THIS EXISTS
-  open-collection derives a *runnable* collection from the `bruno/openapi/` OpenAPI 3.1
+  open-collection derives a *runnable* collection from the `bruno/openapi.yaml` OpenAPI 3.1
   single-file spec (the single source of truth, already verified against Go by the `openapi-doc`
   skill). So this script verifies the collection against the SPEC — never against Go.
   The thing that can silently drift is the transform: a request whose URL, method,
@@ -50,18 +50,18 @@ WHAT IT CHECKS  (collection ↔ openapi spec; ordered high→low confidence)
   + test-cases.html (optional enrichment: per-AC endpoint + expected HTTP status) under --design.
 
 SOURCE
-  open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.1 single-file spec
+  open-collection derives the collection from a `bruno/openapi.yaml` OpenAPI 3.1 single-file spec
   (the openapi-doc skill's output). The collection is matched to the spec by (method,
   path) — request files Bruno's importer emits are named by operation, not by stem — so
   coverage + body fidelity compare operations, while the per-request structural (K4) and
   env (K5) checks are reused unchanged. Needs PyYAML.
 
 USAGE
-  python3 colcheck.py <collection-root>          --spec bruno/openapi/  # vs openapi spec
-  python3 colcheck.py <collection>/consent/x.yml --spec bruno/openapi/  # one request file
-  python3 colcheck.py <scenario-root> --spec bruno/openapi/ --design docs/design/<usecase>  # AC-scenario
+  python3 colcheck.py <collection-root>          --spec bruno/openapi.yaml  # vs openapi spec
+  python3 colcheck.py <collection>/consent/x.yml --spec bruno/openapi.yaml  # one request file
+  python3 colcheck.py <scenario-root> --spec bruno/openapi.yaml --design docs/design/<usecase>  # AC-scenario
   (--spec/--design also accept =PATH; arg order is irrelevant. With no flag the spec defaults
-   to bruno/openapi/. --mode scenario is implied by --design.)
+   to bruno/openapi.yaml. --mode scenario is implied by --design.)
 Exit code: 0 = no ERROR (NOTEs/WARNINGs ok), 1 = at least one ERROR.
 """
 import re, sys, json, pathlib, html
@@ -79,7 +79,7 @@ RE_VAR = re.compile(r'\{\{\s*([^}]+?)\s*\}\}')           # any {{var}} reference
 
 
 # ───────────────────────── OpenAPI spec source reading ─────────────────────────
-# open-collection derives the collection from a `bruno/openapi/` OpenAPI 3.1 single-file spec.
+# open-collection derives the collection from a `bruno/openapi.yaml` OpenAPI 3.1 single-file spec.
 # The collection is matched to the spec by (method, path) — the request files Bruno's
 # importer emits are named by operation, not by stem — so coverage + body fidelity compare
 # operations, while the per-request structural (K4) and env (K5) checks are reused
@@ -131,7 +131,7 @@ def _spec_body(op):
 
 def collect_spec_ops(spec_root):
     """[{method, rel_path, full_path, auth, body_json, body_raw}] for every operation in a
-       bruno/openapi single-file spec. Returns None when PyYAML is absent or the root is missing."""
+       bruno/openapi.yaml single-file spec. Returns None when PyYAML is absent or the root is missing."""
     if not HAVE_YAML:
         return None
     root = spec_root if spec_root.is_file() else (spec_root / 'openapi.yaml')
@@ -218,7 +218,7 @@ def read_request_yaml(path):
 
 def collect_requests(target):
     """[request .yml files] under a collection root — excludes opencollection.yml,
-       folder.yml, the openapi/ spec dir, and anything under environments/. Recursive
+       folder.yml, the openapi.yaml spec file, and anything under environments/. Recursive
        so nested groups count."""
     if target.is_file():
         return [target]
@@ -228,7 +228,7 @@ def collect_requests(target):
             continue
         if 'environments' in f.relative_to(target).parts:
             continue
-        if f.relative_to(target).parts[:1] == ('openapi',):  # the bruno/openapi/ spec dir nested in the root
+        if f.parent == target and f.stem == 'openapi':  # the root-level openapi spec, never a request (the real .yaml spec is already excluded by the *.yml glob above; this also guards a stray openapi.yml)
             continue
         files.append(f)
     return files
@@ -522,12 +522,12 @@ def parse_args(argv):
     """(collection-target, spec-arg, design-arg, mode). --spec/--design consume a value (space
        or =); the first bare token is the collection target. --mode is spec|scenario (default
        spec; auto scenario when --design is given). --spec may be omitted — main defaults to
-       bruno/openapi."""
+       bruno/openapi.yaml."""
     positional, spec_arg, design_arg, mode = [], None, None, None
     it = iter(argv)
     for a in it:
         if a == '--spec':
-            spec_arg = next(it, 'bruno/openapi')
+            spec_arg = next(it, 'bruno/openapi.yaml')
         elif a.startswith('--spec='):
             spec_arg = a[len('--spec='):]
         elif a == '--design':
@@ -576,9 +576,9 @@ def main():
         print("colcheck: no request .yml files or opencollection.yml — nothing to check")
         sys.exit(0)
 
-    # ---- source: the openapi spec at bruno/openapi/ ----
+    # ---- source: the openapi spec at bruno/openapi.yaml ----
     errors, notes, seq_seen = [], [], defaultdict(dict)
-    spec_root = pathlib.Path(spec_arg) if spec_arg else pathlib.Path('bruno/openapi')
+    spec_root = pathlib.Path(spec_arg) if spec_arg else pathlib.Path('bruno/openapi.yaml')
     design_dir = pathlib.Path(design_arg) if design_arg else pathlib.Path('docs/design')
     if mode == 'scenario':
         print(f"colcheck: source = spec {spec_root} + design {design_dir} (scenario mode)")

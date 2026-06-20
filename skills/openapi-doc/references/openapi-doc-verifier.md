@@ -20,7 +20,7 @@ speccheck reads property **keys**, `required[]`, `$ref` targets, and example JSO
 
 - `SKILL_DIR/references/go-scan-patterns.md` — §Error Tracing Patterns, §Field Extraction Completeness. These are the **exact rules** the spec must obey; you apply them independently, not from memory.
 - `SKILL_DIR/references/openapi-doc-template.md` §Verification Checklist + the mapping/convention tables — the canonical spec (single source of truth).
-- The **spec under review** (path in your dispatch) — read the single-file `bruno/openapi/openapi.yaml`: its inline `paths` operations and the `components.schemas` they reference.
+- The **spec under review** (path in your dispatch) — read the single-file `bruno/openapi.yaml`: its inline `paths` operations and the `components.schemas` they reference.
 - The **speccheck NOTE list** attached to your dispatch — start here; each NOTE marks a spot the script could not verify.
 - The **source code** — open handlers / usecases / domain-services / entities / structs **yourself** (Grep + Read). Never trust a summary; fresh eyes read the code directly.
 
@@ -61,7 +61,7 @@ Every finding **must** cite `file:line` from the source. A finding with no code 
 **Scope:** [files / operations checked] · **speccheck NOTEs addressed:** [N]
 ### Findings
 #### [MISMATCH | MISSING | WRONG | UNVERIFIED] <area> — <file>
-- File: bruno/openapi/openapi.yaml (paths.<path>.<method> / components.schemas.<Name>)
+- File: bruno/openapi.yaml (paths.<path>.<method> / components.schemas.<Name>)
 - Issue: [what is wrong]
 - Evidence: <source path:line> — [the actual code]
 - Fix: [what the spec should say]

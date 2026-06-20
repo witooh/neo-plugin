@@ -2,7 +2,7 @@
 name: openapi-doc
 description: >
   Generate an OpenAPI 3.1 spec from Go source as a **single-file** document at
-  `bruno/openapi/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`,
+  `bruno/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`,
   and every type under `components.schemas`, wired with internal `$ref` — or update/validate
   an existing spec against the current code. Per-sentinel
   errors live in `x-error-catalog`. Built-in **three-layer verify** (deterministic script +
@@ -29,15 +29,14 @@ compatibility:
 
 # OpenAPI Doc
 
-Generate an **OpenAPI 3.1.0** spec from source as a **single-file** document at `bruno/openapi/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`, and every Go type under `components.schemas`, wired with internal `$ref` (`#/components/...`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor). It reads the Go source and **Go is the single source of truth**; the spec is verified against Go independently. Each spec is verified on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**, never on the writing agent's confidence.
+Generate an **OpenAPI 3.1.0** spec from source as a **single-file** document at `bruno/openapi.yaml` — `info`/`servers`/`tags`, every path inline under `paths:`, and every Go type under `components.schemas`, wired with internal `$ref` (`#/components/...`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor). It reads the Go source and **Go is the single source of truth**; the spec is verified against Go independently. Each spec is verified on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**, never on the writing agent's confidence.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Currently optimized for Go (Fiber, Echo, Chi, Gin).
 
 ## Output structure
 
 ```
-bruno/openapi/
-└── openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
+bruno/openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
 ```
 
 - **One document** — `info`/`servers`/`tags`, every path inline under `paths:`, every Go type under `components.schemas`, shared errors under `components.responses`, auth under `components.securitySchemes`; all cross-refs are internal JSON pointers (`#/components/...`), so the file renders in any viewer with no external fetch.
@@ -47,18 +46,18 @@ bruno/openapi/
 
 ## Mode
 
-Auto-detect (user can override): no `bruno/openapi/openapi.yaml` → **Generate**; request says "validate/check/เช็ค/ตรงกับ code ไหม" → **Validate**; otherwise → **Update**.
+Auto-detect (user can override): no `bruno/openapi.yaml` → **Generate**; request says "validate/check/เช็ค/ตรงกับ code ไหม" → **Validate**; otherwise → **Update**.
 
 ---
 
-## Step 1 · Locate `bruno/openapi/` + project context
-- **Doc root** — default `bruno/openapi/` at the repo root; in a monorepo scope it to the chosen service (e.g. `services/<name>/bruno/openapi/`).
+## Step 1 · Locate `bruno/openapi.yaml` + project context
+- **Spec file** — default `bruno/openapi.yaml` at the repo root; in a monorepo scope it to the chosen service (e.g. `services/<name>/bruno/openapi.yaml`).
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for service name, framework, API version, and the `/api/v1/` versioning pattern (→ `info.version` + `servers[].url`).
 - **Not a Go project** (no `go.mod` and no `references/<lang>-scan-patterns.md`) → **STOP**: Go only; do not guess patterns.
-- **Monorepo** (multiple `go.mod`) → ask which service, then scope the scan + `bruno/openapi/` to that one service.
+- **Monorepo** (multiple `go.mod`) → ask which service, then scope the scan + `bruno/openapi.yaml` to that one service.
 
 ## Step 2 · Discover routes & groups
-Read [`references/go-scan-patterns.md`](references/go-scan-patterns.md) (route registration patterns + § Handler Directory Scanning). Find every route (method, path, handler), its group, and middleware (auth). A route matched by a `bruno/openapi/.docignore` glob or carrying a `// apidoc:ignore` comment above its registration is intentionally undocumented (internal/debug/health) — skip it in Generate/Update, treat it as expected-absent in Validate. (`speccheck.py` does not read `.docignore`, so an intentionally-skipped route surfaces as a coverage ERROR — confirm it and skip it as a known false positive per the Layer-1 loop below.)
+Read [`references/go-scan-patterns.md`](references/go-scan-patterns.md) (route registration patterns + § Handler Directory Scanning). Find every route (method, path, handler), its group, and middleware (auth). A route matched by a `bruno/.docignore` glob or carrying a `// apidoc:ignore` comment above its registration is intentionally undocumented (internal/debug/health) — skip it in Generate/Update, treat it as expected-absent in Validate. (`speccheck.py` does not read `.docignore`, so an intentionally-skipped route surfaces as a coverage ERROR — confirm it and skip it as a known false positive per the Layer-1 loop below.)
 
 ## Step 3 · Extract per endpoint
 For each route, trace handler → usecase → repository and extract: request/response shape (path/query/body, success status — read the actual `c.JSON(NNN, …)`, don't guess) and error responses. Apply the **single sources**, do not restate them:
@@ -76,7 +75,7 @@ Write using [`references/openapi-doc-template.md`](references/openapi-doc-templa
 
 ### verify-L1 · Script tripwire (always)
 ```
-python3 <ASSET_DIR>/speccheck.py bruno/openapi/ --src <project-root>
+python3 <ASSET_DIR>/speccheck.py bruno/openapi.yaml --src <project-root>
 ```
 `<project-root>` = the repo root where `go.mod` lives (usually `.`). It mechanically checks root/operation well-formedness, internal `$ref` resolution, route↔`paths`-key coverage, per-schema property count + `required[]` vs Go structs, status/security sanity, and — **if a real OpenAPI validator (`redocly`/`spectral`/`openapi-spec-validator`) is on PATH** — runs it for structural validation. **Tripwire, not ground truth** — a flag means "inspect this".
 - **exit 0** → go to L1.5.
@@ -99,7 +98,7 @@ Independently verify the spec just generated. Check ONLY judgment-level accuracy
 (not the script's mechanical checks). Read the Go source yourself.
 
 ## Spec under review
-bruno/openapi/openapi.yaml (the single-file spec just created/updated — list the
+bruno/openapi.yaml (the single-file spec just created/updated — list the
 `paths` keys + `components.schemas` entries that changed)
 
 ## speccheck NOTEs to focus on
@@ -124,7 +123,7 @@ Report any whole path/group/schema the pipeline silently dropped; fix → re-run
 ### Output
 ```
 ## OpenAPI Doc — <Generate / Update / Validate>
-**Doc root:** bruno/openapi/openapi.yaml   **Structure:** paths (N operations) · components.schemas (M schemas)
+**Spec file:** bruno/openapi.yaml   **Structure:** paths (N operations) · components.schemas (M schemas)
 **Changes:** Created … / Updated … / Removed …
 **Verification (three-layer):**
 - L1 speccheck.py: ✅ PASS (0 ERROR) / ❌ ESCALATED (N ERROR after ~3 rounds) · loop rounds: 0-3

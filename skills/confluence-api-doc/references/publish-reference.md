@@ -2,10 +2,10 @@
 
 Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, page→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, reconstructed from the spec's operations. Input is the **`bruno/openapi/openapi.yaml` single-file OpenAPI 3.1 spec** (the `openapi-doc` output). Each operation is **reconstructed** into a logical page shape (§ Step P3), then converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, reconstructed from the spec's operations. Input is the **`bruno/openapi.yaml` single-file OpenAPI 3.1 spec** (the `openapi-doc` output). Each operation is **reconstructed** into a logical page shape (§ Step P3), then converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
-bruno/openapi/openapi.yaml             Confluence page tree
+bruno/openapi.yaml             Confluence page tree
 ├── info / components.responses   →    Parent page (overview + common errors)
 ├── paths (tag: Consent)          →    POST: /api/v1/consents
 │                                       DELETE: /api/v1/consents/{id}/revoke
@@ -16,7 +16,7 @@ bruno/openapi/openapi.yaml             Confluence page tree
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — the spec at `bruno/openapi/openapi.yaml`; if absent, STOP (run `openapi-doc` first).
+1. **Source path** — the spec at `bruno/openapi.yaml`; if absent, STOP (run `openapi-doc` first).
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -163,7 +163,7 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `bruno/openapi/openapi.yaml` at source | STOP — run the `openapi-doc` skill first to produce the spec |
+| no `bruno/openapi.yaml` at source | STOP — run the `openapi-doc` skill first to produce the spec |
 | an operation drops `x-error-catalog` on the page | the reconstruction skipped a custom extension — re-read the operation (standard renderers ignore `x-*`) |
 | an operation with no `responses` | skip + list in warnings; don't abort |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |

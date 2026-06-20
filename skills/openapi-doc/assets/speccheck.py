@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-speccheck.py — TRIPWIRE cross-checker for openapi-doc output (bruno/openapi/openapi.yaml vs Go code).
+speccheck.py — TRIPWIRE cross-checker for openapi-doc output (bruno/openapi.yaml vs Go code).
 Zero install: pure Python 3 (stdlib only; uses PyYAML if present, else degrades the
 spec-structure checks to NOTE). OPTIONALLY runs a real OpenAPI validator
 (redocly / spectral / openapi-spec-validator) if one is on PATH. Layer-1 of the
@@ -43,8 +43,8 @@ WHAT IT CHECKS  (ordered high→low confidence)
   (covered by S1 when PyYAML is present, and by the external validator when one is on PATH).
 
 USAGE
-  python3 speccheck.py bruno/openapi/            --src .        # dir → reads openapi.yaml
-  python3 speccheck.py bruno/openapi/openapi.yaml --src ./svc   # the single-file spec directly
+  python3 speccheck.py bruno/openapi.yaml --src .       # the single-file spec directly
+  python3 speccheck.py bruno/             --src ./svc   # a dir → resolves <dir>/openapi.yaml
   (--src also accepts --src=PATH; arg order is irrelevant. --src = repo root, where
    go.mod lives — usually ".")
 Exit code: 0 = no ERROR (NOTEs/WARNINGs ok), 1 = at least one ERROR.
@@ -490,7 +490,7 @@ def parse_args(argv):
             continue
         else:
             positional.append(a)
-    target = pathlib.Path(positional[0]) if positional else pathlib.Path('bruno/openapi')
+    target = pathlib.Path(positional[0]) if positional else pathlib.Path('bruno/openapi.yaml')
     return target, src
 
 

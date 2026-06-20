@@ -1,10 +1,9 @@
 # OpenAPI 3.1 Spec Template
 
-Template for a **single-file OpenAPI 3.1.0 spec**. The output is ONE document — `bruno/openapi/openapi.yaml` — holding `info`/`servers`/`tags`, every path inline under `paths:`, and every schema + shared response under `components:`, wired with **internal `$ref`** (`#/components/schemas/<Type>`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor) with no external fetch.
+Template for a **single-file OpenAPI 3.1.0 spec**. The output is ONE document — `bruno/openapi.yaml` — holding `info`/`servers`/`tags`, every path inline under `paths:`, and every schema + shared response under `components:`, wired with **internal `$ref`** (`#/components/schemas/<Type>`). One self-contained file renders in any viewer (Bruno API Designer, Swagger Editor) with no external fetch.
 
 ```
-bruno/openapi/
-└── openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
+bruno/openapi.yaml    ← the whole spec: openapi/info/servers/tags + paths (inline) + components (schemas + responses + securitySchemes)
 ```
 
 **Target version:** `openapi: 3.1.0` (JSON-Schema 2020-12 dialect — union-type nullability, `examples` arrays, `oneOf`). Do **NOT** use the OpenAPI 3.0 `nullable: true` keyword or the singular schema-level `example:` (both are wrong/deprecated for 3.1). Do **not** emit `3.2.0` either — current tooling (Bruno's importer, Swagger, Redocly) does not yet recognize it and rejects the document; 3.1.0 covers every feature here.
@@ -15,7 +14,7 @@ bruno/openapi/
 
 ---
 
-## Document skeleton (`bruno/openapi/openapi.yaml`)
+## Document skeleton (`bruno/openapi.yaml`)
 
 ```yaml
 openapi: 3.1.0
