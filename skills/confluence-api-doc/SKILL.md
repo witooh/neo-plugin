@@ -1,20 +1,20 @@
 ---
 name: confluence-api-doc
 description: >
-  Publish API docs to Confluence — from a `bruno/openapi.yaml` OpenAPI 3.1 spec — one endpoint
+  Publish API docs to Confluence — from the `docs/api/*.yaml` custom-YAML api-spec — one endpoint
   = one page under domain-group parent pages, with the service overview on the parent page.
-  Reconstructs each page from the spec, converts to Confluence storage, and syncs
+  Assembles each page directly from the api-spec's doc-table shape, converts to Confluence storage, and syncs
   via acli (auth/reads) + REST (writes), with a
   built-in **three-layer verify**: a deterministic pre-flight + round-trip check, an
   independent fresh-eyes pass, and a completeness sweep. Trigger on: "publish api doc",
-  "sync api doc", "push doc to confluence", "publish openapi to confluence",
+  "sync api doc", "push doc to confluence", "publish api spec to confluence",
   "อัปเดต api doc ไป confluence", "sync confluence pages", "publish the api docs to
-  confluence", "sync openapi spec to confluence". Also
-  trigger when neo delegates API-doc publishing. NOTE: generating the OpenAPI spec from Go
-  source is the `openapi-doc` skill; a runnable Bruno
+  confluence", "sync api spec to confluence". Also
+  trigger when neo delegates API-doc publishing. NOTE: the api-spec is authored by `neo`
+  (the Architect); `openapi-doc` drift-checks Go against it; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
-  `bruno/openapi.yaml` spec — if it does not exist, run
-  `openapi-doc` first. Not a general Confluence editor.
+  `docs/api/*.yaml` api-spec — if it does not exist, run
+  `neo` first. Not a general Confluence editor.
 compatibility:
   environment: claude-code
   tools:
@@ -29,15 +29,15 @@ compatibility:
 
 # Confluence API Doc
 
-Publish API docs to **Confluence** — from a `bruno/openapi.yaml` OpenAPI 3.1 spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
+Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML api-spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
 
-`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is a `bruno/openapi.yaml` OpenAPI spec (the `openapi-doc` output).
+`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is the `docs/api/*.yaml` custom-YAML api-spec (authored by `neo`'s Architect).
 
 ## The spine
 
-1. **Gather** — the source is the **OpenAPI spec** at `bruno/openapi.yaml`; if it does not exist → STOP (run `openapi-doc` first). Then take the Confluence parent-page URL → page ID.
+1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `neo` to author it). Then take the Confluence parent-page URL → page ID.
 2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
-3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the operation's method + path; **reconstruct** the page body from the operation — `summary`/`description` → intro, `parameters`/`requestBody`/`responses` schemas → field tables, the `examples.default.value` → example blocks, **`x-error-catalog` (+ response descriptions) → the Error Responses table** (standard tools drop `x-*`, so this skill must read it itself); parent body = `info.description` + the shared `components/responses`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
+3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML — `description` → intro, `path_params`/`query_params`/`request_body.fields`/`responses[].fields` → field tables, `request_body.example` / `responses[].example` → example blocks, `business_logic` → its own section, `errors[]` → the Error Responses table; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
 4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
 5. **Versions** — `acli confluence page view --id <id> --include-version --json`.
 6. **Convert** — markdown → Confluence storage per `publish-reference.md` § P6 (code blocks → code macro/CDATA **first**, then inline rules; mind the nested-list rule). Stage each page in the **gitignored** `.api-doc-publish/` as both a `<page>.json` manifest and a raw `storage/<page>.xml` (the latter feeds the round-trip).
@@ -82,12 +82,12 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory. The verifier is read-only → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing entirely**. Re-enumerate every operation in the `bruno/openapi.yaml` root `paths:` + every group, and confirm each maps to a created/updated Confluence page in the report, and that the parent overview (`info.description`) was synced. Report any group/endpoint silently skipped; fix → re-sync.
+L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing entirely**. Re-enumerate every `docs/api/<domain>/<endpoint>.yaml` endpoint + every domain group, and confirm each maps to a created/updated Confluence page in the report, and that the parent overview (`_meta.overview`) was synced. Report any group/endpoint silently skipped; fix → re-sync.
 
 ### Output
 ```
 ## Confluence API Doc — publish
-**Source:** bruno/openapi.yaml spec   **Parent page:** <id>
+**Source:** docs/api api-spec   **Parent page:** <id>
 | Page | Type | Page ID | Status |
 | --- | --- | --- | --- |
 | (Service) Overview | Parent | … | Updated (v3→v4) |
@@ -103,7 +103,7 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 ---
 
 ## What this skill is NOT
-- **Not** a source generator — producing the `bruno/openapi.yaml` spec from Go is the **`openapi-doc`** skill (run it first; this skill reads its output).
+- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by **`neo`** (the Architect); **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
 - **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
 - **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
 - An HTTP 200 is **not** proof the content is right — that is the round-trip + fresh-eyes job.

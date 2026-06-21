@@ -398,7 +398,7 @@ def check_execution(ac_cards, tc_cards, results, errors):
 # ---- callout discipline (html-output.md §5.1): a spec page = current desired state.
 #      version/changelog + doc-vs-code gap notes must NOT live in a <callout-box> on the
 #      page — they belong in VERSION.md / gap-analysis.md. Run on EVERY page in the folder
-#      (api-contracts/traceability/index too), not just the card docs. ----
+#      (traceability/index too), not just the card docs. ----
 
 DENSITY_CAP = 6                                                 # non-exempt callouts/page → warn
 _SEMVER = r'\d+\.\d+(?:\.\d+)?'                                 # X.Y[.Z] — shared by both version detectors
@@ -525,7 +525,7 @@ def check_usecase(folder):
         if report_path.exists():
             skipped.append("execution evidence AC<->TC<->report (test-cases.html absent)")
 
-    # callout discipline — EVERY page in the folder (api-contracts/traceability/index too,
+    # callout discipline — EVERY page in the folder (traceability/index too,
     # which the card-based checks above never open). Skips _shell/_partials.
     pages = [p for p in sorted(folder.glob("*.html")) if not p.name.startswith("_")]
     for page in pages:

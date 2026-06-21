@@ -2,7 +2,7 @@
 
 Authoritative key/section reference for files this skill writes. Distilled from the OpenCollection spec ([docs](https://docs.usebruno.com/opencollection-yaml/structure-reference)) and the steering files used in the `tcrb/bruno-api-documents` workspace.
 
-This skill writes a **subset** of the OpenCollection spec — only the sections needed to represent a runnable request derived from the `bruno/openapi.yaml` OpenAPI spec. Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the OpenAPI spec calls for them.
+This skill writes a **subset** of the OpenCollection spec — the sections needed to represent a runnable, self-documenting request derived from the `docs/api/*.yaml` **API spec** (custom YAML). Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the api-spec calls for them.
 
 ---
 
@@ -13,7 +13,7 @@ This skill writes a **subset** of the OpenCollection spec — only the sections 
 | `opencollection.yml` | Collection root. One per collection. Holds `info` + bundling/ignore config. |
 | `environments/<NAME>.yml` | One file per environment. Holds variables (including secrets). |
 | `<folder>/folder.yml` | Folder metadata + inherited headers/auth for child requests. |
-| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `settings`. No `docs` — the documentation stays in the `bruno/openapi.yaml` OpenAPI spec. |
+| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `docs` + `settings` (Spec mode) — `docs:` is the api-spec endpoint rendered by `yaml2md.py`. AC-scenario mode carries `runtime` (assertions) instead of `docs`. |
 
 ---
 
@@ -25,6 +25,9 @@ opencollection: 1.0.0
 info:
   name: <Service Name>
 
+docs: |-
+  <the _meta INDEX render — Spec mode>
+
 bundled: false
 
 extensions:
@@ -32,16 +35,15 @@ extensions:
     ignore:
       - node_modules
       - .git
-      - openapi.yaml
-      - openapi.deref.yaml
 ```
 
 | Key | Required | Notes |
 |-----|----------|-------|
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
+| `docs` | no | (Spec mode) the api-spec INDEX rendered by `yaml2md.py --index docs/api/_meta.yaml docs/api` — service overview, Field Information, the by-domain endpoint list, Common Error Responses. Omit in AC-scenario mode. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
-| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules`, `.git`, `openapi.yaml`, and `openapi.deref.yaml` (the OpenAPI spec file + its dereferenced view written by `openapi-doc` — neither is a request). |
+| `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` + `.git`. The api-spec lives under `docs/api/` (outside the collection root), so it needs no ignore entry. |
 
 ---
 
@@ -83,6 +85,9 @@ info:
   type: folder
   seq: 1
 
+docs: |-
+  <the _meta.domains.<group> prose — Spec mode, when present>
+
 request:
   headers:
     - name: Accept-Language
@@ -94,9 +99,10 @@ request:
 
 | Key | Required | Notes |
 |-----|----------|-------|
-| `info.name` | yes | Display name (e.g., `Consent`, `Channel`). Derived from the operation's `tags[0]`. |
+| `info.name` | yes | Display name (e.g., `Account`, `Balance`). Derived from the endpoint's `domain` (or `_meta.domains.<d>.title`). |
 | `info.type` | yes | Always `folder`. |
-| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in the order the `tags` appear in the spec. |
+| `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in `_meta.domains` order (by `seq`). |
+| `docs` | no | (Spec mode) the domain group prose from `_meta.domains.<group>` when present; omit otherwise and in AC-scenario mode. |
 | `request.headers` | no | Headers inherited by every request inside this folder. Lift here when every request shares the same header. |
 | `request.auth` | no | Auth inherited by child requests. Values: `inherit`, `none`, or an explicit auth block (see Auth Types). |
 
@@ -109,11 +115,12 @@ Section order (this skill emits in exactly this order):
 ```yaml
 info: ...
 http: ...
+docs: ...       # Spec mode only (the rendered api-spec endpoint)
 runtime: ...    # AC-scenario mode only (assertions)
 settings: ...
 ```
 
-In **Spec mode** the collection is runnable-only — no `docs`, `runtime`, or `examples` section (documentation stays in the `bruno/openapi.yaml` OpenAPI spec). In **AC-scenario mode** request files additionally carry a `runtime.assertions` block (HTTP status + stable error code — see the `runtime` section below); `docs` and `examples` stay omitted in both modes.
+In **Spec mode** each request is runnable **and self-documenting** — it carries a `docs:` block (the api-spec endpoint rendered by `yaml2md.py`; no `runtime`, no `examples`). In **AC-scenario mode** request files instead carry a `runtime.assertions` block (HTTP status + stable error code — see the `runtime` section below) and **no `docs:`**. `examples` is never emitted.
 
 ### `info`
 
@@ -165,6 +172,10 @@ http:
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
 | `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. |
 | `auth` | yes | `inherit` (default — read from `folder.yml`), `none`, or an explicit auth block. |
+
+### `docs` (Spec mode only)
+
+Emitted **only** in Spec mode — the request's human-readable documentation, rendered from the api-spec endpoint by `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` and copied verbatim into a `|-` block scalar. A **string**, not a map. Never hand-written; `colcheck.py` K7 fails any request whose `docs:` ≠ that render. In AC-scenario mode there is no `docs:` block.
 
 ### `runtime` (AC-scenario mode only)
 
@@ -260,6 +271,6 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 ## Reference Files
 
-- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **OpenAPI-spec input contract** (§0: which OpenAPI operation element maps to which collection field).
+- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **api-spec input contract** (§0: which custom-YAML endpoint key maps to which collection field) + the `docs:` render rules.
 
-The shape of the `bruno/openapi.yaml` OpenAPI spec itself (operations, schemas, examples) is owned by the **`openapi-doc`** skill — this skill only reads the runnable bits out of it, it does not redefine them.
+The shape of the `docs/api/*.yaml` api-spec itself (endpoints, fields, examples) is owned by the **`neo`** skill (the Architect authors it; `openapi-doc` drift-checks it against Go) — this skill only reads it, it does not redefine it.

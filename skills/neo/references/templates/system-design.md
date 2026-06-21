@@ -8,19 +8,17 @@
 
 ---
 
-## Output Format — interactive HTML
+## Output Format
 
-These design docs are emitted as **interactive HTML** — `api-contracts.html` (per usecase), `system-design/*.html` (shared), and `traceability.html` — **not** markdown. **Build per [`html-output.md`](../html-output.md)** — the structure below is the CONTENT spec; the guide is the FORM. Mapping:
+The **system-design docs** here are emitted as **interactive HTML** — `system-design/*.html` (shared) + `traceability.html` (per usecase) — **not** markdown. **Build per [`html-output.md`](../html-output.md)** — the structure below is the CONTENT spec; the guide is the FORM. The **API spec is separate**: custom YAML under `docs/api/` (see [`api-spec.md`](api-spec.md)), authored spec-first, *not* part of this HTML site. Mapping:
 
-- API endpoint → a section (`h2`/`h3`); method/path/auth/Covers-AC → `dl.field-row` (or a small `table.data-table`).
-- Request / Response(200/201) / Error JSON → `.code[data-lang="json"]` grouped in `.tabs` (`.tab[data-tab]` ↔ `.tab-panel[data-tab]`). **Error Responses table → `table.data-table[data-sortable]`**.
 - Entity / Domain Service / Repository / Usecase tables → `table.data-table[data-sortable]`. File Structure → `.code[data-lang="text"]`.
 - ADRs → one `.card` per ADR. **Apply [`html-output.md`](../html-output.md) §5.1 before any `<callout-box>`** — version/changelog and doc-vs-code-gap notes do NOT belong on the page (they fail `docverify.py`).
 - **Notes** (the `## Notes` section below) → a single **`<h2 id="notes">Notes</h2>` + `<ul>`** at the page end — the only home for cross-cutting spec notes (§5.1). `id="notes"` is load-bearing; omit when none.
-- **AC Traceability → `table.trace-matrix`** (in `.matrix-wrap`; `tbody th` = AC-ID, click-highlights) on `traceability.html`; keep the coverage count.
+- **AC Traceability → `table.trace-matrix`** (in `.matrix-wrap`; `tbody th` = AC-ID, click-highlights) on `traceability.html`; keep the coverage count. An endpoint design element traces to its `docs/api/<domain>/<endpoint>.yaml` file.
 - Diagrams (sequence / flowchart / ER) → `.diagram` > `.mermaid` (raw mermaid; no HTML in labels — use `&lt;br/&gt;`).
 - Create `system-design/index.html` overview and register links in `nav.js` (html-output.md §4, §9).
-- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` then `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>` until both `PASS` (docverify enforces callout discipline §5.1 across `api-contracts.html` / `traceability.html` too), then semantic self-check — every AC-ID from BA appears in the trace matrix. Escape `<`/`>`/`&` in prose (§6).
+- **Verify:** `python3 <ASSET_DIR>/lint.py docs/design` then `python3 <ASSET_DIR>/docverify.py docs/design/<usecase>` until both `PASS`, then semantic self-check — every AC-ID from BA appears in the trace matrix. (The API spec has its own gate — `python3 <ASSET_DIR>/apispeccheck.py docs/api`; see [`api-spec.md`](api-spec.md).) Escape `<`/`>`/`&` in prose (§6).
 
 ---
 
@@ -30,40 +28,9 @@ These design docs are emitted as **interactive HTML** — `api-contracts.html` (
 
 ---
 
-## API Contracts
+## API Spec (separate — `docs/api/`)
 
-### [Endpoint Name] — [short description]
-
-| Field | Value |
-|-------|-------|
-| Method | [GET/POST/PUT/DELETE/PATCH] |
-| Path | [/api/v1/...] |
-| Auth | [auth pattern] |
-| Covers AC | [AC-001, AC-002, ...] |
-
-**Request Body:**
-
-```json
-{
-  "field": "type — validation rule (from AC business rule)"
-}
-```
-
-**Response 200/201:**
-
-```json
-{
-  "field": "type"
-}
-```
-
-**Error Responses:**
-
-| Status | Error Code | Message | Covers AC |
-|--------|------------|---------|-----------|
-| 400 | INVALID_INPUT | [specific message] | AC-XXX |
-| 404 | NOT_FOUND | [specific message] | AC-XXX |
-| 409 | CONFLICT | [specific message] | AC-XXX |
+The API contract for every endpoint is **not** in this HTML doc — it is authored **spec-first** as custom YAML under `docs/api/<domain>/<endpoint>.yaml` (global, by-domain; see [`api-spec.md`](api-spec.md) for the schema + INDEX + VERSION rules). Reference the relevant endpoint file(s) from the AC Traceability table below — an endpoint design element → its `docs/api/.../*.yaml` file.
 
 ---
 

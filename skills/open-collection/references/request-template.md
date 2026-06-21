@@ -1,43 +1,44 @@
 # Open Collection — Templates
 
-Templates for every file this skill writes when it turns the `bruno/openapi.yaml` OpenAPI spec into a **runnable** Bruno OpenCollection. Section ordering and indentation are part of the contract — follow them exactly so output is byte-stable across runs.
+Templates for every file this skill writes when it turns the `docs/api/*.yaml` **API spec** (custom YAML) into a **runnable** Bruno OpenCollection. Section ordering and indentation are part of the contract — follow them exactly so output is byte-stable across runs.
 
-**The collection carries no `docs:` blocks** — the human-readable documentation stays in the `bruno/openapi.yaml` OpenAPI spec (the single source of truth), and Confluence publishing reads that spec directly (the `confluence-api-doc` skill). In **Spec mode** the request artifact is purely runnable — URLs, params, bodies, headers, auth, environments; **AC-scenario mode** (§8) additionally emits a `runtime.assertions` block per request. `docs:` stays omitted in both modes. For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
+**The collection is self-documenting (Spec mode)** — each request embeds a generated `docs:` block rendered from its api-spec endpoint (via `yaml2md.py`), and the collection root + folders carry the `_meta` overview / group prose. The runnable bits (URLs, params, bodies, headers, auth, environments) come from the same api-spec. **AC-scenario mode** (§8) instead emits a `runtime.assertions` block per request and **carries no `docs:`** (a scenario's assertions are its contract). Confluence publishing reads the api-spec directly (the `confluence-api-doc` skill). For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
 
 ---
 
-## 0. Reading the OpenAPI spec source (the input contract)
+## 0. Reading the api-spec source (the input contract)
 
-Input is the `bruno/openapi.yaml` single-file spec (the `openapi-doc` skill's output). The **runnable** bits come from each **operation**; **do not re-scan Go** (the spec was already verified against the code). **Prefer Bruno's native importer** (`bru import openapi … --collection-format=opencollection`), which resolves `$ref`s and emits the collection in one step; then post-process to the conventions below. If `bru` is unavailable, hand-map each operation:
+Input is the `docs/api/*.yaml` custom-YAML **API spec** (the `neo` Architect's output; drift-checked against Go by `openapi-doc`). One `<domain>/<endpoint>.yaml` = one endpoint; `_meta.yaml` holds the service-level metadata. **Do not scan Go** (the api-spec was already drift-checked against the code). There is **no `bru import openapi`** — the custom YAML is not OpenAPI; **hand-map** each endpoint:
 
-| OpenAPI element | → Collection field |
+| api-spec element | → Collection field |
 |---|---|
-| `servers[0].url` | the `{{baseUrl}}` env value (host/base) |
-| a `paths.<path>.<method>` operation | one request `.yml` (folder = its `tags[0]`) |
-| `summary` | request `info.name` |
-| the method + path key | `http.method` + `http.url` = `"{{baseUrl}}<path with {id}→:id>"` |
-| `parameters` (`in: path`) | a `params` row `type: path` (+ `:id` in the url) |
-| `parameters` (`in: query`) | a `params` row `type: query` |
-| `security` (`bearerAuth`/`apiKey`/`[]`) | request/folder `auth` (§3) — `bearerAuth`→bearer, `apiKey`→apikey, `[]`→none |
-| `requestBody.content.*.examples.default.value` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
-| `responses` / `x-error-catalog` | not used (doc-only — they stay in the spec) |
+| `_meta.base_url` (+ a dev port from config) | the `{{baseUrl}}` env value (host/base) |
+| a `<domain>/<endpoint>.yaml` file | one request `.yml` (folder = its `domain`) |
+| `endpoint` | request `info.name` |
+| `method` + `path` | `http.method` + `http.url` = `"{{baseUrl}}<path with {id}→:id>"` |
+| `path_params[]` | a `params` row `type: path` (+ `:id` in the url) |
+| `query_params[]` | a `params` row `type: query` |
+| `auth` (`Bearer …`/`API Key`/`None`) | request/folder `auth` (§3) — bearer→bearer, apikey→apikey, None→none |
+| `request_body.example` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
+| the whole endpoint (description / params / fields / business_logic / errors) | rendered into the request **`docs:`** by `yaml2md.py` (Spec mode) |
+| `_meta` (overview / field_info / common_errors) | the collection-root `docs:`; `_meta.domains.<d>` → the folder `docs:` |
 
-- **Grouping** comes from the operation's `tags[0]` (→ collection folder), mirroring the spec's `tags` grouping.
-- `components.schemas` entries are resolved only to shape the body example — they are not emitted into the collection.
-- An operation with no `requestBody` → request has **no** `http.body`.
-- The spec uses internal `$ref` (`#/components/...`); resolve refs (Bruno's importer does this; a hand-map follows them) before reading an operation whole.
+- **Grouping** comes from the endpoint's `domain` (→ collection folder), mirroring the api-spec's by-domain tree.
+- Response field tables / `objects:` / `errors:` are doc-only for the runnable request, but **are** rendered into `docs:` (Spec mode) by `yaml2md.py` — never hand-write the `docs:` markdown.
+- An endpoint with no `request_body` → request has **no** `http.body`.
 
 ---
 
 ## 1. `opencollection.yml`
-
-Runnable-only — **no `docs:` block** (overview lives in the spec's `info`).
 
 ```yaml
 opencollection: 1.0.0
 
 info:
   name: <Service Name>
+
+docs: |-
+  <the _meta INDEX render — Spec mode>
 
 bundled: false
 
@@ -46,10 +47,9 @@ extensions:
     ignore:
       - node_modules
       - .git
-      - openapi
 ```
 
-`<Service Name>` ← CLAUDE.md project name, or `info.title` from go.mod if available.
+`<Service Name>` ← CLAUDE.md project name, or `info.title` from go.mod if available. **`docs:`** (Spec mode) = `python3 <ASSET_DIR>/yaml2md.py --index docs/api/_meta.yaml docs/api` (the service overview, Field Information, the by-domain endpoint list, and Common Error Responses). Omit `docs:` in AC-scenario mode. The api-spec source lives under `docs/api/` (outside the collection root), so no `ignore` entry is needed for it.
 
 ---
 
@@ -88,6 +88,9 @@ info:
   type: folder
   seq: <N>
 
+docs: |-
+  <the _meta.domains.<group> prose — Spec mode, when present>
+
 request:
   headers:
     - name: <header-name>
@@ -97,10 +100,11 @@ request:
 
 **Discovery rules:**
 
-1. **`info.name`** — group subdirectory name → Title Case (`consent` → `Consent`, `account_service` → `Account Service`).
-2. **`info.seq`** — `10, 20, 30…` in the order the `tags` appear in the spec.
-3. **`request.headers`** — any header sent by **every** request in the group goes here; per-request headers stay in the request file.
-4. **`request.auth`** — derive from the operations' `security` (the spec already resolved the middleware):
+1. **`info.name`** — the `domain` → Title Case, or `_meta.domains.<domain>.title` when set (`account` → `Account`).
+2. **`info.seq`** — `10, 20, 30…` in `_meta.domains` order (by `seq`).
+3. **`docs:`** (Spec mode) — the domain's group prose from `_meta.domains.<group>` (`title` + `description`) when present; omit when there is none, and omit entirely in AC-scenario mode.
+4. **`request.headers`** — any header sent by **every** request in the group goes here; per-request headers stay in the request file.
+5. **`request.auth`** — derive from the endpoints' `auth`:
    - `Bearer token` → `auth: { type: bearer, token: "{{auth_token}}" }`
    - `API Key` → `auth: { type: apikey, key: <header-name>, value: "{{api_key}}", placement: header }`
    - `None` → `auth: none`
@@ -112,7 +116,7 @@ Omit `request.headers`/`request.auth` entirely if there is nothing to lift — k
 
 ## 4. Request File (`<group>/<endpoint>.yml`)
 
-Section order is fixed: **`info` → `http` → `settings`**. No `docs`, no `examples`, and no `runtime` in **Spec mode**. *(In **AC-scenario mode** a `runtime.assertions` block is inserted between `http` and `settings` — see §8.2.)*
+Section order is fixed: **`info` → `http` → `docs` → `settings`** (Spec mode). No `examples`, no `runtime` in Spec mode. *(In **AC-scenario mode** the order is `info → http → runtime → settings` — a `runtime.assertions` block replaces `docs:`; see §8.2.)*
 
 ```yaml
 info:
@@ -137,34 +141,38 @@ http:
         "<field>": <example>
       }
 
+docs: |-
+  <the endpoint render — Spec mode>
+
 settings:
   encodeUrl: true
 ```
 
-- `http.method` / `http.url` ← the operation's method + path key (convert `{id}` → `:id` in the URL).
-- `params` ← the `parameters` with `in: path` (`type: path`) + `in: query` (`type: query`); each path param in the URL **must** appear here (see §5). `value` = the parameter's example (as a string).
-- `body.data` ← the `requestBody…examples.default.value` **verbatim** — this is the single source for the runnable body; never hand-assemble it from the schema. Omit the whole `body` block when the operation has no `requestBody`.
+- `http.method` / `http.url` ← the endpoint's `method` + `path` (convert `{id}` → `:id` in the URL).
+- `params` ← `path_params` (`type: path`) + `query_params` (`type: query`); each path param in the URL **must** appear here (see §5). `value` = the param's `example` (as a string).
+- `body.data` ← the endpoint's `request_body.example` **verbatim** — this is the single source for the runnable body; never hand-assemble it. Omit the whole `body` block when the endpoint has no `request_body`.
+- **`docs:`** (Spec mode) ← `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` — the rendered endpoint Markdown, copied verbatim into the block scalar. **Never hand-write it**; `colcheck.py` K7 fails any request whose `docs:` ≠ this render. Omit `docs:` entirely in AC-scenario mode.
 - `auth: inherit` on the request when the folder declares the auth; otherwise set it explicitly per §3.
 
 ---
 
 ## 5. Path Parameter Handling
 
-In the **runnable** collection a path parameter appears in **two** places (the native `{id}` form lives in the spec, which this skill reads but does not write):
+In the **runnable** collection a path parameter appears in **two** places (the native `{id}` form lives in the api-spec `path`, which this skill reads but does not write):
 
 | Place | Form | Why |
 |-------|------|-----|
 | `http.url` (YAML string) | `:id` | Bruno's runner reads this to substitute path params. |
 | `http.params` (YAML list) | `name: id, type: path` | So Bruno's UI shows an editable param field. |
 
-Read the `{id}` form from the operation's path key + its `in: path` `parameters`, then always emit `:id` in the URL string and `name: id, type: path` in `params`. `colcheck.py` enforces that the two stay in sync.
+Read the `{id}` form from the endpoint's `path` + its `path_params`, then always emit `:id` in the URL string and `name: id, type: path` in `params`. `colcheck.py` enforces that the two stay in sync.
 
 ---
 
 ## 6. `seq` Assignment
 
-- **Folders** — `seq: 10, 20, 30…` in the order the `tags` appear in the spec.
-- **Requests inside a folder** — `seq: 10, 20, 30…` in the order operations appear in the group.
+- **Folders** — `seq: 10, 20, 30…` in `_meta.domains` order (by `seq`).
+- **Requests inside a folder** — `seq: 10, 20, 30…` in the order endpoints appear in the group (file order).
 - **Gaps of 10** let a later update insert an entry without renumbering siblings.
 - **Update mode:** add a new request at `highest seq + 10`; don't slot between existing ones (noisy diffs).
 - `seq` is **per-folder** — two folders may both start at `seq: 10`. Don't make it globally unique.
@@ -175,29 +183,29 @@ Read the `{id}` form from the operation's path key + its `in: path` `parameters`
 
 | Where | Rule | Example |
 |-------|------|---------|
-| `info.name` in request | the operation's `summary` verbatim (already space-separated) | `Accept Consent` |
-| `info.name` in folder | the `tags[0]` group name → Title Case | `consent` → `Consent`; `account_service` → `Account Service` |
-| Filename | name by operation (path + method), `.yml` | `accept-consent.yml` |
+| `info.name` in request | the endpoint's `endpoint` name verbatim | `Create`; `Get Account` |
+| `info.name` in folder | the `domain` → Title Case (or `_meta.domains.<d>.title`) | `account` → `Account` |
+| Filename | the endpoint file stem, `.yml` | `create.yml`; `get.yml` |
 
 ---
 
 ## 8. AC-scenario source mode (the AC→request join)
 
-Applies **only in AC-scenario mode** (SKILL.md `## Source mode`). Instead of one request per spec operation, emit **one request per Ready AC** — a runnable test scenario that asserts the AC's expected outcome. The OpenAPI spec stays the **contract anchor** (method/path/params/auth/schema); neo's `docs/design/<usecase>/` supplies the scenario layer. Spec mode (§0–§7) is unchanged.
+Applies **only in AC-scenario mode** (SKILL.md `## Source mode`). Instead of one request per api-spec endpoint, emit **one request per Ready AC** — a runnable test scenario that asserts the AC's expected outcome. The api-spec stays the **contract anchor** (method/path/params/auth/fields); neo's `docs/design/<usecase>/` supplies the scenario layer. Spec mode (§0–§7) is unchanged. AC-scenario requests carry **no `docs:`** — the assertions are the contract.
 
-### 8.0 Inputs + join order (AC-first · TC-enrichment · spec-anchored)
+### 8.0 Inputs + join order (AC-first · TC-enrichment · api-spec-anchored)
 
-Read from `docs/design/<usecase>/`; the spec at `bruno/openapi.yaml` stays the contract anchor.
+Read from `docs/design/<usecase>/`; the api-spec at `docs/api/*.yaml` stays the contract anchor.
 
 | Need | Source (in order) | Grep target |
 |---|---|---|
 | AC inventory + Ready/Blocked | `acceptance-criteria.html` (**required**) | `<ac-card id="AC-NNN" status="ready\|blocked">` |
-| endpoint (method + path) | a tracing `<tc-card>` `endpoint=` if present → else `traceability.html` (AC→element) → `api-contracts.html` (Covers-AC) → match a spec op | `<tc-card traces="AC-NNN" endpoint="METHOD /path">` |
-| request body | TC `<req>` **verbatim** if present → else the spec op's base example adjusted per the AC `<g>/<w>` (judgment → flag L2) | `<tc-card>…<req>…</req>` |
+| endpoint (method + path) | a tracing `<tc-card>` `endpoint=` if present → else `traceability.html` (AC→element) → the api-spec endpoint whose `covers_ac:` lists the AC → match | `<tc-card traces="AC-NNN" endpoint="METHOD /path">` · `covers_ac: [AC-NNN]` |
+| request body | TC `<req>` **verbatim** if present → else the api-spec endpoint's `request_body.example` adjusted per the AC `<g>/<w>` (judgment → flag L2) | `<tc-card>…<req>…</req>` |
 | expected status | TC `<res>` leading `HTTP NNN` if present → else parse the AC `<t>` (THEN, best-effort) | `<res>HTTP NNN…</res>` |
 | error code (error scenarios) | a `<res>` body field whose value is a **stable code** (UPPER_SNAKE, e.g. `DENOMINATION_NOT_SUPPORTED`) → else status-only | `<res>` body JSON |
 
-`test-cases.html` is **optional enrichment** — when an AC has a tracing `<tc-card>`, copy its `<req>`/`<res>`/`endpoint` (highest fidelity; QA already derived the per-scenario data); when absent, derive from the AC + spec and flag for L2. **Do not** run `bru import openapi` in this mode — the importer is endpoint-driven (1 file per operation) and cannot emit N requests per endpoint.
+`test-cases.html` is **optional enrichment** — when an AC has a tracing `<tc-card>`, copy its `<req>`/`<res>`/`endpoint` (highest fidelity; QA already derived the per-scenario data); when absent, derive from the AC + api-spec and flag for L2. Always **hand-map** (there is no importer); AC-scenario is N requests per endpoint, one per Ready AC.
 
 ### 8.1 Per-scenario request file
 
@@ -207,7 +215,7 @@ One file per **Ready** AC, grouped by usecase folder:
 |---|---|
 | usecase name | `<usecase>/` folder (+ `folder.yml`, §3) |
 | AC-ID + scenario name | filename `ac-<nnn>-<scenario-slug>.yml`; `info.name: "AC-NNN — <scenario name>"` |
-| spec op (resolved per §8.0) | `http.method` + `http.url` (`{id}`→`:id`, §5); `params` (§0/§5); `auth` (§3) |
+| api-spec endpoint (resolved per §8.0) | `http.method` + `http.url` (`{id}`→`:id`, §5); `params` (§0/§5); `auth` (§3) |
 | body (§8.0 / §8.3) | `http.body.data` verbatim block scalar `\|-`; omit `body` when the op has none |
 | status + error (§8.0 / §8.2) | `runtime.assertions` |
 
@@ -227,20 +235,20 @@ runtime:
 ```
 
 - The `res.status` assertion is **mandatory**; `value` is the expected HTTP status as a quoted 3-digit string.
-- Add a `res.body.<field>` assertion **only** when the expected error carries a **stable code** (UPPER_SNAKE). `<field>` is the actual field of the spec `Error` schema present in the `<res>` body (often `error` / `errorCode` / `code`). When the error value is a human message (e.g. `"Invalid denomination"`), emit the status assertion **only** and leave the body to fresh-eyes — **never assert message text** (brittle).
+- Add a `res.body.<field>` assertion **only** when the expected error carries a **stable code** (UPPER_SNAKE — an api-spec `errors[].code` / `_meta.common_errors[].code`). `<field>` is the actual field the error response body uses (often `error` / `errorCode` / `code`). When the error value is a human message (e.g. `"Invalid denomination"`), emit the status assertion **only** and leave the body to fresh-eyes — **never assert message text** (brittle).
 - `operator`: `eq` for status/code; `isNotEmpty` when an error body is expected but no stable code exists.
 - **Omit `disabled`** — assertions are enabled so `bru run` validates them.
 
 ### 8.3 Body derivation precedence
 1. TC `<req>` present → copy **verbatim** (values already scenario-specific; no L2 flag for the values).
-2. No TC → spec op base example, hand-adjusted to the AC `<g>/<w>` (an "invalid input" AC carries the offending value) → **flag for L2** ("scenario body differs from base example by design — confirm vs the AC GIVEN/WHEN").
+2. No TC → the api-spec endpoint's `request_body.example`, hand-adjusted to the AC `<g>/<w>` (an "invalid input" AC carries the offending value) → **flag for L2** ("scenario body differs from base example by design — confirm vs the AC GIVEN/WHEN").
 
-Never assemble a body from the schema.
+Never assemble a body from the field tables.
 
 ### 8.4 Blocked + non-mappable ACs
 - **Blocked AC** (`status="blocked"`) → **list + skip**, never emit a request (mirrors neo excluding Blocked from the Dev Loop).
 - An AC tracing to a **validation rule / module method / cross-cutting concern** (e.g. audit logging) with **no concrete HTTP target** → list under "ACs not mappable to an HTTP request"; do not invent a request. (Many error-rule ACs *are* reachable as an error scenario on the enforcing endpoint — emit those; only the genuinely target-less ones go here.)
-- An AC whose endpoint is **not yet in the spec** (spec lag) → emit best-effort + flag; `colcheck.py` reports it as a NOTE, not an ERROR.
+- An AC whose endpoint is **not yet in the api-spec** (spec lag) → emit best-effort + flag; `colcheck.py` reports it as a NOTE, not an ERROR.
 
 ### 8.5 Multiple ACs, one endpoint
 Expected (N requests : 1 endpoint) — each Ready AC gets its own file; **no dedup**. The `ac-<nnn>-` prefix keeps filenames unique even when two scenarios share a slug. `seq` is per usecase folder (10, 20, 30…, §6).

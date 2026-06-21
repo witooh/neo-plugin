@@ -89,11 +89,12 @@ To register a usecase, append ONE group to `DOCS_NAV` (hrefs are root-relative t
 { group: "<Usecase Name>", links: [
   { href: "<usecase>/index.html",               label: "Overview",            ico: "▸" },
   { href: "<usecase>/acceptance-criteria.html", label: "Acceptance Criteria", ico: "✓" },
-  { href: "<usecase>/api-contracts.html",       label: "API Contracts",       ico: "⇄" },
   { href: "<usecase>/test-cases.html",          label: "Test Cases",          ico: "⚗" },
   { href: "<usecase>/traceability.html",        label: "Traceability",        ico: "⛓" }
 ]},
 ```
+
+*(The API spec is **not** in this sidebar — it lives in the separate global tree `docs/api/`, see `templates/api-spec.md`.)*
 
 Add only links for docs that exist (or will exist this run). BA owns the usecase group when creating the usecase; Architect/QA add their doc's link if BA didn't.
 
@@ -223,7 +224,8 @@ Occasionally (when layout/diagrams changed) eyeball a screenshot. Do not return 
   **Who/when:** any doc-role (BA / Architect / QA) in Doc-Review or adversarial-verify mode appends a row when it finds drift **and** surfaces the same gap in its chat output (so the orchestrator/user sees it without opening the file). Exclusions: a version/changelog entry → `VERSION.md`; a gap that is really a *desired spec change* → update the spec itself, not this ledger.
 - **`docs/tasks/<card-id>/plan.md`** — the per-card **task-tracking / resume index** (`shared/task-tracking.md`): a `## Build Plan` (the developer work-breakdown) + the AC task table + card-keyed `Build` progress, which the Orchestrator reads to resume. **Markdown**, never HTML; out of scope of `lint.py` / `docverify.py`; lives under `docs/tasks/` (not `docs/design/`). Written only by BA (`roles/business-analyst.md` § Card Task-File). Card-keyed work only.
 - **`docs/knowledge/`** (per-topic digests + `INDEX.md` + `VERSION.md`) — the **ingested knowledge base** (`shared/knowledge-base.md`): curated, topic-named markdown digests with portable provenance + a source manifest, ingested once and reused by roles. **Markdown**, never HTML; out of scope of `lint.py` / `docverify.py`; lives under `docs/knowledge/` (not `docs/design/`). Written only by the Librarian (`roles/librarian.md`). KB content mirrors its source and **may be non-English** (the language-neutral rule binds skill files only).
-- E2E test code (`.ts`) and `api-doc.md` are out of scope here.
+- **`docs/api/`** (custom-YAML **API spec** + generated `index.md` + `VERSION.md`) — the **source-of-truth API contract** (`templates/api-spec.md`): one endpoint per YAML file, **global by-domain**, authored spec-first and read by the api-doc chain (`openapi-doc` / `open-collection` / `confluence-api-doc`). **YAML + markdown, never HTML**; out of scope of `lint.py` / `docverify.py` — it has its own gate `apispeccheck.py`; lives under `docs/api/` (not `docs/design/`). Written only by the Architect.
+- E2E test code (`.ts`) is out of scope here.
 
 ---
 

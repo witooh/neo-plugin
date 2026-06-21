@@ -3,7 +3,7 @@
 The orchestrator uses this file to choose which phases the work touches. **Read it before every plan — don't guess.**
 
 ## How to use
-1. parse the work → **action** (create / modify / fix / review / refactor / analyze) + **target artifact** (AC / system design / endpoint / code / test cases / API contract / security / MR)
+1. parse the work → **action** (create / modify / fix / review / refactor / analyze) + **target artifact** (AC / system design / endpoint / code / test cases / API spec / security / MR)
 2. find the matching row → get the **phase subset** (in propagation order)
 3. dispatch in order (checkpoints per SKILL § Flow). No row matches → ask the user (don't invent)
 
@@ -18,7 +18,7 @@ Phases: **Ingest**(Librarian — an external source → `docs/knowledge/`, when 
 | create/modify **Test Cases** | TestSpec → (BA review AC coverage) | BA reviews that tests cover every AC-ID; don't dispatch Developer unless an AC gap is found |
 | **add a new endpoint** (full) | Spec → Design → TestSpec → Build → Verify | full chain. Verify = E2E ∥ CR ∥ Security in parallel |
 | modify **existing code** | Build → Verify → (Spec/Design if behavior changes) | see § Behavior-impact |
-| modify **API contract** | Design → Build → Verify | Security mandatory in Verify (API surface changed) |
+| modify **API spec** | Design → Build → Verify | Security mandatory in Verify (API surface changed); Architect edits `docs/api/*.yaml` first |
 | **Bug fix** | Diagnose → Build → Verify | System Analyzer finds the root cause first |
 | **Review MR — no card** | Verify (8a: CR ∥ Security ∥ QA-regression, read-only) | see § MR |
 | **Review MR — with card** | Verify (8b: CR ∥ Security ∥ QA-compliance, read-only) | + AC/TC compliance table |

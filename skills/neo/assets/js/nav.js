@@ -21,7 +21,6 @@ window.DOCS_NAV = [
   // { group: "<Usecase Name>", links: [
   //   { href: "<usecase>/index.html",               label: "Overview",            ico: "▸" },
   //   { href: "<usecase>/acceptance-criteria.html", label: "Acceptance Criteria", ico: "✓" },
-  //   { href: "<usecase>/api-contracts.html",       label: "API Contracts",       ico: "⇄" },
   //   { href: "<usecase>/test-cases.html",          label: "Test Cases",          ico: "⚗" },
   //   { href: "<usecase>/traceability.html",        label: "Traceability",        ico: "⛓" }
   // ]},

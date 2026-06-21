@@ -1,22 +1,23 @@
-# Publish Reference — OpenAPI spec → Confluence
+# Publish Reference — api-spec → Confluence
 
 Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, page→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, reconstructed from the spec's operations. Input is the **`bruno/openapi.yaml` single-file OpenAPI 3.1 spec** (the `openapi-doc` output). Each operation is **reconstructed** into a logical page shape (§ Step P3), then converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, assembled directly from the api-spec. Input is the **`docs/api/*.yaml` custom-YAML api-spec** — `_meta.yaml` (service-level) + one `<domain>/<endpoint>.yaml` per endpoint (neo's Architect authors it; `openapi-doc` drift-checks Go against it). The YAML is already in doc-table shape, so each endpoint file **assembles** into a logical page shape (§ Step P3), then is converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
-bruno/openapi.yaml             Confluence page tree
-├── info / components.responses   →    Parent page (overview + common errors)
-├── paths (tag: Consent)          →    POST: /api/v1/consents
-│                                       DELETE: /api/v1/consents/{id}/revoke
-└── paths (tag: Channel)          →    POST: /api/v1/channels
+docs/api/                       Confluence page tree
+├── _meta.yaml             →    Parent page (overview · field info · common errors)
+├── account/create.yaml    →    POST: /accounts/account
+├── account/get.yaml       →    GET: /accounts/{accountId}
+└── account/list.yaml      →    GET: /accounts
+   (each endpoint's `domain` → its domain-group page)
 ```
 
 ---
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — the spec at `bruno/openapi.yaml`; if absent, STOP (run `openapi-doc` first).
+1. **Source path** — the api-spec at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if absent, STOP (run `neo` to author it).
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -30,20 +31,24 @@ acli auth status
 
 Resolve the write token at Step P7 (REST needs it; reads use acli's oauth).
 
-## Step P3 — Reconstruct pages from the spec
+## Step P3 — Assemble pages from the api-spec
 
-There is no pre-rendered markdown page — **reconstruct** each page's body from the operation, then feed it to the P6 conversion. Read `openapi.yaml` (inline `paths` operations, `servers`, `tags`, `components`), resolving internal `$ref`s (`#/components/...`), and for each operation build the page:
+There is no pre-rendered markdown page — **assemble** each page's body from the endpoint YAML, then feed it to the P6 conversion. The custom YAML is already in doc-table shape (explicit field tables, `mandatory: M|O`, multi-flow business logic, per-endpoint errors), so this is a direct mapping — no `$ref` resolution, no extension hacks. Read each `docs/api/<domain>/<endpoint>.yaml` and build the page (sections **in this order** — the same shape the human-readable api-spec markdown uses; omit a section whose source key is absent):
 
-- **Page title** = `<METHOD>: <path>` (uppercased method + the path key, keeping the `{id}` form). **Group** = the operation's `tags[0]` → Title Case. Skip `health`.
-- **Page body** — a logical page shape P6 can convert:
-  - intro paragraph ← `summary` + `description`;
-  - **Path/Query Parameters** tables ← `parameters` (`in: path` / `in: query`): Field / Description / Type / Mandatory (from `required`) / Example / Remark;
-  - **Request Body** table ← the `requestBody` schema's `properties` (`required[]` → M/O; nested `$ref` → a sub-table); **Request Example** ← `requestBody…examples.default.value`;
-  - **Response** table + **Response Example** ← the success `responses.<2xx>` schema + its example;
-  - **Error Responses** table ← **`x-error-catalog`** (Status / Message / Description per entry), merged with each error `responses.<NNN>.description`.
-- **Parent page body** ← `info.description` (overview) + a Common Error Responses table built from `components.responses` / the shared error schema.
+- **Page title** = `<METHOD>: <path>` ← the endpoint's `method` (uppercased) + `path` (keeping the `{id}` form). **Group** = `domain`. (`endpoint` is the display name — it identifies the file/index, but the Confluence page is titled by method+path for stable create/update matching, so it is not repeated in-body.) Skip `health`.
+- **Domain-group page** (one per `domain` — the endpoint pages' parent): title = `_meta.domains.<domain>.title` (fallback: `domain` in Title Case); body = `_meta.domains.<domain>.description` when present (else an empty container); order the groups by `_meta.domains.<domain>.seq`.
+- **Page body** — a logical page shape P6 can convert (no in-body H1; the title is held separately):
+  - intro paragraph ← `description`;
+  - a **Method / Path / Auth** bullet list ← `method` / `path` / `auth`;
+  - **Path Parameters** table ← `path_params`, then **Query Parameters** table ← `query_params` — columns Field / Description / Type / **Mandatory** (the explicit `mandatory: M|O`) / Example / Remark; a field carrying `object: <Name>` shows an empty Example + "See `<Name>` Object below";
+  - **Request Body** table ← `request_body.fields`; **Request Example** ← `request_body.example` (a JSON code block);
+  - for each item in **`responses`**: a **Response (`status` `description`)** table ← its `fields`, then a **`<Name>` Object** sub-table for each entry in `objects`, then a **Response Example** ← its `example` (JSON code block);
+  - **Business Logic** ← `business_logic` (prose; preserve its multi-flow sub-headers / lists);
+  - **Error Responses** table ← `errors` — columns Status / Error Code / Error Message / Description, but **include the Error Code or Error Message column only when some entry carries that key** (`code` and `message` are both optional — e.g. create uses `code`, get/list use `message`);
+  - **Notes** ← `notes` (cross-cutting only; omit when empty).
+- **Parent page body** ← `_meta.yaml`: a **Version / Base URL** line ← `version` / `base_url`; **Overview** ← `overview`; **Field Information** ← `field_info` (a `###` sub-section per key, each a Code / Description table); **Common Error Responses** table ← `common_errors` (Status / Code / Error Message / Description).
 
-`x-error-catalog` is a **custom extension** standard OpenAPI renderers ignore — this skill reads it explicitly so the published page keeps the per-sentinel errors (without this they would silently vanish). Validate before converting: an operation with no `responses` → skip + warn.
+The api-spec is the single source — assemble faithfully (every field row, every M/O, every error; standard OpenAPI tooling is not involved). Validate before converting: an endpoint YAML with no `responses` → skip + warn.
 
 ## Step P4 — Map to the page tree
 
@@ -63,9 +68,9 @@ Extract `space.key` (→ `SPACE_KEY`, needed to create pages) and the `{id, titl
 acli confluence page view --id <PAGE_ID> --include-version --json   # → version.number
 ```
 
-## Step P6 — Convert the reconstructed page (markdown-shaped) → Confluence storage (the risk area)
+## Step P6 — Convert the assembled page (markdown-shaped) → Confluence storage (the risk area)
 
-**Pre-processing (per page):** the reconstructed body (from P3) is already markdown-shaped at column 0, with the page title held separately (not in-body) — parse the body as-is.
+**Pre-processing (per page):** the assembled body (from P3) is already markdown-shaped at column 0, with the page title held separately (not in-body) — parse the body as-is.
 
 **CRITICAL — processing order matters:**
 
@@ -112,7 +117,7 @@ Correct:
 
 Stage each converted page in a **gitignored** scratch dir `.api-doc-publish/` as **two** artifacts — a `<page>.json` manifest for this pre-flight, and the raw storage at `storage/<page>.xml` so the L1b round-trip has a standalone file to diff later:
 ```
-.api-doc-publish/<page>.json          {"title": "POST: /api/v1/consents", "source": "<the reconstructed page body>", "storage": "<converted XHTML>"}
+.api-doc-publish/<page>.json          {"title": "POST: /api/v1/consents", "source": "<the assembled page body>", "storage": "<converted XHTML>"}
 .api-doc-publish/storage/<page>.xml   <converted XHTML>   (raw — byte-identical to the manifest's "storage")
 ```
 Then run pre-flight on the manifests (the non-recursive glob ignores the `storage/` subdir, so each page is checked once):
@@ -163,9 +168,8 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `bruno/openapi.yaml` at source | STOP — run the `openapi-doc` skill first to produce the spec |
-| an operation drops `x-error-catalog` on the page | the reconstruction skipped a custom extension — re-read the operation (standard renderers ignore `x-*`) |
-| an operation with no `responses` | skip + list in warnings; don't abort |
+| no `docs/api/*.yaml` at source | STOP — run `neo` first to author the api-spec |
+| an endpoint YAML with no `responses` | skip + list in warnings; don't abort |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
 | HTTP 404 on a page | verify page ID (may be deleted) |
 | HTTP 409 version conflict | re-fetch version with acli, retry |
