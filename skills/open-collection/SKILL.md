@@ -2,7 +2,7 @@
 name: open-collection
 description: >
   Generate a **runnable** Bruno OpenCollection from a `bruno/openapi.yaml` OpenAPI 3.1 spec in one
-  of two **source modes**. **Spec mode** (default): one request `.yml` per endpoint, grouped by
+  of two **source modes** — the skill **asks which mode** up front (smart-defaulted from the request; it no longer infers the mode silently). **Spec mode**: one request `.yml` per endpoint, grouped by
   domain, with `environments/` and `folder.yml` auth — **runnable-only** (URLs, params, bodies,
   headers, auth, envs); the documentation stays in the spec. **AC-scenario mode**: one request
   per Ready Acceptance-Criterion — a runnable **test-scenario** collection carrying
@@ -62,12 +62,21 @@ Auto-detect (user can override): no `opencollection.yml` at the target → **Gen
 
 ## Source mode
 
-Orthogonal to **Mode** above. **Spec** (default) — one request per endpoint from the spec. **AC-scenario** — one request per Ready AC, carrying assertions (a runnable test-scenario collection). Pick **AC-scenario** when the request says "ตาม AC / ตาม doc / scenario / AC-based" or names a usecase or a `docs/design/<usecase>/` folder; otherwise **Spec**. AC-scenario needs **both** the spec **and** `docs/design/<usecase>/acceptance-criteria.html` (required; `test-cases.html` = optional enrichment). Usecase ambiguous (several `docs/design/*/`, none named) → `AskUserQuestion`. A required input missing → **STOP** (spec missing → `openapi-doc`; design docs missing → `neo`). Full join + file conventions: [`references/request-template.md`](references/request-template.md) **§8**.
+Orthogonal to **Mode** above, and **always chosen by asking** — never inferred silently. After the spec is confirmed to exist (Step 1), ask once via `AskUserQuestion` (header "Source mode"):
+- **Spec** — one runnable request per endpoint (the full API surface).
+- **AC-scenario** — one runnable request per Ready AC, carrying assertions (a test-scenario collection that joins the spec with neo's `docs/design/<usecase>/`).
+
+**Smart default** — list the likely option first and mark it `(Recommended)`: the request says "ตาม AC / ตาม doc / scenario / AC-based", or names a usecase or a `docs/design/<usecase>/` folder → default **AC-scenario**; otherwise → default **Spec**.
+
+**No `docs/design/` anywhere** → still ask, but the AC-scenario option's description must flag "needs `docs/design/<usecase>/` — run `neo` first", and the default stays **Spec**. If the user picks AC-scenario anyway → **STOP** and point to `neo`.
+
+AC-scenario needs **both** the spec **and** `docs/design/<usecase>/acceptance-criteria.html` (required; `test-cases.html` = optional enrichment). After AC-scenario is chosen, if the usecase is ambiguous (several `docs/design/*/`, none named) → a second `AskUserQuestion` for the usecase. A required input missing → **STOP** (spec → `openapi-doc`; design docs → `neo`). Full join + file conventions: [`references/request-template.md`](references/request-template.md) **§8**.
 
 ---
 
 ## Step 1 · Locate the source + collection root + context
 - **Source** — the **OpenAPI spec** at `bruno/openapi.yaml`; if it does not exist → **STOP** (run `openapi-doc` first). In a monorepo, scope to the chosen service's `bruno/openapi.yaml`.
+- **Source mode** — with the spec confirmed, **ask now** via `AskUserQuestion` (see `## Source mode`): **Spec** or **AC-scenario**, smart-defaulted from the request. Resolve this before the collection root.
 - **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. **Never** point the collection root at the spec — `bruno/openapi.yaml` is the OpenAPI spec source (the `openapi-doc` output) this skill *reads*, not a collection it writes; it lives **inside** the collection root (`bruno/openapi.yaml` under `bruno/`, alongside its generated `openapi.deref.yaml` view), so set the root to `bruno/` — both `openapi.*` files are excluded from request collection, never emitted or treated as a request.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
 - **AC-scenario mode** — also resolve the **usecase dir** under `docs/design/` (explicit path → request names a usecase → the only `docs/design/*/` → else `AskUserQuestion`) and read its `acceptance-criteria.html` (+ `test-cases.html` if present). Collection root defaults to a **separate** `bruno-scenarios/` when a general `bruno/` collection already exists (the two collection shapes must not share one root) — **confirm before writing**.
