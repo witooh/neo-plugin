@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-asset-prefix="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components · Design Docs</title>
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>(function(){try{var t=localStorage.getItem('ds-theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <button class="icon-btn js-nav-toggle" aria-label="Menu">☰</button>
+  <span class="topbar__title">Components</span>
+  <button class="icon-btn js-theme-toggle" aria-label="Toggle theme" style="margin-left:auto"><span class="js-theme-ico">☾</span></button>
+</header>
+<div class="nav-scrim"></div>
+
+<div class="layout">
+
+  <aside class="sidebar"></aside>
+
+  <main class="main" id="main">
+
+    <header class="doc-header">
+      <div class="crumbs"><a href="index.html">Design Docs</a> / Components</div>
+      <h1>Component Library</h1>
+      <p class="lede">Living style guide — every component used in this doc set, with its HTML pattern + when to use it</p>
+    </header>
+
+    <div class="callout" data-kind="success">
+      <span class="callout__ico">🎯</span>
+      <div class="callout__body"><b>This page is the "spec" that specialists (BA/Architect/QA) use to generate HTML.</b> Each component uses a clearly-named class + <code>data-*</code>, so <b>a new content page = just semantic HTML</b> while the shared <code>assets/css/styles.css</code> + <code>assets/js/app.js</code> (external links) handle look + interactivity · <b>assets are split from content on purpose</b> — when an AI/tool reads a doc page it reads only the content, not the CSS/JS (saves tokens) · the sidebar comes from <code>assets/js/nav.js</code> (rendered by JS) · mermaid loads from a CDN · see full usage in <code>references/html-output.md</code></div>
+    </div>
+
+    <h2 id="page-shell">0 · Page shell</h2>
+    <p>Every page starts from <code>_shell.html</code> in the bundle: <code>&lt;html data-asset-prefix="…"&gt;</code> (root=<code>""</code>, 1 level deep=<code>"../"</code>) → <code>&lt;link&gt;</code> external CSS + inline FOUC script (key <code>ds-theme</code> matches app.js) in <code>&lt;head&gt;</code> → <code>.topbar</code> (mobile) → <code>.layout</code> [<code>.sidebar</code> (empty) + <code>.main</code> + <code>.toc</code>] → mermaid CDN → <code>nav.js</code> → <code>components.js</code> → app <code>&lt;script&gt;</code>. <b>The sidebar is not hardcoded</b> — leave <code>&lt;aside class="sidebar"&gt;&lt;/aside&gt;</code> empty and <code>app.js</code> (<code>renderNav</code>) builds it from <code>window.DOCS_NAV</code> in <code>assets/js/nav.js</code> · TOC + active-link are set automatically</p>
+    <div class="code no-bar" data-lang="html" data-title="skeleton (_shell.html)"><pre>&lt;html lang="en" data-theme="light" data-asset-prefix="{{ASSET_PREFIX}}"&gt;
+&lt;head&gt;
+  &lt;link rel="stylesheet" href="{{ASSET_PREFIX}}assets/css/styles.css"&gt;
+  &lt;script&gt;/* theme-before-paint to prevent FOUC — key: ds-theme */&lt;/script&gt;
+&lt;/head&gt;
+&lt;div class="layout"&gt;
+  &lt;aside class="sidebar"&gt;&lt;/aside&gt; &lt;main class="main"&gt;…&lt;/main&gt; &lt;aside class="toc"&gt;…&lt;/aside&gt;
+&lt;/div&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"&gt;&lt;/script&gt;
+&lt;script src="{{ASSET_PREFIX}}assets/js/nav.js"&gt;&lt;/script&gt;
+&lt;script src="{{ASSET_PREFIX}}assets/js/components.js"&gt;&lt;/script&gt;
+&lt;script src="{{ASSET_PREFIX}}assets/js/app.js"&gt;&lt;/script&gt;</pre></div>
+    <p class="small muted">Add a new usecase = edit <code>nav.js</code> in one place (no need to edit the sidebar on every page). To hardcode the sidebar instead (B1 fallback), put <code>.nav-group</code> directly into <code>.sidebar</code> — <code>renderNav</code> detects it and skips</p>
+
+    <h2 id="badges">1 · Status badges &amp; chips</h2>
+    <p><b>When to use:</b> show status (Ready/Blocked/Pending) and tags (priority, JIRA). Write status as <code>&lt;status-badge status="…"&gt;</code> (the label is derived from status, preventing drift) · a chip stays a <code>&lt;span class="chip"&gt;</code> (nothing to derive)</p>
+    <p>
+      <span class="status-badge" data-status="ready">Ready</span>
+      <span class="status-badge" data-status="blocked">Blocked</span>
+      <span class="status-badge" data-status="pending">Pending</span>
+      &nbsp;
+      <span class="chip">default</span>
+      <span class="chip" data-tone="p0">P0</span>
+      <span class="chip" data-tone="p1">P1</span>
+      <span class="chip" data-tone="jira">GI-90</span>
+    </p>
+    <div class="code no-bar" data-lang="html"><pre>&lt;status-badge status="ready"&gt;&lt;/status-badge&gt;   &lt;!-- label derived: Ready --&gt;
+&lt;span class="chip" data-tone="p0"&gt;P0&lt;/span&gt;
+&lt;span class="chip" data-tone="jira"&gt;GI-90&lt;/span&gt;</pre></div>
+
+    <h2 id="callouts">2 · Callouts</h2>
+    <p><b>When to use:</b> emphasize an important message. Write it as <code>&lt;callout-box kind="…"&gt;</code> (code below) — <code>kind</code> = note / success / warning / pending / blocked, icon+color are derived</p>
+    <div class="callout" data-kind="note"><span class="callout__ico">ℹ️</span><div class="callout__body"><b>note</b> — general info / context</div></div>
+    <div class="callout" data-kind="success"><span class="callout__ico">✅</span><div class="callout__body"><b>success</b> — something ready / passed</div></div>
+    <div class="callout" data-kind="warning"><span class="callout__ico">⚠️</span><div class="callout__body"><b>warning</b> — a caution / draft status</div></div>
+    <div class="callout" data-kind="pending"><span class="callout__ico">⏳</span><div class="callout__body"><b>pending</b> — awaiting a decision / depends on upstream</div></div>
+    <div class="callout" data-kind="blocked"><span class="callout__ico">⛔</span><div class="callout__body"><b>blocked</b> — stuck on a blocker, cannot continue</div></div>
+    <div class="code no-bar" data-lang="html"><pre>&lt;callout-box kind="blocked"&gt;&lt;b&gt;Blocker:&lt;/b&gt; …&lt;/callout-box&gt;
+&lt;callout-box kind="note" ico="🎯"&gt;custom-icon note&lt;/callout-box&gt;</pre></div>
+    <p class="small muted">The 5 callout cards above are the output of <code>&lt;callout-box&gt;</code> — <b>the icon is derived from kind</b>, written once at <code>kind=</code> and color+icon follow (preventing a wrong-kind icon) · add <code>ico="…"</code> to override the glyph · <code>&lt;ac-card&gt;/&lt;tc-card&gt;</code> already emit their own blocked callout</p>
+
+    <h2 id="cards">3 · Collapsible card + Given/When/Then</h2>
+    <p><b>When to use:</b> a collapsible AC / TC. <code>data-status</code>/<code>data-subop</code>/<code>data-priority</code>/<code>data-traces</code> are used for filtering. Click the head to toggle · <b>write an AC as <code>&lt;ac-card&gt;</code></b> (code below) — the element expands into this <code>.card</code> structure (badge/chip/chevron/label/field-row derived from attributes); write a TC as <code>&lt;tc-card&gt;</code> (code below)</p>
+    <div class="card is-open" id="demo-card" data-status="ready">
+      <div class="card__head"><span class="card__id">AC-000</span><span class="card__title">example card</span><span class="card__meta"><span class="status-badge" data-status="ready">Ready</span><span class="chip" data-tone="p0">P0</span><span class="card__chev">▸</span></span></div>
+      <div class="card__body">
+        <div class="gwt">
+          <span class="gwt__k" data-k="given">Given</span><div class="gwt__v">the initial condition</div>
+          <span class="gwt__k" data-k="when">When</span><div class="gwt__v">the event occurs</div>
+          <span class="gwt__k" data-k="then">Then</span><div class="gwt__v">the expected result</div>
+        </div>
+        <dl class="field-row"><dt>Business Rule</dt><dd>the rule description</dd></dl>
+      </div>
+    </div>
+    <div class="code no-bar" data-lang="html"><pre>&lt;ac-card id="AC-000" status="ready" priority="p0" traces="TC-001" label="example card"&gt;
+  &lt;g&gt;the initial condition&lt;/g&gt;
+  &lt;w&gt;the event occurs&lt;/w&gt;
+  &lt;t&gt;the expected result&lt;/t&gt;
+  &lt;rule&gt;the rule description&lt;/rule&gt;
+&lt;/ac-card&gt;</pre></div>
+    <p class="small muted">The card above is what <code>&lt;ac-card&gt;</code> renders (the same <code>.card</code> structure) · status is written once at <code>status=</code> → <code>is-ready</code>/<code>data-status</code>/badge all derive from it · prose can include inline <code>&lt;b&gt;</code>/<code>&lt;code&gt;</code> in <code>&lt;g&gt;/&lt;w&gt;/&lt;t&gt;</code></p>
+    <div class="code no-bar" data-lang="html"><pre>&lt;tc-card id="TC-002" status="ready" priority="p1" traces="AC-002"
+         jira="PROJ-123" endpoint="POST /v1/accounts" label="open account"&gt;
+  &lt;g&gt;a savings product exists&lt;/g&gt;&lt;a&gt;denomination = THB&lt;/a&gt;
+  &lt;w&gt;an account is opened&lt;/w&gt;&lt;t&gt;opened successfully&lt;/t&gt;
+  &lt;req&gt;{ "denomination": "THB" }&lt;/req&gt;
+  &lt;res&gt;HTTP 200
+{ "status": "OPEN" }&lt;/res&gt;
+  &lt;steps&gt;&lt;step&gt;call &lt;code&gt;POST /v1/accounts&lt;/code&gt;&lt;/step&gt;&lt;step&gt;assert 200&lt;/step&gt;&lt;/steps&gt;
+  &lt;expected&gt;HTTP 200, status = OPEN&lt;/expected&gt;
+  &lt;precond&gt;TC-001 must pass&lt;/precond&gt;
+&lt;/tc-card&gt;</pre></div>
+    <p class="small muted"><code>&lt;tc-card&gt;</code> renders the same <code>.card</code> structure as an AC + adds an Endpoint row, Request/Response <code>.tabs</code> (or a single <code>.code</code> when there is JSON on only one side) and Test Steps <code>&lt;ol&gt;</code> · write GWT in <b>G-A-W-T</b> order (<code>&lt;a&gt;</code> = AND) · a blocked TC adds <code>status="blocked"</code> + <code>&lt;blocker&gt;</code> and the element derives <code>data-tags="blocked"</code> + the AC Status row</p>
+
+    <h2 id="filter">4 · Filter bar (pills + search)</h2>
+    <p><b>When to use:</b> filter cards or table rows. <code>.filter-bar[data-target="selector"]</code> · a pill = single-select per <code>data-group</code> · an item must have <code>data-&lt;group&gt;</code> matching <code>data-value</code> · search filters on text (supports space-separated multi-values, e.g. <code>data-traces</code>)</p>
+    <div class="filter-bar" data-target="#demo-filter-list > .demo-item">
+      <span class="filter-bar__label">Status</span>
+      <button class="pill active" data-group="status" data-value="all">All</button>
+      <button class="pill" data-group="status" data-value="ready">Ready</button>
+      <button class="pill" data-group="status" data-value="blocked">Blocked</button>
+      <span class="search"><span class="search__ico">⌕</span><input type="search" name="demo-search" aria-label="Search examples" placeholder="Search…"></span>
+    </div>
+    <div id="demo-filter-list" class="stack-sm">
+      <div class="demo-item card is-ready" data-status="ready"><div class="card__head" style="cursor:default"><span class="card__id">A</span><span class="card__title">item Ready (click Blocked and it disappears)</span><span class="card__meta"><span class="status-badge" data-status="ready">Ready</span></span></div></div>
+      <div class="demo-item card is-blocked" data-status="blocked"><div class="card__head" style="cursor:default"><span class="card__id">B</span><span class="card__title">item Blocked</span><span class="card__meta"><span class="status-badge" data-status="blocked">Blocked</span></span></div></div>
+    </div>
+
+    <h2 id="tabs">5 · Tabs</h2>
+    <p><b>When to use:</b> switch views in one place (Request / Happy / Error). Pair <code>.tab[data-tab]</code> with <code>.tab-panel[data-tab]</code></p>
+    <div class="tabs">
+      <div class="tabs__nav">
+        <button class="tab active" data-tab="a">Tab A</button>
+        <button class="tab" data-tab="b">Tab B</button>
+      </div>
+      <div class="tab-panel active" data-tab="a">Content A</div>
+      <div class="tab-panel" data-tab="b">Content B</div>
+    </div>
+
+    <h2 id="code">6 · Code block (auto copy + JSON highlight)</h2>
+    <p><b>When to use:</b> JSON / Go / payload. <code>.code[data-lang="json"]</code> auto-highlights + adds a copy button (JS). Use <code>.no-bar</code> to hide the title/copy bar</p>
+    <div class="code" data-lang="json" data-title="example.json"><pre><code>{ "status": "ERROR", "error_code": "INVALID_PRODUCT", "retries": 3, "active": true, "campaign": null }</code></pre></div>
+
+    <h2 id="tables">7 · Data table (sortable)</h2>
+    <p><b>When to use:</b> tabular data. Add <code>data-sortable</code> so clicking a column header sorts it (auto numeric/text) · the table header is sticky</p>
+    <div class="table-wrap">
+      <table class="data-table" data-sortable>
+        <thead><tr><th>ID</th><th>Value</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>A-2</td><td>30</td><td><span class="status-badge" data-status="ready">Ready</span></td></tr>
+          <tr><td>A-1</td><td>5</td><td><span class="status-badge" data-status="blocked">Blocked</span></td></tr>
+          <tr><td>A-3</td><td>120</td><td><span class="status-badge" data-status="pending">Pending</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="code no-bar" data-lang="html"><pre>&lt;ac-summary&gt;
+  &lt;ac ref="AC-001" subop="Create account" rule="BR-01 unique name"&gt;&lt;/ac&gt;
+  &lt;ac ref="AC-002" rule="BR-02 valid denomination" blocker="GI-90"&gt;&lt;/ac&gt;
+&lt;/ac-summary&gt;</pre></div>
+    <p class="small muted">AC Summary is written as <code>&lt;ac-summary&gt;</code> + an <code>&lt;ac ref=..&gt;</code> per AC — Scenario/Priority/Status/JIRA <b>derive from the <code>&lt;ac-card&gt;</code></b> that <code>ref</code> points to (cannot drift) · you only type <code>subop</code> (the sub-op name; omitted = "—") + <code>rule</code> (short ref) · <code>blocker="&lt;dep&gt;"</code> appends "(blocked by &lt;dep&gt;)" · renders as <code>.table-wrap &gt; .data-table[data-sortable]</code> (the plain table above is hand-written — this page has no real <code>&lt;ac-card&gt;</code>)</p>
+
+    <div class="code no-bar" data-lang="html"><pre>&lt;tc-summary&gt;
+  &lt;tc ref="TC-001" suite="Product Configuration" precond="None"&gt;&lt;/tc&gt;
+&lt;/tc-summary&gt;
+
+&lt;tc-deferred&gt;
+  &lt;tc ref="TC-005" blocker="error code not finalized" upstream="FX-104"&gt;&lt;/tc&gt;
+&lt;/tc-deferred&gt;</pre></div>
+    <p class="small muted">TC Summary / Deferred = the same pattern as <code>&lt;ac-summary&gt;</code> — Description/Traces/JIRA/Status derive from the <code>&lt;tc-card&gt;</code> that <code>ref</code> points to · the summary author only writes <code>suite</code> (omitted="—") + <code>precond</code> (omitted="None") · deferred (blocked only) authors <code>blocker</code> + <code>upstream</code> · both elements share the <code>&lt;tc&gt;</code> holder</p>
+
+    <div class="code no-bar" data-lang="html"><pre>&lt;ac-summary&gt; … &lt;/ac-summary&gt;
+&lt;ac-total&gt;&lt;/ac-total&gt;   &lt;!-- Total Acceptance Criteria: 5 (Ready: 4 / Blocked: 1) --&gt;</pre></div>
+    <p class="small muted"><code>&lt;ac-total&gt;</code> / <code>&lt;tc-total&gt;</code> (empty, placed under the summary table) count every <code>&lt;ac-card&gt;</code>/<code>&lt;tc-card&gt;</code> on the page by status → the line "Total …: N (Ready/Blocked)" · add/edit a card and the number updates itself (cannot drift)</p>
+
+    <h2 id="diagram">8 · Mermaid diagram</h2>
+    <p><b>When to use:</b> sequence / flowchart / graph (diagram-as-code). Put raw mermaid in <code>.mermaid</code> — JS renders + re-themes it for light/dark. <b>No HTML tags</b> in a label (the parser eats them); for a line break use <code>&amp;lt;br/&amp;gt;</code></p>
+    <div class="diagram">
+      <div class="diagram__cap"><b>Example</b> flowchart</div>
+      <div class="mermaid">
+flowchart LR
+  A["Start"] --> B{"OK?"}
+  B -->|"yes"| C["Done"]
+  B -->|"no"| D["Retry"]
+  classDef ok fill:#e8f6ed,stroke:#a9dcb8,color:#2b8a3e;
+  class C ok;
+      </div>
+    </div>
+
+    <h2 id="flow">9 · Card-flow (gate chain)</h2>
+    <p><b>When to use:</b> a linear, clickable step sequence (pure CSS, not mermaid). Write it as <code>&lt;card-flow&gt;</code> + <code>&lt;step&gt;</code> (code below) — number + arrow are derived</p>
+    <div class="flow">
+      <a class="flow__step is-ready" href="#flow"><span class="flow__num">1</span><div class="flow__main"><div class="flow__t">Step 1</div><div class="flow__d">details</div></div><span class="code-tag">ERROR_CODE</span></a>
+      <div class="flow__arrow"></div>
+      <a class="flow__step is-blocked" href="#flow"><span class="flow__num">2</span><div class="flow__main"><div class="flow__t">Step 2 (blocked)</div></div></a>
+    </div>
+    <div class="code no-bar" data-lang="html"><pre>&lt;card-flow&gt;
+  &lt;step status="ready" href="#flow" tag="ERROR_CODE" detail="details"&gt;Step 1&lt;/step&gt;
+  &lt;step status="blocked" href="#flow"&gt;Step 2 (blocked)&lt;/step&gt;
+&lt;/card-flow&gt;</pre></div>
+    <p class="small muted">The chain above is the output of <code>&lt;card-flow&gt;</code> — <b>the step number + the separating arrow</b> between steps are derived (add/reorder steps without renumbering by hand) · <code>status</code>=ready/blocked · <code>tag</code>=code chip · <code>detail</code>=a secondary line (all optional)</p>
+
+    <h2 id="trace">10 · Trace matrix</h2>
+    <p><b>When to use:</b> an interactive AC↔TC map. Write it as an empty <code>&lt;trace-matrix&gt;&lt;/trace-matrix&gt;</code> (code below) — every row (AC + TC chips + status) is derived from the page's <code>&lt;ac-card&gt;</code>s · <code>tbody th</code> click-highlights a row</p>
+    <div class="matrix-wrap">
+      <table class="trace-matrix">
+        <thead><tr><th>AC</th><th>Tests</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><th>AC-00x</th><td><span class="chip">TC-0xx</span></td><td><span class="status-badge" data-status="ready">Ready</span></td></tr>
+          <tr><th>AC-00y</th><td><span class="chip">TC-0yy</span></td><td><span class="status-badge" data-status="blocked">Blocked</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="code no-bar" data-lang="html"><pre>&lt;trace-matrix&gt;&lt;/trace-matrix&gt;</pre></div>
+    <p class="small muted">The matrix above is hand-written for show (this page has no real <code>&lt;ac-card&gt;</code>) — in a real doc you write just an empty <code>&lt;trace-matrix&gt;&lt;/trace-matrix&gt;</code> and the element reads every <code>&lt;ac-card&gt;</code> on the page, building each row (AC id) + TC chips (from <code>traces</code>) + status badge (from <code>status</code>) itself — add/edit an AC without updating the table by hand (cannot drift)</p>
+
+    <h2 id="coverage">11 · Coverage (stat cards · donut · bar)</h2>
+    <p><b>When to use:</b> a numeric summary dashboard. The donut uses <code>--p</code> (%) · the bar uses <code>.bar__seg.ready/.blocked</code> + width</p>
+    <div class="stat-grid">
+      <div class="stat-card ready"><div class="stat-card__label">Ready</div><div class="stat-card__num">4</div><div class="stat-card__sub">of 15</div></div>
+      <div class="stat-card accent"><div class="stat-card__label">Total</div><div class="stat-card__num">15</div><div class="bar"><span class="bar__seg ready" style="width:27%"></span><span class="bar__seg blocked" style="width:73%"></span></div></div>
+    </div>
+
+    <h2 id="links">12 · Link cards</h2>
+    <p><b>When to use:</b> navigate to another page (e.g. in the index)</p>
+    <div class="card-grid">
+      <a class="link-card" href="index.html"><div class="link-card__ico">◎</div><div class="link-card__t">example link card</div><div class="link-card__d">short description</div><div class="link-card__meta"><span class="chip">meta</span></div></a>
+    </div>
+
+  </main>
+
+  <aside class="toc"><div class="toc__title">On this page</div><nav class="toc__list"></nav></aside>
+</div>
+
+<button class="scroll-top" aria-label="Back to top">↑</button>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="assets/js/nav.js"></script>
+<script src="assets/js/components.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
