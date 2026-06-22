@@ -1,6 +1,6 @@
 # neo-dev-toolkit
 
-Opinionated Claude Code plugin that bundles ten composable skills for end-to-end software development — from idea to merged MR.
+Opinionated Claude Code plugin that bundles eleven composable skills for end-to-end software development — from idea to merged MR.
 
 ## What's inside
 
@@ -16,6 +16,7 @@ Opinionated Claude Code plugin that bundles ten composable skills for end-to-end
 | **`commit`** | Smart git commit workflow — protected-branch guard, auto `feature/*` branching, rebase onto base, secret-aware staging, conventional commit messages, optional push. | "commit", "/commit", "commit and push", "ช่วย commit", "เสร็จแล้ว" |
 | **`atlassian`** | Drive Jira + Confluence from the terminal via the `acli` CLI — view/search/create/edit/transition/assign work items, manage sprints/boards/projects, read pages + manage spaces. A thin shell over `acli --help` that carries the command map + JQL/workflow/safety judgment; also the acli reference `neo` points to. (Verifying a JIRA card in a dev workflow → `neo`; publishing API docs to Confluence → `confluence-api-doc`.) | "ดู issue ของฉัน", "view my issues", "transition ไป In Progress", "search ด้วย JQL", "ดู Confluence page", any raw acli op |
 | **`init-project`** | Scaffold a brand-new **Go hexagonal/DDD microservice** from a bundled frozen template — an empty-but-runnable snapshot of the account-service architecture (clean layers + tooling + infra wiring + `.kiro/` steering + CLAUDE.md), **zero business domains**. Builds + serves `GET /health` immediately, ready for `neo` to add the first domain with no setup. Asks the service identity, runs `scaffold.py` (copy template + substitute sentinels + tidy + build), then verifies (L1 `initcheck.py` + L2 fresh-eyes). (Adding domains / AC / endpoints → `neo`.) | "init project", "/init-project", "scaffold a service", "new service from template", "project boilerplate", "สร้าง project ใหม่", "สร้าง service ใหม่", "โครง service เปล่า" |
+| **`migrate-project`** | Refactor an **existing** Go service so its structure conforms to the account-service hexagonal/DDD blueprint — the **brownfield sibling of `init-project`**. Reuses init-project's frozen template + `.kiro/steering/` as the target-structure contract, plans the migration as ordered, independently-verifiable **slices** (one bounded context at a time), executes them on a branch with `git mv` (history- + behavior-preserving), and verifies each slice (go build + test + vet + golangci). Plan-first (approve the slice plan before any code moves) + resumable via `docs/migration/plan.md`. Three-layer verify (L1 `structurecheck.py` + L2 fresh-eyes + L3 completeness). (Empty/new service → `init-project`; adding a domain/AC/endpoint → `neo`.) | "migrate project", "/migrate-project", "migrate structure to account-service", "refactor to hexagonal/clean architecture", "restructure an existing service", "ย้ายโครงสร้างโปรเจกต์", "refactor ให้เหมือน account-service", "จัดโครงสร้างใหม่ตาม account-service" |
 
 ## Companion pieces
 

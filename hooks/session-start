@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook for neo-dev-toolkit plugin.
 # Injects a reminder so Claude proactively invokes the bundled skills
-# (neo, brainstorm, improve, openapi-doc, open-collection, confluence-api-doc, gitlab, commit, atlassian, init-project)
+# (neo, brainstorm, improve, openapi-doc, open-collection, confluence-api-doc, gitlab, commit, atlassian, init-project, migrate-project)
 # whenever a user request matches their triggering contexts.
 
 set -euo pipefail
@@ -19,7 +19,7 @@ escape_for_json() {
 }
 
 session_context="<EXTREMELY_IMPORTANT>
-You have the neo-dev-toolkit plugin installed. It bundles ten skills — invoke them via the Skill tool whenever the user's request matches.
+You have the neo-dev-toolkit plugin installed. It bundles eleven skills — invoke them via the Skill tool whenever the user's request matches.
 
 1. **\`neo\`** — Route a software-development task to specialist agents (BA, Architect, QA, Developer, Code Reviewer, Security, System Analyzer, Librarian) via phase-based analysis. The Librarian ingests external sources (JIRA / Confluence / image / verbal) once into docs/knowledge/ for every role to reuse. Use for any task that touches AC, system design, code, test cases, API contracts, or security — including single-role calls (สร้าง AC, gen test cases, review PR, fix bug) and multi-role tasks (เพิ่ม endpoint, refactor). Also the single entry point for GitLab MR work — **creating an MR (สร้าง MR) and reviewing an MR (review MR / ตรวจ MR)** in two modes (with a JIRA card → adds AC/TC compliance; without → code + security + regression); it invokes the \`gitlab\` skill for the glab I/O. The skill is an ORCHESTRATOR — do not implement specialist work yourself. Delegate every real task via the \`Agent\` tool (point-to-read), never implement yourself. For **JIRA-card work** it persists a resumable task-file (\`docs/tasks/<card-id>/plan.md\`) + enforces plan+task before coding; resume with \`/neo continue <CARD>\`. Launch with \`/neo\`.
 
@@ -40,6 +40,8 @@ You have the neo-dev-toolkit plugin installed. It bundles ten skills — invoke 
 9. **\`atlassian\`** — Drive Jira + Confluence from the terminal via the \`acli\` CLI: view/search/create/edit/transition/assign Jira work items, manage sprints/boards/projects, read Confluence pages + manage spaces. A thin shell over \`acli --help\` — it carries the command map plus the JQL/workflow/safety judgment \`--help\` can't, and is the acli reference \`neo\` points to. Triggers: \"ดู issue ของฉัน\", \"view my issues\", \"transition ไป In Progress\", \"สร้าง bug ใน Jira\", \"search ด้วย JQL\", \"ดู sprint ปัจจุบัน\", \"ดู Confluence page\", \"list spaces\", or any raw acli op. NOTE: verifying AC/TC/design against a JIRA card → \`neo\`; publishing API docs to Confluence → \`confluence-api-doc\`.
 
 10. **\`init-project\`** — Scaffold a brand-new Go hexagonal/DDD microservice from a bundled frozen template — an empty-but-runnable snapshot of the account-service architecture (clean layers + tooling + infra wiring + \`.kiro/\` steering + CLAUDE.md) with ZERO business domains. Builds + serves \`GET /health\` immediately and is ready for \`neo\` to add the first domain with no setup. Asks for the service identity (module path / name / id / target dir), runs \`scaffold.py\` (copy template + substitute sentinels + go mod tidy + git init + go build), then verifies it (L1 \`initcheck.py\` + L2 fresh-eyes). Triggers: \"init project\", \"/init-project\", \"scaffold a service\", \"new service from template\", \"project boilerplate\", \"สร้าง project ใหม่\", \"สร้าง service ใหม่\", \"scaffold service ใหม่\", \"โครง service เปล่า\", \"ตั้งโปรเจกต์ใหม่ตาม account-service\". NOTE: adding domains / AC / endpoints / tests is the \`neo\` skill, not this one.
+
+11. **\`migrate-project\`** — Refactor an EXISTING Go service so its structure conforms to the account-service hexagonal/DDD blueprint — the **brownfield sibling of \`init-project\`**. Reuses init-project's frozen template + \`.kiro/steering/\` as the target-structure contract, plans the migration as ordered, independently-verifiable SLICES (one bounded context at a time), executes them on a branch with \`git mv\` (history- + behavior-preserving), and verifies each slice (go build + test + vet + golangci depguard/forbidigo). Plan-first — you approve the slice plan before any code moves — and resumable across sessions via \`docs/migration/plan.md\`; finishes with a three-layer verify (L1 \`structurecheck.py\` + L2 fresh-eyes + L3 completeness). Triggers: \"migrate project\", \"/migrate-project\", \"migrate structure to account-service\", \"refactor to hexagonal/clean architecture\", \"restructure an existing service\", \"conform this service to the account-service layout\", \"ย้ายโครงสร้างโปรเจกต์\", \"refactor ให้เหมือน account-service\", \"จัดโครงสร้างใหม่ตาม account-service\". NOTE: this refactors an EXISTING codebase — an EMPTY/new service is \`init-project\`; adding a domain/AC/endpoint is \`neo\`.
 
 Single-file fixes, quick questions, and pure research tasks do NOT need these skills — answer directly.
 </EXTREMELY_IMPORTANT>"
