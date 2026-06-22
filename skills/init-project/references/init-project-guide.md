@@ -29,6 +29,11 @@ per-domain.
 - **Agentic context** — `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
   `.kiro/{skills,agents}` (the Kiro neo port, frozen), `CLAUDE.md` (thin index over steering),
   `bruno/` + `mockoon/` shells (READMEs + env; collections/stubs regenerate per-domain).
+  - **`CLAUDE.md` is gitignored by design** (`template/.gitignore`): this is a **Kiro-first**
+    layout — `.kiro/` steering is the source of truth. The scaffold *creates* `CLAUDE.md` (so Claude
+    Code users have it locally), but the generated project keeps it **untracked**, so teammates who
+    use Kiro don't carry it. In the plugin repo the template's `CLAUDE.md` is committed with
+    `git add -f` so it ships in the bundle. Do not "fix" the gitignore rule — it is intentional.
 
 ## What was removed (STRIP)
 
