@@ -56,9 +56,12 @@ references/
   shared/jira-ref.md           JIRA Ref capture → inherit-verbatim → sticky
   shared/task-tracking.md      Build progress axis + Build Plan (dev work-breakdown) + the card task-file (docs/tasks/<card-id>/plan.md, markdown; card-keyed work)
   shared/knowledge-base.md     KB definitions + gates KB1-5 (docs/knowledge/ ingested external knowledge; Librarian-written markdown)
+  shared/convention-grounding.md  layered-guide grounding: inclusion modes + file-set selection (Code Reviewer + Developer point-to-read; Architect keeps its own inline block — see note)
   templates/*.md               per-artifact content specs (read by the role that emits it; incl. api-spec.md + task-file-template.md + knowledge-file-template.md)
 assets/                        scaffold.sh + lint.py + docverify.py + apispeccheck.py (api-spec L1, docs/api/) + JS/CSS/HTML (English already)
 ```
+
+**Architect vs. convention-grounding.md.** `convention-grounding.md` serves the **file-set-driven** roles (Code Reviewer = the diff, Developer = files about to be written). The Architect grounds the same way but is **design-section-driven** (maps each Design Section to a layer, not a file-set), so it intentionally keeps its own inline grounding block in `roles/architect.md` — accepting a little duplication rather than contorting the shared algorithm. Don't "DRY" the Architect into this file.
 
 `SKILL.md`'s `description` frontmatter is the **trigger contract** — Claude matches against it (not the body) to decide whether to fire. Edit it only to change *when* `neo` activates; edit the body to change *what happens after*.
 
