@@ -10,3 +10,4 @@ __pycache__
 evals/
 .claude/
 *-workspace/
+.serena/
