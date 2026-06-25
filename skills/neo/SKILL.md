@@ -99,6 +99,7 @@ End with Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 A specialist ends with `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`.
 - `NEEDS_CONTEXT`/`BLOCKED` → something must change before re-dispatch (never treat BLOCKED as DONE just to pass)
 - **Open Questions** → pause, relay verbatim to the user, re-dispatch the same role with the answers, verify the ephemeral `docs/open-questions-*.md` was deleted
+- **Contradiction triage (before you relay/present one).** A specialist surfacing an *apparent contradiction* — two requirements conflict, an AC is internally inconsistent, an ordering is unclear — is a **verify-trigger, not a finding to forward**: do **not** relay or present it to the user (Open Question or A/B fork) as-is. Open the cited source yourself (`Read`) and check whether an **end-to-end flow / sequence** (`docs/knowledge/*`, design docs) resolves it — the disambiguating step-order / precondition usually lives there, not in the clause. **Resolved by source** → re-dispatch the specialist with the resolution (don't escalate); **unresolved / any residual doubt** → relay to the user. Verifying it against source before escalating is your Never-Guess — verify + re-dispatch, never resolve by editing.
 - `BLOCKED` + `Upstream Verification: DEFECTS` = doc-verify loop trigger (route to § Verification, **not** a generic blocked)
 
 ## MR Workflows (call the gitlab skill for glab I/O — detail in phase-map § MR)
