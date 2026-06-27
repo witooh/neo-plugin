@@ -6,7 +6,6 @@ __pycache__
 .DS_Store
 .vscode
 .ruff_cache
-.claude/skills/
 evals/
 *-workspace/
 .serena/
