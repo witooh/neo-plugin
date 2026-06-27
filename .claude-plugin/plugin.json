@@ -1,17 +1,33 @@
 {
   "name": "neo-dev-toolkit",
-  "description": "Opinionated Claude Code toolkit for software development: orchestrate a specialist agent team (neo), brainstorm ideas, iteratively improve outputs, generate + sync API docs to Confluence, drive GitLab MR workflows via glab, manage Jira/Confluence from the terminal via acli, scaffold a new Go service skeleton from a template (init-project), and migrate an existing service onto that hexagonal structure (migrate-project).",
-  "version": "0.32.0",
+  "description": "Opinionated Claude Code toolkit: neo is a thin loop wrapper over the agent-skills SDLC (recursive goal → iterate against an exit condition → human gate), with an ingest memory primitive, GitLab/Atlassian connectors, API-doc tooling, and Go service scaffolding/migration — plus the upstream agent-skills lifecycle bundle (24 spec→ship skills, 4 specialist agents, 8 slash commands).",
+  "version": "3.0.0",
   "author": {
     "name": "Witoo Harianto",
     "email": "witoo@plimble.com"
   },
   "license": "MIT",
+  "homepage": "https://github.com/witooh/neo-plugin",
+  "skills": "./skills",
+  "agents": [
+    "./agents/code-reviewer.md",
+    "./agents/security-auditor.md",
+    "./agents/test-engineer.md",
+    "./agents/web-performance-auditor.md"
+  ],
+  "commands": "./.claude/commands",
   "keywords": [
     "neo",
+    "loop-engineering",
+    "recursive-goal",
     "orchestrator",
     "multi-agent",
-    "brainstorm",
+    "agent-skills",
+    "spec-driven",
+    "tdd",
+    "code-review",
+    "security",
+    "performance",
     "openapi",
     "swagger",
     "confluence",

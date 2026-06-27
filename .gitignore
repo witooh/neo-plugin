@@ -8,6 +8,5 @@ __pycache__
 .ruff_cache
 .claude/skills/
 evals/
-.claude/
 *-workspace/
 .serena/
