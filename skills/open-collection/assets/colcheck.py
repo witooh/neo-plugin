@@ -6,7 +6,7 @@ yaml2md.py to verify the embedded docs:). Layer-1 of the open-collection skill's
 
 WHY THIS EXISTS
   open-collection derives a *runnable*, self-documenting collection from the custom-YAML api-spec
-  at docs/api/ (the single source of truth — the neo Architect authors it, openapi-doc drift-checks
+  at docs/api/ (the single source of truth — the api-spec skill authors it, openapi-doc drift-checks
   it against Go). So this script verifies the collection against the API-SPEC — never against Go.
   What can silently drift is the transform: a request whose URL, method, path-params, runnable
   body, or embedded docs: no longer matches the endpoint it came from. This is the DETERMINISTIC,
@@ -55,7 +55,7 @@ WHAT IT CHECKS  (collection ↔ api-spec; ordered high→low confidence)
 
 SOURCE
   open-collection derives the collection from the custom-YAML api-spec at docs/api/ (one
-  <domain>/<endpoint>.yaml per endpoint; the neo Architect's output). The collection is matched
+  <domain>/<endpoint>.yaml per endpoint; the api-spec skill's output). The collection is matched
   to the api-spec by (method, path) — hand-mapped request files are named by endpoint — so
   coverage + body fidelity compare endpoints, while the per-request structural (K4) and env (K5)
   checks are reused unchanged. K7 re-renders the endpoint via yaml2md.py. Needs PyYAML.
@@ -91,7 +91,7 @@ RE_VAR = re.compile(r'\{\{\s*([^}]+?)\s*\}\}')           # any {{var}} reference
 
 # ───────────────────────── api-spec source reading ─────────────────────────
 # open-collection derives the collection from the custom-YAML api-spec at docs/api/ (one
-# <domain>/<endpoint>.yaml per endpoint; the neo Architect authors it, openapi-doc drift-checks
+# <domain>/<endpoint>.yaml per endpoint; the api-spec skill authors it, openapi-doc drift-checks
 # it against Go). The collection is matched to the spec by (method, path) — hand-mapped request
 # files are named by endpoint — so coverage + body fidelity compare endpoints, while the
 # per-request structural (K4) and env (K5) checks are reused unchanged. Needs PyYAML; without it
@@ -619,8 +619,8 @@ def main():
         if not HAVE_YAML:
             print("colcheck: reading the api-spec needs PyYAML — install pyyaml (or yq).")
         else:
-            print(f"colcheck: api-spec {spec_root} not found or unreadable — run the neo skill "
-                  f"first (the Architect authors docs/api/), or pass --spec <path>.")
+            print(f"colcheck: api-spec {spec_root} not found or unreadable — run the api-spec skill "
+                  f"first (it authors docs/api/), or pass --spec <path>.")
         sys.exit(1)
     resolve_source = lambda key, method, npath: match_spec_op(spec_ops, method, npath)
 

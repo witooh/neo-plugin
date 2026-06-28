@@ -1,6 +1,6 @@
 # API-Spec Drift Rules (Go ↔ `docs/api/*.yaml`)
 
-The canonical reference for **what counts as drift** between the Go implementation and the custom-YAML **API spec** at `docs/api/`, plus the Go→spec mapping the drift check applies. `openapi-doc` **generates nothing** — the api-spec is the source of truth (authored spec-first by neo's Architect); this skill scans Go and reports where the code disagrees with the spec. Referenced by the skill's Step 2 + the fresh-eyes verifier.
+The canonical reference for **what counts as drift** between the Go implementation and the custom-YAML **API spec** at `docs/api/`, plus the Go→spec mapping the drift check applies. `openapi-doc` **generates nothing** — the api-spec is the source of truth (authored spec-first by the **`api-spec`** skill); this skill scans Go and reports where the code disagrees with the spec. Referenced by the skill's Step 2 + the fresh-eyes verifier.
 
 > **Three-layer coverage.** `assets/speccheck.py` (**L1**, deterministic) mechanically covers: **route coverage** (every Go route documented, every spec endpoint implemented — both directions) · **field presence** (a serializable Go field with no spec row; a spec field absent from the struct) · **M/O** (struct tags vs `mandatory: M|O`) · **type** (the confident Go→spec-type cases). The **L2** fresh-eyes verifier (`openapi-doc-verifier.md`) covers judgment the script degraded to `NOTE`: unconfident struct matches, the response envelope, inline query/path params, custom-type fields, and **error-status tracing** (spec `errors[]` ↔ Go sentinels). **L3** re-derives both inventories (router + `docs/api/`) to catch a whole route/endpoint silently un-compared. L1 prints whatever it cannot decide as a `NOTE` to focus L2.
 
@@ -8,7 +8,7 @@ The canonical reference for **what counts as drift** between the Go implementati
 
 ## The api-spec it reads (schema summary)
 
-The **canonical authoring spec** is neo's `templates/api-spec.md` — this is a consumer-side summary of just the keys the drift check reads. Layout: `docs/api/_meta.yaml` (global) + `docs/api/<domain>/<endpoint>.yaml` (one per endpoint) + a generated `index.md` + a hand-kept `VERSION.md`.
+The **canonical authoring spec** is the **`api-spec`** skill's `references/api-spec-template.md` — this is a consumer-side summary of just the keys the drift check reads. Layout: `docs/api/_meta.yaml` (global) + `docs/api/<domain>/<endpoint>.yaml` (one per endpoint) + a generated `index.md` + a hand-kept `VERSION.md`.
 
 ```yaml
 # docs/api/<domain>/<endpoint>.yaml — the keys drift uses
@@ -27,7 +27,7 @@ responses:
 ```
 
 - `_meta.yaml` → `extra_endpoints: [{method, path, …}]` are **index-only** rows with no spec file (e.g. a health probe); the drift check treats them as **documented** so their Go route is not flagged.
-- Drift reads only `method` / `path` / `request_body.fields` / `responses[].objects.*` (+ `extra_endpoints`). `description` / `business_logic` / `example` / `remark` / `errors` are spec-side prose the Architect owns — **not** mechanically drift-checked (errors are an L2 fresh-eyes concern).
+- Drift reads only `method` / `path` / `request_body.fields` / `responses[].objects.*` (+ `extra_endpoints`). `description` / `business_logic` / `example` / `remark` / `errors` are spec-side prose the `api-spec` skill owns — **not** mechanically drift-checked (errors are an L2 fresh-eyes concern).
 
 ---
 

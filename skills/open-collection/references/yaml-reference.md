@@ -273,4 +273,4 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 - [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **api-spec input contract** (§0: which custom-YAML endpoint key maps to which collection field) + the `docs:` render rules.
 
-The shape of the `docs/api/*.yaml` api-spec itself (endpoints, fields, examples) is owned by the **`neo`** skill (the Architect authors it; `openapi-doc` drift-checks it against Go) — this skill only reads it, it does not redefine it.
+The shape of the `docs/api/*.yaml` api-spec itself (endpoints, fields, examples) is owned by the **`api-spec`** skill (it authors the spec; `openapi-doc` drift-checks it against Go) — this skill only reads it, it does not redefine it.

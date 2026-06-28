@@ -16,8 +16,8 @@ description: >
   api-spec", "bruno from the api spec", "gen scenario collection", "สร้าง bruno ตาม AC",
   "open collection ตาม doc AC", "AC-based bruno collection", "runnable test scenarios from AC".
   Also trigger when neo delegates collection generation. NOTE: the `docs/api/*.yaml` api-spec is
-  authored by the **`neo`** skill (the Architect) and drift-checked against Go by `openapi-doc`;
-  this skill only *reads* it. The AC / test-case design docs also come from `neo`. Publishing to
+  authored by the **`api-spec`** skill and drift-checked against Go by `openapi-doc`;
+  this skill only *reads* it. The AC / test-case design docs come from `neo`. Publishing to
   Confluence is `confluence-api-doc`. Spec mode needs `docs/api/*.yaml`; AC-scenario mode also
   needs `docs/design/<usecase>/` — if a required input is missing, run the upstream skill first.
   Not a curl/Postman/OpenAPI converter or an interactive editor.
@@ -36,7 +36,7 @@ compatibility:
 
 # Open Collection
 
-Turn the custom-YAML **API spec** at `docs/api/*.yaml` into a **runnable** Bruno OpenCollection in one of two **source modes** (see `## Source mode`): **Spec** — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`; or **AC-scenario** — one request per Ready AC with `runtime.assertions`. The api-spec is the **single source of truth** for the contract (the `neo` Architect authors it; `openapi-doc` drift-checks it against Go). In **Spec mode** the collection is **self-documenting** — each request carries a generated `docs:` rendered from the api-spec endpoint, and the collection/folder carry the `_meta` overview. The result is verified against the source on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
+Turn the custom-YAML **API spec** at `docs/api/*.yaml` into a **runnable** Bruno OpenCollection in one of two **source modes** (see `## Source mode`): **Spec** — one request `.yml` per endpoint, grouped by domain, plus `environments/` and `folder.yml`; or **AC-scenario** — one request per Ready AC with `runtime.assertions`. The api-spec is the **single source of truth** for the contract (the `api-spec` skill authors it; `openapi-doc` drift-checks it against Go). In **Spec mode** the collection is **self-documenting** — each request carries a generated `docs:` rendered from the api-spec endpoint, and the collection/folder carry the `_meta` overview. The result is verified against the source on **evidence (a deterministic script) + an independent fresh-eyes pass + a completeness sweep**.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill").
 
@@ -55,7 +55,7 @@ Turn the custom-YAML **API spec** at `docs/api/*.yaml` into a **runnable** Bruno
 └── ...
 ```
 
-The `<collection-root>` is normally `bruno/`. The **api-spec source is separate** — it lives under `docs/api/` (authored by `neo`), not inside the collection root; this skill **reads** it and never writes there. The directory mirrors the api-spec's domain groups (each endpoint's `domain` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the api-spec `path`).
+The `<collection-root>` is normally `bruno/`. The **api-spec source is separate** — it lives under `docs/api/` (authored by the `api-spec` skill), not inside the collection root; this skill **reads** it and never writes there. The directory mirrors the api-spec's domain groups (each endpoint's `domain` → `<group>/`). Path params appear two ways in a request — `:id` in `http.url` and `name:id type:path` in `params` (the native `{id}` form lives in the api-spec `path`).
 
 ## Mode
 
@@ -71,12 +71,12 @@ Orthogonal to **Mode** above, and **always chosen by asking** — never inferred
 
 **No `docs/design/` anywhere** → still ask, but the AC-scenario option's description must flag "needs `docs/design/<usecase>/` — run `neo` first", and the default stays **Spec**. If the user picks AC-scenario anyway → **STOP** and point to `neo`.
 
-AC-scenario needs **both** the api-spec **and** `docs/design/<usecase>/acceptance-criteria.html` (required; `test-cases.html` = optional enrichment). After AC-scenario is chosen, if the usecase is ambiguous (several `docs/design/*/`, none named) → a second `AskUserQuestion` for the usecase. A required input missing → **STOP** (the api-spec → `neo`; design docs → `neo`). Full join + file conventions: [`references/request-template.md`](references/request-template.md) **§8**.
+AC-scenario needs **both** the api-spec **and** `docs/design/<usecase>/acceptance-criteria.html` (required; `test-cases.html` = optional enrichment). After AC-scenario is chosen, if the usecase is ambiguous (several `docs/design/*/`, none named) → a second `AskUserQuestion` for the usecase. A required input missing → **STOP** (the api-spec → `/api-spec`; design docs → `neo`). Full join + file conventions: [`references/request-template.md`](references/request-template.md) **§8**.
 
 ---
 
 ## Step 1 · Locate the source + collection root + context
-- **Source** — the **api-spec** at `docs/api/*.yaml`; if it does not exist → **STOP** (run `neo` — the Architect authors the api-spec). In a monorepo, scope to the chosen service's `docs/api/`.
+- **Source** — the **api-spec** at `docs/api/*.yaml`; if it does not exist → **STOP** (run `/api-spec` — the api-spec skill authors it). In a monorepo, scope to the chosen service's `docs/api/`.
 - **Source mode** — with the api-spec confirmed, **ask now** via `AskUserQuestion` (see `## Source mode`): **Spec** or **AC-scenario**, smart-defaulted from the request. Resolve this before the collection root.
 - **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. The api-spec source (`docs/api/`) is **outside** the collection root — never confuse the two.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
@@ -161,7 +161,7 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. In **Spe
 ---
 
 ## What this skill is NOT
-- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`neo`** skill (the Architect) and drift-checked against Go by **`openapi-doc`**; this skill reads it.
+- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill and drift-checked against Go by **`openapi-doc`**; this skill reads it.
 - **Not** a Confluence publisher — that is the **`confluence-api-doc`** skill.
 - **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive editor (there is no OpenAPI intermediate in this chain).
 - **Not** a test-case generator — the AC / test-case design docs come from **`neo`**; **AC-scenario mode** only turns *existing* Ready ACs into runnable assertion-carrying requests (it reads `docs/design/<usecase>/`, never writes it).

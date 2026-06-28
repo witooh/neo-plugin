@@ -6,15 +6,15 @@ Layer-1 of the openapi-doc skill's three-layer verify.
 
 WHY THIS EXISTS
   The custom-YAML api-spec at docs/api/ is the SOURCE OF TRUTH, authored spec-first (before
-  code) by neo's Architect. openapi-doc no longer GENERATES anything — it scans the Go code
+  code) by the api-spec skill. openapi-doc no longer GENERATES anything — it scans the Go code
   and reports where the implementation has DRIFTED from that contract. This is the
-  DETERMINISTIC, independent measure a machine CAN count, so the Architect's sync-back rests
+  DETERMINISTIC, independent measure a machine CAN count, so the api-spec skill's sync-back rests
   on evidence, not the writer's confidence. (It writes no file; it reads docs/api/*.yaml + Go.)
 
 PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
     • DRIFT = a Go-vs-spec mismatch the script is confident about (a route on one side only,
               a serializable field with no spec row, a spec field absent from the struct, an
-              M/O or type that disagree on a confidently-matched field). The Architect
+              M/O or type that disagree on a confidently-matched field). The api-spec skill
               confirms each before reconciling the YAML; a genuine false positive — e.g. a
               spec-first endpoint not built yet, or an intentionally-undocumented route — is
               confirmed + skipped, never blindly "fixed". Loop until DRIFT clears OR ~3 rounds
@@ -438,7 +438,7 @@ def _bucket():
 def main():
     api_dir, src = parse_args(sys.argv[1:])
     if not api_dir.exists():
-        print(f"speccheck: {api_dir} not found — author the api-spec (run neo) first")
+        print(f"speccheck: {api_dir} not found — author the api-spec (run /api-spec) first")
         sys.exit(0)
     if not HAVE_YAML:
         print("speccheck: PyYAML not installed — cannot parse the api-spec, drift not checked\n"

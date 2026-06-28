@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SessionStart hook for neo-dev-toolkit plugin.
 # Injects a reminder so Claude proactively invokes the bundled skills
-# (neo, ingest, openapi-doc, open-collection, confluence-api-doc, gitlab, atlassian,
-#  init-project, migrate-project) plus the agent-skills lifecycle bundle
+# (neo, ingest, api-spec, openapi-doc, open-collection, confluence-api-doc, gitlab,
+#  atlassian, init-project, migrate-project) plus the agent-skills lifecycle bundle
 # (24 spec→ship skills routed via using-agent-skills, 4 specialist agents, 8 slash commands)
 # whenever a user request matches their triggering contexts.
 
@@ -37,15 +37,17 @@ The \`using-agent-skills\` meta-skill OWNS the SDLC for this plugin: skill disco
 
 4. **\`atlassian\`** — Drive Jira + Confluence from the terminal via the \`acli\` CLI (a connector): view/search/create/edit/transition/assign Jira work items, manage sprints/boards/projects, read Confluence pages + manage spaces. A thin shell over \`acli --help\` that carries the command map + JQL/workflow/safety judgment. Triggers: \"ดู issue ของฉัน\", \"view my issues\", \"transition ไป In Progress\", \"สร้าง bug ใน Jira\", \"search ด้วย JQL\", \"ดู Confluence page\", \"list spaces\", or any raw acli op.
 
-5. **\`openapi-doc\`** — Verify Go source against the custom-YAML api-spec at \`docs/api/*.yaml\` and emit a drift report (added/removed routes, field presence, M/O, type mismatches). Writes nothing (report-only). Triggers: \"check go against api-spec\", \"api drift report\", \"เช็ค code ตรงกับ api-spec ไหม\", \"หา drift api\".
+5. **\`api-spec\`** — Author the custom-YAML api-spec at \`docs/api/*.yaml\` — the spec-first source of truth and the head of the api-doc chain: \`_meta.yaml\` + one \`<domain>/<endpoint>.yaml\` per endpoint (method/path/auth, request/response field tables with M/O + Remark, multi-flow business_logic, errors, optional covers_ac). Not OpenAPI. Three-layer verify (apispeccheck.py + fresh-eyes + completeness). Triggers: \"author api spec\", \"create the api contract\", \"gen api spec\", \"สร้าง api spec\", \"เขียน docs/api\", \"update api spec\", \"validate api spec\".
 
-6. **\`open-collection\`** — Generate a runnable, self-documenting Bruno OpenCollection FROM the \`docs/api/*.yaml\` api-spec (Spec mode or AC-scenario mode). Update/validate too. Triggers: \"gen open collection\", \"สร้าง open collection\", \"สร้าง bruno จาก api spec\".
+6. **\`openapi-doc\`** — Verify Go source against the custom-YAML api-spec at \`docs/api/*.yaml\` and emit a drift report (added/removed routes, field presence, M/O, type mismatches). Writes nothing (report-only). Triggers: \"check go against api-spec\", \"api drift report\", \"เช็ค code ตรงกับ api-spec ไหม\", \"หา drift api\".
 
-7. **\`confluence-api-doc\`** — Publish API docs to Confluence from the \`docs/api/*.yaml\` api-spec (one endpoint = one page under domain parents, via acli + REST). Triggers: \"publish api doc\", \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\".
+7. **\`open-collection\`** — Generate a runnable, self-documenting Bruno OpenCollection FROM the \`docs/api/*.yaml\` api-spec (Spec mode or AC-scenario mode). Update/validate too. Triggers: \"gen open collection\", \"สร้าง open collection\", \"สร้าง bruno จาก api spec\".
 
-8. **\`init-project\`** — Scaffold a brand-new Go hexagonal/DDD microservice from a bundled frozen template (clean layers + tooling + infra + \`.kiro/\` + CLAUDE.md, zero domains). Builds + serves \`GET /health\` immediately. Triggers: \"init project\", \"/init-project\", \"scaffold a service\", \"สร้าง service ใหม่\", \"โครง service เปล่า\".
+8. **\`confluence-api-doc\`** — Publish API docs to Confluence from the \`docs/api/*.yaml\` api-spec (one endpoint = one page under domain parents, via acli + REST). Triggers: \"publish api doc\", \"sync api doc\", \"push doc to confluence\", \"อัปเดต api doc ไป confluence\".
 
-9. **\`migrate-project\`** — Refactor an EXISTING Go service onto the hexagonal/DDD blueprint — the brownfield sibling of init-project. Plans as ordered verifiable slices, executes with \`git mv\` (history-preserving), verifies each. Triggers: \"migrate project\", \"/migrate-project\", \"refactor to hexagonal/clean architecture\", \"ย้ายโครงสร้างโปรเจกต์\".
+9. **\`init-project\`** — Scaffold a brand-new Go hexagonal/DDD microservice from a bundled frozen template (clean layers + tooling + infra + \`.kiro/\` + CLAUDE.md, zero domains). Builds + serves \`GET /health\` immediately. Triggers: \"init project\", \"/init-project\", \"scaffold a service\", \"สร้าง service ใหม่\", \"โครง service เปล่า\".
+
+10. **\`migrate-project\`** — Refactor an EXISTING Go service onto the hexagonal/DDD blueprint — the brownfield sibling of init-project. Plans as ordered verifiable slices, executes with \`git mv\` (history-preserving), verifies each. Triggers: \"migrate project\", \"/migrate-project\", \"refactor to hexagonal/clean architecture\", \"ย้ายโครงสร้างโปรเจกต์\".
 
 Single-file fixes, quick questions, and pure research tasks do NOT need these skills — answer directly.
 </EXTREMELY_IMPORTANT>"

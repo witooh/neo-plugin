@@ -10,11 +10,11 @@ description: >
   "sync api doc", "push doc to confluence", "publish api spec to confluence",
   "อัปเดต api doc ไป confluence", "sync confluence pages", "publish the api docs to
   confluence", "sync api spec to confluence". Also
-  trigger when neo delegates API-doc publishing. NOTE: the api-spec is authored by `neo`
-  (the Architect); `openapi-doc` drift-checks Go against it; a runnable Bruno
+  trigger when neo delegates API-doc publishing. NOTE: the api-spec is authored by the
+  `api-spec` skill; `openapi-doc` drift-checks Go against it; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
   `docs/api/*.yaml` api-spec — if it does not exist, run
-  `neo` first. Not a general Confluence editor.
+  `/api-spec` first. Not a general Confluence editor.
 compatibility:
   environment: claude-code
   tools:
@@ -31,11 +31,11 @@ compatibility:
 
 Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML api-spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
 
-`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is the `docs/api/*.yaml` custom-YAML api-spec (authored by `neo`'s Architect).
+`ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is the `docs/api/*.yaml` custom-YAML api-spec (authored by the `api-spec` skill).
 
 ## The spine
 
-1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `neo` to author it). Then take the Confluence parent-page URL → page ID.
+1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/api-spec` to author it). Then take the Confluence parent-page URL → page ID.
 2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
 3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML — `description` → intro, `path_params`/`query_params`/`request_body.fields`/`responses[].fields` → field tables, `request_body.example` / `responses[].example` → example blocks, `business_logic` → its own section, `errors[]` → the Error Responses table; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
 4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
@@ -103,7 +103,7 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 ---
 
 ## What this skill is NOT
-- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by **`neo`** (the Architect); **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
+- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill; **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
 - **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
 - **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
 - An HTTP 200 is **not** proof the content is right — that is the round-trip + fresh-eyes job.

@@ -54,6 +54,8 @@ const SECTION_EXEMPT_SKILLS = {
 		"Memory primitive — structured around source-type ingest rules + a docs/knowledge/ output contract, not the standard anatomy.",
 	atlassian:
 		"Thin shell over acli --help — structured around the acli command map, not the standard anatomy.",
+	"api-spec":
+		"Producer skill — authors docs/api/*.yaml using a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
 	"openapi-doc":
 		"Report-only drift checker — uses a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
 	"open-collection":

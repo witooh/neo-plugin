@@ -2,7 +2,7 @@
 
 Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, page→Confluence storage conversion, REST sync, and the deterministic checks (pre-flight `pubcheck.py` + round-trip). The SKILL.md points here; it does not restate this.
 
-**Principle:** one endpoint = one Confluence page, assembled directly from the api-spec. Input is the **`docs/api/*.yaml` custom-YAML api-spec** — `_meta.yaml` (service-level) + one `<domain>/<endpoint>.yaml` per endpoint (neo's Architect authors it; `openapi-doc` drift-checks Go against it). The YAML is already in doc-table shape, so each endpoint file **assembles** into a logical page shape (§ Step P3), then is converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
+**Principle:** one endpoint = one Confluence page, assembled directly from the api-spec. Input is the **`docs/api/*.yaml` custom-YAML api-spec** — `_meta.yaml` (service-level) + one `<domain>/<endpoint>.yaml` per endpoint (the `api-spec` skill authors it; `openapi-doc` drift-checks Go against it). The YAML is already in doc-table shape, so each endpoint file **assembles** into a logical page shape (§ Step P3), then is converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
 ```
 docs/api/                       Confluence page tree
@@ -17,7 +17,7 @@ docs/api/                       Confluence page tree
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — the api-spec at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if absent, STOP (run `neo` to author it).
+1. **Source path** — the api-spec at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if absent, STOP (run `/api-spec` to author it).
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -168,7 +168,7 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `docs/api/*.yaml` at source | STOP — run `neo` first to author the api-spec |
+| no `docs/api/*.yaml` at source | STOP — run `/api-spec` first to author the api-spec |
 | an endpoint YAML with no `responses` | skip + list in warnings; don't abort |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
 | HTTP 404 on a page | verify page ID (may be deleted) |

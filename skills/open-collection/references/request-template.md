@@ -8,7 +8,7 @@ Templates for every file this skill writes when it turns the `docs/api/*.yaml` *
 
 ## 0. Reading the api-spec source (the input contract)
 
-Input is the `docs/api/*.yaml` custom-YAML **API spec** (the `neo` Architect's output; drift-checked against Go by `openapi-doc`). One `<domain>/<endpoint>.yaml` = one endpoint; `_meta.yaml` holds the service-level metadata. **Do not scan Go** (the api-spec was already drift-checked against the code). There is **no `bru import openapi`** — the custom YAML is not OpenAPI; **hand-map** each endpoint:
+Input is the `docs/api/*.yaml` custom-YAML **API spec** (the `api-spec` skill's output; drift-checked against Go by `openapi-doc`). One `<domain>/<endpoint>.yaml` = one endpoint; `_meta.yaml` holds the service-level metadata. **Do not scan Go** (the api-spec was already drift-checked against the code). There is **no `bru import openapi`** — the custom YAML is not OpenAPI; **hand-map** each endpoint:
 
 | api-spec element | → Collection field |
 |---|---|
