@@ -12,18 +12,29 @@ verification methodology), the change is wrong — that belongs to
 *second* meta-skill that drifts from the upstream one and is exactly what
 "not really using agent-skills" feels like.
 
+Running the lifecycle **inline** is not owning it: neo still consults
+`using-agent-skills` every iteration and follows the discovery + lifecycle it
+returns. What's forbidden is *re-deriving* the SDLC, not *executing* it. (neo
+implements only the **recursive-goal** half of loop engineering; the
+**unattended-automation** half is wrapping neo with Claude Code `/loop` or cron.)
+
 ## Invariants
 
-1. **Delegate the SDLC.** neo never picks a skill itself. Each LOOP iteration
-   hands off to `using-agent-skills` (via the Skill tool) and lets its router +
-   lifecycle decide. neo only compares the result to the exit condition.
+1. **Delegate the SDLC, run it inline.** neo never picks a skill itself. Each
+   LOOP iteration consults `using-agent-skills` (via the Skill tool) for the
+   discovery + lifecycle, then runs the chosen skills inline with neo's own
+   Edit/Write/Bash. Delegation is *who decides* the SDLC (always
+   `using-agent-skills`), not *where it executes* (neo's context).
 2. **The exit condition augments, never replaces.** The Business Analyst's
    exit condition adds the *project-specific* definition of done on top of
    `using-agent-skills` Core Operating Behavior #6 ("Verify, Don't Assume").
    It must not re-state generic verification — that is behavior #6's job.
-3. **Maker/verifier is not a neo concept.** The maker/verifier split lives
-   inside `using-agent-skills` (its Build-phase and Review-phase skills). neo
-   does not define its own maker/verifier roles.
+3. **neo owns no build maker/verifier — but owns one exit verifier.** The
+   build-time maker/verifier split lives inside `using-agent-skills` (its Build-
+   and Review-phase skills); neo defines no build roles. The one exception: a
+   `judgment` exit gate is checked by a single fresh verifier subagent neo spawns
+   (see `references/exit-condition.md`). Machine gates need none — neo reads the
+   evidence artifact inline.
 4. **Human gate is mandatory at commit/PR.** Loop outcomes that are risky or
    ambiguous escalate to the human; nothing auto-merges. This is the guard
    against cognitive surrender (see `references/human-gate.md`).

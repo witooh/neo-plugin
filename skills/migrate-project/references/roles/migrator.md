@@ -17,7 +17,7 @@ the slice and hand it to the Verifier.
   path (old module-relative → blueprint path) across the repo. `go build ./...` must resolve.
 - Move whole units per the steering: a bounded context → `internal/core/domain/<context>/` (aggregate
   + co-located ports + events / enums / errors); its operations →
-  `internal/core/usecase/<Domain>/<operation>/` (`usecase.go` + `exec.go`); its persistence →
+  `internal/core/usecase/<context>/<operation>/` (`usecase.go` + `exec.go`); its persistence →
   `internal/adapters/repository/postgres/`; external calls → `internal/adapters/gateway/<sys>/`;
   handlers → `internal/delivery/http/handler/<resource>/`; ports co-located in the owning domain
   context (no central `internal/port/`).
@@ -31,7 +31,7 @@ the slice and hand it to the Verifier.
 - Copy `INIT_TEMPLATE/.golangci.yaml` into the target (replacing any existing lint config), then
   **substitute** the sentinel module `example.com/neo/service` → the target's real module path (read
   from its `go.mod`) everywhere in the depguard rules. This is the one substitution; the steering
-  placeholders (`{{MODULE_PATH}}`, `<Domain>`, …) stay intact.
+  placeholders (`{{MODULE_PATH}}`, `<context>`, …) stay intact.
 - Copy `INIT_TEMPLATE/.kiro/steering/` verbatim (generic, placeholders kept) + `INIT_TEMPLATE/CLAUDE.md`.
   Fill `repo-instance.md` with the target's real bounded contexts + driven ports (from
   `target-map.md`).

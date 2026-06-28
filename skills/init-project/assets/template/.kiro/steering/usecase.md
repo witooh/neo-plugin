@@ -14,7 +14,7 @@ usecase.
 ## One operation = one package
 
 ```
-internal/core/usecase/<Domain>/<operation>/  # <operation> = snake_case of the method, e.g. cancel_order
+internal/core/usecase/<context>/<operation>/  # <operation> = snake_case of the method, e.g. cancel_order
     usecase.go                            # the CONTRACT (interface + Params + struct + New)
     exec.go                               # the IMPLEMENTATION (Exec + helpers + co-located models)
 ```
@@ -22,7 +22,7 @@ internal/core/usecase/<Domain>/<operation>/  # <operation> = snake_case of the m
 - Folder name = `snake_case(<Op>)`. The package clause is the folder name verbatim
   (underscores are fine — the lint set enables no naming rule).
 - The interface is `<Op>Usecase`; the method is always `Exec`.
-- Shared helpers used by several operations of one domain go in `<Domain>/shared/`.
+- Shared helpers used by several operations of one domain go in `<context>/shared/`.
 
 ## `usecase.go` — the contract (always this shape)
 
@@ -141,7 +141,7 @@ to **sub-packages by concern**. The operation package becomes a thin orchestrato
 cohesive components.
 
 ```
-internal/core/usecase/<Domain>/<operation>/
+internal/core/usecase/<context>/<operation>/
     usecase.go        # contract: interface + Params (raw ports) + slim struct (components only) + New (wires)
     exec.go           # orchestrator: gate → validator checklist → dispatch (reads as the flow)
     shared/           # tiny stateless helpers reused across sub-packages (no sibling deps)

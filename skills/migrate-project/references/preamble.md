@@ -22,6 +22,12 @@ Read the steering guide for **every layer you touch** before you touch it (`stru
 first). These guides carry verbatim-shaped skeletons and the gotchas tests miss — you should not
 need to read `account-service` source to learn a pattern. **The steering is the source of truth.**
 
+**Group-dir casing.** The bounded-context dirs directly under `internal/core/domain/` and
+`internal/core/usecase/` are **lowercase** — the context's package name, identical on both layers and
+to the blueprint (`account`, `accountpool`; never `Account`/`AccountPool`). The usecase skeleton's
+`<context>` slot is that lowercase name, never a PascalCase aggregate. `structurecheck.py` fails on
+any uppercase group dir.
+
 **A pattern not covered by steering → stop, ask, do not improvise** (`structure.md` § "When a
 pattern isn't in the steering"). The target may contain a shape the steering does not sanction.
 Surface it as an Open Question — never invent a placement or convention to make a file fit.

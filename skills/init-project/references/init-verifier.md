@@ -33,7 +33,7 @@ You are given: the **target dir** and the intended **module path / service name 
    `redis`, `kafka` — no business upstream sub-structs. `config/config.yaml` matches.
 
 5. **Steering intact + generic.** `.kiro/steering/` carries the generic guides; the per-layer guides
-   still use placeholders (`{{MODULE_PATH}}`, `<Domain>`). `.kiro/steering/repo-instance.md` reads as an
+   still use placeholders (`{{MODULE_PATH}}`, `<context>`). `.kiro/steering/repo-instance.md` reads as an
    **empty service** ("no bounded contexts yet"), with the placeholder table resolved to the real
    module/name/id. `CLAUDE.md` points at the steering as the source of truth.
 

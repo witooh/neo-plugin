@@ -14,7 +14,7 @@ it is CI-verifiable as-is:
 
 Generation (`scaffold.py`) is a **single-pass string substitution** of those three sentinels, then
 `go mod tidy` + `git init` + `go build`. Generic steering placeholders (`{{MODULE_PATH}}`,
-`{{SERVICE_NAME}}`, `<Domain>`, …) are **not** sentinels — they are left intact for `neo` to fill
+`{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels — they are left intact for `neo` to fill
 per-domain.
 
 ## What's in the template (KEEP)

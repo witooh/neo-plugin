@@ -47,6 +47,6 @@ The skeleton ships the infrastructure every service needs, ready for the first d
 |---|---|
 | `{{MODULE_PATH}}` | `example.com/neo/service` |
 | `{{SERVICE_NAME}}` | `neo-service` (service id `NEOSVC`) |
-| `<Domain>` / `<operation>` | _(none yet — neo fills these on the first domain)_ |
+| `<context>` / `<operation>` | _(none yet — neo fills these on the first domain)_ |
 | `<Aggregate>` | _(none yet)_ |
 | `<Upstream>` | _(none yet)_ |

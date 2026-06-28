@@ -18,8 +18,9 @@ following `references/exit-condition.md` and `references/state-schema.md`.
 2. **Surface assumptions** (inherited from `using-agent-skills` behavior #1).
    List them in STATE.md. Do not silently fill ambiguous requirements.
 3. **Write the exit condition.** `goal` (one line), `behavior` (observable
-   done), `acceptance` (from the task source), `verify_inherit` (ONLY
-   project-specific gates, never generic), `out_of_scope`.
+   done), `acceptance` (from the task source), `gates` (ONLY project-specific
+   checks, never generic — tag each `verify_method: machine | judgment` and name
+   its `evidence` artifact), `out_of_scope`.
 4. **Hand off.** Set STATE.md `status: primed`. The loop takes it from here.
 
 ## Completeness guard

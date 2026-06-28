@@ -19,10 +19,27 @@ exit_condition:
   goal:          <one-line recursive goal — the thing the loop achieves>
   behavior:      <observable done, tied to the request — what a human can see>
   acceptance:    <criteria pulled from the task source (Jira AC, request, etc.)>
-  verify_inherit: <#6 Verify is assumed — list ONLY project-specific gates here>
-                  e.g. "openapi-doc drift report clean against docs/api/orders"
+  gates:         # project-specific gates only (#6 Verify is already assumed)
+    - check:         <what must hold, e.g. "openapi-doc drift clean for docs/api/orders">
+      verify_method: machine   # machine = neo reads the artifact; judgment = fresh verifier subagent
+      evidence:      <artifact path neo reads, e.g. docs/api/_drift/orders.txt>
   out_of_scope:  <explicitly NOT doing, so the loop doesn't creep>
 ```
+
+## How neo checks it
+
+Each gate is checked against **evidence**, never the maker's prose claim:
+
+- `verify_method: machine` — neo reads the `evidence` artifact inline (a test
+  report's status, an empty drift report, a build log). The truth is external
+  and context-independent — a green test cannot be faked by grading nicely — so
+  neo can check it in its own context.
+- `verify_method: judgment` — the gate needs an opinion ("the code is clean",
+  "the UX is acceptable") that the maker's context is too invested to give
+  honestly. neo spawns **one fresh verifier subagent** to judge it: the
+  maker/checker split applied to the stop condition, and the only verifier neo owns.
+
+Prefer `machine` gates. Reach for `judgment` only when no artifact can settle it.
 
 ## Completeness rule (the guard)
 
@@ -35,6 +52,8 @@ Analyst if:
   security no high/critical) as if those were project-specific — those are
   behavior #6's defaults, not neo's; only name them when they are
   *non-default* for this task
+- a gate is missing its `verify_method`, or a `machine` gate names no
+  `evidence` artifact for neo to read
 
 ## When the exit condition is wrong mid-loop
 

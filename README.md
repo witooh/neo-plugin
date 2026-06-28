@@ -46,7 +46,7 @@ Both expect `jq`; reference the scripts at `${CLAUDE_PLUGIN_ROOT}/hooks/...` sin
 
 ## Companion pieces
 
-- `/neo <task>` — invokes the `neo` orchestrator skill directly
+- `/neo <task>` — invokes the `neo` loop skill directly
 - Slash commands `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` `/webperf` — entry points into the agent-skills lifecycle bundle
 - `using-agent-skills` meta-skill — the discovery router for the 24 lifecycle skills
 - `SessionStart` hook — injects a short reminder on `startup | clear | compact` so Claude proactively picks the right skill
@@ -88,7 +88,7 @@ Open a fresh Claude Code session to confirm the updated skills are active.
 Three ways to kick off work:
 
 1. **Automatic** — the SessionStart hook tells Claude which skill to reach for; just describe the task naturally
-2. **Slash command** — `/neo <task description>` runs the full orchestrator
+2. **Slash command** — `/neo <task description>` runs the full loop
 3. **Direct ask** — "ช่วย review MR นี้...", "gen api doc ให้หน่อย", "idea-refine วิธีออกแบบ...", "spec-driven this feature"
 
 ## Structure

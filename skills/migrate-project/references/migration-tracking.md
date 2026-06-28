@@ -30,7 +30,7 @@ The canonical slice shape for a service that is already clean-but-different-dial
    (error mapping, response envelope, middleware, config) into the blueprint layout; create the
    `internal/core/` skeleton. After S1 the contract is in place even though most features still fail it.
 2. **S2..Sn — one feature per slice** — relocate each bounded context into
-   `internal/core/domain/<context>/` + `internal/core/usecase/<Domain>/<operation>/` + the adapter
+   `internal/core/domain/<context>/` + `internal/core/usecase/<context>/<operation>/` + the adapter
    (`internal/adapters/{repository,gateway}`) + delivery (`internal/delivery/http/handler/<resource>`),
    rewriting imports and filling convention gaps (aggregate encapsulation, co-located ports,
    deterministic-by-injection) per the steering.

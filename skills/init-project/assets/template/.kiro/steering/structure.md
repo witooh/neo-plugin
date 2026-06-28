@@ -48,7 +48,7 @@ the service it documents.
 |---|---|---|---|
 | `{{MODULE_PATH}}` | Go module path | the `module` line in `go.mod` | `example.com/org/<service>` |
 | `{{SERVICE_NAME}}` | short service name | tracer / container / config | `<service>` |
-| `<Domain>` | a domain area (folder under `usecase/`) | — | `order`, `billing` |
+| `<context>` | **lowercase** bounded-context name — the package/folder shared by `domain/<context>/` and `usecase/<context>/` (never PascalCase like `Order`) | — | `order`, `billing` |
 | `<Aggregate>` | an aggregate / entity | — | `Order`, `LineItem` |
 | `<Upstream>` | an external system | — | `Payment`, `Inventory` |
 | `<operation>` | snake_case usecase package | — | `cancel_order` |
@@ -86,7 +86,7 @@ internal/
       integration/<sys>/          EXTERNAL read-only domains — one package per upstream (e.g. product)
                                     gateway.go         driven PORT interface + its param/result types
                                     readmodels.go      read-models the core consumes (plain data)
-    usecase/<Domain>/<operation>/ ONE operation per package → usecase.go + exec.go
+    usecase/<context>/<operation>/ ONE operation per package → usecase.go + exec.go
   delivery/                       DRIVING ADAPTERS — receive input, call a usecase
     http/                         inbound HTTP (gin)
       handler/<resource>/         handler.go (struct+New) + one file per operation

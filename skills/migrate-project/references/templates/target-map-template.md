@@ -22,7 +22,7 @@ Analyzed: <YYYY-MM-DD or session marker>
 | composition root | <e.g. app/ + cmd/main.go> | cmd/api/ |
 | http handlers | <e.g. internal/adapter/handler/<r>/> | internal/delivery/http/handler/<r>/ |
 | domain | <e.g. internal/domain/*.go (flat)> | internal/core/domain/<context>/ |
-| usecase | <e.g. internal/<feat>/usecase/> | internal/core/usecase/<Domain>/<op>/ |
+| usecase | <e.g. internal/<feat>/usecase/> | internal/core/usecase/<context>/<op>/ |
 | repository | <e.g. internal/<feat>/repository/ + database/postgres/> | internal/adapters/repository/postgres/ |
 | gateways | <e.g. external/<sys>/> | internal/adapters/gateway/<sys>/ |
 | ports | <e.g. internal/<feat>/ports/> | co-located in internal/core/domain/<context>/ |

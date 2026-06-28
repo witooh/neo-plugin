@@ -20,6 +20,12 @@ migration — deterministic, no judgment. A slice is `done` only when **every** 
 5. Optional (slice touched the composition root / boot): build `./cmd/api`, boot it on an ephemeral
    port with no infra, and confirm `GET /health` returns 200 with no panic (best-effort boot, like
    `init-project`'s `initcheck.py` probe).
+6. **Final mode, or any slice touching `Dockerfile` / `Makefile` / `docker-compose*` / build
+   tooling:** build the Docker image (`docker compose build <svc>`, or `make compose-up` if present).
+   `go build ./...` compiles by **package** and never exercises the Dockerfile's explicit entrypoint
+   path or its `COPY` lines, so a relocated `cmd/main.go` or a deleted-fixture `COPY` stays invisible
+   until the image is built — and that is deployment-blocking. Must be green before the migration is
+   `done`.
 
 ## Output
 Per gate: PASS / FAIL + the first failing `file:line` (not the whole log). A one-line verdict: green

@@ -23,9 +23,9 @@ framing | primed | looping | blocked | done
 
 ## Iterations
 ### 1
-handed_off_to: using-agent-skills
+ran:           <lifecycle skills run this iteration, e.g. tdd → code-review>
 change:        <one line — what the iteration changed>
-verify_result: <one line — what verification produced>
+evidence:      <artifact path(s) neo read — test report, drift report, build log>
 exit_met:      no
 next:          <the gap that drives the next iteration>
 
@@ -43,7 +43,7 @@ next:          <the gap that drives the next iteration>
 - `Status` is the only mutable field outside append.
 - Keep entries short. STATE.md is a log, not a report — the report is the diff
   the loop produced. If an entry exceeds a few lines, the iteration was too
-  big; the next loop should hand off a smaller goal.
+  big; the next iteration should take a smaller slice.
 - A human reading STATE.md top-to-bottom must be able to understand what the
   loop tried, what passed, and what is open. If they can't, the entry failed
   its purpose.

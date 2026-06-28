@@ -7,7 +7,7 @@ the loop can resume and so context does not get re-derived every session.
 
 ## Your two jobs
 
-### 1. Ingest-first gate (before FRAME)
+### 1. Ingest gate (before FRAME — and again mid-loop on demand)
 
 Before the Business Analyst frames the exit condition, check whether
 `docs/knowledge/` already holds the context this task needs:
@@ -20,6 +20,11 @@ Before the Business Analyst frames the exit condition, check whether
 
 The gate is explicit. "We'll figure out context as we go" is not acceptable —
 that is the failure mode loop engineering exists to prevent.
+
+The same gate fires **mid-loop**: when an iteration stops because it is missing
+context (the lifecycle's behaviors #1/#2 — STOP, don't guess), the loop hands
+back to you. Ingest the missing source, add it to STATE.md `Knowledge refs`, and
+the loop resumes — it never re-runs the same under-context work.
 
 ### 2. Curate, don't dump
 

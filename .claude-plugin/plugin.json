@@ -1,7 +1,7 @@
 {
   "name": "neo-dev-toolkit",
   "description": "Opinionated Claude Code toolkit: neo is a thin loop wrapper over the agent-skills SDLC (recursive goal → iterate against an exit condition → human gate), with an ingest memory primitive, GitLab/Atlassian connectors, API-doc tooling, and Go service scaffolding/migration — plus the upstream agent-skills lifecycle bundle (24 spec→ship skills, 4 specialist agents, 8 slash commands).",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "author": {
     "name": "Witoo Harianto",
     "email": "witoo@plimble.com"

@@ -26,7 +26,7 @@ when you open those files.
 - [ ] Schema change → a **new** migration (never edit a shipped one).
 
 ## 4. Usecase (`usecase.md`)
-- [ ] Create the package `internal/core/usecase/<Domain>/<operation>/`.
+- [ ] Create the package `internal/core/usecase/<context>/<operation>/`.
 - [ ] `usecase.go`: `<Op>Usecase` interface (`Exec`) + `Params` + unexported `usecase` + `New(Params) <Op>Usecase`.
 - [ ] `exec.go`: implement `Exec`; co-locate request/result models + private helpers; log at the boundary; propagate typed errors. If the op yields a response-only value resolved in-flow, return it alongside the aggregate (`(*Aggregate, <value>, error)`) — don't stash it on the aggregate.
 

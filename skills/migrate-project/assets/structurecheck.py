@@ -138,6 +138,21 @@ def check_nested_layers(root: Path) -> None:
             note(f"{rel}/", "driven ports should be co-located in internal/core/domain/<context>/ (integration.md)")
 
 
+def check_group_case(root: Path) -> None:
+    """Bounded-context group dirs directly under core/usecase + core/domain must be lowercase —
+    the context's package name, identical on both layers and to the blueprint (account, accountpool;
+    never Account/AccountPool). DRIFT (high-confidence structural fact)."""
+    for layer in ("internal/core/usecase", "internal/core/domain"):
+        base = root / layer
+        if not base.is_dir():
+            continue
+        for p in sorted(base.iterdir()):
+            if p.is_dir() and p.name not in SKIP_DIRS and p.name != p.name.lower():
+                drift(f"{layer}/{p.name}/",
+                      f"group dir must be lowercase (the <context> package name, matching "
+                      f"core/domain/ and the blueprint) — rename to {p.name.lower()}/ (structure.md)")
+
+
 def check_dependency_rule(root: Path, module: str | None) -> None:
     if not module:
         note("(imports)", "no module path in go.mod — dependency-rule check skipped")
@@ -217,6 +232,7 @@ def main() -> None:
     check_layout(root)
     check_residue(root)
     check_nested_layers(root)
+    check_group_case(root)
     check_dependency_rule(root, module)
     check_ambient_calls(root)
     check_contract(root, module)

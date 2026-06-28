@@ -116,5 +116,5 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
 - The bundled template is a **frozen snapshot** under `assets/template/` (sentinel module path
   `example.com/neo/service`, name `neo-service`, id `NEOSVC`). To refresh it when `account-service`'s
   conventions change, follow `references/init-project-guide.md`.
-- Generic steering placeholders (`{{MODULE_PATH}}`, `<Domain>`, …) are intentionally left unresolved
+- Generic steering placeholders (`{{MODULE_PATH}}`, `<context>`, …) are intentionally left unresolved
   for neo to fill per-domain — only the three sentinels are substituted at generation time.

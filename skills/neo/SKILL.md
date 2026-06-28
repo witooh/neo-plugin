@@ -14,6 +14,8 @@ description: >
   software-development task that benefits from a recursive goal loop with
   durable memory and a human gate. NOT for single-file fixes, quick questions,
   or pure research — answer those directly.
+compatibility:
+  tools: [Agent, Read, Skill, Edit, Write, Bash, AskUserQuestion]
 ---
 
 # neo — Loop wrapper over `using-agent-skills`
@@ -55,12 +57,21 @@ runs it against a goal until that goal is provably met.
      exit_condition: <project-specific "done"; see references/exit-condition.md>
      knowledge_refs: <files in docs/knowledge/>
 3. LOOP — repeat until exit_condition is true or the human gate escalates:
-     a. HAND OFF to `using-agent-skills` (invoke via the Skill tool):
-        it owns discovery + lifecycle + skills + behaviors; it returns the
-        change it made + the verification result it produced.
-     b. neo checks exit_condition against that result.
-        ├─ true  → go to step 4
-        └─ false → log the iteration in STATE.md → repeat 3a
+     a. CONSULT `using-agent-skills` (Skill tool) for discovery + lifecycle +
+        the 6 behaviors, then RUN the chosen skills INLINE (neo's own
+        Edit/Write/Bash) — producing the change AND its verification evidence
+        as artifacts on disk (test report, drift report, build log, diff).
+        `using-agent-skills` is guidance, not an executor: neo runs it.
+     b. neo checks exit_condition against that EVIDENCE (never a self-report):
+        machine gates → read the artifact inline; judgment gates → spawn one
+        fresh verifier subagent. See references/exit-condition.md.
+        ├─ met     → go to step 4
+        └─ not met → log the iteration in STATE.md (a pointer, not payload:
+                     change + evidence paths; `next:` = the gap) → repeat 3a
+     c. INSUFFICIENT CONTEXT — if the lifecycle stops because context is missing
+        (behaviors #1/#2: STOP, don't guess), route to the Librarian (ingest the
+        missing source) or the BA (reframe if ambiguous) → update knowledge_refs
+        in STATE.md → resume 3a. Do NOT re-run the same under-context work.
 4. HUMAN GATE — stage the change, open/advance the MR (via `gitlab`), link the
    JIRA card (via `atlassian`), surface CI. Risky or ambiguous → escalate,
    set STATE.md status to blocked. Not risky → set done.
@@ -80,9 +91,9 @@ STATE.md, show the iteration log, continue from step 3 with the last
 - Jira/Confluence ops without a dev task → `atlassian`
 - GitLab lightweight MR reads → `gitlab`
 
-## References (point-to-read by specialists)
+## References (point-to-read)
 
-- `references/loop-over-meta-skill.md` — how each iteration hands off to `using-agent-skills`
+- `references/loop-over-meta-skill.md` — how each iteration runs `using-agent-skills` inline
 - `references/exit-condition.md` — how the Business Analyst writes done
 - `references/state-schema.md` — STATE.md shape
 - `references/human-gate.md` — commit/PR escalation rules
@@ -92,7 +103,12 @@ STATE.md, show the iteration log, continue from step 3 with the last
 
 ## Tools
 
-Allowed: `Agent` (dispatch BA/Librarian specialists + run `using-agent-skills`),
-`Read` (STATE.md, knowledge), `Skill` (`using-agent-skills`, `gitlab`,
-`atlassian`, `ingest`), `AskUserQuestion` (clarify at FRAME, escalate at GATE).
-Forbidden: `Edit`/`Write`/`Bash` — neo is an orchestrator.
+neo runs the lifecycle inline, so it holds execution tools — it is a loop, not a
+pure dispatcher.
+
+Allowed: `Edit`/`Write`/`Bash` (run the chosen lifecycle skills inline + write
+STATE.md), `Read` (STATE.md, knowledge, evidence artifacts), `Skill`
+(`using-agent-skills` for discovery/lifecycle, `gitlab`, `atlassian`, `ingest`),
+`AskUserQuestion` (clarify at FRAME, escalate at GATE), and `Agent` — OPTIONAL,
+only for (a) isolating a very long loop's iteration to bound context, or (b) a
+fresh judgment-based exit verifier. No per-iteration subagent by default.

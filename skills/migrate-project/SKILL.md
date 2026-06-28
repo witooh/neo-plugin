@@ -83,7 +83,10 @@ codebase up to that blueprint, slice by slice, behavior-preserving and resumable
 - **P4 — Final three-layer verify** (after the last slice):
   - **L1** — dispatch **Verifier** in final mode: `python3 <MIGRATE_DIR>/assets/structurecheck.py
     --target-dir <target>` (deterministic conformance tripwire) **plus** full `golangci-lint run` +
-    `go build` + `go test`. DRIFT → loop back to the Migrator.
+    `go build` + `go test` + **a Docker image build** (`docker compose build <svc>`, or
+    `make compose-up`) — the gate that catches stale build/run tooling refs (a relocated entrypoint,
+    a deleted-fixture `COPY`) that package-mode `go build ./...` never exercises. DRIFT / build
+    failure → loop back to the Migrator.
   - **L2** — dispatch **Reviewer** (`<MIGRATE_DIR>/references/migrate-verifier.md`), independent
     fresh-eyes: conforms to steering? behavior preserved? no residue? Relay findings.
   - **L3** — completeness sweep: from `target-map.md`, confirm every feature is present in the new

@@ -8,7 +8,7 @@ and builds so the result compiles and serves ``GET /health`` immediately.
 The frozen template is a real, compilable service under a sentinel module path
 (``example.com/neo/service``) — it is CI-verifiable as-is. Generation is a single
 deterministic string substitution; generic steering placeholders ({{MODULE_PATH}},
-<Domain>, …) are NOT sentinels and are left untouched for neo to fill per-domain.
+<context>, …) are NOT sentinels and are left untouched for neo to fill per-domain.
 
 Usage:
     scaffold.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID
