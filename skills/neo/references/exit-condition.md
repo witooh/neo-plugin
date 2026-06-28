@@ -41,6 +41,34 @@ Each gate is checked against **evidence**, never the maker's prose claim:
 
 Prefer `machine` gates. Reach for `judgment` only when no artifact can settle it.
 
+## Reusable gate templates (use only when the task warrants — non-default)
+
+Copy one of these into `gates:` when the task has the matching artifact. They are
+NOT generic verification — behavior #6 already assumes tests-green / review-clean
+/ no-high-severity. Each names a check #6 does *not* cover, and each reads an
+**outcome** artifact, never an intent one (a written test is not a passing test).
+
+**X6 — execution evidence (scoped-pass ≠ feature-complete).** When the task has
+acceptance criteria and a test report:
+
+```yaml
+- check:         every Ready AC is traced by >=1 test case that PASSED in the report
+  verify_method: machine
+  evidence:      <test-report path, e.g. docs/tasks/<slug>/test-report.*>
+```
+
+A Ready AC whose only test is failing / deferred / absent fails this gate.
+Blocked ACs and their deferred tests are exempt.
+
+**AR4 — requirement coverage count-match.** When an explicit AC / requirement set
+exists (hand-waving like "covered by the API" hides gaps):
+
+```yaml
+- check:         every AC id maps to a concrete element; coverage count == AC count
+  verify_method: machine
+  evidence:      <traceability / coverage file the loop wrote>
+```
+
 ## Completeness rule (the guard)
 
 The exit condition is **incomplete** and must be sent back to the Business

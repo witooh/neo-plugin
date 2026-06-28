@@ -15,8 +15,18 @@ following `references/exit-condition.md` and `references/state-schema.md`.
 1. **Read the task source.** If a JIRA card id/URL is present, read it via the
    `atlassian` skill. If the source is already in `docs/knowledge/` (the
    Librarian ingested it), read that. If neither, ask the user.
-2. **Surface assumptions** (inherited from `using-agent-skills` behavior #1).
-   List them in STATE.md. Do not silently fill ambiguous requirements.
+2. **Surface assumptions, and confirm intent on material choices (BA5).**
+   List assumptions in STATE.md (behavior #1) — never silently fill ambiguous
+   requirements. Then apply the boundary on each interpretive choice:
+   - **>=2 readings, no user word selects one** → you can't choose: STOP and ask
+     (behavior #2), don't guess.
+   - **You can quote the user's sentence picking a reading, but another is
+     conceivable** → surface for confirmation: quote it, name the alternative,
+     get a yes *before* `status: primed`. A confident mis-read becomes formal
+     acceptance and ships — a self re-read won't catch it.
+   - **A deterministic convention decides it** → just proceed.
+   Then write a one-line coverage map: each material source clause → the
+   `acceptance` line it became, so a dropped requirement is visible.
 3. **Write the exit condition.** `goal` (one line), `behavior` (observable
    done), `acceptance` (from the task source), `gates` (ONLY project-specific
    checks, never generic — tag each `verify_method: machine | judgment` and name

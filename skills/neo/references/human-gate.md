@@ -24,8 +24,11 @@ leaves the local branch:
   acceptable — a human must sign off, never the loop
 - the request was ambiguous and the BA resolved it with an assumption the
   user has not seen
-- the loop exceeded a sane iteration budget without converging (the exit
-  condition may be wrong, not the implementation)
+- the loop is **stuck** — read the STATE.md `Iterations` log: `exit_met: no`
+  repeated ~3 iterations with the same `next:` gap (no progress). A repeating gap
+  means the exit condition may be wrong, not the implementation. This is the
+  loop's no-progress exit — per loop-engineering, a loop with no independent
+  stuck-detector is open-ended token spend, not autonomous work.
 
 When escalating: set STATE.md `status: blocked`, write a one-paragraph
 escalation note under `Next`, and stop. Do not keep looping.

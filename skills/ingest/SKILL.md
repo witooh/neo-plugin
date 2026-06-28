@@ -32,8 +32,10 @@ topic: <short slug this entry belongs to>
 
 # <title from the source>
 
-<curated body — the stable facts an agent needs, in prose>
+<curated body — the stable facts an agent needs>
 - keep domain knowledge, decisions, constraints, enums, schemas
+- **copy behaviour-constraining and contract clauses verbatim, in the source's
+  original language** — never paraphrase or translate them (Fidelity below)
 - drop ephemeral state (a Jira card's current status, a live counter)
   and note where to read it live instead
 
@@ -56,8 +58,36 @@ topic + fetched_at, so the Librarian's ingest-first gate can scan fast.
   live macros/counts.
 - **URL** (web): fetch, extract the readable content, keep the durable parts.
   Record the validator header if the server emitted one.
-- **Image / HTML / text / verbal**: extract the facts, write them in prose
-  with the source labeled accordingly.
+- **Image / HTML / text / verbal**: extract the facts with the source labeled
+  accordingly — prose for context, but behaviour-constraining clauses copied
+  verbatim, not summarised (Fidelity below).
+
+## Fidelity — every clause survives (KB4)
+
+Curation must not silently drop a behaviour-constraining conjunct — the risk is
+worst when the source is non-English and curation also translates (translation is
+a second lossy transform). The bug this prevents is real: a source clause meaning
+`return the result **with** the customer group` was curated as `returns the final
+rate, term, campaign code` — the "with customer group" conjunct vanished and
+shipped. A gist-level read lets "A and B" → "A" pass.
+
+Before finishing an entry, self-check at the clause level:
+
+1. Decompose the source into **atomic clauses** — each smallest unit that
+   constrains observable behaviour (input, output, error, state, condition,
+   default, unit, ordering, cardinality, side-effect).
+2. Map every clause to a digest fact **or** a *named* other topic it belongs to
+   (a bare "off-topic" is not allowed — name it).
+3. **Copy, don't paraphrase** any behaviour-constraining or contract clause —
+   verbatim, in the source's original language. Translation is a second lossy
+   transform and is forbidden for these clauses (a translation may sit beside
+   the verbatim quote, never replace it).
+4. A clause that maps to neither → a dropped clause: **do not ship the entry;
+   report BLOCKED** naming the missing clause.
+
+This self-check catches obvious drops. The independent fresh-eyes pass that
+catches your *blind spots* is the Librarian's (KB5,
+`skills/neo/roles/librarian.md`).
 
 ## Stance
 

@@ -29,12 +29,17 @@ implements only the **recursive-goal** half of loop engineering; the
    exit condition adds the *project-specific* definition of done on top of
    `using-agent-skills` Core Operating Behavior #6 ("Verify, Don't Assume").
    It must not re-state generic verification — that is behavior #6's job.
+   Reusable *non-default* gate templates (X6 execution-evidence, AR4
+   coverage-count) live in `references/exit-condition.md` — the BA copies one in
+   only when the task's artifacts warrant it, never as a default.
 3. **neo owns no build maker/verifier — but owns one exit verifier.** The
    build-time maker/verifier split lives inside `using-agent-skills` (its Build-
    and Review-phase skills); neo defines no build roles. The one exception: a
    `judgment` exit gate is checked by a single fresh verifier subagent neo spawns
    (see `references/exit-condition.md`). Machine gates need none — neo reads the
-   evidence artifact inline.
+   evidence artifact inline. (The KB5 ingest-fidelity verifier is a *separate*
+   fresh-eyes check at the **ingest layer** — `roles/librarian.md` — not a second
+   build verifier; it does not touch this invariant.)
 4. **Human gate is mandatory at commit/PR.** Loop outcomes that are risky or
    ambiguous escalate to the human; nothing auto-merges. This is the guard
    against cognitive surrender (see `references/human-gate.md`).
@@ -48,7 +53,17 @@ implements only the **recursive-goal** half of loop engineering; the
    web-performance-auditor). Do not re-add retired roles.
 7. **ingest-first is an explicit gate.** Before FRAME, the Librarian checks
    `docs/knowledge/`; if the needed context is absent, `ingest` runs first
-   (standalone skill, callable directly as `/ingest <url>`).
+   (standalone skill, callable directly as `/ingest <url>`). Ingest fidelity is
+   gated: `ingest` self-checks clause coverage (**KB4** — behaviour-constraining
+   and contract clauses copied verbatim, untranslated) and the Librarian runs a
+   fresh-eyes re-fetch + clause-diff (**KB5**). A dropped clause → BLOCKED.
+8. **The loop carries independent exits, not just success.** Per loop-engineering
+   (`LOOP.md`), a robust loop needs more than the evidence-checked exit
+   condition: it also has a **no-progress / stuck detector** — `exit_met: no`
+   repeated ~3 iterations with the same `next:` gap forces the human gate (reads
+   the STATE.md `Iterations` log; `SKILL.md` LOOP step + `references/human-gate.md`).
+   Don't remove it: a loop with only a success-verifier is open-ended token spend
+   on a dead end.
 
 ## Add-a-role / add-a-reference sync list
 

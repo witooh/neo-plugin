@@ -67,7 +67,9 @@ runs it against a goal until that goal is provably met.
         fresh verifier subagent. See references/exit-condition.md.
         ├─ met     → go to step 4
         └─ not met → log the iteration in STATE.md (a pointer, not payload:
-                     change + evidence paths; `next:` = the gap) → repeat 3a
+                     change + evidence paths; `next:` = the gap). STUCK GUARD:
+                     if `exit_met: no` repeated ~3x with the same `next:` gap,
+                     STOP → force the human gate (status: blocked); else repeat 3a
      c. INSUFFICIENT CONTEXT — if the lifecycle stops because context is missing
         (behaviors #1/#2: STOP, don't guess), route to the Librarian (ingest the
         missing source) or the BA (reframe if ambiguous) → update knowledge_refs

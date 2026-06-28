@@ -26,6 +26,13 @@ the build — those live inside `using-agent-skills`. neo just runs them.
    - **Not met** → `next:` = the gap, repeat.
    - **Blocked on missing context** → hand back to the Librarian / BA, not the
      loop (the lifecycle's behaviors #1/#2 say STOP, don't guess).
+   - **Apparent contradiction** (two clauses seem to conflict — ordering,
+     precondition, an "after-X" state) → a verify-trigger, not a finding.
+     Reconcile against the **end-to-end flow** first (the sequence in
+     `docs/knowledge/` or the design docs), where the disambiguator lives — not
+     in the atomic clause you anchored on. Resolved by the flow → resume; only a
+     residual, genuinely-unreconciled conflict → escalate. Never forward a
+     self-resolving contradiction to the human.
 
 ## Inline by default; isolate only when it pays
 

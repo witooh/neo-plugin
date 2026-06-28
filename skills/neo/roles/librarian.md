@@ -18,6 +18,17 @@ Before the Business Analyst frames the exit condition, check whether
 - if absent → trigger the `ingest` skill (or ask the user which source to
   ingest), wait for it, then resolve
 
+**Verify the ingest before you trust it (KB5).** `ingest` self-checks its own
+clause coverage (KB4), but an agent re-reading its own work repeats its own
+blind spot. For any **re-fetchable** source (URL, Jira, Confluence, text,
+image), run a fresh-eyes pass: a verifier with clean context re-fetches the raw
+source, rebuilds the clause set from the digest alone, and diffs them
+clause-by-clause for **omission** (a source clause missing from the digest) and
+**invention** (a digest fact not in the source). A gap → hand back to `ingest`,
+then re-verify. This mirrors the loop's maker/checker exit (a fresh model
+checks; the maker never grades itself) and lives here at the ingest layer — it
+does not touch neo's one build-loop verifier (invariant #3).
+
 The gate is explicit. "We'll figure out context as we go" is not acceptable —
 that is the failure mode loop engineering exists to prevent.
 
