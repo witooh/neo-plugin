@@ -42,11 +42,7 @@ const REQUIRED_SECTIONS = [
 // cannot bypass the validator by editing their own skill file.
 // Every entry must have a documented reason.
 const SECTION_EXEMPT_SKILLS = {
-	"using-agent-skills":
-		"Meta-skill — orchestrates other skills; When-to-Use and Verification are not applicable to a routing document.",
-	"idea-refine":
-		"Legacy structure predating skill-anatomy.md — uses How-It-Works/Usage/Anti-patterns instead of standard headings. Tracked for conformance in https://github.com/addyosmani/agent-skills/issues",
-	// ── neo-dev-toolkit native skills (predate the agent-skills anatomy; use their own orchestrator-style structure) ──
+	// ── neo-dev-toolkit native skills (use their own orchestrator-style structure, not the standard agent-skills anatomy) ──
 	neo: "Thin loop wrapper over using-agent-skills — uses a loop/exit-condition/STATE structure (see skills/neo/CLAUDE.md), not the standard Overview/Red-Flags headings.",
 	gitlab:
 		"Thin glab execution arm — structured around glab command maps, not the standard anatomy.",
@@ -67,6 +63,44 @@ const SECTION_EXEMPT_SKILLS = {
 	"migrate-project":
 		"Brownfield orchestrator with its own slice/phase structure (structurecheck.py L1/L2/L3 verify), not the standard anatomy.",
 };
+
+// Skills/agents provided by the SEPARATELY-INSTALLED upstream agent-skills
+// plugin (github.com/addyosmani/agent-skills). neo and the connectors delegate
+// to these by name; they are not in this repo's skills/ dir, so they are unioned
+// into knownSkills below to keep the cross-reference check from flagging
+// legitimate external delegation as a dead reference.
+const EXTERNAL_SKILLS = new Set([
+	// 23 lifecycle skills + the using-agent-skills meta-skill
+	"using-agent-skills",
+	"interview-me",
+	"idea-refine",
+	"spec-driven-development",
+	"planning-and-task-breakdown",
+	"context-engineering",
+	"incremental-implementation",
+	"frontend-ui-engineering",
+	"api-and-interface-design",
+	"source-driven-development",
+	"doubt-driven-development",
+	"test-driven-development",
+	"browser-testing-with-devtools",
+	"debugging-and-error-recovery",
+	"code-review-and-quality",
+	"code-simplification",
+	"security-and-hardening",
+	"performance-optimization",
+	"git-workflow-and-versioning",
+	"ci-cd-and-automation",
+	"deprecation-and-migration",
+	"documentation-and-adrs",
+	"observability-and-instrumentation",
+	"shipping-and-launch",
+	// 4 specialist agents (referenced as personas)
+	"code-reviewer",
+	"security-auditor",
+	"test-engineer",
+	"web-performance-auditor",
+]);
 
 // Regex patterns that indicate an explicit cross-skill reference.
 // Only these patterns trigger the dead-reference warning — generic
@@ -218,7 +252,9 @@ function main() {
 		.filter((d) => fs.statSync(path.join(SKILLS_DIR, d)).isDirectory())
 		.sort();
 
-	const knownSkills = new Set(skillDirs);
+	// Union in the external upstream agent-skills (see EXTERNAL_SKILLS above) so
+	// neo's legitimate delegation references don't register as dead.
+	const knownSkills = new Set([...skillDirs, ...EXTERNAL_SKILLS]);
 
 	let totalErrors = 0;
 	let totalWarnings = 0;

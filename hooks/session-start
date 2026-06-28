@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # SessionStart hook for neo-dev-toolkit plugin.
-# Injects a reminder so Claude proactively invokes the bundled skills
+# Injects a reminder so Claude proactively invokes the neo-dev-toolkit skills
 # (neo, ingest, api-spec, openapi-doc, open-collection, confluence-api-doc, gitlab,
-#  atlassian, init-project, migrate-project) plus the agent-skills lifecycle bundle
-# (24 spec→ship skills routed via using-agent-skills, 4 specialist agents, 8 slash commands)
-# whenever a user request matches their triggering contexts.
+#  atlassian, init-project, migrate-project) whenever a user request matches their
+# triggering contexts. neo delegates the SDLC to using-agent-skills, which ships in
+# the separately-installed upstream agent-skills plugin (a prerequisite, not bundled here).
 
 set -euo pipefail
 
@@ -21,11 +21,11 @@ escape_for_json() {
 }
 
 session_context="<EXTREMELY_IMPORTANT>
-You have the neo-dev-toolkit plugin installed. It bundles the **neo loop wrapper** (over the agent-skills lifecycle), an **ingest** memory primitive, your project-specific connectors, AND the upstream agent-skills lifecycle bundle. Invoke them via the Skill tool whenever the user's request matches.
+You have the neo-dev-toolkit plugin installed. It ships the **neo loop wrapper** (over the agent-skills lifecycle), an **ingest** memory primitive, and your project-specific connectors. Invoke them via the Skill tool whenever the user's request matches. neo delegates the SDLC to \`using-agent-skills\`, which lives in the **separately-installed upstream agent-skills plugin** — a prerequisite (see below).
 
-## agent-skills lifecycle bundle — THE software-development lifecycle
+## agent-skills lifecycle — the SDLC neo delegates to (external prerequisite)
 
-The \`using-agent-skills\` meta-skill OWNS the SDLC for this plugin: skill discovery (its flowchart), the 6 Core Operating Behaviors (surface assumptions, manage confusion, push back, enforce simplicity, maintain scope, verify), the 16-step spec→ship Lifecycle Sequence, and the Skill Rules. The 24 lifecycle skills, 4 specialist agents (\`code-reviewer\`, \`security-auditor\`, \`test-engineer\`, \`web-performance-auditor\`), and 8 slash commands (\`/spec\`, \`/plan\`, \`/build\`, \`/test\`, \`/review\`, \`/ship\`, \`/code-simplify\`, \`/webperf\`) all live under it. **neo is a thin loop wrapper on top of it — neo delegates the entire SDLC here and never re-derives it.**
+The \`using-agent-skills\` meta-skill OWNS the SDLC: skill discovery (its flowchart), the 6 Core Operating Behaviors (surface assumptions, manage confusion, push back, enforce simplicity, maintain scope, verify), the spec→ship Lifecycle Sequence, and the Skill Rules. It — along with its lifecycle skills, specialist agents, and slash commands — ships in the **upstream agent-skills plugin (github.com/addyosmani/agent-skills), which must be installed separately**; this toolkit no longer bundles them. **neo is a thin loop wrapper on top of \`using-agent-skills\` — it delegates the entire SDLC there and never re-derives it.** If the upstream plugin is not installed, neo has no SDLC to delegate to.
 
 ## neo toolkit
 

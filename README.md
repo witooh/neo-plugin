@@ -1,6 +1,8 @@
 # neo-dev-toolkit
 
-Opinionated Claude Code plugin: **`neo`** is a thin loop wrapper over the `using-agent-skills` SDLC (turn a task into a recursive goal, iterate it against a project-specific exit condition until "done" is proven, hand off at a human gate — concept from Addy Osmani's *loop engineering*), backed by an `ingest` memory primitive, GitLab/Atlassian connectors, API-doc tooling, and Go service scaffolding/migration — plus the upstream **[agent-skills](https://github.com/addyosmani/agent-skills)** lifecycle bundle (24 spec→ship engineering skills, 4 specialist agents, 8 slash commands) that `using-agent-skills` routes.
+Opinionated Claude Code plugin: **`neo`** is a thin loop wrapper over the `using-agent-skills` SDLC (turn a task into a recursive goal, iterate it against a project-specific exit condition until "done" is proven, hand off at a human gate — concept from Addy Osmani's *loop engineering*), backed by an `ingest` memory primitive, GitLab/Atlassian connectors, API-doc tooling, and Go service scaffolding/migration.
+
+> **Prerequisite:** the `using-agent-skills` SDLC that `neo` delegates to is **not** bundled here — it ships in the upstream **[agent-skills](https://github.com/addyosmani/agent-skills)** plugin, which you install separately. See [Prerequisite](#prerequisite--the-upstream-agent-skills-plugin) below.
 
 ## What's inside
 
@@ -17,40 +19,19 @@ Opinionated Claude Code plugin: **`neo`** is a thin loop wrapper over the `using
 | **`init-project`** | Scaffold a brand-new **Go hexagonal/DDD microservice** from a bundled frozen template — an empty-but-runnable snapshot of the account-service architecture (clean layers + tooling + infra wiring + `.kiro/` steering + CLAUDE.md), **zero business domains**. Builds + serves `GET /health` immediately, ready for `neo` to add the first domain with no setup. Asks the service identity, runs `scaffold.py` (copy template + substitute sentinels + tidy + build), then verifies (L1 `initcheck.py` + L2 fresh-eyes). (Adding domains / AC / endpoints → `neo`.) | "init project", "/init-project", "scaffold a service", "new service from template", "project boilerplate", "สร้าง project ใหม่", "สร้าง service ใหม่", "โครง service เปล่า" |
 | **`migrate-project`** | Refactor an **existing** Go service so its structure conforms to the account-service hexagonal/DDD blueprint — the **brownfield sibling of `init-project`**. Reuses init-project's frozen template + `.kiro/steering/` as the target-structure contract, plans the migration as ordered, independently-verifiable **slices** (one bounded context at a time), executes them on a branch with `git mv` (history- + behavior-preserving), and verifies each slice (go build + test + vet + golangci). Plan-first (approve the slice plan before any code moves) + resumable via `docs/migration/plan.md`. Three-layer verify (L1 `structurecheck.py` + L2 fresh-eyes + L3 completeness). (Empty/new service → `init-project`; adding a domain/AC/endpoint → `neo`.) | "migrate project", "/migrate-project", "migrate structure to account-service", "refactor to hexagonal/clean architecture", "restructure an existing service", "ย้ายโครงสร้างโปรเจกต์", "refactor ให้เหมือน account-service", "จัดโครงสร้างใหม่ตาม account-service" |
 
-## agent-skills lifecycle bundle (spec → ship)
+## Prerequisite — the upstream agent-skills plugin
 
-Ported from upstream [`agent-skills` 0.6.2](https://github.com/addyosmani/agent-skills/releases/tag/0.6.2). Twenty-four general engineering-workflow skills organized by development phase, routed by the **`using-agent-skills`** meta-skill. Where the neo skills own *your* project-specific workflows (Jira/Confluence, GitLab MR, api-spec, Go scaffolding), these own *general* engineering practice.
+`neo` delegates the **entire** development lifecycle — skill discovery, the 6 Core Operating Behaviors, the spec→ship lifecycle, and the verification methodology — to the **`using-agent-skills`** meta-skill. That meta-skill, and the 24 lifecycle skills, 4 specialist agents, and 8 slash commands it routes, live in the upstream **[agent-skills](https://github.com/addyosmani/agent-skills)** plugin — **not in this repo**. This toolkit no longer bundles them.
 
-| Phase | Skills |
-|-------|--------|
-| Discover / ideate | `interview-me`, `idea-refine` *(replaces the old `brainstorm`)* |
-| Spec & plan | `spec-driven-development`, `planning-and-task-breakdown`, `context-engineering` |
-| Implement | `incremental-implementation`, `frontend-ui-engineering`, `api-and-interface-design`, `source-driven-development`, `doubt-driven-development` |
-| Test & debug | `test-driven-development`, `browser-testing-with-devtools`, `debugging-and-error-recovery` |
-| Review & harden | `code-review-and-quality`, `code-simplification` *(replaces the old `improve`)*, `security-and-hardening`, `performance-optimization` |
-| Ship & sustain | `git-workflow-and-versioning`, `ci-cd-and-automation`, `deprecation-and-migration`, `documentation-and-adrs`, `observability-and-instrumentation`, `shipping-and-launch` |
+**Install the upstream agent-skills plugin first** (follow that repo's README for its marketplace + install commands). Without it, neo has no SDLC to delegate to, and the `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` `/webperf` commands plus the `code-reviewer` / `security-auditor` / `test-engineer` / `web-performance-auditor` agents are unavailable.
 
-**Specialist agents** (use via the Agent tool): `code-reviewer`, `security-auditor`, `test-engineer`, `web-performance-auditor`.
-
-**Slash commands:** `/spec`, `/plan`, `/build`, `/test`, `/review`, `/ship`, `/code-simplify`, `/webperf`.
-
-**Shared references** the skills cite live under [`references/`](references/) (security / performance / testing / accessibility / orchestration checklists).
-
-### Optional opt-in hooks (not registered by default)
-
-Two utility hooks ship under `hooks/` but are **off by default** (they're project-scoped and have heavy side effects, so upstream leaves them opt-in):
-
-- **`sdd-cache`** — cross-session doc-fetch cache for `source-driven-development` (revalidates via `ETag`/`Last-Modified`, serves only on `304`). Register `PreToolUse`/`PostToolUse` on `WebFetch` → see [`hooks/SDD-CACHE.md`](hooks/SDD-CACHE.md).
-- **`simplify-ignore`** — block-level protection for `code-simplify` (`/* simplify-ignore-start */`). Register on `Read`/`Edit|Write`/`Stop` → see [`hooks/SIMPLIFY-IGNORE.md`](hooks/SIMPLIFY-IGNORE.md).
-
-Both expect `jq`; reference the scripts at `${CLAUDE_PLUGIN_ROOT}/hooks/...` since they ship inside this plugin. Add the snippets from their docs to your project's `.claude/settings.local.json` to enable.
+This toolkit ships only the **neo-toolkit** skills (the table above): the neo loop, the `ingest` memory primitive, the GitLab/Atlassian connectors, the api-doc chain, and the Go scaffolding/migration skills.
 
 ## Companion pieces
 
 - `/neo <task>` — invokes the `neo` loop skill directly
-- Slash commands `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` `/webperf` — entry points into the agent-skills lifecycle bundle
-- `using-agent-skills` meta-skill — the discovery router for the 24 lifecycle skills
 - `SessionStart` hook — injects a short reminder on `startup | clear | compact` so Claude proactively picks the right skill
+- The `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` `/webperf` commands and the `using-agent-skills` discovery router come from the upstream **agent-skills** plugin (see [Prerequisite](#prerequisite--the-upstream-agent-skills-plugin)), not this repo
 
 ## Installation
 
@@ -90,7 +71,7 @@ Three ways to kick off work:
 
 1. **Automatic** — the SessionStart hook tells Claude which skill to reach for; just describe the task naturally
 2. **Slash command** — `/neo <task description>` runs the full loop
-3. **Direct ask** — "ช่วย review MR นี้...", "gen api doc ให้หน่อย", "idea-refine วิธีออกแบบ...", "spec-driven this feature"
+3. **Direct ask** — "ช่วย review MR นี้...", "gen api spec ให้หน่อย", "/ingest <url>", "migrate project นี้ให้เข้าโครง"
 
 ## Structure
 
@@ -113,11 +94,7 @@ Three ways to kick off work:
 │   ├── gitlab/              # glab execution arm (connector — used at neo's human gate)
 │   ├── atlassian/           # acli reference + Jira/Confluence CLI ops (connector)
 │   ├── init-project/        # scaffold a new Go hexagonal/DDD service from a frozen template
-│   ├── migrate-project/     # refactor an existing Go service onto the hexagonal blueprint
-│   └── <agent-skills bundle>/  # 24 spec→ship engineering skills (see agent-skills section above)
-├── agents/                  # 4 specialist agents: code-reviewer, security-auditor, test-engineer, web-performance-auditor
-├── .claude/commands/        # 8 slash commands: spec/plan/build/test/review/ship/code-simplify/webperf
-├── references/              # shared checklists cited by the lifecycle skills
+│   └── migrate-project/     # refactor an existing Go service onto the hexagonal blueprint
 ├── scripts/                 # validate-skills.js (maintainer validator)
 ├── docs/                    # skill-anatomy.md
 ├── legacy/
