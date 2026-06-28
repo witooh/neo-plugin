@@ -34,6 +34,17 @@ the build — those live inside `using-agent-skills`. neo just runs them.
      residual, genuinely-unreconciled conflict → escalate. Never forward a
      self-resolving contradiction to the human.
 
+## Recording the consult (no silent skip)
+
+The step-1 consult is not free-floating discipline — it leaves evidence. Every
+change-producing iteration records `ran:` in STATE.md: the skill(s) the consult
+chose and that shaped the change. An iteration that deliberately skips the consult
+records `waiver: <reason> (user-approved <date>)` instead. A change logged with
+neither is an invalid iteration — neo's exit check rejects it (see
+`exit-condition.md` → "Process-integrity gate"). This turns "did neo actually
+consult?" from an unobservable habit into an auditable artifact: the same
+evidence-not-self-report rule neo applies to the goal, now applied to the process.
+
 ## Inline by default; isolate only when it pays
 
 neo runs inline because context bloat is handled the same way `using-agent-skills`

@@ -41,6 +41,35 @@ Each gate is checked against **evidence**, never the maker's prose claim:
 
 Prefer `machine` gates. Reach for `judgment` only when no artifact can settle it.
 
+## Process-integrity gate (neo-owned, always on — not a BA gate)
+
+Separate from the project gates above: before any exit passes, neo verifies the
+loop actually **delegated to `using-agent-skills`** each iteration rather than
+re-deriving the SDLC from memory. This is neo's own machinery — NOT a
+project-specific gate the BA authors, so it never goes in `exit_condition.gates`
+and never tensions with "augments #6, never re-states generic verification." (It
+parallels the always-on STUCK GUARD: a neo-owned independent exit, not a project
+clause.)
+
+- **Presence (machine, every exit).** neo scans STATE.md `Iterations`: every
+  change-producing iteration carries `ran:` (the consulted skill[s]) or a
+  `waiver: <reason> (user-approved <date>)`. A change logged with neither →
+  exit FAILS → record it and force the human gate.
+- **Consistency (machine, every exit).** `ran:` must square with the iteration's
+  `evidence:` — e.g. `ran: test-driven-development` with no test report in
+  `evidence:` is suspect. A named skill that left no matching artifact does not
+  pass.
+- **Authenticity (judgment, when a fresh verifier runs).** The exit verifier
+  subagent also confirms each `ran:` is reflected by the iteration's diff — a
+  change the named skill plainly didn't shape is rejected.
+
+**Honest ceiling.** This is self-enforced — neo writes STATE.md, and the verifier
+reads artifacts, not neo's transcript. So it makes a skipped consult **visible,
+dated, and costly** (faking now means naming a real skill *and* producing a
+matching evidence artifact ≈ doing the consult) — it does **not** make skipping
+impossible. The only structurally-binding layer is a harness PreToolUse hook on
+Edit/Write, deliberately out of this skill's scope.
+
 ## Reusable gate templates (use only when the task warrants — non-default)
 
 Copy one of these into `gates:` when the task has the matching artifact. They are

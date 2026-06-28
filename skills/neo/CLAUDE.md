@@ -64,6 +64,18 @@ implements only the **recursive-goal** half of loop engineering; the
    the STATE.md `Iterations` log; `SKILL.md` LOOP step + `references/human-gate.md`).
    Don't remove it: a loop with only a success-verifier is open-ended token spend
    on a dead end.
+9. **Every change-iteration is traceable to a consulted skill — or a logged
+   waiver.** The step-3a consult of `using-agent-skills` must leave evidence:
+   each change-producing iteration records `ran:` (the chosen skill[s]) in
+   STATE.md, or a `waiver: <reason> (user-approved <date>)` if deliberately
+   skipped. A change with neither is invalid; neo's exit check carries a standing
+   **process-integrity gate** — presence + `ran`↔`evidence` consistency (machine,
+   every exit) and authenticity (the fresh judgment verifier when one runs) — that
+   rejects it (`references/exit-condition.md`). This is self-enforced, so it makes
+   a silent skip **visible / dated / costly, not impossible**; the only binding
+   layer is a harness hook, deliberately out of scope. Don't downgrade `ran:` to a
+   bare boolean — naming the real skill (and its matching artifact) is what raises
+   the cost of faking. Mirrors #8: a neo-owned, always-on independent exit.
 
 ## Add-a-role / add-a-reference sync list
 

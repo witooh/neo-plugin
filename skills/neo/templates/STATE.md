@@ -23,7 +23,7 @@
 framing
 
 ## Iterations
-<!-- append-only; one pointer block per iteration — see state-schema.md (ran/change/evidence/exit_met/next) -->
+<!-- append-only; one pointer block per iteration — see state-schema.md (ran-or-waiver/change/evidence/exit_met/next) -->
 
 ## Next
 

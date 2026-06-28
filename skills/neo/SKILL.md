@@ -62,7 +62,14 @@ runs it against a goal until that goal is provably met.
         Edit/Write/Bash) — producing the change AND its verification evidence
         as artifacts on disk (test report, drift report, build log, diff).
         `using-agent-skills` is guidance, not an executor: neo runs it.
-     b. neo checks exit_condition against that EVIDENCE (never a self-report):
+        RECORD `ran:` in the STATE.md iteration — the consulted skill(s) that
+        shaped this change — or `waiver: <reason> (user-approved <date>)` if the
+        consult was deliberately skipped. No silent skip: a change logged with
+        neither is an invalid iteration (3b rejects it).
+     b. PROCESS GATE first (machine, always): every change-iteration in STATE.md
+        carries `ran:` or `waiver:` — a change with neither fails the exit (a
+        fresh judgment verifier also rejects a `ran:` the diff doesn't reflect).
+        Then neo checks exit_condition against that EVIDENCE (never a self-report):
         machine gates → read the artifact inline; judgment gates → spawn one
         fresh verifier subagent. See references/exit-condition.md.
         ├─ met     → go to step 4

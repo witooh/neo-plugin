@@ -23,7 +23,8 @@ framing | primed | looping | blocked | done
 
 ## Iterations
 ### 1
-ran:           <lifecycle skills run this iteration, e.g. tdd → code-review>
+ran:           <consulted skill(s) that shaped this change, e.g. tdd → code-review>
+waiver:        <use instead of ran: only if the consult was deliberately skipped — reason (user-approved <date>)>
 change:        <one line — what the iteration changed>
 evidence:      <artifact path(s) neo read — test report, drift report, build log>
 exit_met:      no
@@ -47,3 +48,8 @@ next:          <the gap that drives the next iteration>
 - A human reading STATE.md top-to-bottom must be able to understand what the
   loop tried, what passed, and what is open. If they can't, the entry failed
   its purpose.
+- A change-producing iteration MUST carry `ran:` (the using-agent-skills consult's
+  chosen skill[s] — the step-3a evidence, not decoration) or, if the consult was
+  deliberately skipped, `waiver: <reason> (user-approved <date>)`. An iteration
+  that logs a change with neither is malformed; neo's process-integrity gate
+  rejects it at exit (see `references/exit-condition.md`).
