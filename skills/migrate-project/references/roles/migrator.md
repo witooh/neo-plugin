@@ -40,6 +40,11 @@ the slice and hand it to the Verifier.
 - A target shape the steering does not cover, or a move that would change observable behavior →
   **stop**, do not guess: Open Question (NEEDS_CONTEXT). A behavior change the user must approve →
   DONE_WITH_CONCERNS with the specifics.
+- **Scope-drift** — the slice's real blast radius exceeds the scope `plan.md` records for it: the
+  move forces touching packages / files outside this slice's planned `old → blueprint` list in a way
+  that materially enlarges it → **stop**, `NEEDS_CONTEXT` "scope larger than planned: <what's
+  outside>". Do not silently absorb the extra scope (it voids the CP1-approved plan) — the
+  orchestrator escalates so the Mapper can re-split.
 - Never hand-edit generated code (`…/sqlc/**`, `…/mocks/**`) — move the source + config and
   regenerate (`make gen` / `make db-gen` / `make mock-gen`).
 

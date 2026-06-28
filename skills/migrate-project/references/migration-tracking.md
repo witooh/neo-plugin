@@ -46,6 +46,11 @@ The canonical slice shape for a service that is already clean-but-different-dial
 
 A slice never reaches `done` while its verify is red; it stays `in-progress` and the Migrator loops.
 
+The Migrate Loop that drives a slice to `done` has **four independent exits** (SKILL.md P3 step 3):
+green → `done`; **no-progress** (Verifier `failure-set` repeats), **hard cap** (3 rounds), or
+**scope-drift** (blast radius exceeds the slice's planned scope) → the slice stays `in-progress` and
+the orchestrator **escalates** — a stuck slice is never silently retried forever and never marked `done`.
+
 ## 4. The plan-file shape
 
 Content spec: `templates/plan-template.md`. The structure:

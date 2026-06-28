@@ -28,6 +28,10 @@ migration — deterministic, no judgment. A slice is `done` only when **every** 
    `done`.
 
 ## Output
-Per gate: PASS / FAIL + the first failing `file:line` (not the whole log). A one-line verdict: green
-(slice may be marked `done`) or the specific failures the Migrator must fix. Pointers, not payload.
-Status line per preamble.
+Per gate: PASS / FAIL. On FAIL, list the **full failure-set** as enumerable items (not just the
+first, not the whole log) so the orchestrator can compare it across rounds to detect a stuck slice:
+- failing **test** names (`Pkg/TestName`),
+- golangci findings as **`linter:code file:line`**,
+- build / vet errors as the **error headline + `file:line`**.
+A one-line verdict: green (slice may be marked `done`) or the failure-set the Migrator must fix.
+Pointers, not payload (names + `file:line`, never raw logs). Status line per preamble.

@@ -74,9 +74,20 @@ codebase up to that blueprint, slice by slice, behavior-preserving and resumable
      creating it on the first slice; `git mv` + import rewrite + convention-gap fill; S1 installs the
      contract).
   2. Dispatch **Verifier** (`go build` + `go vet` + the existing `go test` + `golangci-lint`).
-  3. **The Migrate Loop:** Verifier red → re-dispatch the Migrator with the findings → re-verify.
-     Exit when green; **~3 rounds with no progress → escalate** to the user (never mark a red slice
-     `done`). A Migrator `NEEDS_CONTEXT` (steering gap / behavior change) → relay to the user, re-dispatch with the answer.
+  3. **The Migrate Loop** — re-dispatch the Migrator with the Verifier's findings → re-verify (one
+     Migrator→Verifier cycle = one round; the initial dispatch is round 1). **Four independent
+     exits**, only the first is success:
+     - **Green** → exit success (slice may be marked `done`).
+     - **No-progress** → the Verifier's `failure-set` is identical to the previous round's → the
+       slice is stuck; escalate with the repeating set (catches circling early, ~round 2).
+     - **Hard cap** → 3 rounds on one slice still red → escalate with the remaining failures
+       ("moving but not reaching green").
+     - **Scope-drift** → the Migrator returns `NEEDS_CONTEXT` because the slice's real blast radius
+       exceeds the scope `plan.md` records for it → escalate with what falls outside the plan (the
+       CP1-approved plan no longer covers this slice).
+     Every non-green exit escalates via `AskUserQuestion` — reason + attached evidence + options
+     (retry / split / accept-gap / re-approve scope); **never mark a red slice `done`**. A Migrator
+     `NEEDS_CONTEXT` for a steering gap / behavior change → relay to the user, re-dispatch with the answer.
   4. Green → dispatch **Mapper (tracker-sync)** to set the slice `done` + refresh the tally.
 
   Resumable: the user may stop after any green slice and re-invoke later (P0 resumes).
