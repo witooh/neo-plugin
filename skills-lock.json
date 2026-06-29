@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "skills": {
+    "atlassian": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/atlassian/SKILL.md",
+      "computedHash": "163b918f3c6d7ae9039ff7830a4ff5b9beebbc2d2c90e1b284365402aff112ac"
+    },
+    "brainstorm": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/brainstorm/SKILL.md",
+      "computedHash": "8e6a53d8380d708a6ac68b0bd25ff2a1b7ae63287d84ccbaa02f8b7ee50f58d9"
+    },
+    "commit": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/commit/SKILL.md",
+      "computedHash": "431d80f88309fa2bc6f8f1cb4155b748a3bb7a478bcd247479c4e3dd4c3ef04a"
+    },
+    "confluence-api-doc": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/confluence-api-doc/SKILL.md",
+      "computedHash": "4c5b80c9a58ebfa85cf9e4524794c15c0aedad6e00f21550dae90705c888f525"
+    },
+    "gitlab": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/gitlab/SKILL.md",
+      "computedHash": "1e0bfa8b42c03b856739cbe9014d32a0eb8302b36372ebd7d3c1350df26ccc43"
+    },
+    "improve": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/improve/SKILL.md",
+      "computedHash": "60ebf8257ae9825af02dd1184aca08dcf23aae21649fabf787131ede85ed8fae"
+    },
+    "init-project": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/init-project/SKILL.md",
+      "computedHash": "fcc1d1d105cd3c727fbeac03a71b09d65f8dfa0351984801e2d2fd875f4c2e25"
+    },
+    "migrate-project": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/migrate-project/SKILL.md",
+      "computedHash": "4596229192c60229b6bbe13ee68630b14ddae355301f6018e1753102af3940a1"
+    },
+    "neo": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/neo/SKILL.md",
+      "computedHash": "6e348462db1cab5dbbf2b2d8ff88ba138d1ad7f93d5a3c9f7a55c368bcd35c3b"
+    },
+    "open-collection": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/open-collection/SKILL.md",
+      "computedHash": "86c2f832e2fa7ae2a0b0f7368bb0b4e473259d52599635b2cf2570e3c0398831"
+    },
+    "openapi-doc": {
+      "source": "witooh/neo-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/openapi-doc/SKILL.md",
+      "computedHash": "28b9fd9d5f9282d5b47b897bbc7bdb34eb22ca68dcb5538ae837194cbc1ade9d"
+    }
+  }
+}

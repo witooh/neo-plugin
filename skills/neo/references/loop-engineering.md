@@ -23,6 +23,16 @@ Durable state lives at `docs/tasks/<slug>/STATE.md` (shape: `state-schema.md`; b
 / MR id when there is one). Resume = re-read STATE.md and continue from `next_step`; never
 restart from zero.
 
+**Resume on `done-partial`.** A `done-partial` task has NO unmet exit criterion — the loop already
+closed for its scope — so resuming it is not "continue the open loop" but "open a new scope". On
+`/neo continue <slug>` when `status: done-partial`: read `## Deferred / out of scope`, help the
+user pick one item (deferred items are not yet exit criteria), then **re-frame that item as a new
+goal** — add a new `exit_condition` row (or rows) for it, set `status: looping`, and run the loop
+from step 4. When it clears the fresh-context checker + the human gate, tick that item `- [x]` in
+`## Deferred` and set `status: done` if nothing remains there, else back to `done-partial`. Never
+silently re-open a closed exit: a deferred item becomes work only by being framed into the exit
+condition.
+
 1. **Frame the recursive goal.** Restate the task as a single goal sentence in STATE.md. "Make
    the module better" is not a goal; "every acceptance criterion is covered by a passing test
    and `go build ./...` is clean" is.
@@ -94,7 +104,7 @@ restart from zero.
    | **Cap / budget** | iteration count hits the cap, or token / wall-clock budget is spent | → STUCK |
 
    Pick a cap and a budget up front and write them in STATE.md `limits` (sane defaults: cap
-   ≈ 8–12 iterations; budget = whatever the user set, else stop and ask before an open-ended
+   ≈ 20 iterations; budget = whatever the user set, else stop and ask before an open-ended
    spend). `STUCK` is not failure — it is the loop refusing to burn budget circling a dead end.
    On STUCK, write the blocker + the last evidence to STATE.md and **escalate to the human**
    with a specific question, never a vague "I'm stuck".
@@ -103,6 +113,15 @@ restart from zero.
    the checker's per-criterion verdict + evidence, and the diff summary. The human decides. Only
    on approval do the connectors run — `gitlab` for MR create / review-comment / CI, `atlassian`
    for the JIRA transition. Set `human_gate: passed` in STATE.md after approval.
+
+   Then **close the loop**: record any scoped-OUT follow-up in `## Deferred / out of scope`
+   (genuine deferred scope — a user-deferred open question, an out-of-scope concern, an
+   integration step this loop could not verify — plus post-ship admin like push / PR / JIRA), and
+   set `status: done` if that section is empty or `status: done-partial` if it carries anything.
+   Do NOT bury residual work in `## Next`. `done-partial` still means every `exit_condition` row
+   is `met` — it flags out-of-scope follow-ups, not an unmet exit — so a reader sees at the top
+   that the task closed *for its scope* with named items to resume via `/neo continue <slug>`,
+   instead of a bare `done` that reads as "nothing remains".
 
 ## neo drives the flow — the only user-facing pauses
 
@@ -156,7 +175,9 @@ delegation.)
   **not add or change behavior** may waive it, and only with a recorded reason (`state-schema.md`).
 - **Consistency (machine, every exit).** `ran:` must square with the iteration's `evidence:` —
   e.g. `ran: test-driven-development` with no test report in `evidence:` is suspect. A named
-  skill that left no matching artifact does not pass.
+  skill that left no matching artifact does not pass. Likewise, a non-empty `## Deferred / out of
+  scope` at close requires `status: done-partial` (not `done`) — a bare `done` while follow-ups
+  are listed is an inconsistency the gate rejects.
 - **Authenticity (judgment, a real fresh `Agent` subagent — never the self-reread fallback).**
   The fresh-context checker confirms each `ran:` is reflected by the iteration's diff (a change
   the named skill plainly did not shape is rejected) and that the `design-exists` artifact is

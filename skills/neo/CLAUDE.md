@@ -46,7 +46,11 @@ router in `SKILL.md`.
 4. **Maker ≠ checker.** The exit is verified by a fresh-context checker, never by the agent that
    did the work. `exit_condition[].status: met` is the checker's to set.
 5. **External memory is load-bearing.** STATE.md is why resume works. Keep it scannable and
-   append-only where the schema says so.
+   append-only where the schema says so. The `done-partial` status + the `## Deferred / out of
+   scope` section (a scope-complete close that still carries recorded out-of-scope follow-ups —
+   every `exit_condition` row stays `met`; deferred items are never exit criteria) are neo-owned
+   loop machinery: they live in the schema / template / `loop-engineering.md` only, add **no**
+   router divergence, and have nothing to re-apply on a re-fork.
 6. **The human gate is non-negotiable.** neo never auto-commits / auto-opens an MR. Connectors
    (`gitlab`, `atlassian`) run only after approval.
 7. **neo owns only four things:** the loop, the memory, the exit condition, the human gate. It
