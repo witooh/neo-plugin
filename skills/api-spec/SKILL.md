@@ -50,11 +50,17 @@ The full schema (every key, field-object rules, error rules, notes discipline) l
 
 ## Mode
 
-Auto-detect (user can override): no `docs/api/` (or no `_meta.yaml`) at the target → **Generate**; request says "validate/check/เช็ค/ตรงกับ … ไหม" with a spec already present → **Validate** (no writes); otherwise → **Update**.
+Four modes. **Draft** and **Generate** both author a spec where none exists yet; the difference is intent and rigor — Draft is a *provisional Define-phase design pass*, Generate is the *authoritative author*. Auto-detect (user can override):
+
+- **Draft** (Define — design-first) — signalled by **neo** routing here in Define, or a "draft / ออกแบบ … ก่อน" request: author a **provisional** contract from intent **only** (acceptance criteria / requirements / `docs/knowledge/` / `docs/design/`), **before any code exists**, so a feature has a contract to design against from the start. It writes the same `docs/api/*.yaml` as Generate — **single producer, single location** (not a separate artifact); its provisional nature is tracked by the neo loop (STATE.md), **not** by a marker in the spec. **Lighter verify** (L1 + L3 only — see Step 3). The Ship-phase **Update** later reconciles this draft against the built code.
+- **Generate** — no `docs/api/` (or no `_meta.yaml`) at the target, and not a Draft request → author the spec from intent (full three-layer verify).
+- **Update** — a spec already present → apply the delta (a new endpoint, a changed field), incl. the Ship-phase reconcile against built code (`openapi-doc` drift).
+- **Validate** — request says "validate/check/เช็ค/ตรงกับ … ไหม" with a spec present → no writes.
 
 ## Step 1 · Locate the source-of-intent + the spec root
 - **Spec root** — default `docs/api/` at the repo root; in a monorepo scope it to the chosen service (e.g. `services/<name>/docs/api/`). Ask if ambiguous.
 - **Source-of-intent** — what the spec must reflect (the input the spec is authored *from*):
+  - **Draft** (Define) — intent **only**: acceptance-criteria (`docs/design/<usecase>/`) / requirements / a JIRA card / `docs/knowledge/` / the user's description. **Exclude code** — it is Define-phase; the code does not exist yet (and is not consulted even if some does). No locatable AC/requirements → STOP and ask; never invent an endpoint surface.
   - **Update / Validate** — the existing `docs/api/*.yaml` is the baseline; the change request (a new endpoint, a changed field) is the delta.
   - **Generate** — gather the intent from whatever exists: a requirements doc / acceptance-criteria (`docs/design/<usecase>/`) / a JIRA card / `docs/knowledge/` / the user's description / existing handler+struct code to document. **No locatable intent at all → STOP and ask** for the requirements; never invent an endpoint surface.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name, base URL, and domain grouping.
@@ -70,6 +76,8 @@ Write per [`references/api-spec-template.md`](references/api-spec-template.md):
 Do **not** scan Go to author — the spec is authored from intent, and Go is reconciled against it later via `openapi-doc` (sync-back).
 
 ## Step 3 · Three-layer verify
+
+**Draft mode (Define) runs a lighter verify — L1 + L3 only; skip L1.5/L2.** A draft is a provisional design pass, so it must be structurally valid (L1) and cover every AC that needs an endpoint (L3), but the independent fresh-eyes semantic pass (L2) is **deferred to the Ship-phase Update** that reconciles the draft against built code — the point at which the contract is finalized and worth an independent semantic review. Generate / Update run all three layers below.
 
 ### verify-L1 · Script tripwire (always)
 ```

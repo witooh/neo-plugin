@@ -7,7 +7,7 @@ description: >
   goal with an OBSERVABLE exit condition, then iterates — act, check with a fresh-context
   maker-checker, record to STATE.md memory — until "done" is proven, with four independent
   exits (verifier, iteration cap, budget, no-progress) and a
-  human gate at commit/PR. Three local router additions: `ingest` (Define), `api-spec` (Ship),
+  human gate at commit/PR. Three local router additions: `ingest` (Define), `api-spec` (Define + Ship),
   and `e2e-playwright` (Verify — HTTP e2e per AC). The lifecycle skills it
   points to ship in the separately-installed upstream agent-skills plugin (a prerequisite).
   Triggers: "/neo", "neo", a JIRA card id or URL, a GitLab MR URL, or any task that benefits
@@ -41,7 +41,8 @@ task.
 The lifecycle skills this router points to — `spec-driven-development`,
 `test-driven-development`, and the rest — live in the **separately-installed upstream
 agent-skills plugin** (`github.com/addyosmani/agent-skills`), a prerequisite. neo adds only
-two of its own skills into the router: `ingest` (Define) and `api-spec` (Ship). What makes neo
+three of its own skills into the router: `ingest` (Define), `api-spec` (Define draft + Ship
+reconcile), and `e2e-playwright` (Verify). What makes neo
 more than the upstream meta-skill is the **`## Loop Engineering`** section below: it turns
 whatever task arrives into a recursive goal and drives this lifecycle until a checkable exit
 condition is provably met.
@@ -125,6 +126,7 @@ Task arrives
     ├── Have a rough concept, need variants? → idea-refine
     ├── Have a context, need knowledge? ────→ ingest
     ├── New project/feature/change? ──→ spec-driven-development
+    ├── Designing an HTTP API (draft from AC)? ──→ api-spec
     ├── Have a spec, need tasks? ──────→ planning-and-task-breakdown
     ├── Implementing code? ────────────→ incremental-implementation
     │   ├── UI work? ─────────────────→ frontend-ui-engineering
@@ -147,7 +149,7 @@ Task arrives
     └── Adding logs/metrics/alerts? ───→ observability-and-instrumentation
 ```
 
-Three of these branches are neo's own additions — `ingest` (Define), `api-spec` (Ship), and
+These additions are neo's own — `ingest` (Define), `api-spec` (Define draft + Ship reconcile), and
 `e2e-playwright` (Verify — HTTP e2e per acceptance criterion); every other branch routes to a skill
 in the upstream agent-skills plugin.
 
@@ -267,20 +269,21 @@ For a complete feature, the typical skill sequence is:
 2.  idea-refine                 → Refine vague ideas
 3.  ingest                      → Pull external sources into docs/knowledge/ (have a context, need knowledge)
 4.  spec-driven-development     → Define what we're building
-5.  planning-and-task-breakdown → Break into verifiable chunks
-6.  context-engineering         → Load the right context
-7.  source-driven-development   → Verify against official docs
-8.  incremental-implementation  → Build slice by slice
-9.  observability-and-instrumentation → Instrument as you build (runs parallel with implementation, not after)
-10. doubt-driven-development    → Cross-examine non-trivial decisions in-flight
-11. test-driven-development     → Prove each slice works
-12. e2e-playwright              → HTTP work: author + run one e2e per acceptance criterion
-13. code-review-and-quality     → Review before merge
-14. code-simplification         → Reduce unnecessary complexity while preserving behavior
-15. git-workflow-and-versioning → Clean commit history
-16. documentation-and-adrs      → Document decisions
-17. api-spec                    → Author/update the docs/api/ spec (update api-spec?)
-18. deprecation-and-migration   → Retire old systems and move users safely when needed
+5.  api-spec (draft)            → HTTP work: draft the docs/api/ contract from the AC, before code (Draft mode)
+6.  planning-and-task-breakdown → Break into verifiable chunks
+7.  context-engineering         → Load the right context
+8.  source-driven-development   → Verify against official docs
+9.  incremental-implementation  → Build slice by slice
+10. observability-and-instrumentation → Instrument as you build (runs parallel with implementation, not after)
+11. doubt-driven-development    → Cross-examine non-trivial decisions in-flight
+12. test-driven-development     → Prove each slice works
+13. e2e-playwright              → HTTP work: author + run one e2e per acceptance criterion
+14. code-review-and-quality     → Review before merge
+15. code-simplification         → Reduce unnecessary complexity while preserving behavior
+16. git-workflow-and-versioning → Clean commit history
+17. documentation-and-adrs      → Document decisions
+18. api-spec (reconcile)        → Reconcile/update the docs/api/ spec against built code (update api-spec?)
+19. deprecation-and-migration   → Retire old systems and move users safely when needed
 ```
 
 Not every task needs every skill. A bug fix might only need: `debugging-and-error-recovery` →
@@ -295,6 +298,7 @@ loop above — frame the goal, iterate, verify the exit with a fresh checker, ga
 | Define | idea-refine | Refine ideas through structured divergent and convergent thinking |
 | Define | ingest | Ingest an external source once into docs/knowledge/ as curated, reusable context (have a context, need knowledge) |
 | Define | spec-driven-development | Requirements and acceptance criteria before code |
+| Define | api-spec | Draft the custom-YAML docs/api/ contract from the AC, before code (HTTP work; Draft mode) |
 | Plan | planning-and-task-breakdown | Decompose into small, verifiable tasks |
 | Build | incremental-implementation | Thin vertical slices, test each before expanding |
 | Build | source-driven-development | Verify against official docs before implementing |
@@ -313,5 +317,5 @@ loop above — frame the goal, iterate, verify the exit with a fresh checker, ga
 | Ship | git-workflow-and-versioning | Atomic commits, clean history |
 | Ship | deprecation-and-migration | Remove old systems and migrate users safely |
 | Ship | documentation-and-adrs | Document the why, not just the what |
-| Ship | api-spec | Author/update the custom-YAML docs/api/ spec — the spec-first source of truth (update api-spec?) |
+| Ship | api-spec | Reconcile/update the custom-YAML docs/api/ spec against built code — the spec-first source of truth (update api-spec?) |
 | Ship | observability-and-instrumentation | Structured logs, RED metrics, traces, symptom-based alerts |

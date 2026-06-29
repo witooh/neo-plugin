@@ -15,7 +15,8 @@ router in `SKILL.md`.
   upstream `addyosmani/agent-skills` `skills/using-agent-skills/SKILL.md`**. Keep it faithful.
   Only these divergences from upstream are allowed:
   1. the added `ingest` branch (Define — "have a context, need knowledge");
-  2. the added `api-spec` branch (Ship — "update api-spec?");
+  2. the added `api-spec` branch — now TWO entries: a Define draft ("Designing an HTTP API (draft
+     from AC)?") + the Ship reconcile ("update api-spec?"); both are plain routing, not a gate;
   3. the DoD-path fix in Behavior #6 (upstream cites `references/definition-of-done.md`, which
      lives in the EXTERNAL plugin, not here — inlined instead);
   4. the **removed** `ci-cd-and-automation` and `shipping-and-launch` branches (user opted out —
