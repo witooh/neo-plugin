@@ -20,16 +20,24 @@ router in `SKILL.md`.
      lives in the EXTERNAL plugin, not here — inlined instead);
   4. the **removed** `ci-cd-and-automation` and `shipping-and-launch` branches (user opted out —
      won't use them; removed from the flowchart, Lifecycle Sequence, Quick Reference, and the
-     Skill Rules example).
+     Skill Rules example);
+  5. the added `e2e-playwright` branch (Verify — "HTTP/API e2e from AC?"; a local doer skill, one
+     test per acceptance criterion; sibling of `test-driven-development` under "Writing/running
+     tests?", added to the flowchart, Quick Reference, and Lifecycle Sequence).
 
-  When upstream changes its router, re-fork and re-apply these diffs (re-add ingest/api-spec,
-  re-drop ci-cd/shipping, re-inline the DoD). Do not otherwise "improve" the router.
+  When upstream changes its router, re-fork and re-apply these diffs (re-add
+  ingest/api-spec/e2e-playwright, re-drop ci-cd/shipping, re-inline the DoD). Do not otherwise
+  "improve" the router.
 
   The mandatory-loop + sequential-phase enforcement (the process-integrity gate, the
   `design-exists` exit criterion, the turn-1 announce) adds **no** router divergence — it lives
-  entirely in the loop half (the exit condition + the checker). The router still says "not every
-  task needs every skill"; neo's only added discipline is that a skip must be *recorded*
-  (`ran:`/`waiver:`), never silent. So there is nothing new to re-apply on a re-fork.
+  entirely in the loop half (the exit condition + the checker). The conditional **`e2e-ac` exit
+  criterion** (HTTP work → the project's real e2e run gates the exit; routes to `e2e-playwright`)
+  is the same shape: it lives in the loop half (the exit condition + the checker), like
+  `design-exists`, and adds **no** router divergence of its own — only the `e2e-playwright`
+  *branch* (#5) does. The router still says "not every task needs every skill"; neo's only added
+  discipline is that a skip must be *recorded* (`ran:`/`waiver:`), never silent. So there is
+  nothing new to re-apply on a re-fork beyond re-adding the five diffs above.
 - The **loop half** is neo's own: the `## Loop Engineering` section in `SKILL.md`, plus
   `references/loop-engineering.md`, `references/state-schema.md`, `templates/STATE.md`. Built
   fresh from `LOOP.md` (the repo-root primer). When editing the loop, ground in `LOOP.md`.
@@ -98,7 +106,10 @@ A branch lives in five places; change all of them together:
 5. `README.md` — the skills table.
 
 Then: if the branch points to a LOCAL skill, ensure its dir is in `skills/`; if EXTERNAL, add it
-to `EXTERNAL_SKILLS` in `scripts/validate-skills.js`.
+to `EXTERNAL_SKILLS` in `scripts/validate-skills.js`. **A new LOCAL doer/orchestrator skill that
+uses the L1/L2/L3 (non-standard) body — like `api-spec`, `e2e-playwright` — must ALSO be added to
+`SECTION_EXEMPT_SKILLS`** in `scripts/validate-skills.js`, or it fails the `REQUIRED_SECTIONS`
+check (Overview / When to Use / Common Rationalizations / Red Flags / Verification).
 
 ## Verify before commit
 

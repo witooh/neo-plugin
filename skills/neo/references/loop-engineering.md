@@ -56,6 +56,21 @@ condition.
    unmet exit*: the loop cannot exit while it is unmet, and — unlike an ordinary phase — it
    cannot be waived for features (see the process-integrity gate below + `state-schema.md`).
 
+   **API/HTTP work carries a conditional `e2e-ac` criterion.** If an iteration touches the
+   service's **HTTP surface** (a new/changed endpoint, request/response shape, status, or error
+   code) AND the project has an e2e process (discover a `tests/e2e` harness), the exit condition
+   MUST include a row such as `id: e2e-ac | verify_method: machine | evidence: <the project's real
+   e2e run output>`, criterion = "every HTTP-observable Ready AC is covered by a passing e2e test
+   (title prefix `[<CARD> - AC-NNN]`)". Route the authoring + running to the `e2e-playwright`
+   skill; the evidence is the **real suite run**, so a Go/unit test can never satisfy it. An AC
+   that genuinely cannot be observed over HTTP (a log/PII side effect, an internal-only state) is
+   excluded from the count as a declared `it.skip` with a reason — and the **fresh-context checker
+   validates each exclusion is real** (a testable AC dodged with a skip fails the check). When the
+   work is NOT on the HTTP surface (CLI, library, infra-only) or the project has no e2e process,
+   record the gate as `out_of_scope` with a one-line reason — never silently omit it. Like
+   `design-exists` this lives in the exit condition + the checker (neo-owned); it is **conditional**
+   (HTTP surface only), not a blanket rule.
+
 3. **Ingest-first.** If a criterion needs knowledge not on disk (a JIRA card, a Confluence
    spec, an external doc), route to the `ingest` skill first and record the result under
    `knowledge_refs` (→ `docs/knowledge/`). The agent forgets between runs; the repo doesn't.
@@ -177,7 +192,10 @@ delegation.)
   e.g. `ran: test-driven-development` with no test report in `evidence:` is suspect. A named
   skill that left no matching artifact does not pass. Likewise, a non-empty `## Deferred / out of
   scope` at close requires `status: done-partial` (not `done`) — a bare `done` while follow-ups
-  are listed is an inconsistency the gate rejects.
+  are listed is an inconsistency the gate rejects. Likewise, an iteration that changed the **HTTP
+  surface** (in a project with an e2e process) must carry the `e2e-ac` criterion with a real e2e
+  run in `evidence:` — or a recorded `out_of_scope` reason; HTTP work that closed with no e2e
+  evidence is exactly the gap the `e2e-ac` criterion exists to catch.
 - **Authenticity (judgment, a real fresh `Agent` subagent — never the self-reread fallback).**
   The fresh-context checker confirms each `ran:` is reflected by the iteration's diff (a change
   the named skill plainly did not shape is rejected) and that the `design-exists` artifact is

@@ -7,8 +7,8 @@ description: >
   goal with an OBSERVABLE exit condition, then iterates — act, check with a fresh-context
   maker-checker, record to STATE.md memory — until "done" is proven, with four independent
   exits (verifier, iteration cap, budget, no-progress) and a
-  human gate at commit/PR. Two local router additions: `ingest` in Define ("have a context,
-  need knowledge") and `api-spec` in Ship ("update api-spec?"). The lifecycle skills it
+  human gate at commit/PR. Three local router additions: `ingest` (Define), `api-spec` (Ship),
+  and `e2e-playwright` (Verify — HTTP e2e per AC). The lifecycle skills it
   points to ship in the separately-installed upstream agent-skills plugin (a prerequisite).
   Triggers: "/neo", "neo", a JIRA card id or URL, a GitLab MR URL, or any task that benefits
   from a recursive-goal loop with durable memory and a human gate; resume with
@@ -133,7 +133,8 @@ Task arrives
     │   ├── Need doc-verified code? ───→ source-driven-development
     │   └── Stakes high / unfamiliar code? ──→ doubt-driven-development
     ├── Writing/running tests? ────────→ test-driven-development
-    │   └── Browser-based? ───────────→ browser-testing-with-devtools
+    │   ├── Browser-based? ───────────→ browser-testing-with-devtools
+    │   └── HTTP/API e2e from AC? ────→ e2e-playwright
     ├── Something broke? ──────────────→ debugging-and-error-recovery
     ├── Reviewing code? ───────────────→ code-review-and-quality
     │   ├── Too complex? ─────────────→ code-simplification
@@ -146,8 +147,9 @@ Task arrives
     └── Adding logs/metrics/alerts? ───→ observability-and-instrumentation
 ```
 
-Two of these branches are neo's own additions — `ingest` (Define) and `api-spec` (Ship); every
-other branch routes to a skill in the upstream agent-skills plugin.
+Three of these branches are neo's own additions — `ingest` (Define), `api-spec` (Ship), and
+`e2e-playwright` (Verify — HTTP e2e per acceptance criterion); every other branch routes to a skill
+in the upstream agent-skills plugin.
 
 ## Core Operating Behaviors
 
@@ -272,12 +274,13 @@ For a complete feature, the typical skill sequence is:
 9.  observability-and-instrumentation → Instrument as you build (runs parallel with implementation, not after)
 10. doubt-driven-development    → Cross-examine non-trivial decisions in-flight
 11. test-driven-development     → Prove each slice works
-12. code-review-and-quality     → Review before merge
-13. code-simplification         → Reduce unnecessary complexity while preserving behavior
-14. git-workflow-and-versioning → Clean commit history
-15. documentation-and-adrs      → Document decisions
-16. api-spec                    → Author/update the docs/api/ spec (update api-spec?)
-17. deprecation-and-migration   → Retire old systems and move users safely when needed
+12. e2e-playwright              → HTTP work: author + run one e2e per acceptance criterion
+13. code-review-and-quality     → Review before merge
+14. code-simplification         → Reduce unnecessary complexity while preserving behavior
+15. git-workflow-and-versioning → Clean commit history
+16. documentation-and-adrs      → Document decisions
+17. api-spec                    → Author/update the docs/api/ spec (update api-spec?)
+18. deprecation-and-migration   → Retire old systems and move users safely when needed
 ```
 
 Not every task needs every skill. A bug fix might only need: `debugging-and-error-recovery` →
@@ -301,6 +304,7 @@ loop above — frame the goal, iterate, verify the exit with a fresh checker, ga
 | Build | api-and-interface-design | Stable interfaces with clear contracts |
 | Verify | test-driven-development | Failing test first, then make it pass |
 | Verify | browser-testing-with-devtools | Chrome DevTools MCP for runtime verification |
+| Verify | e2e-playwright | Author + run HTTP e2e per acceptance criterion (Jest + Playwright request) |
 | Verify | debugging-and-error-recovery | Reproduce → localize → fix → guard |
 | Review | code-review-and-quality | Five-axis review with quality gates |
 | Review | code-simplification | Preserve behavior while reducing unnecessary complexity |

@@ -26,6 +26,13 @@ On resume (`/neo continue <slug>`), neo re-reads this file and continues from `#
     **non-waivable for features** — the loop cannot exit while it is unmet, which is what stops
     a jump to Build with no docs. Work that does not add or change behavior (a typo, a config /
     dependency bump, a rename, a single-line fix) is exempt.
+  - **HTTP rule:** an iteration that changes the service's **HTTP surface** (endpoint / request /
+    response / status / error code) in a project that has an e2e process MUST include an `e2e-ac`
+    row (`verify_method: machine`, `evidence:` = the real e2e run output) — "every HTTP-observable
+    Ready AC is covered by a passing e2e test (prefix `[<CARD> - AC-NNN]`)", authored + run via the
+    `e2e-playwright` skill. Non-HTTP-observable ACs (log/PII) are excluded as declared `it.skip`s
+    the checker validates; non-HTTP work or no e2e process → record `out_of_scope`, never omit.
+    Unlike `design-exists` this is **conditional** (HTTP surface only), not a blanket feature rule.
 - **`limits`** — `iteration_cap` and `budget` (token / wall-clock), chosen up front.
 - **`knowledge_refs`** — links into `docs/knowledge/` for sources ingested for this task.
 - **`status`** — the loop's current phase: `framing` (authoring goal + exit) → `primed`

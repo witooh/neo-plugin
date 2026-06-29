@@ -62,6 +62,8 @@ const SECTION_EXEMPT_SKILLS = {
 		"Scaffolding skill with its own role/phase structure (scaffold.py + initcheck.py L1/L2 verify), not the standard anatomy.",
 	"migrate-project":
 		"Brownfield orchestrator with its own slice/phase structure (structurecheck.py L1/L2/L3 verify), not the standard anatomy.",
+	"e2e-playwright":
+		"Doer skill — authors + runs HTTP e2e per acceptance criterion using a three-layer-verify structure (e2echeck.py L1/L2/L3), not the standard anatomy.",
 };
 
 // Skills/agents provided by the SEPARATELY-INSTALLED upstream agent-skills
