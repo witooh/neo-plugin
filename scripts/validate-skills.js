@@ -43,7 +43,7 @@ const REQUIRED_SECTIONS = [
 // Every entry must have a documented reason.
 const SECTION_EXEMPT_SKILLS = {
 	// ── neo-dev-toolkit native skills (use their own orchestrator-style structure, not the standard agent-skills anatomy) ──
-	neo: "Thin loop wrapper over using-agent-skills — uses a loop/exit-condition/STATE structure (see skills/neo/CLAUDE.md), not the standard Overview/Red-Flags headings.",
+	neo: "Customized using-agent-skills router wrapped in loop engineering — uses a router + loop/exit-condition/STATE structure (see skills/neo/CLAUDE.md), not the standard Overview/Red-Flags headings.",
 	gitlab:
 		"Thin glab execution arm — structured around glab command maps, not the standard anatomy.",
 	ingest:

@@ -4,8 +4,8 @@ description: >
   Ingest an external source (JIRA card, Confluence page, URL, image, HTML,
   text, or a verbal brief) once into `docs/knowledge/` as curated, reusable
   context — with provenance (source url, fetched_at, version/etag when
-  available). The memory primitive that neo's Librarian and the ingest-first
-  gate depend on. Standalone — call it directly (`/ingest <url>`) to pre-warm
+  available). The memory primitive that neo's ingest-first step depends on.
+  Standalone — call it directly (`/ingest <url>`) to pre-warm
   the knowledge base, or neo triggers it when a task needs context that is not
   yet ingested. Triggers: "/ingest", "ingest <source>", "remember this",
   "add <url> to the knowledge base", or neo routing here during the
@@ -46,7 +46,7 @@ topic: <short slug this entry belongs to>
 ```
 
 Maintain or create `docs/knowledge/INDEX.md` listing every entry with its
-topic + fetched_at, so the Librarian's ingest-first gate can scan fast.
+topic + fetched_at, so neo's ingest-first step can scan fast.
 
 ## How you ingest, by source type
 
@@ -86,8 +86,9 @@ Before finishing an entry, self-check at the clause level:
    report BLOCKED** naming the missing clause.
 
 This self-check catches obvious drops. The independent fresh-eyes pass that
-catches your *blind spots* is the Librarian's (KB5,
-`skills/neo/roles/librarian.md`).
+catches your *blind spots* (KB5) is a second, fresh-context re-fetch that
+clause-diffs against this entry — neo's maker-checker runs it when neo drives
+the ingest; run it yourself otherwise.
 
 ## Stance
 
@@ -97,12 +98,12 @@ catches your *blind spots* is the Librarian's (KB5,
 - Never edit an existing entry silently; if a source changed, add a new entry
   and mark the old one superseded (the validator field makes staleness
   visible).
-- The Librarian is your sole regular caller inside neo; users call you
+- neo is your sole regular caller inside the loop; users call you
   directly via `/ingest`.
 
 ## Non-goals
 
-- ❌ You do not frame exit conditions (the Business Analyst does)
+- ❌ You do not frame exit conditions (neo's loop does)
 - ❌ You do not implement or verify (the loop + `using-agent-skills` do)
 - ❌ You do not decide whether to re-fetch — you record the validator and let
-  the consumer (Librarian/BA) decide
+  the consumer (neo) decide

@@ -1,30 +1,61 @@
 # STATE — <slug>
 
+> neo task memory. One file per task. The agent forgets; this file remembers.
+> Resume with `/neo continue <slug>`. Schema: `../references/state-schema.md`.
+
+- **slug:** <kebab-id-or-JIRA-or-MR>
+- **human_gate:** pending   <!-- pending | passed; neo may not commit/PR until passed -->
+
 ## Goal
 
-<one-line recursive goal — the thing the loop achieves>
+<one observable sentence — the recursive goal>
 
 ## Exit condition
 
-<project-specific "done"; see skills/neo/references/exit-condition.md>
+<!-- per-criterion `status` is set by the fresh-context checker only -->
+<!-- FEATURE work MUST include the design-exists row below; it is non-waivable. Work that does not add or change behavior omits it. -->
 
-- behavior: <observable done, tied to the request>
-- acceptance: <criteria pulled from the task source>
-- gates: <project-specific checks beyond using-agent-skills #6 — each tagged
-  verify_method: machine|judgment + an evidence artifact path>
-- out_of_scope: <explicitly NOT doing>
+| id | criterion | verify_method | evidence | status |
+|----|-----------|---------------|----------|--------|
+| ac-1 | <observable statement> | machine | `<cmd>` → <expected> | unmet |
+| ac-2 | <observable statement> | judgment | <artifact> → <what "met" looks like> | unmet |
+| design-exists | a spec/design doc exists for this feature | judgment | <Define-phase spec/design artifact> → substantive, not an empty stub | unmet |
+
+## Limits
+
+- iteration_cap: 10
+- budget: <token / wall-clock, or "ask before open-ended spend">
 
 ## Knowledge refs
 
-<files in docs/knowledge/ the loop depends on — path + fetched_at>
+- <docs/knowledge/...>   <!-- sources ingested for this task -->
 
 ## Status
 
-framing
+framing   <!-- framing | primed | looping | stuck | done -->
 
 ## Iterations
-<!-- append-only; one pointer block per iteration — see state-schema.md (ran-or-waiver/change/evidence/exit_met/next) -->
+
+<!--
+Append-only AUDIT log; one ### block per iteration; NEVER rewrite history.
+For inspection, a human reading top-to-bottom must see what was tried, what
+passed, and what is still open. If a block runs more than a few lines, the
+iteration was too big — take a smaller slice next time.
+Run phases in order (Define→Plan→Build→Verify→Review→Ship) — neo drives this
+order itself, it is not a menu for the user. A skipped phase records `waiver:` in
+place of `ran:` — never a silent skip; the process-integrity gate rejects a change
+with neither. A phase is waivable only for work that does NOT add or change
+behavior. Define is non-waivable for feature work.
+-->
+
+### 1
+- ran:      <lifecycle skill(s) this iteration ran, e.g. test-driven-development → code-review-and-quality>
+  <!-- if a phase was skipped, use instead: waiver: <reason> (user-approved <date>)  (non-behavior-changing run: one `waiver: trivial — …` may cover all skipped phases) -->
+- change:   <one line — what this iteration changed>
+- evidence: <artifact path(s) the checker read — test report, build log, drift report>
+- exit_met: no   <!-- yes | no — the fresh-context checker's verdict for this iteration -->
+- next:     <the unmet gap that drives the next iteration>
 
 ## Next
 
-<what the resuming run should do first>
+<what the resuming run should do first (when status != done)>

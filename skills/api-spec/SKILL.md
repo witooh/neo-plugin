@@ -58,7 +58,7 @@ Auto-detect (user can override): no `docs/api/` (or no `_meta.yaml`) at the targ
   - **Update / Validate** — the existing `docs/api/*.yaml` is the baseline; the change request (a new endpoint, a changed field) is the delta.
   - **Generate** — gather the intent from whatever exists: a requirements doc / acceptance-criteria (`docs/design/<usecase>/`) / a JIRA card / `docs/knowledge/` / the user's description / existing handler+struct code to document. **No locatable intent at all → STOP and ask** for the requirements; never invent an endpoint surface.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name, base URL, and domain grouping.
-- **In a neo loop** the intent is the Business Analyst's AC; record the AC-IDs each endpoint satisfies in `covers_ac`. **Standalone**, omit `covers_ac`.
+- **In a neo loop** the intent is the task's acceptance criteria; record the AC-IDs each endpoint satisfies in `covers_ac`. **Standalone**, omit `covers_ac`.
 
 ## Step 2 · Author / update the endpoint YAML
 Write per [`references/api-spec-template.md`](references/api-spec-template.md):

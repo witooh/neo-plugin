@@ -30,7 +30,7 @@ metadata:
 
 Use the `acli` CLI (installed at `/opt/homebrew/bin/acli`) to drive Jira and Confluence
 from the terminal. This skill is the plugin's **acli reference** — the `neo` skill names it
-as the source for acli usage (`skills/neo/references/shared/jira-ref.md`).
+as the source for acli usage.
 
 It is a **thin shell over `acli --help`**: this file gives you the *command map*, the
 *JQL / workflow domain knowledge*, and the *safety discipline* — none of which `--help`
