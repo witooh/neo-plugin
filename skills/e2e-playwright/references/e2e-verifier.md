@@ -30,9 +30,11 @@ is honestly so.
 - `SKILL_DIR/references/e2e-template.md` — the spec contract + authoring rules (assert-the-contract,
   honest error paths, the skip discipline). Apply these independently, not from memory.
 - The **specs under review** — `<e2e-root>/specs/*.e2e.ts` (paths in your dispatch).
-- The **source-of-intent** (paths in your dispatch) — `docs/design/<usecase>/` (acceptance-criteria
-  + test-cases) and the api-spec endpoint YAML (`docs/api/<domain>/*.yaml`). This is the ground truth
-  the specs must reflect; read it yourself, never from a summary.
+- The **source-of-intent** (paths in your dispatch) — the acceptance criteria (the neo spec
+  `docs/tasks/<card>/spec.md` **or** a legacy `docs/design/<usecase>/` acceptance-criteria +
+  test-cases layout) and the api-spec endpoint YAML (`docs/api/<domain>/*.yaml`). This is the ground
+  truth the specs must reflect; read it yourself, never from a summary. **No-AC mode:** if the task
+  has no ACs, verify the specs against the api-spec contract + the endpoints instead.
 
 ## Never guess
 

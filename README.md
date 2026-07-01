@@ -151,7 +151,7 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ## All 25 Skills
 
-The commands above are entry points. The pack includes 25 skills total — 24 lifecycle skills plus the `using-neo` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
+The commands above are entry points. The pack includes 34 skills total — 33 workflow and tooling skills plus the `using-neo` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
 
 ### Meta - Discover which skill applies
 
@@ -195,6 +195,7 @@ The commands above are entry points. The pack includes 25 skills total — 24 li
 
 | Skill | What It Does | Use When |
 |-------|-------------|----------|
+| [e2e-playwright](skills/e2e-playwright/SKILL.md) | Author + run AC-traceable HTTP e2e (Jest + Playwright-`request`), one test per acceptance criterion; three-layer verify; the suite is the HTTP acceptance gate | Writing or running AC-driven HTTP end-to-end tests for a service with a Jest + Playwright e2e harness |
 | [browser-testing-with-devtools](skills/browser-testing-with-devtools/SKILL.md) | Chrome DevTools MCP for live runtime data - DOM inspection, console logs, network traces, performance profiling | Building or debugging anything that runs in a browser |
 | [debugging-and-error-recovery](skills/debugging-and-error-recovery/SKILL.md) | Five-step triage: reproduce, localize, reduce, fix, guard. Stop-the-line rule, safe fallbacks | Tests fail, builds break, or behavior is unexpected |
 
@@ -286,11 +287,12 @@ Every skill follows a consistent anatomy:
 
 ```
 neo/
-├── skills/                            # 25 skills (24 lifecycle + 1 meta)
+├── skills/                            # 34 skills (33 workflow/tooling + 1 meta)
 │   ├── markitdown/                    #   Ingest
 │   ├── interview-me/                  #   Define
 │   ├── idea-refine/                   #   Define
 │   ├── spec-driven-development/       #   Define
+│   ├── api-spec/                      #   Define / Ship (docs/api contract)
 │   ├── planning-and-task-breakdown/   #   Plan
 │   ├── incremental-implementation/    #   Build
 │   ├── context-engineering/           #   Build
@@ -301,6 +303,7 @@ neo/
 │   ├── api-and-interface-design/      #   Build
 │   ├── browser-testing-with-devtools/ #   Verify
 │   ├── debugging-and-error-recovery/  #   Verify
+│   ├── e2e-playwright/                #   Verify (AC-driven HTTP e2e)
 │   ├── code-review-and-quality/       #   Review
 │   ├── code-simplification/          #   Review
 │   ├── security-and-hardening/        #   Review
@@ -311,6 +314,13 @@ neo/
 │   ├── documentation-and-adrs/        #   Ship
 │   ├── observability-and-instrumentation/ # Ship
 │   ├── shipping-and-launch/           #   Ship
+│   ├── openapi-doc/                   #   API docs (spec → OpenAPI)
+│   ├── open-collection/               #   API docs (Bruno collection)
+│   ├── confluence-api-doc/            #   API docs (Confluence)
+│   ├── init-project/                  #   Scaffold (new Go service)
+│   ├── migrate-project/               #   Scaffold (brownfield migration)
+│   ├── atlassian/                     #   Integration (Jira/Confluence acli)
+│   ├── gitlab/                        #   Integration (GitLab)
 │   └── using-neo/            #   Meta: how to use this pack
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 5 supplementary checklists

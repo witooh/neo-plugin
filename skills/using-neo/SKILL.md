@@ -28,7 +28,8 @@ Task arrives
     │   ├── Need doc-verified code? ───→ source-driven-development
     │   └── Stakes high / unfamiliar code? ──→ doubt-driven-development
     ├── Writing/running tests? ────────→ test-driven-development
-    │   └── Browser-based? ───────────→ browser-testing-with-devtools
+    │   ├── Browser-based? ───────────→ browser-testing-with-devtools
+    │   └── HTTP/API acceptance (AC-driven)? → e2e-playwright
     ├── Something broke? ──────────────→ debugging-and-error-recovery
     ├── Reviewing code? ───────────────→ code-review-and-quality
     │   ├── Too complex? ─────────────→ code-simplification
@@ -154,6 +155,7 @@ For a complete feature, the typical skill sequence is:
 8.  observability-and-instrumentation → Instrument as you build (runs parallel with 7-9, not after)
 9.  doubt-driven-development    → Cross-examine non-trivial decisions in-flight
 10. test-driven-development     → Prove each slice works
+10b. e2e-playwright             → Run the AC-traceable HTTP e2e acceptance gate (if the service has an e2e harness)
 11. code-review-and-quality     → Review before merge
 12. code-simplification         → Reduce unnecessary complexity while preserving behavior
 13. git-workflow-and-versioning → Clean commit history
@@ -180,6 +182,7 @@ Not every task needs every skill. A bug fix might only need: `debugging-and-erro
 | Build | frontend-ui-engineering | Production-quality UI with accessibility |
 | Build | api-and-interface-design | Stable interfaces with clear contracts |
 | Verify | test-driven-development | Failing test first, then make it pass |
+| Verify | e2e-playwright | AC-traceable HTTP e2e suite, run as the acceptance gate |
 | Verify | browser-testing-with-devtools | Chrome DevTools MCP for runtime verification |
 | Verify | debugging-and-error-recovery | Reproduce → localize → fix → guard |
 | Review | code-review-and-quality | Five-axis review with quality gates |

@@ -17,3 +17,5 @@ For bug fixes (Prove-It pattern):
 5. Run the full test suite for regressions
 
 For browser-related issues, also invoke neo:browser-testing-with-devtools to verify with Chrome DevTools MCP.
+
+For HTTP/API acceptance testing driven by acceptance criteria (a service with a Jest + Playwright-`request` e2e harness), also invoke neo:e2e-playwright to author + run the AC-traceable e2e suite and map pass/fail to each AC.

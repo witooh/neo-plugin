@@ -59,6 +59,26 @@ const SECTION_EXEMPT_SKILLS = {
   'idea-refine':        'Legacy structure predating skill-anatomy.md — uses How-It-Works/Usage/Anti-patterns instead of standard headings. Tracked for conformance in https://github.com/witooh/neo-plugin/issues',
 };
 
+// Skills imported from the neo private toolkit. They follow their own mature
+// authoring style (## Mode / ## Step process sections, a folded `description: >`
+// carrying "Trigger on:" / Thai triggers, and longer descriptions) rather than
+// this fork's anatomy. They are validated leniently: frontmatter name +
+// description must be present, but the section, trigger-phrasing, and length
+// checks are skipped until each is ported. Validator-owned (not a frontmatter
+// bypass) — remove an entry once its skill is rewritten to the fork anatomy.
+const IMPORTED_SKILLS = {
+  'api-spec':           'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'atlassian':          'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'confluence-api-doc': 'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'e2e-playwright':     'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'gitlab':             'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'init-project':       'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'markitdown':         'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'migrate-project':    'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'open-collection':    'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+  'openapi-doc':        'Imported neo toolkit skill — custom anatomy; port to fork anatomy later.',
+};
+
 // Regex patterns that indicate an explicit cross-skill reference.
 // Only these patterns trigger the dead-reference warning — generic
 // backtick strings in code blocks are intentionally excluded.
@@ -87,12 +107,37 @@ function parseFrontmatter(content) {
   if (!match) return null;
 
   const result = {};
-  for (const line of match[1].split(/\r?\n/)) {
+  const lines  = match[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s/.test(line)) continue;              // only top-level keys; skip nested/child lines
     const colonIdx = line.indexOf(':');
     if (colonIdx === -1) continue;
-    const key   = line.slice(0, colonIdx).trim();
-    const value = line.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '');
-    if (key) result[key] = value;
+    const key = line.slice(0, colonIdx).trim();
+    if (!key) continue;
+    let value = line.slice(colonIdx + 1).trim();
+
+    // YAML block scalar — `key: >` (folded) or `key: |` (literal), with an
+    // optional chomping/indent indicator (>-, |-, >+, |2). Gather the indented
+    // block that follows so a multi-line description is read in full, not as ">".
+    if (/^[|>][+-]?\d*$/.test(value)) {
+      const folded = value[0] === '>';
+      const block  = [];
+      let j = i + 1;
+      for (; j < lines.length; j++) {
+        if (lines[j].trim() === '') { block.push(''); continue; }
+        if (!/^\s/.test(lines[j])) break;        // dedent to column 0 ends the block
+        block.push(lines[j].replace(/^\s+/, ''));
+      }
+      i = j - 1;
+      value = folded
+        ? block.filter(Boolean).join(' ')        // folded: non-blank lines joined with spaces
+        : block.join('\n').replace(/\n+$/, '');  // literal: preserve line breaks
+      result[key] = value;
+      continue;
+    }
+
+    result[key] = value.replace(/^['"]|['"]$/g, '');
   }
   return result;
 }
@@ -121,6 +166,7 @@ function validateSkill(dirName, knownSkills) {
   const errors   = [];
   const warnings = [];
   let   exempt   = false;
+  const imported = dirName in IMPORTED_SKILLS;
   const skillPath = path.join(SKILLS_DIR, dirName, 'SKILL.md');
 
   if (!fs.existsSync(skillPath)) {
@@ -155,7 +201,7 @@ function validateSkill(dirName, knownSkills) {
 
   if (!fm.description) {
     errors.push("Frontmatter missing required field: 'description'");
-  } else {
+  } else if (!imported) {
     if (fm.description.length > MAX_DESCRIPTION_LENGTH) {
       errors.push(
         `Description is ${fm.description.length} chars — exceeds the ${MAX_DESCRIPTION_LENGTH}-char limit` +
@@ -185,7 +231,7 @@ function validateSkill(dirName, knownSkills) {
   }
 
   // ── Required sections ────────────────────────────────────────────────────
-  exempt = dirName in SECTION_EXEMPT_SKILLS;
+  exempt = (dirName in SECTION_EXEMPT_SKILLS) || imported;
 
   if (!exempt) {
     for (const aliases of REQUIRED_SECTIONS) {
@@ -204,7 +250,7 @@ function validateSkill(dirName, knownSkills) {
     }
   }
 
-  return { errors, warnings, exempt };
+  return { errors, warnings, exempt, imported };
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -225,12 +271,12 @@ function main() {
   let totalWarnings = 0;
 
   for (const dirName of skillDirs) {
-    const { errors, warnings, exempt } = validateSkill(dirName, knownSkills);
+    const { errors, warnings, exempt, imported } = validateSkill(dirName, knownSkills);
     totalErrors   += errors.length;
     totalWarnings += warnings.length;
 
     if (errors.length === 0 && warnings.length === 0) {
-      const tag = exempt ? ' (section checks exempt)' : '';
+      const tag = imported ? ' (imported — lenient checks)' : exempt ? ' (section checks exempt)' : '';
       console.log(`  ✓  ${dirName}${tag}`);
     } else {
       const icon = errors.length > 0 ? '  ✗ ' : '  ⚠ ';

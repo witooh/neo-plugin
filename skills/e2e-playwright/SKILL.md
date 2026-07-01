@@ -1,18 +1,6 @@
 ---
 name: e2e-playwright
-description: >
-  Author, update, and **run** HTTP end-to-end tests — one per acceptance criterion — for a service
-  with a Jest + Playwright-`request` e2e harness (Playwright's HTTP client run by Jest, not the
-  `@playwright/test` runner). Each test title carries the stable prefix
-  `[<JIRA-CARD> - AC-NNN] <desc> → <expected>` so every AC is traceable. Discovers the project's e2e
-  layout, authors specs from the card's ACs + the api-spec contract,
-  brings the service up if needed, runs the suite, and maps pass/fail to each AC, with a three-layer
-  verify (`e2echeck.py` coverage tripwire + fresh-eyes + completeness). Only HTTP-observable ACs are
-  gated; one not checkable over HTTP (log/PII) is a declared `it.skip` with a reason, never a silent
-  omission. Trigger on: "write e2e", "gen e2e from AC", "run e2e", "e2e playwright", "เขียน e2e",
-  "รัน e2e", "e2e ตาม AC". Also when **neo** delegates e2e. NOT here: unit/logic tests →
-  `test-driven-development`; browser-UI → `browser-testing-with-devtools`; api-spec authoring →
-  `api-spec`.
+description: "Author, update, and run HTTP end-to-end tests — one per acceptance criterion — for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the neo spec (docs/tasks/<card>/spec.md) or a legacy docs/design/ layout, authors specs from those + the api-spec contract, runs the suite, maps pass/fail to each AC; a task with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e ('write e2e', 'run e2e', 'เขียน e2e', 'รัน e2e', 'e2e ตาม AC'), or when neo's Verify phase delegates e2e. NOT here: unit/logic → test-driven-development; browser-UI → browser-testing-with-devtools; api-spec → api-spec."
 compatibility:
   environment: claude-code
   tools:
@@ -29,7 +17,7 @@ compatibility:
 # E2E Playwright (AC-driven HTTP e2e)
 
 Author + **run** HTTP end-to-end tests, **one per acceptance criterion**, against a running service.
-Each test is titled `[<JIRA-CARD> - AC-NNN] <desc> → <expected>` so every AC is traceable from the
+Each test is titled `[<CARD> - AC-NNN] <desc> → <expected>` so every AC is traceable from the
 card to a green test. The suite is the project's **real** acceptance gate — a passing Go/unit test
 can never stand in for it. Every run rests on **evidence (a deterministic coverage script) + an
 independent fresh-eyes pass + a completeness sweep**, never on the running agent's confidence.
@@ -73,15 +61,22 @@ and the request says run/validate ("run e2e", "รัน e2e") → **Run**; othe
 
 What the specs must reflect — read it yourself, never from a summary:
 
-- **Acceptance criteria** — the card's Ready ACs in `docs/design/<usecase>/` (`acceptance-criteria.*`
-  + `test-cases.*`; these are often HTML — read them as text). Each Ready AC is a test target.
+- **Acceptance criteria (dual-source, in this order):**
+  1. **neo spec** — the numbered **Acceptance Criteria section** of `docs/tasks/<card>/spec.md`
+     (`<card>` = the task folder). Its `AC-NNN` ids are the test targets.
+  2. **legacy Kiro layout** — the card's Ready ACs in `docs/design/<usecase>/`
+     (`acceptance-criteria.*` + `test-cases.*`; often HTML — read them as text).
+  3. **no AC section anywhere → no-AC mode** — the task has no acceptance criteria. Do **not** stop:
+     author + run e2e from the api-spec contract + the endpoints under test, without the AC gate (see
+     the no-AC notes in Steps 2-4). e2e does **not** invent or number ACs — numbered ACs are the
+     spec's responsibility.
 - **Wire contract** — the api-spec at `docs/api/<domain>/<endpoint>.yaml` (authored by the
   `api-spec` skill): the method/path, request/response field shape, status codes, and the stable
   **error codes** the AC expects. Assert against this, not a guess.
-- **JIRA card** — the card id is the `<CARD>` in the prefix; pull it from the task / the design
-  docs / `docs/knowledge/`.
+- **Card** — `<card>` is the task-folder / JIRA id; it appears as `<CARD>` in the title prefix. Pull
+  it from the task folder name / the spec / `docs/knowledge/`.
 
-**No locatable AC at all → STOP and ask.** Never invent endpoints or acceptance criteria.
+Never invent endpoints or acceptance criteria.
 
 ## Step 2 · Author / update the e2e specs
 
@@ -101,6 +96,8 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
   HTTP-observable)")` **with the reason in the title** — a visible, declared classification, never a
   silent omission. (Whether the reason is *legitimate* is the L2 verifier's call.)
 - **Update** — touch the minimum; preserve hand-authored assertions; re-run L1 after.
+- **No-AC mode** — with no ACs, title tests `[<CARD>] <desc> → <expected>` (card prefix, no AC
+  segment) and group by endpoint; the Step-4 coverage gate is then N/A.
 
 ## Step 3 · Run + map to AC
 
@@ -109,25 +106,27 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
    then wait for `/health` (the harness's `global-setup` also polls it and seeds the DB).
 2. **Run the suite** with the discovered script, capturing output as the **evidence artifact**:
    ```
-   ( cd <e2e-root> && npm test ) 2>&1 | tee docs/tasks/<slug>/e2e-run.txt
+   ( cd <e2e-root> && npm test ) 2>&1 | tee docs/tasks/<card>/e2e-run.txt
    ```
 3. **Map results → AC.** Cross the run's pass/fail (from the Jest output) with the coverage from L1
    to emit an **AC → status** table: `pass` · `fail` · `uncovered` · `non-observable (skip)`. This
-   table is the evidence neo's `e2e-ac` exit criterion consumes — so a real green run, not a claim,
-   is what closes the gate.
+   table is the evidence for neo's **Verify-phase HTTP acceptance gate** — a real green run, not a
+   claim, is what closes it. **No-AC mode:** emit a plain pass/fail table (no AC column).
 
 ## Step 4 · Three-layer verify
 
-### verify-L1 · Script tripwire (always)
+### verify-L1 · Script tripwire (when ACs exist)
 ```
-python3 <ASSET_DIR>/e2echeck.py <e2e-root>/specs <docs/design/<usecase>> --card <CARD>
+python3 <ASSET_DIR>/e2echeck.py <e2e-root>/specs <ac-source> --card <CARD>
 ```
-It confirms every AC in the source is traced by an `it()` (active) or an `it.skip()` with a reason
-(declared non-observable), validates the `[<CARD> - AC-NNN]` title grammar, and prints a coverage
-table. **Tripwire, not ground truth.**
+`<ac-source>` is the resolved Step-1 source — `docs/tasks/<card>/spec.md` (neo) or the legacy
+`docs/design/<usecase>/` dir. It confirms every AC in the source is traced by an `it()` (active) or
+an `it.skip()` with a reason (declared non-observable), validates the `[<CARD> - AC-NNN]` title
+grammar, and prints a coverage table. **Tripwire, not ground truth.**
 - **exit 0** → `PASS` → go to L1.5.
 - **exit 1** → for each `ERROR`, add the missing test (or a justified `it.skip`), then re-run.
   **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate.** Never fake coverage.
+- **No-AC mode:** skip L1 — there are no ACs to cover (coverage N/A). Go straight to L1.5.
 
 ### verify-L1.5 · Offer fresh-eyes (default yes)
 Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the e2e specs? (default:
@@ -166,15 +165,16 @@ then escalate.
 L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full
 Ready-AC inventory** from the source-of-intent and confirm: every Ready AC has either a passing
 `it()` or a justified `it.skip`; every endpoint the ACs touch has at least one test; no whole AC was
-silently dropped. Report any gap; fix → re-run L1.
+silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC inventory, sweep the
+**endpoint inventory** instead — every endpoint the api-spec under test defines has at least one `it()`.
 
 ### Output
 ```
 ## E2E Playwright — <Generate / Update / Run>
 **Suite:** <e2e-root> (N specs)   **Card:** <CARD>   **Source-of-intent:** <what it was authored from>
 **Changes:** Created … / Updated … / —
-**Run:** <npm test result: N passed / M failed / K skipped>   **Evidence:** docs/tasks/<slug>/e2e-run.txt
-**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable
+**Run:** <npm test result: N passed / M failed / K skipped>   **Evidence:** docs/tasks/<card>/e2e-run.txt
+**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable   (N/A in no-AC mode — report plain pass/fail)
 **Verification (three-layer):**
 - L1 e2echeck.py: ✅ PASS (0 error) / ❌ ESCALATED (N error after ~3 rounds) · loop rounds: 0-3
 - L2 fresh-eyes: ✅ Faithful / ⚠️ N gaps fixed / ⏭ Skipped / ⏸ Not run

@@ -23,6 +23,7 @@ The agent should automatically map user intent to skills:
 
 - Ingesting external docs / context (URL, card, file) → `markitdown`
 - Feature / new functionality → `spec-driven-development`, then `incremental-implementation`, `test-driven-development`
+- HTTP / API end-to-end acceptance tests (from acceptance criteria) → `e2e-playwright`
 - Planning / breakdown → `planning-and-task-breakdown`
 - Bug / failure / unexpected behavior → `debugging-and-error-recovery`
 - Code review → `code-review-and-quality`
@@ -40,7 +41,7 @@ Instead, the agent must internally follow this lifecycle:
 - DEFINE → `spec-driven-development`
 - PLAN → `planning-and-task-breakdown`
 - BUILD → `incremental-implementation` + `test-driven-development`
-- VERIFY → `debugging-and-error-recovery`
+- VERIFY → `debugging-and-error-recovery` (+ `e2e-playwright` for HTTP/API acceptance testing)
 - REVIEW → `code-review-and-quality`
 - SHIP → `shipping-and-launch`
 
