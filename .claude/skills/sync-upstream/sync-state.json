@@ -1,0 +1,32 @@
+{
+  "upstream_repo": "addyosmani/agent-skills",
+  "upstream_path": "/Users/witoo.h/dev/public/agent-skills",
+  "default_ref": "origin/main",
+  "last_synced_commit": "aba7c4e9695c363e65cb59effe926c7f1d1abe3d",
+  "last_synced_date": "2026-07-01",
+  "synced_skills": [
+    "api-and-interface-design",
+    "browser-testing-with-devtools",
+    "ci-cd-and-automation",
+    "code-review-and-quality",
+    "code-simplification",
+    "context-engineering",
+    "debugging-and-error-recovery",
+    "deprecation-and-migration",
+    "documentation-and-adrs",
+    "doubt-driven-development",
+    "frontend-ui-engineering",
+    "git-workflow-and-versioning",
+    "idea-refine",
+    "incremental-implementation",
+    "interview-me",
+    "observability-and-instrumentation",
+    "performance-optimization",
+    "planning-and-task-breakdown",
+    "security-and-hardening",
+    "shipping-and-launch",
+    "source-driven-development",
+    "spec-driven-development",
+    "test-driven-development"
+  ]
+}

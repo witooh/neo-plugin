@@ -6,3 +6,5 @@ node_modules/
 .claude/.simplify-ignore-cache/
 .claude/sdd-cache/
 .serena
+__pycache__/
+*.pyc
