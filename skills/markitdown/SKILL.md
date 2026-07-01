@@ -1,5 +1,5 @@
 ---
-name: ingest
+name: markitdown
 description: >
   Ingest an external source (JIRA card, Confluence page, URL, image, HTML,
   text, or a verbal brief) once into `docs/knowledge/` as curated, reusable
@@ -12,7 +12,7 @@ description: >
   ingest-first gate.
 ---
 
-# ingest — write a source into `docs/knowledge/`
+# markitdown — ingest a source into `docs/knowledge/`
 
 Curate, don't cache. Each ingestion produces one topic-scoped entry that a
 future agent or human can re-read with full provenance.
@@ -58,7 +58,13 @@ topic + fetched_at, so neo's ingest-first step can scan fast.
   live macros/counts.
 - **URL** (web): fetch, extract the readable content, keep the durable parts.
   Record the validator header if the server emitted one.
-- **Image / HTML / text / verbal**: extract the facts with the source labeled
+- **PDF / Office doc / slides / spreadsheet / audio / image** (a local file or
+  one you downloaded): convert it to Markdown first with `uvx markitdown <path>`
+  (MarkItDown — the file→Markdown converter this skill is named for), then curate
+  that Markdown like any other text. Optional convenience — plain text/HTML needs
+  no conversion; if `uvx` is unavailable, `pip install markitdown` then
+  `markitdown <path>`.
+- **HTML / text / verbal**: extract the facts with the source labeled
   accordingly — prose for context, but behaviour-constraining clauses copied
   verbatim, not summarised (Fidelity below).
 

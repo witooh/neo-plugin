@@ -76,6 +76,7 @@ The user does **not** need to explicitly request skills.
 
 The development lifecycle is encoded implicitly:
 
+- INGEST → `markitdown`
 - DEFINE → `spec-driven-development`
 - PLAN → `planning-and-task-breakdown`
 - BUILD → `incremental-implementation` + `test-driven-development`

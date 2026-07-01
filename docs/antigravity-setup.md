@@ -43,10 +43,11 @@ agy plugin list
 
 ## Slash Commands
 
-The plugin registers 8 custom slash commands: 7 lifecycle commands plus the `/webperf` specialist audit:
+The plugin registers 9 custom slash commands: 8 lifecycle commands plus the `/webperf` specialist audit:
 
 | Command | What it does | Activated Skill |
 |---------|--------------|-----------------|
+| `/ingest` | Ingest an external source into the knowledge base | `markitdown` |
 | `/spec` | Write a structured spec before writing code | `spec-driven-development` |
 | `/planning` | Break work into small, verifiable tasks | `planning-and-task-breakdown` |
 | `/build` | Implement the next task incrementally | `incremental-implementation` |

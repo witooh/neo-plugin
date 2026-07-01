@@ -13,7 +13,7 @@
         "source": "github",
         "repo": "witooh/neo-plugin"
       },
-      "description": "Production-grade engineering skills covering every phase of software development: spec, plan, build, verify, review, and ship.",
+      "description": "Production-grade engineering skills covering every phase of software development: ingest, spec, plan, build, verify, review, and ship.",
       "homepage": "https://github.com/witooh/neo-plugin",
       "license": "MIT",
       "keywords": ["skills", "agents", "engineering", "spec", "tdd", "review", "ship"]

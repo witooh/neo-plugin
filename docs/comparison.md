@@ -8,7 +8,7 @@
 
 People often ask how **neo** relates to two other popular "skills for coding agents" collections: **Superpowers** (by Jesse Vincent / obra) and **Matt Pocock's skills**. All three are good, share a lot of DNA, and are worth learning from. This page is an honest map of how they're *shaped* differently so you can pick the one that fits how you work - or borrow from more than one.
 
-> **TL;DR** - They optimize for different moments. **neo** organizes the *whole product lifecycle* (Define → Plan → Build → Verify → Review → Ship) with review personas and anti-rationalization guards. **Superpowers** leans into *autonomous, reasoning-heavy* runs with subagents and worktree isolation. **Matt Pocock's skills** are a *sharp, personal Claude Code toolkit* distilled from one expert's daily workflow. None of them is "best" in the abstract - it depends on the work in front of you.
+> **TL;DR** - They optimize for different moments. **neo** organizes the *whole product lifecycle* (Ingest → Define → Plan → Build → Verify → Review → Ship) with review personas and anti-rationalization guards. **Superpowers** leans into *autonomous, reasoning-heavy* runs with subagents and worktree isolation. **Matt Pocock's skills** are a *sharp, personal Claude Code toolkit* distilled from one expert's daily workflow. None of them is "best" in the abstract - it depends on the work in front of you.
 
 ---
 
@@ -17,9 +17,9 @@ People often ask how **neo** relates to two other popular "skills for coding age
 | | **neo** | **Superpowers** | **Matt Pocock's skills** |
 |---|---|---|---|
 | **Core idea** | Encode the full senior-engineering lifecycle as skills | A complete development *methodology* built on composable skills | One expert's `.claude` workflow, open-sourced |
-| **Organizing principle** | SDLC **phases** (Define→Plan→Build→Verify→Review→Ship) with a meta-skill router | Disciplined execution loop (brainstorm → plan → execute) | A curated toolbox of focused commands |
+| **Organizing principle** | SDLC **phases** (Ingest→Define→Plan→Build→Verify→Review→Ship) with a meta-skill router | Disciplined execution loop (brainstorm → plan → execute) | A curated toolbox of focused commands |
 | **Lifecycle coverage** | Broad - idea refinement, API/UI design, security, performance, CI/CD, deprecation, ADRs, launch | Deep on the core build loop (TDD, debugging, planning, review) | Planning + build + tooling + knowledge mgmt, opinionated |
-| **Entry points** | Slash commands mapped 1:1 to phases (`/spec` `/plan` `/build` `/test` `/review` `/code-simplify` `/ship`, plus `/webperf`) | Commands like `/brainstorming`, `/execute-plan` | Slash commands like `/tdd`, `/grill-me`, `/diagnose`, `/grill-with-docs` |
+| **Entry points** | Slash commands mapped 1:1 to phases (`/ingest` `/spec` `/plan` `/build` `/test` `/review` `/code-simplify` `/ship`, plus `/webperf`) | Commands like `/brainstorming`, `/execute-plan` | Slash commands like `/tdd`, `/grill-me`, `/diagnose`, `/grill-with-docs` |
 | **Tooling reach** | Multi-tool: Claude Code, Cursor, Gemini CLI, Antigravity, OpenCode, Windsurf, Copilot | Multi-tool: Claude Code, Codex, Gemini CLI, OpenCode, Cursor, Copilot CLI, Factory Droid | Claude Code-first (also usable with Codex) |
 | **Distinctive mechanisms** | Anti-rationalization tables + Red Flags in every skill; review **personas** with parallel fan-out in `/ship`; reference checklists | Subagent-driven development with two-stage review; git-worktree isolation; skills-that-write-skills | "Grill me" requirement interrogation; strict agent-level TDD; pre-commit/git guardrails |
 | **Best for** | Driving a feature through every phase with a human checkpoint at each | Long, autonomous, reasoning-heavy or exploratory work | A pragmatic, battle-tested daily loop for TypeScript-style projects |
