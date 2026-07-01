@@ -1,4 +1,0 @@
-name: sit
-variables:
-  - name: baseUrl
-    value: ""

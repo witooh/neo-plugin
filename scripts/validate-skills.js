@@ -8,7 +8,9 @@
  *   - SKILL.md exists in every skill directory
  *   - YAML frontmatter present with 'name' and 'description' fields
  *   - frontmatter 'name' matches the directory name
+ *   - directory name is lowercase-hyphen-separated (skill-anatomy.md: Naming Conventions)
  *   - description does not exceed 1024 characters
+ *   - description includes a 'when to use' trigger (skill-anatomy.md: Required)
  *   - required sections are present
  *
  * Checks (warnings, do not block CI):
@@ -17,24 +19,35 @@
  * Exit codes: 0 = all clear, 1 = one or more errors
  */
 
-const fs = require("fs");
-const path = require("path");
+'use strict';
+
+const fs   = require('fs');
+const path = require('path');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const SKILLS_DIR = path.resolve(__dirname, "..", "skills");
+const SKILLS_DIR = path.resolve(__dirname, '..', 'skills');
 
 const MAX_DESCRIPTION_LENGTH = 1024;
+
+// A skill directory name must be lowercase-hyphen-separated
+// (docs/skill-anatomy.md → Naming Conventions).
+const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// A description must state WHEN to use the skill, not just what it does
+// (docs/skill-anatomy.md → Required). Accept the canonical "Use when …"
+// plus the equivalent "Use before/after/during …" phrasings in use today.
+const DESCRIPTION_TRIGGER = /\buse (this )?when\b|\buse (before|after|during)\b/i;
 
 // Sections every standard SKILL.md must contain.
 // Each entry is an array of acceptable heading strings — the first
 // match wins, so you can list canonical + legacy aliases.
 const REQUIRED_SECTIONS = [
-	["## Overview"],
-	["## When to Use"],
-	["## Common Rationalizations"],
-	["## Red Flags"],
-	["## Verification"],
+  ['## Overview'],
+  ['## When to Use'],
+  ['## Common Rationalizations'],
+  ['## Red Flags'],
+  ['## Verification'],
 ];
 
 // Skills that are intentionally exempt from section checks.
@@ -42,82 +55,24 @@ const REQUIRED_SECTIONS = [
 // cannot bypass the validator by editing their own skill file.
 // Every entry must have a documented reason.
 const SECTION_EXEMPT_SKILLS = {
-	// ── neo-dev-toolkit native skills (use their own orchestrator-style structure, not the standard agent-skills anatomy) ──
-	neo: "Customized using-agent-skills router wrapped in loop engineering — uses a router + loop/exit-condition/STATE structure (see skills/neo/CLAUDE.md), not the standard Overview/Red-Flags headings.",
-	gitlab:
-		"Thin glab execution arm — structured around glab command maps, not the standard anatomy.",
-	ingest:
-		"Memory primitive — structured around source-type ingest rules + a docs/knowledge/ output contract, not the standard anatomy.",
-	atlassian:
-		"Thin shell over acli --help — structured around the acli command map, not the standard anatomy.",
-	"api-spec":
-		"Producer skill — authors docs/api/*.yaml using a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
-	"openapi-doc":
-		"Report-only drift checker — uses a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
-	"open-collection":
-		"Generator skill — uses a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
-	"confluence-api-doc":
-		"Publisher skill — uses a three-layer-verify structure (L1/L2/L3) rather than the standard headings.",
-	"init-project":
-		"Scaffolding skill with its own role/phase structure (scaffold.py + initcheck.py L1/L2 verify), not the standard anatomy.",
-	"migrate-project":
-		"Brownfield orchestrator with its own slice/phase structure (structurecheck.py L1/L2/L3 verify), not the standard anatomy.",
-	"e2e-playwright":
-		"Doer skill — authors + runs HTTP e2e per acceptance criterion using a three-layer-verify structure (e2echeck.py L1/L2/L3), not the standard anatomy.",
+  'using-agent-skills': 'Meta-skill — orchestrates other skills; When-to-Use and Verification are not applicable to a routing document.',
+  'idea-refine':        'Legacy structure predating skill-anatomy.md — uses How-It-Works/Usage/Anti-patterns instead of standard headings. Tracked for conformance in https://github.com/addyosmani/agent-skills/issues',
 };
-
-// Skills/agents provided by the SEPARATELY-INSTALLED upstream agent-skills
-// plugin (github.com/addyosmani/agent-skills). neo and the connectors delegate
-// to these by name; they are not in this repo's skills/ dir, so they are unioned
-// into knownSkills below to keep the cross-reference check from flagging
-// legitimate external delegation as a dead reference.
-const EXTERNAL_SKILLS = new Set([
-	// 23 lifecycle skills + the using-agent-skills meta-skill
-	"using-agent-skills",
-	"interview-me",
-	"idea-refine",
-	"spec-driven-development",
-	"planning-and-task-breakdown",
-	"context-engineering",
-	"incremental-implementation",
-	"frontend-ui-engineering",
-	"api-and-interface-design",
-	"source-driven-development",
-	"doubt-driven-development",
-	"test-driven-development",
-	"browser-testing-with-devtools",
-	"debugging-and-error-recovery",
-	"code-review-and-quality",
-	"code-simplification",
-	"security-and-hardening",
-	"performance-optimization",
-	"git-workflow-and-versioning",
-	"ci-cd-and-automation",
-	"deprecation-and-migration",
-	"documentation-and-adrs",
-	"observability-and-instrumentation",
-	"shipping-and-launch",
-	// 4 specialist agents (referenced as personas)
-	"code-reviewer",
-	"security-auditor",
-	"test-engineer",
-	"web-performance-auditor",
-]);
 
 // Regex patterns that indicate an explicit cross-skill reference.
 // Only these patterns trigger the dead-reference warning — generic
 // backtick strings in code blocks are intentionally excluded.
 const SKILL_REF_PATTERNS = [
-	/\buse the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
-	/\bfollow the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
-	/\binvoke the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
-	/\bcontinue with `([a-z][a-z0-9-]+[a-z0-9])`/g,
-	/\buse `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
-	/`([a-z][a-z0-9-]+[a-z0-9])` skill\b/g,
-	/`([a-z][a-z0-9-]+[a-z0-9])` persona\b/g,
-	/\bsee `([a-z][a-z0-9-]+[a-z0-9])`/g,
-	/──→ ([a-z][a-z0-9-]+[a-z0-9])\b/g, // ASCII diagram arrows
-	/→ `([a-z][a-z0-9-]+[a-z0-9])`/g,
+  /\buse the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
+  /\bfollow the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
+  /\binvoke the `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
+  /\bcontinue with `([a-z][a-z0-9-]+[a-z0-9])`/g,
+  /\buse `([a-z][a-z0-9-]+[a-z0-9])` skill/g,
+  /`([a-z][a-z0-9-]+[a-z0-9])` skill\b/g,
+  /`([a-z][a-z0-9-]+[a-z0-9])` persona\b/g,
+  /\bsee `([a-z][a-z0-9-]+[a-z0-9])`/g,
+  /──→ ([a-z][a-z0-9-]+[a-z0-9])\b/g,          // ASCII diagram arrows
+  /→ `([a-z][a-z0-9-]+[a-z0-9])`/g,
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -128,21 +83,18 @@ const SKILL_REF_PATTERNS = [
  * Values are stripped of surrounding quotes.
  */
 function parseFrontmatter(content) {
-	const match = content.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n/);
-	if (!match) return null;
+  const match = content.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n/);
+  if (!match) return null;
 
-	const result = {};
-	for (const line of match[1].split(/\r?\n/)) {
-		const colonIdx = line.indexOf(":");
-		if (colonIdx === -1) continue;
-		const key = line.slice(0, colonIdx).trim();
-		const value = line
-			.slice(colonIdx + 1)
-			.trim()
-			.replace(/^['"]|['"]$/g, "");
-		if (key) result[key] = value;
-	}
-	return result;
+  const result = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) continue;
+    const key   = line.slice(0, colonIdx).trim();
+    const value = line.slice(colonIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+    if (key) result[key] = value;
+  }
+  return result;
 }
 
 /**
@@ -151,143 +103,154 @@ function parseFrontmatter(content) {
  * false-positives from inline code snippets.
  */
 function extractSkillReferences(content) {
-	const refs = new Set();
-	for (const pattern of SKILL_REF_PATTERNS) {
-		// Reset lastIndex for global regexes
-		pattern.lastIndex = 0;
-		let m;
-		while ((m = pattern.exec(content)) !== null) {
-			refs.add(m[1]);
-		}
-	}
-	return refs;
+  const refs = new Set();
+  for (const pattern of SKILL_REF_PATTERNS) {
+    // Reset lastIndex for global regexes
+    pattern.lastIndex = 0;
+    let m;
+    while ((m = pattern.exec(content)) !== null) {
+      refs.add(m[1]);
+    }
+  }
+  return refs;
 }
 
 // ─── Validator ───────────────────────────────────────────────────────────────
 
 function validateSkill(dirName, knownSkills) {
-	const errors = [];
-	const warnings = [];
-	let exempt = false;
-	const skillPath = path.join(SKILLS_DIR, dirName, "SKILL.md");
+  const errors   = [];
+  const warnings = [];
+  let   exempt   = false;
+  const skillPath = path.join(SKILLS_DIR, dirName, 'SKILL.md');
 
-	if (!fs.existsSync(skillPath)) {
-		errors.push("Missing SKILL.md");
-		return { errors, warnings, exempt };
-	}
+  if (!fs.existsSync(skillPath)) {
+    errors.push('Missing SKILL.md');
+    return { errors, warnings, exempt };
+  }
 
-	const content = fs.readFileSync(skillPath, "utf8");
+  let content;
+  try {
+    content = fs.readFileSync(skillPath, 'utf8');
+  } catch (err) {
+    errors.push(`Unreadable SKILL.md: ${err.message}`);
+    return { errors, warnings, exempt };
+  }
 
-	// ── Frontmatter ──────────────────────────────────────────────────────────
-	const fm = parseFrontmatter(content);
-	if (!fm) {
-		errors.push(
-			"Missing or malformed YAML frontmatter (expected --- block at top of file)",
-		);
-		return { errors, warnings, exempt };
-	}
+  // ── Frontmatter ──────────────────────────────────────────────────────────
+  const fm = parseFrontmatter(content);
+  if (!fm) {
+    errors.push('Missing or malformed YAML frontmatter (expected --- block at top of file)');
+    return { errors, warnings, exempt };
+  }
 
-	if (!fm.name) {
-		errors.push("Frontmatter missing required field: 'name'");
-	} else if (fm.name !== dirName) {
-		errors.push(
-			`Frontmatter name '${fm.name}' does not match directory name '${dirName}'`,
-		);
-	}
+  if (!fm.name) {
+    errors.push("Frontmatter missing required field: 'name'");
+  } else if (fm.name !== dirName) {
+    errors.push(`Frontmatter name '${fm.name}' does not match directory name '${dirName}'`);
+  }
 
-	if (!fm.description) {
-		errors.push("Frontmatter missing required field: 'description'");
-	} else if (fm.description.length > MAX_DESCRIPTION_LENGTH) {
-		errors.push(
-			`Description is ${fm.description.length} chars — exceeds the ${MAX_DESCRIPTION_LENGTH}-char limit` +
-				` (agents inject this into the system prompt)`,
-		);
-	}
+  if (!KEBAB_CASE.test(dirName)) {
+    errors.push(`Directory name '${dirName}' is not lowercase-hyphen-separated (skill-anatomy.md: Naming Conventions)`);
+  }
 
-	// ── Exemption guard ──────────────────────────────────────────────────────
-	// Exemptions are validator-owned (SECTION_EXEMPT_SKILLS above).
-	// If a skill's frontmatter tries to declare its own exemption, fail loud —
-	// that's a sign someone is trying to bypass the validator.
-	if (fm.type === "meta" || fm.exempt === "sections") {
-		if (!SECTION_EXEMPT_SKILLS[dirName]) {
-			errors.push(
-				`Frontmatter declares 'type: meta' or 'exempt: sections' but '${dirName}' is not in ` +
-					`the validator's SECTION_EXEMPT_SKILLS allowlist. ` +
-					`Add an entry to scripts/validate-skills.js with a documented reason.`,
-			);
-		}
-	}
+  if (!fm.description) {
+    errors.push("Frontmatter missing required field: 'description'");
+  } else {
+    if (fm.description.length > MAX_DESCRIPTION_LENGTH) {
+      errors.push(
+        `Description is ${fm.description.length} chars — exceeds the ${MAX_DESCRIPTION_LENGTH}-char limit` +
+        ` (agents inject this into the system prompt)`
+      );
+    }
+    if (!DESCRIPTION_TRIGGER.test(fm.description)) {
+      errors.push(
+        `Description has no 'when to use' trigger — add a "Use when …" clause ` +
+        `(skill-anatomy.md: Required — the description must say both what the skill does and when to use it)`
+      );
+    }
+  }
 
-	// ── Required sections ────────────────────────────────────────────────────
-	exempt = dirName in SECTION_EXEMPT_SKILLS;
+  // ── Exemption guard ──────────────────────────────────────────────────────
+  // Exemptions are validator-owned (SECTION_EXEMPT_SKILLS above).
+  // If a skill's frontmatter tries to declare its own exemption, fail loud —
+  // that's a sign someone is trying to bypass the validator.
+  if (fm.type === 'meta' || fm.exempt === 'sections') {
+    if (!SECTION_EXEMPT_SKILLS[dirName]) {
+      errors.push(
+        `Frontmatter declares 'type: meta' or 'exempt: sections' but '${dirName}' is not in ` +
+        `the validator's SECTION_EXEMPT_SKILLS allowlist. ` +
+        `Add an entry to scripts/validate-skills.js with a documented reason.`
+      );
+    }
+  }
 
-	if (!exempt) {
-		for (const aliases of REQUIRED_SECTIONS) {
-			const found = aliases.some((heading) => content.includes(heading));
-			if (!found) {
-				errors.push(`Missing required section: ${aliases[0]}`);
-			}
-		}
-	}
+  // ── Required sections ────────────────────────────────────────────────────
+  exempt = dirName in SECTION_EXEMPT_SKILLS;
 
-	// ── Cross-skill references ───────────────────────────────────────────────
-	const refs = extractSkillReferences(content);
-	for (const ref of refs) {
-		if (!knownSkills.has(ref)) {
-			warnings.push(`Dead cross-reference: \`${ref}\` is not a known skill`);
-		}
-	}
+  if (!exempt) {
+    for (const aliases of REQUIRED_SECTIONS) {
+      const found = aliases.some(heading => content.includes(heading));
+      if (!found) {
+        errors.push(`Missing required section: ${aliases[0]}`);
+      }
+    }
+  }
 
-	return { errors, warnings, exempt };
+  // ── Cross-skill references ───────────────────────────────────────────────
+  const refs = extractSkillReferences(content);
+  for (const ref of refs) {
+    if (!knownSkills.has(ref)) {
+      warnings.push(`Dead cross-reference: \`${ref}\` is not a known skill`);
+    }
+  }
+
+  return { errors, warnings, exempt };
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 function main() {
-	if (!fs.existsSync(SKILLS_DIR)) {
-		console.error(`ERROR: skills directory not found at ${SKILLS_DIR}`);
-		process.exit(1);
-	}
+  if (!fs.existsSync(SKILLS_DIR)) {
+    console.error(`ERROR: skills directory not found at ${SKILLS_DIR}`);
+    process.exit(1);
+  }
 
-	const skillDirs = fs
-		.readdirSync(SKILLS_DIR)
-		.filter((d) => fs.statSync(path.join(SKILLS_DIR, d)).isDirectory())
-		.sort();
+  const skillDirs = fs.readdirSync(SKILLS_DIR)
+    .filter(d => fs.statSync(path.join(SKILLS_DIR, d)).isDirectory())
+    .sort();
 
-	// Union in the external upstream agent-skills (see EXTERNAL_SKILLS above) so
-	// neo's legitimate delegation references don't register as dead.
-	const knownSkills = new Set([...skillDirs, ...EXTERNAL_SKILLS]);
+  const knownSkills = new Set(skillDirs);
 
-	let totalErrors = 0;
-	let totalWarnings = 0;
+  let totalErrors   = 0;
+  let totalWarnings = 0;
 
-	for (const dirName of skillDirs) {
-		const { errors, warnings, exempt } = validateSkill(dirName, knownSkills);
-		totalErrors += errors.length;
-		totalWarnings += warnings.length;
+  for (const dirName of skillDirs) {
+    const { errors, warnings, exempt } = validateSkill(dirName, knownSkills);
+    totalErrors   += errors.length;
+    totalWarnings += warnings.length;
 
-		if (errors.length === 0 && warnings.length === 0) {
-			const tag = exempt ? " (section checks exempt)" : "";
-			console.log(`  ✓  ${dirName}${tag}`);
-		} else {
-			const icon = errors.length > 0 ? "  ✗ " : "  ⚠ ";
-			console.log(`${icon} ${dirName}`);
-			for (const msg of errors) console.log(`       ERROR: ${msg}`);
-			for (const msg of warnings) console.log(`       WARN:  ${msg}`);
-		}
-	}
+    if (errors.length === 0 && warnings.length === 0) {
+      const tag = exempt ? ' (section checks exempt)' : '';
+      console.log(`  ✓  ${dirName}${tag}`);
+    } else {
+      const icon = errors.length > 0 ? '  ✗ ' : '  ⚠ ';
+      console.log(`${icon} ${dirName}`);
+      for (const msg of errors)   console.log(`       ERROR: ${msg}`);
+      for (const msg of warnings) console.log(`       WARN:  ${msg}`);
+    }
+  }
 
-	const status =
-		totalErrors > 0
-			? "FAILED"
-			: totalWarnings > 0
-				? "PASSED WITH WARNINGS"
-				: "PASSED";
-	console.log(
-		`\n${skillDirs.length} skills checked — ${totalErrors} error(s), ${totalWarnings} warning(s) — ${status}`,
-	);
+  const status = totalErrors > 0 ? 'FAILED' : totalWarnings > 0 ? 'PASSED WITH WARNINGS' : 'PASSED';
+  console.log(`\n${skillDirs.length} skills checked — ${totalErrors} error(s), ${totalWarnings} warning(s) — ${status}`);
 
-	if (totalErrors > 0) process.exit(1);
+  if (totalErrors > 0) process.exit(1);
 }
 
-main();
+// Surface unexpected failures (fs errors, bad symlinks, …) as a structured
+// one-line CI error instead of an uncaught stack trace.
+try {
+  main();
+} catch (err) {
+  console.error(`\nERROR: validate-skills failed unexpectedly: ${err.message}`);
+  process.exit(1);
+}

@@ -1,74 +1,56 @@
-# CLAUDE.md
+# agent-skills
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This is the agent-skills project — a collection of production-grade engineering skills for AI coding agents.
 
-## What this repo is
-
-A **Claude Code plugin** (`neo-dev-toolkit`) — not an application. There is no compile/test/lint pipeline. The "code" is Markdown skill definitions and a SessionStart hook script. Distribution is via Claude Code's plugin marketplace mechanism.
-
-## Repo layout (the parts that matter)
+## Project Structure
 
 ```
-.claude-plugin/
-  plugin.json         # plugin manifest — bump `version` when publishing
-  marketplace.json    # local-dev marketplace pointing at "./"
-hooks/
-  hooks.json          # registers SessionStart hook
-  run-hook.cmd        # cross-platform polyglot wrapper (cmd.exe + bash)
-  session-start       # bash script that emits skill-overview context as JSON
-skills/<name>/
-  SKILL.md            # frontmatter + body; the `description` field is what
-                      # Claude matches against to decide when to trigger
-  references/*.md     # role specs / templates pulled in by the skill body
+skills/       → Core skills (SKILL.md per directory)
+agents/       → Reusable agent personas (code-reviewer, test-engineer, security-auditor, web-performance-auditor)
+hooks/        → Session lifecycle hooks
+.claude/commands/ → Slash commands (/spec, /plan, /build, /test, /review, /code-simplify, /ship; plus /webperf specialist audit)
+references/   → Supplementary checklists (testing, performance, security, accessibility, observability)
+docs/         → Setup guides for different tools
 ```
 
-Skills bundled here: `neo`, `ingest`, `api-spec`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `gitlab`, `atlassian`, `init-project`, `migrate-project`, `e2e-playwright` (the neo toolkit) — **and nothing else**. The 24 upstream agent-skills lifecycle skills (+ 4 specialist `agents/` + 8 `.claude/commands/` slash commands + the top-level `references/` checklists + the `sdd-cache`/`simplify-ignore` opt-in hooks) were **removed from this repo in 4.0.0** (they were ported in 0.33.0 from `addyosmani/agent-skills` 0.6.2, then un-ported): they now ship in the **separately-installed upstream `addyosmani/agent-skills` plugin — a prerequisite**. `neo` **forks** that plugin's `using-agent-skills` router (wrapping it in a loop) and references its lifecycle skills by name but no longer bundles them (see `README.md` Prerequisite + `skills/neo/SKILL.md`; the validator's `EXTERNAL_SKILLS` allowlist keeps neo's cross-references to those external skills from registering as dead). The README's table is the authoritative list of triggers. **History: `neo` was REBUILT 3.0.0 from a phase-gated orchestrator (v3, now `legacy/neo-v3/`) into a thin DELEGATING loop wrapper (now `legacy/neo-loop-wrapper/`), then REBUILT again into a customized FORK of `using-agent-skills` wrapped in loop engineering** — see below and `skills/neo/CLAUDE.md`. The `commit` skill was dropped (overlaps `git-workflow-and-versioning`). The `ingest` skill was added as the standalone memory primitive. (The **API-doc family is single-source**: the **custom-YAML api-spec at `docs/api/` is the single source of truth** — `_meta.yaml` (service-level: title/version/base_url/overview/field_info/common_errors/domains) + one `<domain>/<endpoint>.yaml` per endpoint (method/path/auth/covers_ac, field tables with M/O + Remark, multi-flow `business_logic`, per-endpoint `errors`). **the `api-spec` skill authors it** — the producer at the head of the chain (added 3.2.0; neo routes api-spec authoring to it during its loop — at **two** points: a **Draft** from the AC in Define before code (the new Draft mode), and a reconcile/update in Ship — restoring the spec-authoring the retired Architect used to do — `api-and-interface-design` stays the generic interface-design guidance, not the custom-YAML producer); the three api-doc skills below are **read-only consumers**. `openapi-doc` **no longer generates** — it scans the Go source and **diffs it against the api-spec, emitting a drift report** (routes / fields / M-O / types; the sync-back detector — `assets/speccheck.py` reuses the Go-scan engine, writes nothing). The other two *derive* their output from the spec — `open-collection` (a runnable, **self-documenting** Bruno OpenCollection: hand-maps each endpoint + embeds a generated `docs:` rendered by its own `assets/yaml2md.py`) and `confluence-api-doc` (Confluence pages; assembles each page directly from the endpoint YAML's doc-table shape). Each of the three carries its own **three-layer verify** (L1 script · L2 fresh-eyes · L3 completeness sweep). History: consolidated into one `api-doc` gen+publish skill in 0.8.0, re-split md-hub in 0.15.0, then `openapi-doc` added + downstream made dual-source in 0.18.0, then the Markdown `api-doc` skill **removed** and the chain made **spec-only** in 0.19.0; a **dereferenced view** (`bruno/openapi.deref.yaml`, `assets/deref.py`) added alongside the canonical spec in 0.24.0; **then 0.28.0 reworked the whole chain — `api-contract`→`api-spec`: a custom-YAML SoT at `docs/api/` authored by neo (no OpenAPI, no Go-first), retiring `bruno/openapi.yaml` + `openapi.deref.yaml` + `assets/deref.py` and flipping `openapi-doc` from generator to a drift checker**; the `bruno` hand-authoring skill was removed in 0.9.0; `atlassian` — the `acli` Jira/Confluence reference + direct-ops skill — was added in 0.10.0 as a lean "thin shell over `acli --help`" rework of the user-global skill.) **`init-project`** (added 0.30.0) is the odd one out — it does NOT touch `docs/api`/neo/MR work; it scaffolds a **new Go hexagonal/DDD service** from a **frozen template** bundled at `skills/init-project/assets/template/` — an empty-but-runnable, business-stripped snapshot of `account-service` (clean layers + tooling + infra wiring + `.kiro/` steering + `CLAUDE.md`, ZERO domains) under a **sentinel identity** (`example.com/neo/service` / `neo-service` / `NEOSVC`) so the bundled template stays compilable + CI-verifiable. `assets/scaffold.py` copies the template → substitutes the three sentinels (single-pass regex) → `go mod tidy` → `git init` → `go build`; `assets/initcheck.py` is the L1 verify (build/vet, identity, no-leftover-sentinel, manifest, zero-business, /health-wired, best-effort-boot); `references/init-verifier.md` is the L2 fresh-eyes contract; `references/init-project-guide.md` documents how to **refresh the snapshot** when `account-service`'s conventions change. The generated service boots **best-effort** (HTTP first, Postgres/Redis dialed within a 2s timeout, warn-not-panic) so `go run ./cmd/api` serves `/health` with no Docker. The `.kiro/{skills,agents}` neo-port inside the template ships **frozen/verbatim** (it goes stale by design — the user accepted that trade-off). **`migrate-project`** (added 0.31.0) is init-project's **brownfield** counterpart — instead of scaffolding an empty service it refactors an **existing** Go service to the same blueprint, and it **reuses init-project's frozen template + `.kiro/steering/`** as the target-structure contract rather than duplicating it (`INIT_TEMPLATE = <MIGRATE_DIR>/../init-project/assets/template` — a runtime cross-skill dependency; refresh the blueprint by refreshing init-project's snapshot, not this skill). It is a **standalone phase-based orchestrator** (`tools: [Agent, Read, AskUserQuestion]`, delegates all real work via point-to-read) that plans the migration as ordered, independently-verifiable **slices** (one bounded context at a time, S1 installs the contract — `.golangci.yaml` with the target's module substituted for the `example.com/neo/service` sentinel + `.kiro/steering/` + `CLAUDE.md`), executes each on the `migrate/hexagonal-blueprint` branch with `git mv` (history- + behavior-preserving), and verifies each slice (`go build`/`vet`/`test` + golangci depguard/forbidigo). Plan-first (CP1 approval before any code moves) and resumable via `<target>/docs/migration/plan.md` (markdown, sole-writer = Mapper); finishes with a three-layer verify (L1 `assets/structurecheck.py` — a stdlib-only structural tripwire, mutation-tested; L2 `references/migrate-verifier.md` fresh-eyes; L3 completeness). Roles: Analyzer (→ `target-map.md`) · Mapper (→ `plan.md`) · Migrator · Verifier · Reviewer. **`e2e-playwright`** (added in the loop-fork generation) is the AC-driven HTTP **e2e** skill — and the one that **restores the e2e exit-gate lost in the 3.0.0 fork rebuild** (the old gate lived in the now-deleted `references/exit-condition.md` + `business-analyst.md`). It authors + **runs** Jest + Playwright-`request` end-to-end tests — Jest the runner driving Playwright's HTTP `request` client, NOT the `@playwright/test` runner — **one `it()` per acceptance criterion**, titled `[<CARD> - AC-NNN] <desc> → <expected>` so every AC is traceable, by discovering the project's e2e layout (test dir / `jest.config.ts` / helpers / `.env.test` / Makefile targets — the **structure is the contract, the values are per-project**; `product-service/tests/e2e` is the reference), bringing the service up via the discovered `compose-up`/`migration-up` targets if `/health` is down, running the suite, and mapping pass/fail back to each AC. Three-layer verify: L1 `assets/e2echeck.py` (stdlib-only AC-coverage tripwire — credits `it()` as covered, `it.skip()`-with-reason as declared-non-observable, errors on an uncovered AC) · L2 `references/e2e-verifier.md` fresh-eyes (does each test actually assert the AC's status + error code; is each skip genuinely HTTP-unobservable, not a lazy excuse) · L3 completeness. Its restored gate is **neo-owned, in the loop half**: the exit condition carries a conditional **`e2e-ac`** criterion — HTTP-surface work in a project with an e2e process → the project's **real** e2e run gates the loop (a Go/unit test can't satisfy it); only HTTP-observable ACs count (a non-observable AC — log/PII — is a declared `it.skip` whose reason the fresh-context checker validates); non-HTTP work or no e2e process → `out_of_scope`, never a silent omit. It is the **3rd local router branch** (Verify — sibling of `test-driven-development` under "Writing/running tests?"); the `e2e-ac` criterion itself adds **no** router divergence (it lives in `loop-engineering.md` + `state-schema.md` + the checker, like `design-exists`). `assets/e2echeck.py` self-tested against `product-service` GI-74 (15 covered incl. comment co-coverage, AC-014/AC-017 declared non-observable, 0 uncovered → PASS).
+## Skills by Phase
 
-## How the pieces wire together
+**Define:** interview-me, idea-refine, spec-driven-development
+**Plan:** planning-and-task-breakdown
+**Build:** incremental-implementation, test-driven-development, context-engineering, source-driven-development, doubt-driven-development, frontend-ui-engineering, api-and-interface-design
+**Verify:** browser-testing-with-devtools, debugging-and-error-recovery
+**Review:** code-review-and-quality, code-simplification, security-and-hardening, performance-optimization
+**Ship:** git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, observability-and-instrumentation, shipping-and-launch
 
-- **`SessionStart` hook** (`hooks/hooks.json` → `run-hook.cmd session-start`) runs on `startup | clear | compact` and injects an `<EXTREMELY_IMPORTANT>` block listing every skill and its triggers. This is what makes Claude reach for the skills proactively without the user naming them.
-- **`run-hook.cmd`** is a deliberate polyglot file — cmd.exe reads the `@echo off` batch portion (which finds Git-Bash and re-execs the script), while bash treats the leading `:` as a no-op and falls through to the Unix branch. Hook scripts are intentionally **extensionless** (`session-start`, not `session-start.sh`) because Claude Code's Windows auto-detection prepends `bash` to anything ending in `.sh`, which breaks the wrapper.
-- **`/neo`** invokes the `neo` skill directly — skill invocation, no command shim (the skill's `description` is the trigger contract).
-- **`neo`** is the `using-agent-skills` meta-skill in a **customized form**, wrapped in **loop engineering** (rebuilt from the earlier thin DELEGATING wrapper, now `legacy/neo-loop-wrapper/`; the older phase-gated v3 is `legacy/neo-v3/`). neo **forks** the upstream discovery router (the skill-selection flowchart, the 6 Core Operating Behaviors, the spec→ship Lifecycle Sequence) into its own `SKILL.md` and **drives it as a recursive goal**: frame an OBSERVABLE exit condition, iterate the lifecycle, verify with a **fresh-context maker-checker** against evidence, stop on one of four independent exits (verifier · iteration cap · budget · no-progress). neo owns only four things: (1) the loop, (2) project memory (`docs/tasks/<slug>/STATE.md` + `docs/knowledge/`), (3) the exit condition (which AUGMENTS Behavior #6 "Verify, Don't Assume", never replaces it), and (4) a human gate at commit/PR. The **lifecycle SKILLS** the forked router points to are NOT embedded — they are the external `addyosmani/agent-skills` prerequisite; neo references them by name and never re-derives the SDLC. Three local additions sit in the router: `ingest` (Define — "have a context, need knowledge"), `api-spec` (Ship — "update api-spec?") + `e2e-playwright` (Verify — HTTP e2e per acceptance criterion; it also restores the conditional `e2e-ac` exit-gate). `SKILL.md` runs the lifecycle **inline** — it holds `Edit`/`Write`/`Bash` (plus `Read`/`Glob`/`Grep`/`Skill`/`AskUserQuestion`), declared in `compatibility.tools`; `Agent` is for the fresh-context checker + long-loop isolation. No `roles/` — the loop owns goal+exit, `ingest` owns knowledge. Concept grounded in Addy Osmani's *loop engineering* (`LOOP.md`; same author as agent-skills — sibling concept).
+## Conventions
 
-## Working in this repo
+- Every skill lives in `skills/<name>/SKILL.md`
+- YAML frontmatter with `name` and `description` fields
+- Description starts with what the skill does (third person), followed by trigger conditions ("Use when...")
+- Every skill has: Overview, When to Use, Process, Common Rationalizations, Red Flags, Verification
+- References are in `references/`, not inside skill directories
+- Supporting files only created when content exceeds 100 lines
 
-### Editing skills
+## Contributing
 
-- `SKILL.md` frontmatter `description` is **the trigger contract** — Claude uses it (not the body) to decide whether to invoke a skill. Edits to the description change activation behavior; edits to the body change what happens *after* activation. Keep both in sync.
-- When adding a new skill, also update: the SessionStart hook (`hooks/session-start`) so its overview block lists the new skill, and the README table. A **doer/orchestrator** skill that uses the L1/L2/L3 (three-layer-verify) body instead of the standard agent-skills anatomy must ALSO be added to `SECTION_EXEMPT_SKILLS` in `scripts/validate-skills.js`, or it fails the section check (the same is true for every neo-toolkit native skill). A new local skill referenced by neo's router needs nothing in `EXTERNAL_SKILLS` (that allowlist is for the upstream agent-skills plugin only).
-- `neo` references (`skills/neo/references/`) are **read inline by neo** (point-to-read): `loop-engineering.md` (the operational loop — algorithm, the four independent exits, maker-checker, human gate), `state-schema.md` (STATE.md shape); `templates/STATE.md` is the copy-me memory template. The **router** itself (flowchart + 6 behaviors + lifecycle sequence) lives inline in `SKILL.md`, forked from upstream `using-agent-skills` — keep it faithful (divergences: **+**`ingest` **+**`api-spec` **+**`e2e-playwright`, **−**`ci-cd-and-automation` **−**`shipping-and-launch`, **+** the DoD-path fix). There are no `roles/` files: neo's loop owns goal+exit, `ingest` owns knowledge.
-- **`neo` has its own scoped `skills/neo/CLAUDE.md`** — the load-bearing invariants for editing it (the fork-not-delegate one-rule, the 7 invariants, the keep-the-router-faithful rule, the add-a-router-branch sync list, verify-before-commit). It's a maintainer doc (not loaded at runtime, not shipped to consumers). Read it before non-trivial neo edits; keep neo detail there, not duplicated here.
+Before adding a new skill or significantly reworking an existing one, run the pre-flight checks in [CONTRIBUTING.md](CONTRIBUTING.md#before-proposing-a-new-skill): search the catalog, check open PRs, confirm the idea fits [docs/skill-anatomy.md](docs/skill-anatomy.md), and justify the gap. Prefer extending an existing skill over adding a near-duplicate. CONTRIBUTING.md is the single source of truth for this workflow; do not restate its checklist here or elsewhere, link to it.
 
-### Before every commit (release workflow)
+## Commands
 
-When the user asks to **bump the version, commit, or cut a release**, run this standing flow (the version bump is a hard rule — never commit with it unchanged):
+- `npm test` — Not applicable (this is a documentation project)
+- Validate: Check that all SKILL.md files have valid YAML frontmatter with name and description
 
-1. **Bump `version`** in `.claude-plugin/plugin.json` AND `.claude-plugin/marketplace.json` (keep both in sync). Semver by change type: patch = fix/docs, minor = new feature/skill, major = breaking. It's the only signal installed clients have that the plugin changed; local marketplaces don't auto-update (see "Publishing" below), so a stale version means users keep running old code.
-2. **Tag the release** — one annotated tag per version bump, created *after* the commit lands: `git tag -a v<version> -m "neo-dev-toolkit <version> — <headline>"` (v-prefix). Push it alongside the branch when the user pushes (`git push origin <branch> && git push origin v<version>`).
-3. **Publish a GitHub release** — this is the changelog home (there is no `RELEASE.md`). Once the tag is on `origin`, create a release against it with structured notes you write from the diff: a `### <headline>` line, then **Added** / **Changed** / **Removed** / **Notes** sections (same shape as the existing releases). `gh release create v<version> --title "v<version> — <headline>" --notes-file <tmp.md> --latest` — the newest release gets `--latest`; backfilling an older one uses `--latest=false`. Match the format of prior releases (`gh release list` / `gh release view v<x.y.z>` to check).
+## Pull Requests
 
-The user runs `git commit` themselves — don't auto-commit. Do step 1 in the same turn as the request; provide (or run, once they've committed) the step-2 tag command and the step-3 `gh release create`.
+PRs target the upstream repository's default branch. In a typical fork setup the upstream remote is `upstream` and your fork is `origin`, but the exact remote names are not what matters here.
 
-### Publishing changes (local marketplace)
+- Before opening a PR, search the upstream repository's open PRs and issues for work that touches the same files or rules. If any overlaps, coordinate (build on it, align your rules with it, or rebase after it merges) instead of opening a conflicting PR.
+- Prefer small, focused PRs over large refactors of widely shared files (for example, files under `scripts/`), which are more likely to collide with in-flight work.
 
-Local-path marketplaces have auto-update **off**. After committing a change you must refresh the marketplace listing and reinstall — `git pull` inside the marketplace dir is not enough:
+## Boundaries
 
-```
-/plugin marketplace update neo
-/plugin uninstall neo-dev-toolkit@neo
-/plugin install   neo-dev-toolkit@neo
-```
-
-(Version bump is a hard rule before commit — see "Before every commit" above.)
-
-### Hook script conventions
-
-- Keep hook scripts extensionless (see polyglot note above).
-- `session-start` writes its output as a single JSON object on stdout matching Claude Code's hook-output schema (`hookSpecificOutput.hookEventName` + `additionalContext`). The `escape_for_json` bash function in the script handles backslash/quote/newline escaping — reuse it rather than introducing `jq` as a runtime dependency (hooks must work on a fresh machine).
-
-## What this repo intentionally does NOT have
-
-- No build system, no test runner, no linter. Don't introduce one unless asked.
-- No application source code. Treat `.md` files as the deliverable.
-- No CI. Validation is "does the plugin install and do its skills fire" — done manually in a Claude Code session.
+- Always: Run the CONTRIBUTING.md pre-flight checks before creating a new skill directory
+- Always: Follow the skill-anatomy.md format for new skills
+- Always: Check the upstream repo's open PRs and issues for overlap before opening a new PR
+- Never: Add skills that are vague advice instead of actionable processes
+- Never: Duplicate content between skills — reference other skills instead

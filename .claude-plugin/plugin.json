@@ -1,29 +1,18 @@
 {
-  "name": "neo-dev-toolkit",
-  "description": "Opinionated Claude Code toolkit: neo is a thin loop wrapper over the agent-skills SDLC (recursive goal → iterate against an exit condition → human gate), with an ingest memory primitive, GitLab/Atlassian connectors, API-doc tooling, and Go service scaffolding/migration. Requires the upstream agent-skills plugin (github.com/addyosmani/agent-skills) — it provides the using-agent-skills SDLC that neo delegates to.",
-  "version": "3.0.0",
+  "name": "agent-skills",
+  "description": "Production-grade engineering skills for AI coding agents — covering the full software development lifecycle from spec to ship.",
   "author": {
-    "name": "Witoo Harianto",
-    "email": "witoo@plimble.com"
+    "name": "Addy Osmani"
   },
+  "homepage": "https://github.com/addyosmani/agent-skills",
+  "repository": "https://github.com/addyosmani/agent-skills",
   "license": "MIT",
-  "homepage": "https://github.com/witooh/neo-plugin",
+  "commands": ["./.claude/commands", "./commands"],
   "skills": "./skills",
-  "keywords": [
-    "neo",
-    "loop-engineering",
-    "recursive-goal",
-    "orchestrator",
-    "multi-agent",
-    "agent-skills",
-    "openapi",
-    "swagger",
-    "confluence",
-    "jira",
-    "acli",
-    "atlassian",
-    "gitlab",
-    "glab",
-    "workflow"
+  "agents": [
+    "./agents/code-reviewer.md",
+    "./agents/security-auditor.md",
+    "./agents/test-engineer.md",
+    "./agents/web-performance-auditor.md"
   ]
 }
