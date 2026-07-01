@@ -117,6 +117,7 @@ The `.claude/commands/` directory contains slash commands for Claude Code:
 | `/code-simplify` | code-simplification |
 | `/ship` | shipping-and-launch |
 | `/webperf` | web-performance-auditor (specialist agent, web apps only) |
+| `/commit` | git-workflow-and-versioning |
 
 > **Note:** When installed as a Claude Code plugin you may see a warning like
 > _"Default commands/ folder is ignored because the manifest sets 'commands'"_.

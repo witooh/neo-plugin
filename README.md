@@ -17,7 +17,7 @@ Skills encode the workflows, quality gates, and best practices that senior engin
 
 ## Commands
 
-9 slash commands that map to the development lifecycle. Each one activates the right skills automatically.
+10 slash commands that map to the development lifecycle. Each one activates the right skills automatically.
 
 | What you're doing | Command | Key principle |
 |-------------------|---------|---------------|
@@ -25,6 +25,7 @@ Skills encode the workflows, quality gates, and best practices that senior engin
 | Define what to build | `/spec` | Spec before code |
 | Plan how to build it | `/plan` | Small, atomic tasks |
 | Build incrementally | `/build` | One slice at a time |
+| Commit your work | `/commit` | Clean, atomic history |
 | Prove it works | `/test` | Tests are proof |
 | Review before merge | `/review` | Improve code health |
 | Audit web performance | `/webperf` | Measure before you optimize |
@@ -326,9 +327,9 @@ neo/
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 5 supplementary checklists
 ├── hooks/                             # Session lifecycle hooks
-├── .claude/commands/                  # 9 slash commands (Claude Code)
-├── .gemini/commands/                  # 9 slash commands (Gemini CLI)
-├── commands/                          # 9 slash commands (Antigravity CLI)
+├── .claude/commands/                  # 10 slash commands (Claude Code)
+├── .gemini/commands/                  # 10 slash commands (Gemini CLI)
+├── commands/                          # 10 slash commands (Antigravity CLI)
 ├── plugin.json                        # Antigravity plugin manifest
 └── docs/                              # Setup guides per tool
 ```

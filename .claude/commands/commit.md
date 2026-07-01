@@ -1,0 +1,39 @@
+---
+description: Create clean, atomic commits — group related changes, write conventional messages, run pre-commit checks, and judge when a rebase is safe.
+---
+
+Invoke the neo:git-workflow-and-versioning skill for the commit principles (atomic commits, conventional messages, separating concerns, pre-commit hygiene). `/commit` is the *doer* that applies them to the current working tree, then decides whether a rebase is warranted.
+
+`/commit` does **not** cut releases, tags, or version bumps — that is `/ship`. It complements `/build`, which already commits each increment inside the Build loop; reach for `/commit` for ad-hoc commits and pre-push history cleanup.
+
+## Procedure
+
+1. **Survey the state.** Run `git status --porcelain`; inspect staged and unstaged changes (`git diff`, `git diff --staged`); note the current branch; check for unpushed commits with `git log @{u}..` (if the branch has no upstream, it is local/unpushed).
+2. **Group into atomic commits.** One commit per logical change. Keep concerns separate — refactor apart from feature, formatting apart from behavior. Stage precisely for each commit (`git add <path>` or `git add -p`) — **never** a blind `git add -A`.
+3. **Run pre-commit hygiene.** Scan the staged diff for secrets, then run the project's tests, linter, and type-check. Do not commit on a red state unless the user says otherwise.
+4. **Write the message.** Conventional format (`feat/fix/refactor/test/docs/chore: …`) explaining the *why*, not just the *what*.
+5. **Commit, then verify.** Re-check `git status` to confirm nothing unintended was staged, and `git log --oneline` to confirm the history reads cleanly.
+
+## When to rebase (the decision)
+
+Cleaning history is safe only on commits you have **not** shared. Default to conservative.
+
+```
+Are the target commits already pushed to a shared branch,
+on main, or possibly built on by others?
+   │
+   ├─ YES → Do NOT rebase. Prefer new commits or a merge.
+   │        Rewriting needs explicit user sign-off; then push with
+   │        `--force-with-lease` (never a plain `--force`).
+   │
+   └─ NO — local, unpushed →
+        ├─ Noisy WIP (`wip`, `fixup`, `typo`) before the first push?
+        │    → Offer to squash into atomic commits: `git rebase -i`,
+        │      or `git commit --fixup=<sha>` + `git rebase -i --autosquash`.
+        │      Confirm before rewriting.
+        ├─ Upstream moved and the branch is yours/unshared?
+        │    → `git pull --rebase` for a linear history.
+        └─ Otherwise → leave the history as-is.
+```
+
+If you cannot tell whether history is shared, treat it as shared: do not rebase — ask the user.

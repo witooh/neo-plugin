@@ -8,7 +8,7 @@ This is the neo project — a collection of production-grade engineering skills 
 skills/       → Core skills (SKILL.md per directory)
 agents/       → Reusable agent personas (code-reviewer, test-engineer, security-auditor, web-performance-auditor)
 hooks/        → Session lifecycle hooks
-.claude/commands/ → Slash commands (/ingest, /spec, /plan, /build, /test, /review, /code-simplify, /ship; plus /webperf specialist audit)
+.claude/commands/ → Slash commands (/ingest, /spec, /plan, /build, /commit, /test, /review, /code-simplify, /ship; plus /webperf specialist audit)
 references/   → Supplementary checklists (testing, performance, security, accessibility, observability)
 docs/         → Setup guides for different tools
 ```
