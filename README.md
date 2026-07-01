@@ -172,6 +172,7 @@ The commands above are entry points. The pack includes 34 skills total — 33 wo
 | [interview-me](skills/interview-me/SKILL.md) | One-question-at-a-time interview that extracts what the user actually wants instead of what they think they should want, until ~95% confidence | The ask is underspecified, or the user invokes "interview me" / "grill me" |
 | [idea-refine](skills/idea-refine/SKILL.md) | Structured divergent/convergent thinking to turn vague ideas into concrete proposals | You have a rough concept that needs exploration |
 | [spec-driven-development](skills/spec-driven-development/SKILL.md) | Write a PRD covering objectives, commands, structure, code style, testing, and boundaries before any code | Starting a new project, feature, or significant change |
+| [api-spec](skills/api-spec/SKILL.md) | Author the custom-YAML `docs/api/` HTTP contract spec-first (Draft, in Define); reconcile it from built code at Ship (Update-from-code) | Designing or updating an HTTP API contract — before code, or syncing the spec back from code |
 
 ### Plan - Break it down
 

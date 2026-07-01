@@ -20,10 +20,11 @@ Task arrives
     ├── Don't know what you want yet? ──────→ interview-me
     ├── Have a rough concept, need variants? → idea-refine
     ├── New project/feature/change? ──→ spec-driven-development
+    │   └── Exposes HTTP endpoints? ──→ api-spec  (draft the docs/api contract spec-first, before code)
     ├── Have a spec, need tasks? ──────→ planning-and-task-breakdown
     ├── Implementing code? ────────────→ incremental-implementation
     │   ├── UI work? ─────────────────→ frontend-ui-engineering
-    │   ├── API work? ────────────────→ api-and-interface-design
+    │   ├── API work? ────────────────→ api-and-interface-design  (interfaces/boundaries; for the docs/api contract → api-spec)
     │   ├── Need better context? ─────→ context-engineering
     │   ├── Need doc-verified code? ───→ source-driven-development
     │   └── Stakes high / unfamiliar code? ──→ doubt-driven-development
@@ -114,6 +115,12 @@ Every skill includes a verification step. A task is not complete until verificat
 
 Per-skill verification is the local check. The project-wide bar that applies to *every* change, regardless of which skill is active, is the Definition of Done: tests pass, no regressions, behavior verified at runtime, docs updated. See `references/definition-of-done.md`. It complements each task's acceptance criteria rather than replacing them.
 
+### 7. Read Before You Ask
+
+Load the context that already exists **before** generating output or asking the user anything. First and foremost, check the knowledge base at `docs/knowledge/` (start with its `INDEX.md`) — this is where `/ingest` curates external sources: JIRA cards, docs, specs. Also consult the existing spec (`docs/tasks/<card>/`), the codebase, and `docs/design/` when relevant.
+
+**Never ask the user a question that the knowledge base or the repo already answers.** Reaching for a question before reading the curated context wastes the context the user deliberately ingested — and "sorry, I didn't check the KB" is exactly the failure this rule exists to prevent. Read first; ask only about what genuinely remains unresolved.
+
 ## Failure Modes to Avoid
 
 These are the subtle errors that look like productivity but create problems:
@@ -128,6 +135,7 @@ These are the subtle errors that look like productivity but create problems:
 8. Removing things you don't fully understand
 9. Building without a spec because "it's obvious"
 10. Skipping verification because "it looks right"
+11. Asking the user what `docs/knowledge/` or the codebase already answers — not reading curated context before acting
 
 ## Skill Rules
 
@@ -148,6 +156,7 @@ For a complete feature, the typical skill sequence is:
 1.  interview-me                → Extract what the user actually wants
 2.  idea-refine                 → Refine vague ideas
 3.  spec-driven-development     → Define what we're building
+3b. api-spec (Draft)            → Draft the docs/api HTTP contract spec-first, before code (if the feature exposes endpoints)
 4.  planning-and-task-breakdown → Break into verifiable chunks
 5.  context-engineering         → Load the right context
 6.  source-driven-development   → Verify against official docs
@@ -160,6 +169,7 @@ For a complete feature, the typical skill sequence is:
 12. code-simplification         → Reduce unnecessary complexity while preserving behavior
 13. git-workflow-and-versioning → Clean commit history
 14. documentation-and-adrs      → Document decisions
+14b. api-spec (Update-from-code) → Reconcile docs/api against the built code, structural sync-back (if an api-spec exists)
 15. deprecation-and-migration   → Retire old systems and move users safely when needed
 16. shipping-and-launch         → Deploy safely
 ```
@@ -174,6 +184,7 @@ Not every task needs every skill. A bug fix might only need: `debugging-and-erro
 | Define | interview-me | Surface what the user actually wants before any plan, spec, or code exists |
 | Define | idea-refine | Refine ideas through structured divergent and convergent thinking |
 | Define | spec-driven-development | Requirements and acceptance criteria before code |
+| Define | api-spec | Draft the custom-YAML API contract (docs/api) spec-first; reconcile from code at Ship |
 | Plan | planning-and-task-breakdown | Decompose into small, verifiable tasks |
 | Build | incremental-implementation | Thin vertical slices, test each before expanding |
 | Build | source-driven-development | Verify against official docs before implementing |

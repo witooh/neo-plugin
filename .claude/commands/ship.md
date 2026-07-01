@@ -34,7 +34,7 @@ Once all three reports are back, the main agent (not a sub-persona) synthesizes 
 3. **Performance** — Pull from `code-reviewer`'s performance axis; cross-check Core Web Vitals if applicable.
 4. **Accessibility** — Verify keyboard nav, screen reader support, contrast (not covered by the three personas — handle directly here, or invoke the accessibility checklist).
 5. **Infrastructure** — Env vars, migrations, monitoring, feature flags. Verify directly.
-6. **Documentation** — README, ADRs, changelog. Verify directly.
+6. **Documentation** — README, ADRs, changelog. Verify directly. If the service has a `docs/api/` spec, verify it still matches the shipped code; on drift, reconcile it via the neo:api-spec skill in **Update-from-code** mode (structural sync-back — sync routes/fields/types, preserve hand-authored M/O, `business_logic`, `remark`, and `errors`).
 
 ## Phase C — Decision and rollback
 
