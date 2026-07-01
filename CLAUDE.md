@@ -51,6 +51,16 @@ Before adding a new skill or significantly reworking an existing one, run the pr
 - `npm test` — Not applicable (this is a documentation project)
 - Validate: Check that all SKILL.md files have valid YAML frontmatter with name and description
 
+## Versioning and releases
+
+When the user asks to **bump the version, commit, or cut a release**, run this standing flow (the version bump is a hard rule — never cut a release with it unchanged):
+
+1. **Bump `version`** in `.claude-plugin/plugin.json` — the plugin manifest is the single source of truth for the version (`marketplace.json` carries no version field). Semver by change type: patch = fix/docs, minor = new skill/feature, major = breaking. It's the only signal installed clients have that the plugin changed, so a stale version means users keep running old code.
+2. **Tag the release** — one annotated tag per version bump, created *after* the commit lands: `git tag -a v<version> -m "neo <version> — <headline>"` (v-prefix). Push it alongside the branch when the user pushes: `git push origin <branch> && git push origin v<version>`.
+3. **Publish a GitHub release** — this is the changelog home (there is no `RELEASE.md`). Once the tag is on `origin`, create a release against it with structured notes you write from the diff: a `### <headline>` line, then **Added** / **Changed** / **Removed** / **Notes** sections (match the shape of prior releases). `gh release create v<version> --title "v<version> — <headline>" --notes-file <tmp.md> --latest` — the newest release gets `--latest`; backfilling an older one uses `--latest=false`. Check prior format first with `gh release list` / `gh release view v<x.y.z>`.
+
+The user runs `git commit` themselves — don't auto-commit. Do step 1 in the same turn as the request; provide (or run, once they've committed) the step-2 tag command and the step-3 `gh release create`.
+
 ## Pull Requests
 
 PRs target the upstream repository's default branch. In a typical fork setup the upstream remote is `upstream` and your fork is `origin`, but the exact remote names are not what matters here.
