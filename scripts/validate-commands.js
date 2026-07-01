@@ -13,7 +13,7 @@
  *
  * What this does NOT check:
  *   Prompt body differences are intentional — each tool has its own
- *   syntax ($ARGUMENTS, agent-skills: prefixes, GEMINI.md vs CLAUDE.md).
+ *   syntax ($ARGUMENTS, neo: prefixes, GEMINI.md vs CLAUDE.md).
  *
  * Exit codes: 0 = all clear, 1 = one or more errors
  */

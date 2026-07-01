@@ -1,12 +1,8 @@
-# Agent Skills
+# Neo
 
 **Production-grade engineering skills for AI coding agents.**
 
 Skills encode the workflows, quality gates, and best practices that senior engineers use when building software. These ones are packaged so AI agents follow them consistently across every phase of development.
-
-<a href="https://trendshift.io/repositories/25200" target="_blank"><img src="https://trendshift.io/api/badge/repositories/25200" alt="addyosmani%2Fagent-skills | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-![Addy's Agent Skills](https://addyosmani.com/assets/images/addys-agent-skills.jpg)
 
 ```
   DEFINE          PLAN           BUILD          VERIFY         REVIEW          SHIP
@@ -48,21 +44,21 @@ Skills also activate automatically based on what you're doing — designing an A
 **Marketplace install:**
 
 ```
-/plugin marketplace add addyosmani/agent-skills
-/plugin install agent-skills@addy-agent-skills
+/plugin marketplace add witooh/neo-plugin
+/plugin install neo@neo
 ```
 
 > **SSH errors?** The marketplace clones repos via SSH. If you don't have SSH keys set up on GitHub, either [add your SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) or use the full HTTPS URL to force the HTTPS cloning:
 > ```bash
-> /plugin marketplace add https://github.com/addyosmani/agent-skills.git
-> /plugin install agent-skills@addy-agent-skills
+> /plugin marketplace add https://github.com/witooh/neo-plugin.git
+> /plugin install neo@neo
 > ```
 
 **Local / development:**
 
 ```bash
-git clone https://github.com/addyosmani/agent-skills.git
-claude --plugin-dir /path/to/agent-skills
+git clone https://github.com/witooh/neo-plugin.git
+claude --plugin-dir /path/to/neo
 ```
 
 </details>
@@ -82,14 +78,14 @@ Install as a native plugin for skills, subagents, and slash commands. See [docs/
 **Install from the repo:**
 
 ```bash
-agy plugin install https://github.com/addyosmani/agent-skills.git
+agy plugin install https://github.com/witooh/neo-plugin.git
 ```
 
 **Install from a local clone:**
 
 ```bash
-git clone https://github.com/addyosmani/agent-skills.git
-agy plugin install ./agent-skills
+git clone https://github.com/witooh/neo-plugin.git
+agy plugin install ./neo
 ```
 
 </details>
@@ -102,13 +98,13 @@ Install as native skills for auto-discovery, or add to `GEMINI.md` for persisten
 **Install from the repo:**
 
 ```bash
-gemini skills install https://github.com/addyosmani/agent-skills.git --path skills
+gemini skills install https://github.com/witooh/neo-plugin.git --path skills
 ```
 
 **Install from a local clone:**
 
 ```bash
-gemini skills install ./agent-skills/skills/
+gemini skills install ./neo/skills/
 ```
 
 </details>
@@ -154,13 +150,13 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ## All 24 Skills
 
-The commands above are entry points. The pack includes 24 skills total — 23 lifecycle skills plus the `using-agent-skills` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
+The commands above are entry points. The pack includes 24 skills total — 23 lifecycle skills plus the `using-neo` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
 
 ### Meta - Discover which skill applies
 
 | Skill | What It Does | Use When |
 |-------|-------------|----------|
-| [using-agent-skills](skills/using-agent-skills/SKILL.md) | Maps incoming work to the right skill workflow and defines shared operating rules | Starting a session or deciding which skill applies |
+| [using-neo](skills/using-neo/SKILL.md) | Maps incoming work to the right skill workflow and defines shared operating rules | Starting a session or deciding which skill applies |
 
 ### Define - Clarify what to build
 
@@ -282,7 +278,7 @@ Every skill follows a consistent anatomy:
 ## Project Structure
 
 ```
-agent-skills/
+neo/
 ├── skills/                            # 24 skills (23 lifecycle + 1 meta)
 │   ├── interview-me/                  #   Define
 │   ├── idea-refine/                   #   Define
@@ -307,7 +303,7 @@ agent-skills/
 │   ├── documentation-and-adrs/        #   Ship
 │   ├── observability-and-instrumentation/ # Ship
 │   ├── shipping-and-launch/           #   Ship
-│   └── using-agent-skills/            #   Meta: how to use this pack
+│   └── using-neo/            #   Meta: how to use this pack
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 5 supplementary checklists
 ├── hooks/                             # Session lifecycle hooks
@@ -320,9 +316,9 @@ agent-skills/
 
 ---
 
-## Why Agent Skills?
+## Why Neo?
 
-AI coding agents default to the shortest path - which often means skipping specs, tests, security reviews, and the practices that make software reliable. Agent Skills gives agents structured workflows that enforce the same discipline senior engineers bring to production code.
+AI coding agents default to the shortest path - which often means skipping specs, tests, security reviews, and the practices that make software reliable. Neo gives agents structured workflows that enforce the same discipline senior engineers bring to production code.
 
 Each skill encodes hard-won engineering judgment: *when* to write a spec, *what* to test, *how* to review, and *when* to ship. These aren't generic prompts - they're the kind of opinionated, process-driven workflows that separate production-quality work from prototype-quality work.
 

@@ -1,4 +1,4 @@
-# Contributing to Agent Skills
+# Contributing to Neo
 
 Thanks for your interest in contributing! This project is a collection of production-grade engineering skills for AI coding agents.
 
@@ -65,12 +65,12 @@ The frontmatter fields above are required. The section anatomy is a recommended 
 
 ## Testing Hooks
 
-The session-start hook (`hooks/session-start.sh`) injects the `using-agent-skills` meta-skill into every new Claude Code session. A regression test at `hooks/session-start-test.sh` validates the hook's JSON payload — both when `jq` is available and when it isn't.
+The session-start hook (`hooks/session-start.sh`) injects the `using-neo` meta-skill into every new Claude Code session. A regression test at `hooks/session-start-test.sh` validates the hook's JSON payload — both when `jq` is available and when it isn't.
 
 Run it before opening any PR that touches:
 
 - `hooks/session-start.sh`
-- `skills/using-agent-skills/SKILL.md` (the meta-skill content embedded by the hook)
+- `skills/using-neo/SKILL.md` (the meta-skill content embedded by the hook)
 
 ```bash
 bash hooks/session-start-test.sh

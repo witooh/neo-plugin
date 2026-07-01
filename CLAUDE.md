@@ -1,6 +1,6 @@
-# agent-skills
+# neo
 
-This is the agent-skills project — a collection of production-grade engineering skills for AI coding agents.
+This is the neo project — a collection of production-grade engineering skills for AI coding agents.
 
 ## Project Structure
 
