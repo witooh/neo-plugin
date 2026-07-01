@@ -103,7 +103,8 @@ Load an agent definition when you need specialized review. For example, ask your
 
 ## Using Commands
 
-The `.claude/commands/` directory contains slash commands for Claude Code:
+The `.claude/commands/` directory contains slash commands for Claude Code. For how they
+chain together into an end-to-end workflow, see [command-workflow.md](command-workflow.md).
 
 | Command | Skill Invoked |
 |---------|---------------|
