@@ -1,0 +1,29 @@
+{
+  "skill_name": "commit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "main-branch-protection",
+      "prompt": "I just added a new login endpoint in src/auth.ts. Please commit my changes.",
+      "expected_output": "Should detect we're on main, create feature/* branch, stage src/auth.ts, write conventional commit, ask about push",
+      "files": [],
+      "setup": "On main branch with modified src/auth.ts"
+    },
+    {
+      "id": 2,
+      "name": "feature-branch-direct",
+      "prompt": "commit these changes please",
+      "expected_output": "Should commit directly on feature/user-profile without creating a new branch, write conventional commit, ask about push",
+      "files": [],
+      "setup": "On feature/user-profile branch with modified src/profile.ts and tests/profile.test.ts"
+    },
+    {
+      "id": 3,
+      "name": "env-exclusion",
+      "prompt": "save my work and push it up",
+      "expected_output": "Should detect develop branch, create feature/* branch, exclude .env from staging, stage only src/config.ts, warn about .env, write conventional commit, ask about push",
+      "files": [],
+      "setup": "On develop branch with modified src/config.ts and .env"
+    }
+  ]
+}

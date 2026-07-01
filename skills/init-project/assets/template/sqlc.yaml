@@ -1,0 +1,35 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/adapters/repository/postgres/queries"
+    schema: "internal/adapters/repository/postgres/migrations"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/adapters/repository/postgres/sqlc"
+        sql_package: "database/sql"
+        initialisms: []
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "pg_catalog.numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "NullDecimal"
+            nullable: true
+          - db_type: "pg_catalog.numeric"
+            go_type:
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"
+            nullable: false
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "jsonb"
+            go_type:
+              import: "encoding/json"
+              type: "RawMessage"
+            nullable: false

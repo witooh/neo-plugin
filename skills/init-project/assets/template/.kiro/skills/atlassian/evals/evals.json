@@ -1,0 +1,130 @@
+{
+  "skill_name": "atlassian",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "ช่วยดู issue ที่ assigned ให้ฉันใน sprint ปัจจุบันหน่อย",
+      "expected_output": "Run acli jira workitem search with JQL using assignee = currentUser() AND sprint in openSprints(), display the results clearly",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses-acli-workitem-search",
+          "description": "Response includes the acli jira workitem search command",
+          "check": "response.md contains 'acli jira workitem search'"
+        },
+        {
+          "name": "jql-has-currentuser",
+          "description": "JQL query uses currentUser() to target the current user",
+          "check": "response.md contains 'currentUser()'"
+        },
+        {
+          "name": "jql-has-opensprints",
+          "description": "JQL query uses openSprints() to filter for active sprint",
+          "check": "response.md contains 'openSprints()'"
+        },
+        {
+          "name": "actually-ran-command",
+          "description": "Agent actually attempted to run the command (has output or acli error, not just description)",
+          "check": "response.md shows evidence of command execution (output table, error from acli, or 'no results')"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "หา bug ที่ยังไม่มีคนรับใน sprint นี้",
+      "expected_output": "Run acli jira workitem search with JQL: issuetype = Bug AND sprint in openSprints() AND assignee is EMPTY, display results",
+      "files": [],
+      "assertions": [
+        {
+          "name": "jql-has-issuetype-bug",
+          "description": "JQL filters for Bug issue type",
+          "check": "response.md contains 'issuetype = Bug' or 'issuetype=Bug'"
+        },
+        {
+          "name": "jql-has-assignee-empty",
+          "description": "JQL filters for unassigned issues",
+          "check": "response.md contains 'assignee is EMPTY' or 'assignee is empty'"
+        },
+        {
+          "name": "jql-has-opensprints",
+          "description": "JQL filters for active sprint",
+          "check": "response.md contains 'openSprints()'"
+        },
+        {
+          "name": "actually-ran-command",
+          "description": "Agent actually attempted to run the command",
+          "check": "response.md shows evidence of command execution"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "list Jira projects ทั้งหมดที่ฉันเข้าถึงได้",
+      "expected_output": "Run acli jira project list (with --paginate) and display results",
+      "files": [],
+      "assertions": [
+        {
+          "name": "uses-project-list",
+          "description": "Response uses the correct acli project list command",
+          "check": "response.md contains 'acli jira project list'"
+        },
+        {
+          "name": "actually-ran-command",
+          "description": "Agent actually attempted to run the command",
+          "check": "response.md shows evidence of command execution"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "ปิดงาน (transition ไป Done) ทุกใบของฉันใน sprint ปัจจุบันที่อยู่สถานะ In Review",
+      "expected_output": "This is a bulk, irreversible-ish mutation. The agent must PREVIEW first — run the same JQL through search (--count and/or --fields) to show how many and which items will be affected — present that to the user and get explicit confirmation BEFORE running the bulk transition with --jql ... --status Done --yes --ignore-errors. It must NOT fire the bulk --yes mutation without previewing.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "previews-with-search-first",
+          "description": "Runs a search on the same JQL (with --count or --fields) to preview the affected set before mutating",
+          "check": "response.md shows an 'acli jira workitem search' with the same JQL using '--count' or '--fields' BEFORE any transition command"
+        },
+        {
+          "name": "confirms-before-bulk-mutation",
+          "description": "Shows the affected items/count and asks the user to confirm before the bulk transition",
+          "check": "response.md presents the affected count/keys and requests confirmation before running the transition"
+        },
+        {
+          "name": "bulk-transition-via-jql",
+          "description": "The eventual mutation uses workitem transition with --jql and --status Done",
+          "check": "response.md contains 'workitem transition' with '--jql' and 'Done'"
+        },
+        {
+          "name": "no-blind-yes",
+          "description": "Does not run a destructive --jql ... --yes transition before previewing/confirming",
+          "check": "response.md does NOT show a 'transition --jql ... --yes' that precedes the preview search"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "ผูก issue PROJ-1 ให้ blocks PROJ-2 หน่อย",
+      "expected_output": "Linking work items uses flags this skill does not spell out. Per the self-discovery protocol, the agent should run acli jira workitem link --help to discover the exact flags before composing the command, then run the link command.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "discovers-via-help",
+          "description": "Runs acli ... --help to discover the link command's flags instead of guessing",
+          "check": "response.md contains 'acli' and '--help'"
+        },
+        {
+          "name": "uses-link-command",
+          "description": "Targets the workitem link command",
+          "check": "response.md contains 'workitem link'"
+        },
+        {
+          "name": "actually-ran-command",
+          "description": "Agent actually attempted to run a command (help and/or the link itself)",
+          "check": "response.md shows evidence of command execution"
+        }
+      ]
+    }
+  ]
+}
