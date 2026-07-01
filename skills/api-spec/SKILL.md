@@ -1,22 +1,6 @@
 ---
 name: api-spec
-description: >
-  Author the custom-YAML **API spec** at `docs/api/` — the spec-first **source of truth** for every HTTP
-  endpoint, and the head of the api-doc chain. Create, update, or validate `_meta.yaml` (service-level) +
-  one `<domain>/<endpoint>.yaml` per endpoint (method/path/auth, request/response field tables with **M/O**
-  + Remark, multi-flow `business_logic`, per-endpoint `errors`, optional `covers_ac`). Authored **spec-first**
-  (before the code exists) from requirements / acceptance-criteria / a JIRA card / `docs/knowledge/` /
-  existing code, with a built-in **three-layer verify** (deterministic `apispeccheck.py` + an independent
-  fresh-eyes pass + a completeness sweep) and a generated navigation `index.md`. **Not OpenAPI** — the schema
-  carries M/O, Remark, and multi-flow business logic natively. Trigger on: "author api spec",
-  "create the api spec", "write the api contract", "gen api spec", "generate docs/api", "update the api spec",
-  "add an endpoint to the api spec", "validate the api spec", "สร้าง api spec", "เขียน api spec",
-  "เขียน docs/api", "ออกแบบ api contract", "อัปเดต api spec", "เพิ่ม endpoint ใน api spec". Also trigger when
-  **neo** delegates api-spec authoring. NOTE — route elsewhere, NOT here: checking whether the Go code has
-  drifted from the spec → `openapi-doc` (it reads this spec, writes nothing); turning the spec into a runnable
-  Bruno collection → `open-collection`; publishing it to Confluence → `confluence-api-doc`. Those three are
-  read-only **consumers** of `docs/api/*.yaml`; this skill is the **producer**. Not an OpenAPI/Swagger/Postman
-  converter, and not a Go scanner.
+description: "Author the custom-YAML API spec at docs/api/ — the spec-first source of truth for every HTTP endpoint; producer at the head of the api-doc chain. Create, update, or validate _meta.yaml plus one <domain>/<endpoint>.yaml per endpoint (method/path/auth, request/response fields with M/O + Remark, multi-flow business_logic, errors, covers_ac); three-layer verify (apispeccheck.py + fresh-eyes + completeness sweep) + generated index.md. Not OpenAPI. Use when designing an API contract spec-first before code exists (Draft, in Define via /spec), authoring or adding endpoints, updating the spec from built code (structural sync-back, in Ship via /ship), or validating it. Triggers: author/create/write/gen/update api spec, update api spec from code, add an endpoint, validate api spec, ออกแบบ/อัปเดต api spec จาก code. Route elsewhere (read-only consumers): Go-vs-spec drift → openapi-doc; Bruno collection → open-collection; Confluence → confluence-api-doc. Authoring never scans Go — only the from-code sync-back reads it."
 compatibility:
   environment: claude-code
   tools:
@@ -52,28 +36,28 @@ The full schema (every key, field-object rules, error rules, notes discipline) l
 
 Four modes. **Draft** and **Generate** both author a spec where none exists yet; the difference is intent and rigor — Draft is a *provisional Define-phase design pass*, Generate is the *authoritative author*. Auto-detect (user can override):
 
-- **Draft** (Define — design-first) — signalled by **neo** routing here in Define, or a "draft / ออกแบบ … ก่อน" request: author a **provisional** contract from intent **only** (acceptance criteria / requirements / `docs/knowledge/` / `docs/design/`), **before any code exists**, so a feature has a contract to design against from the start. It writes the same `docs/api/*.yaml` as Generate — **single producer, single location** (not a separate artifact); its provisional nature is tracked by the neo loop (STATE.md), **not** by a marker in the spec. **Lighter verify** (L1 + L3 only — see Step 3). The Ship-phase **Update** later reconciles this draft against the built code.
+- **Draft** (Define — design-first) — signalled by `/spec` routing here in Define, or a "draft / ออกแบบ … ก่อน" request: author a **provisional** contract from intent **only** (acceptance criteria / requirements / `docs/knowledge/` / `docs/design/`), **before any code exists**, so a feature has a contract to design against from the start. It writes the same `docs/api/*.yaml` as Generate — **single producer, single location** (not a separate artifact); its provisional nature is contextual — it is drafted before the code exists — with **no marker** in the spec. Draft authors the **structural contract only** — method/path/auth, request/response fields, `errors`, and `covers_ac` — and **omits `business_logic`**: the per-endpoint flow is a design inference that must not be pinned before the code exists, so it is left out and added later (once the real implementation flow is known, e.g. in Build/Ship), then preserved by Update-from-code. **Lighter verify** (L1 + L3 only — see Step 3). The Ship-phase **Update-from-code** later reconciles this draft against the built code.
 - **Generate** — no `docs/api/` (or no `_meta.yaml`) at the target, and not a Draft request → author the spec from intent (full three-layer verify).
-- **Update** — a spec already present → apply the delta (a new endpoint, a changed field), incl. the Ship-phase reconcile against built code (`openapi-doc` drift).
+- **Update** — a spec already present → apply the delta from intent (a new endpoint, a changed field), **or** reconcile the spec against built code. The Ship-phase **Update-from-code** (sync-back) reads the Go source and syncs only the **structural surface** — routes, request/response fields, types — into the spec, **preserving** all hand-authored M/O, `business_logic`, `remark`, and `errors` (a structural sync, never a regenerate-over-top).
 - **Validate** — request says "validate/check/เช็ค/ตรงกับ … ไหม" with a spec present → no writes.
 
 ## Step 1 · Locate the source-of-intent + the spec root
 - **Spec root** — default `docs/api/` at the repo root; in a monorepo scope it to the chosen service (e.g. `services/<name>/docs/api/`). Ask if ambiguous.
 - **Source-of-intent** — what the spec must reflect (the input the spec is authored *from*):
   - **Draft** (Define) — intent **only**: acceptance-criteria (`docs/design/<usecase>/`) / requirements / a JIRA card / `docs/knowledge/` / the user's description. **Exclude code** — it is Define-phase; the code does not exist yet (and is not consulted even if some does). No locatable AC/requirements → STOP and ask; never invent an endpoint surface.
-  - **Update / Validate** — the existing `docs/api/*.yaml` is the baseline; the change request (a new endpoint, a changed field) is the delta.
+  - **Update / Validate** — the existing `docs/api/*.yaml` is the baseline; the delta is the change request (a new endpoint, a changed field), or — for **Update-from-code** (sync-back) — the built Go source being reconciled back into the spec.
   - **Generate** — gather the intent from whatever exists: a requirements doc / acceptance-criteria (`docs/design/<usecase>/`) / a JIRA card / `docs/knowledge/` / the user's description / existing handler+struct code to document. **No locatable intent at all → STOP and ask** for the requirements; never invent an endpoint surface.
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name, base URL, and domain grouping.
-- **In a neo loop** the intent is the task's acceptance criteria; record the AC-IDs each endpoint satisfies in `covers_ac`. **Standalone**, omit `covers_ac`.
+- **When driven from a spec** (`/spec`) the intent is the spec's acceptance criteria; record the AC-IDs each endpoint satisfies in `covers_ac`. **Standalone**, omit `covers_ac`.
 
 ## Step 2 · Author / update the endpoint YAML
 Write per [`references/api-spec-template.md`](references/api-spec-template.md):
 - **`_meta.yaml`** — service title/version/base_url/overview, shared `field_info` enums, `common_errors` (errors every endpoint may return), per-domain `seq`/title in `domains`, and `extra_endpoints` for index-only rows (e.g. a health probe).
-- **`<domain>/<endpoint>.yaml`** — one file per endpoint: method/path/auth, `path_params`/`query_params`/`request_body` field tables, `responses` (with nested `objects:`), `business_logic` (preserve multi-flow as bold-subheaded numbered lists), endpoint-specific `errors`, and `covers_ac` in a neo loop. A field's element-specific note → its `remark`; only a genuinely cross-cutting note → `notes:` (omit when empty).
-- **Update** — touch the minimum; preserve hand-authored prose; re-run the L1 check after.
+- **`<domain>/<endpoint>.yaml`** — one file per endpoint: method/path/auth, `path_params`/`query_params`/`request_body` field tables, `responses` (with nested `objects:`), `business_logic` (preserve multi-flow as bold-subheaded numbered lists — **Generate/Update only; Draft omits it**, see Mode), endpoint-specific `errors`, and `covers_ac` when driven from a spec. A field's element-specific note → its `remark`; only a genuinely cross-cutting note → `notes:` (omit when empty).
+- **Update** — touch the minimum; preserve hand-authored prose; re-run the L1 check after. For **Update-from-code** (Ship sync-back): read the Go source and sync only the structural surface (routes / fields / types); **preserve** M/O, `business_logic`, `remark`, and `errors` — never regenerate over hand-authored semantics.
 - **VERSION.md** — append a `## v<N> — <date>` section (newest first) per change.
 
-Do **not** scan Go to author — the spec is authored from intent, and Go is reconciled against it later via `openapi-doc` (sync-back).
+Do **not** scan Go to **author** (Draft / Generate / intent-only Update) — those are authored from intent. **Only Update-from-code** reads Go, and only to reconcile the structural surface against a built implementation (sync-back); the read-only drift *report* remains `openapi-doc`.
 
 ## Step 3 · Three-layer verify
 
@@ -114,7 +98,7 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 `SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** reconcile the YAML → re-run `apispeccheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
-L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full intended endpoint inventory** from the source-of-intent (every endpoint the requirements/AC call for, or — in sync-back — every route an `openapi-doc` drift report flagged) and confirm: every intended endpoint has a `docs/api/<domain>/*.yaml`, every endpoint is reachable from `index.md`, every `covers_ac` AC-ID (in a neo loop) is real, and no endpoint file is an orphan with no intent behind it. Report any whole endpoint the pipeline silently dropped; fix → re-run L1.
+L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full intended endpoint inventory** from the source-of-intent (every endpoint the requirements/AC call for, or — in sync-back — every route an `openapi-doc` drift report flagged) and confirm: every intended endpoint has a `docs/api/<domain>/*.yaml`, every endpoint is reachable from `index.md`, every `covers_ac` AC-ID (when driven from a spec) is real, and no endpoint file is an orphan with no intent behind it. Report any whole endpoint the pipeline silently dropped; fix → re-run L1.
 
 ### Output
 ```
@@ -132,7 +116,7 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 ---
 
 ## What this skill is NOT
-- **Not** a drift checker — verifying whether the Go code matches the spec (sync-back) is **`openapi-doc`** (it reads this spec and writes nothing).
+- **Not** a read-only drift *reporter* — producing a report of whether the Go code matches the spec **without writing** is **`openapi-doc`**. This skill *reconciles* the spec to code (Update-from-code, which writes); the pure drift report stays with `openapi-doc`.
 - **Not** a Bruno OpenCollection generator (**`open-collection`**) or a Confluence publisher (**`confluence-api-doc`**) — both also read `docs/api/*.yaml`. This skill is the single **producer**; those three are **consumers**.
 - **Not** an OpenAPI / Swagger / Postman converter — the custom-YAML api-spec is the single source of truth (it carries M/O + Remark + multi-flow business logic that OpenAPI cannot without `x-` hacks). There is no OpenAPI intermediate in this chain.
-- **Not** a Go scanner — the spec is authored from **intent**, before the code; Go is reconciled against it later via `openapi-doc`.
+- **Authoring never scans Go** — Draft / Generate / intent-only Update are authored from **intent**, before the code. The one exception is **Update-from-code** (Ship sync-back), which reads Go to reconcile the *structural* surface (routes / fields / types) into an existing spec while preserving hand-authored semantics.
