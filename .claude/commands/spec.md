@@ -4,7 +4,9 @@ description: Start spec-driven development — write a structured specification 
 
 Invoke the neo:spec-driven-development skill.
 
-**First, load existing context from the knowledge base.** Before asking the user anything, check `docs/knowledge/` — start with its `INDEX.md` — for material relevant to this feature (this is where `/ingest` curates JIRA cards, docs, and specs). Read every relevant entry in full and treat it as primary source context for the spec. **Never ask the user a question the knowledge base already answers** — read first, then ask only about what the request and the KB leave genuinely unresolved. If `docs/knowledge/` is absent or empty, proceed with the request as the only context.
+**First, if the request names an external source that isn't captured yet, resolve it before doing anything else.** When the user passes a URL, a JIRA/Confluence link, or a file path (PDF, doc, image) as the argument, check whether it's already curated in `docs/knowledge/` (start with its `INDEX.md`). If it is not, do **not** silently proceed on an empty knowledge base: tell the user the source hasn't been ingested yet, then ask whether to run `/ingest` on it now (the neo:markitdown skill) or to wait while they run it themselves. Continue only once the source is curated into `docs/knowledge/`, or the user explicitly says to proceed without it. A plain feature description with no external source needs no ingest — proceed normally.
+
+**Then, load existing context from the knowledge base.** Before asking the user anything, check `docs/knowledge/` — start with its `INDEX.md` — for material relevant to this feature (this is where `/ingest` curates JIRA cards, docs, and specs). Read every relevant entry in full and treat it as primary source context for the spec. **Never ask the user a question the knowledge base already answers** — read first, then ask only about what the request and the KB leave genuinely unresolved. If `docs/knowledge/` is absent or empty, proceed with the request as the only context.
 
 Begin by understanding what the user wants to build. Ask clarifying questions about:
 1. The objective and target users

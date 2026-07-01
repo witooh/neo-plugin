@@ -3,6 +3,8 @@ description = "Start spec-driven development — write a structured specificatio
 prompt = """
 Invoke the spec-driven-development skill.
 
+First, if the request names an external source that isn't captured yet, resolve it before doing anything else. When the user passes a URL, a JIRA/Confluence link, or a file path (PDF, doc, image) as the argument, check whether it's already curated in `docs/knowledge/` (start with its `INDEX.md`). If it is not, do not silently proceed: tell the user the source hasn't been ingested yet, then ask whether to run `/ingest` on it now (the markitdown skill) or to wait while they run it themselves. Continue only once the source is curated into `docs/knowledge/`, or the user explicitly says to proceed without it. A plain feature description with no external source needs no ingest — proceed normally.
+
 Begin by understanding what the user wants to build. Ask clarifying questions about:
 1. The objective and target users
 2. Core features and acceptance criteria
