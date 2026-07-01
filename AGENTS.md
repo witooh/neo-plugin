@@ -29,6 +29,9 @@ The agent should automatically map user intent to skills:
 - Code review → `code-review-and-quality`
 - Refactoring / simplification → `code-simplification`
 - API or interface design → `api-and-interface-design`
+- API contract drift (Go ↔ the `docs/api` spec) → `openapi-doc`
+- Runnable API collection (Bruno) from the `docs/api` spec → `open-collection`
+- Publish the `docs/api` spec to Confluence → `confluence-api-doc`
 - UI work → `frontend-ui-engineering`
 
 ### Lifecycle Mapping (Implicit Commands)
@@ -43,7 +46,7 @@ Instead, the agent must internally follow this lifecycle:
 - BUILD → `incremental-implementation` + `test-driven-development`
 - VERIFY → `debugging-and-error-recovery` (+ `e2e-playwright` for HTTP/API acceptance testing)
 - REVIEW → `code-review-and-quality`
-- SHIP → `shipping-and-launch`
+- SHIP → `shipping-and-launch` (+ `open-collection` / `confluence-api-doc` for the `docs/api` deliverable; `openapi-doc` for a read-only drift report)
 
 ### Execution Model
 

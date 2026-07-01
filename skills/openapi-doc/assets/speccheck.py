@@ -438,7 +438,7 @@ def _bucket():
 def main():
     api_dir, src = parse_args(sys.argv[1:])
     if not api_dir.exists():
-        print(f"speccheck: {api_dir} not found — author the api-spec (run /api-spec) first")
+        print(f"speccheck: {api_dir} not found — author the api-spec (run /spec) first")
         sys.exit(0)
     if not HAVE_YAML:
         print("speccheck: PyYAML not installed — cannot parse the api-spec, drift not checked\n"

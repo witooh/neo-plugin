@@ -1,21 +1,17 @@
 ---
 name: openapi-doc
 description: >
-  Verify Go source against the custom-YAML **API spec** at `docs/api/` and emit a
-  **drift report** — the sync-back detector for the api-doc chain. The api-spec (authored
-  spec-first by the api-spec skill) is the source of truth; this skill **writes nothing** — it
-  scans the Go code and diffs it against `docs/api/<domain>/*.yaml` (routes, request/response
-  fields, M/O, types), reporting every place the implementation has drifted from the contract so
-  the api-spec skill can reconcile the spec. Built-in **three-layer verify** (deterministic script +
-  independent fresh-eyes agent + completeness sweep). Trigger on: "check go against api-spec",
-  "api drift", "api drift report", "verify code against the api-spec", "sync-back api",
-  "did the code drift from the spec", "เช็ค code ตรงกับ api-spec ไหม", "หา drift api",
-  "api-spec ตรงกับ code ไหม", "ตรวจ drift api spec", "เช็ค code กับ spec". Also trigger when
-  neo delegates the api-spec drift / sync-back check. NOTE: this skill READS
-  `docs/api/*.yaml` (authored by the **`api-spec`** skill) and the Go code and writes nothing —
-  authoring the api-spec is the **`api-spec`** skill; a runnable Bruno OpenCollection is
-  `open-collection`; publishing to Confluence is `confluence-api-doc`. It is not a spec
-  generator, an OpenAPI converter, or an interactive editor.
+  Verify Go source against the custom-YAML **API spec** at `docs/api/` and emit a **drift report** —
+  the sync-back detector for the api-doc chain. The api-spec (authored spec-first by `api-spec`) is
+  the source of truth; this skill **writes nothing** — it scans the Go code and diffs it against
+  `docs/api/<domain>/*.yaml` (routes, request/response fields, M/O, types), reporting where the
+  implementation drifted from the contract so `api-spec` can reconcile it. Built-in **three-layer
+  verify** (script + fresh-eyes agent + completeness sweep). Trigger on: "check go against api-spec",
+  "api drift report", "sync-back api", "did the code drift from the spec", "หา drift api",
+  "เช็ค code ตรงกับ api-spec ไหม". Also trigger when the using-neo flow needs the api-spec drift /
+  sync-back check. NOTE: reads `docs/api/*.yaml` (authored by `api-spec` via `/spec`) + Go, writes
+  nothing — a runnable Bruno collection is `open-collection`; Confluence publishing is
+  `confluence-api-doc`. Not a spec generator, OpenAPI converter, or editor.
 compatibility:
   environment: claude-code
   tools:
@@ -41,7 +37,7 @@ Scan the Go source and report where the implementation has **drifted** from the 
 
 ## Required input
 
-- **`docs/api/*.yaml`** — the api-spec must already exist. **Missing → STOP**: "no api-spec at `docs/api/` — run `/api-spec` to author it first." This skill never creates it.
+- **`docs/api/*.yaml`** — the api-spec must already exist. **Missing → STOP**: "no api-spec at `docs/api/` — run `/spec` to draft it first." This skill never creates it.
 - **Go source with `go.mod`.** Not a Go project (no `go.mod`, no `references/<lang>-scan-patterns.md`) → **STOP** (Go only; do not guess patterns). **Monorepo** (multiple `go.mod`) → ask which service, then scope `--src` *and* the `docs/api/` path to that one service.
 
 ## Step 1 · Locate the spec + Go root
@@ -57,7 +53,7 @@ python3 <ASSET_DIR>/speccheck.py docs/api --src <project-root>
 ```
 It reads the Go source + every `docs/api/<domain>/*.yaml` and mechanically checks **route coverage (both directions)** and **per-field presence / M-O / type** on confidently-matched endpoints. **Tripwire, not ground truth** — a `DRIFT` line means "inspect this".
 - **exit 0** → no confident drift → go to L1.5.
-- **exit 1** → for each `DRIFT`, open the actual struct / route / spec file and decide the **sync-back direction**: the spec is the intended contract and the code drifted → **reconcile the code** (or escalate); the code is correct and the spec is stale → the **`api-spec` skill reconciles `docs/api/<...>.yaml`** (re-run `apispeccheck.py` after) — then re-run this check. A genuine **false positive** — a spec-first endpoint not built yet, or an intentionally-undocumented route — is **confirmed + recorded under Warnings**, never silently "fixed". **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate** with the remaining drift. (This skill writes nothing — when run inside `neo`, the `api-spec` skill applies the YAML reconciliation; standalone, surface the report and let the author apply it.)
+- **exit 1** → for each `DRIFT`, open the actual struct / route / spec file and decide the **sync-back direction**: the spec is the intended contract and the code drifted → **reconcile the code** (or escalate); the code is correct and the spec is stale → the **`api-spec` skill reconciles `docs/api/<...>.yaml`** (re-run `apispeccheck.py` after) — then re-run this check. A genuine **false positive** — a spec-first endpoint not built yet, or an intentionally-undocumented route — is **confirmed + recorded under Warnings**, never silently "fixed". **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate** with the remaining drift. (This skill writes nothing — at Ship, via `/ship` in api-spec Update-from-code mode, the `api-spec` skill applies the YAML reconciliation; standalone, surface the report and let the author apply it.)
 - Collect every **`NOTE`** line (each ends `needs fresh-eyes`) — they feed L2; NOTEs don't fail the run.
 
 ### verify-L1.5 · Offer fresh-eyes (default yes)

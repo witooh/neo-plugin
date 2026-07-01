@@ -21,9 +21,9 @@ docs/         → Setup guides for different tools
 **Build:** incremental-implementation, test-driven-development, context-engineering, source-driven-development, doubt-driven-development, frontend-ui-engineering, api-and-interface-design
 **Verify:** browser-testing-with-devtools, debugging-and-error-recovery, e2e-playwright
 **Review:** code-review-and-quality, code-simplification, security-and-hardening, performance-optimization
-**Ship:** git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, observability-and-instrumentation, shipping-and-launch
+**Ship:** git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, observability-and-instrumentation, shipping-and-launch, open-collection, confluence-api-doc, openapi-doc
 
-> `api-spec` spans two phases — **Define** drafts the `docs/api/` contract spec-first (via `/spec`), **Ship** reconciles it from the built code via Update-from-code (via `/ship`).
+> `api-spec` spans two phases — **Define** drafts the `docs/api/` contract spec-first (via `/spec`), **Ship** reconciles it from the built code via Update-from-code (via `/ship`). The api-doc chain's **consumers** cluster at **Ship**: `open-collection` (runnable Bruno collection) and `confluence-api-doc` (Confluence publish) fold into `/ship`; `openapi-doc` (read-only Go↔spec drift report) stays discoverable on demand.
 
 ## Conventions
 

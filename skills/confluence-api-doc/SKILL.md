@@ -8,13 +8,12 @@ description: >
   built-in **three-layer verify**: a deterministic pre-flight + round-trip check, an
   independent fresh-eyes pass, and a completeness sweep. Trigger on: "publish api doc",
   "sync api doc", "push doc to confluence", "publish api spec to confluence",
-  "อัปเดต api doc ไป confluence", "sync confluence pages", "publish the api docs to
-  confluence", "sync api spec to confluence". Also
-  trigger when neo delegates API-doc publishing. NOTE: the api-spec is authored by the
+  "อัปเดต api doc ไป confluence", "sync api spec to confluence". Also
+  trigger when the using-neo Ship flow needs API-doc publishing. NOTE: the api-spec is authored by the
   `api-spec` skill; `openapi-doc` drift-checks Go against it; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
   `docs/api/*.yaml` api-spec — if it does not exist, run
-  `/api-spec` first. Not a general Confluence editor.
+  `/spec` first. Not a general Confluence editor.
 compatibility:
   environment: claude-code
   tools:
@@ -35,7 +34,7 @@ Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML ap
 
 ## The spine
 
-1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/api-spec` to author it). Then take the Confluence parent-page URL → page ID.
+1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/spec` to author it). Then take the Confluence parent-page URL → page ID.
 2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
 3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML — `description` → intro, `path_params`/`query_params`/`request_body.fields`/`responses[].fields` → field tables, `request_body.example` / `responses[].example` → example blocks, `business_logic` → its own section, `errors[]` → the Error Responses table; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
 4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.

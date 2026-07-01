@@ -17,7 +17,7 @@ docs/api/                       Confluence page tree
 
 ## Step P1 — Gather inputs
 
-1. **Source path** — the api-spec at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if absent, STOP (run `/api-spec` to author it).
+1. **Source path** — the api-spec at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if absent, STOP (run `/spec` to author it).
 2. **Parent page URL** — extract the numeric **page ID** from the URL (e.g. `…/pages/123456789/Title` → `123456789`).
 
 ## Step P2 — Auth + credentials
@@ -168,7 +168,7 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 ## Error reference
 | Scenario | Action |
 |---|---|
-| no `docs/api/*.yaml` at source | STOP — run `/api-spec` first to author the api-spec |
+| no `docs/api/*.yaml` at source | STOP — run `/spec` first to author the api-spec |
 | an endpoint YAML with no `responses` | skip + list in warnings; don't abort |
 | HTTP 401 | check `$CONFLUENCE_API_TOKEN` / re-ask |
 | HTTP 404 on a page | verify page ID (may be deleted) |

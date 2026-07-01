@@ -41,6 +41,10 @@ Task arrives
     ├── Deprecating/migrating? ────────→ deprecation-and-migration
     ├── Writing docs/ADRs? ───────────→ documentation-and-adrs
     ├── Adding logs/metrics/alerts? ───→ observability-and-instrumentation
+    ├── Shipping API docs (from docs/api)?
+    │   ├── Code drifted from the contract? → openapi-doc  (read-only drift report)
+    │   ├── Need a runnable API collection? → open-collection  (Bruno collection)
+    │   └── Publish the contract to Confluence? → confluence-api-doc
     └── Deploying/launching? ─────────→ shipping-and-launch
 ```
 
@@ -169,7 +173,9 @@ For a complete feature, the typical skill sequence is:
 12. code-simplification         → Reduce unnecessary complexity while preserving behavior
 13. git-workflow-and-versioning → Clean commit history
 14. documentation-and-adrs      → Document decisions
-14b. api-spec (Update-from-code) → Reconcile docs/api against the built code, structural sync-back (if an api-spec exists)
+14b. api-spec (Update-from-code) → Reconcile docs/api against the built code, structural sync-back (if an api-spec exists; openapi-doc gives a read-only drift report first, on demand)
+14c. open-collection            → Regenerate the runnable Bruno collection deliverable from docs/api (if one is maintained)
+14d. confluence-api-doc         → Publish the docs/api contract to Confluence (if published there)
 15. deprecation-and-migration   → Retire old systems and move users safely when needed
 16. shipping-and-launch         → Deploy safely
 ```
@@ -206,3 +212,6 @@ Not every task needs every skill. A bug fix might only need: `debugging-and-erro
 | Ship | documentation-and-adrs | Document the why, not just the what |
 | Ship | observability-and-instrumentation | Structured logs, RED metrics, traces, symptom-based alerts |
 | Ship | shipping-and-launch | Pre-launch checklist, monitoring, rollback plan |
+| Ship | open-collection | Runnable Bruno API collection generated from the docs/api spec |
+| Ship | confluence-api-doc | Publish the docs/api spec to Confluence — one page per endpoint |
+| Ship | openapi-doc | Read-only drift report: Go ↔ docs/api spec (on-demand sync-back audit) |

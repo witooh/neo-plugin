@@ -150,7 +150,7 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ---
 
-## All 25 Skills
+## All 34 Skills
 
 The commands above are entry points. The pack includes 34 skills total — 33 workflow and tooling skills plus the `using-neo` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
 
@@ -220,6 +220,9 @@ The commands above are entry points. The pack includes 34 skills total — 33 wo
 | [documentation-and-adrs](skills/documentation-and-adrs/SKILL.md) | Architecture Decision Records, API docs, inline documentation standards - document the *why* | Making architectural decisions, changing APIs, or shipping features |
 | [observability-and-instrumentation](skills/observability-and-instrumentation/SKILL.md) | Structured logging, RED metrics, OpenTelemetry tracing, symptom-based alerting - instrument as you build | Adding telemetry, or shipping anything that runs in production |
 | [shipping-and-launch](skills/shipping-and-launch/SKILL.md) | Pre-launch checklists, feature flag lifecycle, staged rollouts, rollback procedures, monitoring setup | Preparing to deploy to production |
+| [open-collection](skills/open-collection/SKILL.md) | Generate a runnable, self-documenting Bruno OpenCollection from the `docs/api` spec — one request per endpoint, with environments and auth | Shipping a runnable API-collection deliverable from the docs/api contract |
+| [confluence-api-doc](skills/confluence-api-doc/SKILL.md) | Publish the `docs/api` spec to Confluence — one page per endpoint under domain-group parents; acli + REST sync with three-layer verify | Publishing the API contract to Confluence at ship time |
+| [openapi-doc](skills/openapi-doc/SKILL.md) | Read-only drift report: diff Go against the `docs/api` spec (routes, fields, M/O, types) so api-spec can reconcile — the sync-back detector | Auditing whether the code still matches the documented API contract |
 
 ---
 
@@ -316,7 +319,7 @@ neo/
 │   ├── documentation-and-adrs/        #   Ship
 │   ├── observability-and-instrumentation/ # Ship
 │   ├── shipping-and-launch/           #   Ship
-│   ├── openapi-doc/                   #   API docs (spec → OpenAPI)
+│   ├── openapi-doc/                   #   API docs (Go↔spec drift report)
 │   ├── open-collection/               #   API docs (Bruno collection)
 │   ├── confluence-api-doc/            #   API docs (Confluence)
 │   ├── init-project/                  #   Scaffold (new Go service)

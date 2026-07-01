@@ -13,7 +13,7 @@ This skill writes a **subset** of the OpenCollection spec — the sections neede
 | `opencollection.yml` | Collection root. One per collection. Holds `info` + bundling/ignore config. |
 | `environments/<NAME>.yml` | One file per environment. Holds variables (including secrets). |
 | `<folder>/folder.yml` | Folder metadata + inherited headers/auth for child requests. |
-| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `docs` + `settings` (Spec mode) — `docs:` is the api-spec endpoint rendered by `yaml2md.py`. AC-scenario mode carries `runtime` (assertions) instead of `docs`. |
+| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `docs` + `settings` — `docs:` is the api-spec endpoint rendered by `yaml2md.py`. |
 
 ---
 
@@ -26,7 +26,7 @@ info:
   name: <Service Name>
 
 docs: |-
-  <the _meta INDEX render — Spec mode>
+  <the _meta INDEX render>
 
 bundled: false
 
@@ -41,7 +41,7 @@ extensions:
 |-----|----------|-------|
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
-| `docs` | no | (Spec mode) the api-spec INDEX rendered by `yaml2md.py --index docs/api/_meta.yaml docs/api` — service overview, Field Information, the by-domain endpoint list, Common Error Responses. Omit in AC-scenario mode. |
+| `docs` | no | The api-spec INDEX rendered by `yaml2md.py --index docs/api/_meta.yaml docs/api` — service overview, Field Information, the by-domain endpoint list, Common Error Responses. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
 | `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` + `.git`. The api-spec lives under `docs/api/` (outside the collection root), so it needs no ignore entry. |
 
@@ -86,7 +86,7 @@ info:
   seq: 1
 
 docs: |-
-  <the _meta.domains.<group> prose — Spec mode, when present>
+  <the _meta.domains.<group> prose, when present>
 
 request:
   headers:
@@ -102,7 +102,7 @@ request:
 | `info.name` | yes | Display name (e.g., `Account`, `Balance`). Derived from the endpoint's `domain` (or `_meta.domains.<d>.title`). |
 | `info.type` | yes | Always `folder`. |
 | `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… in `_meta.domains` order (by `seq`). |
-| `docs` | no | (Spec mode) the domain group prose from `_meta.domains.<group>` when present; omit otherwise and in AC-scenario mode. |
+| `docs` | no | The domain group prose from `_meta.domains.<group>` when present; omit otherwise. |
 | `request.headers` | no | Headers inherited by every request inside this folder. Lift here when every request shares the same header. |
 | `request.auth` | no | Auth inherited by child requests. Values: `inherit`, `none`, or an explicit auth block (see Auth Types). |
 
@@ -115,12 +115,11 @@ Section order (this skill emits in exactly this order):
 ```yaml
 info: ...
 http: ...
-docs: ...       # Spec mode only (the rendered api-spec endpoint)
-runtime: ...    # AC-scenario mode only (assertions)
+docs: ...       # the rendered api-spec endpoint
 settings: ...
 ```
 
-In **Spec mode** each request is runnable **and self-documenting** — it carries a `docs:` block (the api-spec endpoint rendered by `yaml2md.py`; no `runtime`, no `examples`). In **AC-scenario mode** request files instead carry a `runtime.assertions` block (HTTP status + stable error code — see the `runtime` section below) and **no `docs:`**. `examples` is never emitted.
+Each request is runnable **and self-documenting** — it carries a `docs:` block (the api-spec endpoint rendered by `yaml2md.py`; no `runtime`, no `examples`). `examples` is never emitted.
 
 ### `info`
 
@@ -173,33 +172,9 @@ http:
 | `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. |
 | `auth` | yes | `inherit` (default — read from `folder.yml`), `none`, or an explicit auth block. |
 
-### `docs` (Spec mode only)
+### `docs`
 
-Emitted **only** in Spec mode — the request's human-readable documentation, rendered from the api-spec endpoint by `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` and copied verbatim into a `|-` block scalar. A **string**, not a map. Never hand-written; `colcheck.py` K7 fails any request whose `docs:` ≠ that render. In AC-scenario mode there is no `docs:` block.
-
-### `runtime` (AC-scenario mode only)
-
-Emitted **only** in AC-scenario mode (see `request-template.md` §8). Carries declarative response assertions; in Spec mode there is no `runtime` block.
-
-```yaml
-runtime:
-  assertions:
-    - expression: res.status
-      operator: eq
-      value: "400"
-    - expression: res.body.error
-      operator: eq
-      value: "DENOMINATION_NOT_SUPPORTED"
-```
-
-| Key | Required | Notes |
-|-----|----------|-------|
-| `assertions[].expression` | yes | What to assert — `res.status` (mandatory, one per request) or `res.body.<field>` for a stable error code. |
-| `assertions[].operator` | yes | `eq` for status/code; `isNotEmpty` when an error body is expected but no stable code exists. |
-| `assertions[].value` | for `eq` | Quoted string — the expected status (`"400"`) or stable error code (`"DENOMINATION_NOT_SUPPORTED"`). Never a human message string. |
-| `assertions[].disabled` | no | Omitted in this skill — assertions stay enabled so `bru run` validates them. |
-
-A JS `runtime.scripts` block with `type: tests` can also express assertions, but this skill uses the **declarative `assertions`** form — byte-stable and machine-parseable by `colcheck.py`.
+The request's human-readable documentation, rendered from the api-spec endpoint by `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` and copied verbatim into a `|-` block scalar. A **string**, not a map. Never hand-written; `colcheck.py` K7 fails any request whose `docs:` ≠ that render.
 
 ### `settings`
 
