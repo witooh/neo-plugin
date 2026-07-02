@@ -136,8 +136,26 @@ Use agent definitions from `agents/` as Copilot personas and skill content in `.
 </details>
 
 <details>
-  <summary><b>Kiro IDE & CLI </b></summary>
-  Skills for Kiro reside under ".kiro/skills/" and can be stored under Project or Global level. Kiro also supports Agents.md. See Kiro docs at https://kiro.dev/docs/skills/
+<summary><b>Kiro IDE & CLI</b></summary>
+
+Run `kiro.sh` to install neo's skills (as `/<name>` slash commands), agents, and AGENTS.md steering into a Kiro config directory (`.kiro/`). See [Kiro docs](https://kiro.dev/docs/skills/).
+
+**Install globally (`~/.kiro`):**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+cd neo-plugin
+./kiro.sh
+```
+
+**Install into a project (`DIR/.kiro`):**
+
+```bash
+./kiro.sh --project /path/to/your-project
+```
+
+Re-running overwrites only neo-owned entries; other Kiro content is left intact.
+
 </details>
 
 <details>
