@@ -1,7 +1,7 @@
 # neo-service
 
 A freshly scaffolded Go microservice on a **hexagonal / DDD** architecture: a pure `domain`
-core (encapsulated aggregates, domain services, typed errors, and the driven ports it owns),
+core (encapsulated aggregates, domain services, typed errors, and the centralized driven ports — `repository` + `event`),
 an application `usecase` layer (one package per operation), and `delivery` / `adapters` layers
 for every inbound (HTTP, Kafka consumer) and outbound (Postgres, Redis, Kafka) integration.
 Dependencies point **inward only** — `delivery / adapters → usecase → domain`.
@@ -28,8 +28,8 @@ neo-service/
 ├── config/                          # typed config + loader, beside config.yaml
 ├── internal/
 │   ├── core/
-│   │   ├── domain/                  # THE MODEL — aggregates, domain services, typed errors +
-│   │   │                            #   the driven ports each context owns (neo adds these)
+│   │   ├── domain/                  # THE MODEL (per layer: entity/ service/ repository/ event/) —
+│   │   │                            #   aggregates, domain services, typed errors + centralized ports (neo adds these)
 │   │   └── usecase/                 # ONE operation per package → usecase.go + exec.go (neo adds)
 │   ├── delivery/
 │   │   └── http/{router,middleware} # inbound HTTP (gin): /health + the middleware chain

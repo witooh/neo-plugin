@@ -25,30 +25,31 @@ config/                package config — runtime configuration (imported by cmd
 
 ## ⚠️ Domain-port imports + name-collision aliases
 
-The wiring imports the **co-located domain-context ports** (the parameter types of
-`buildHandlers`): each context's repository port(s), any co-located `NumberGenerator` /
-`Cache` / `EventPublisher`, and the `integration/<sys>` gateway ports — plus the concrete
+The wiring imports the **centralized domain ports** (the parameter types of
+`buildHandlers`): the `repository` package's port(s) — repositories plus any `NumberGenerator` /
+`Cache` — the `event` package's `EventPublisher`, and the `integration/<sys>` gateway ports — plus the concrete
 adapter types it constructs (e.g. `eventbus.ProducerAdapter`, `cache.Cache`).
 
 The concrete repository / gateway ports for this service are in `repo-instance.md`.
 
-Several **domain context packages share a name with a delivery handler package** (a
-`<context>` exists in both `domain/` and `delivery/http/handler/`). Because `cmd/api/http.go`
-imports both, the **domain import is aliased** while the handler keeps the bare name:
+The **per-layer domain packages** (`entity`, `repository`, `event`, root `domain`) have distinct
+names from the handler packages, so `cmd/api/http.go` imports them plain. Only integration packages
+(`integration/<upstream>`, `package <upstream>`) can still share a name with a handler; alias those:
 
 ```go
 import (
-    dm<context>  "{{MODULE_PATH}}/internal/core/domain/<context>"             // domain (aliased)
-    dm<upstream> "{{MODULE_PATH}}/internal/core/domain/integration/<upstream>"
+    "{{MODULE_PATH}}/internal/core/domain/repository"                          // domain ports (plain)
+    "{{MODULE_PATH}}/internal/core/domain/entity"                             // domain data types (plain)
+    dm<upstream> "{{MODULE_PATH}}/internal/core/domain/integration/<upstream>" // aliased if it clashes with a handler
     // …
     "{{MODULE_PATH}}/internal/delivery/http/handler/<context>"             // handler (bare name)
     "{{MODULE_PATH}}/internal/delivery/http/handler/<other>"
 )
 
-func buildHandlers(<aggregate>Repo dm<context>.<Aggregate>Repository, <upstream>Adapter dm<upstream>.<Upstream> /* … */) *router.Handlers
+func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>Adapter dm<upstream>.<Upstream> /* … */) *router.Handlers
 ```
 
-(The same name-collision convention applies inside the handler packages themselves — see
+(The integration-package aliasing convention also applies inside the handler packages — see
 `handler.md`.)
 
 ## `main.go` — thin
@@ -73,9 +74,9 @@ only place concrete adapter types are named.
 ```go
 db := openDB(config.Conf.DB)
 queries := sqlc.New(db)
-<aggregate>Repo := postgres.New<Aggregate>Repository(queries)            // → <context>.<Aggregate>Repository
+<aggregate>Repo := postgres.New<Aggregate>Repository(queries)            // → repository.<Aggregate>Repository
 <upstream>Adapter := <upstream>http.NewHTTPAdapter(<upstream>http.Config{}) // → <sys>.<Upstream>
-appCache := cache.NewCache(redisClient)                                 // → <context>.Cache
+appCache := cache.NewCache(redisClient)                                 // → repository.Cache
 ```
 
 ## `http.go` — wire usecases into handlers, then serve
@@ -88,7 +89,7 @@ construction, the middleware chain, `/health`, and route groups now live in the 
 `router.Handlers` and hands it to `router.New`.
 
 ```go
-func buildHandlers(<aggregate>Repo dm<context>.<Aggregate>Repository, <upstream>Adapter dm<upstream>.<Upstream> /* …interfaces… */) *router.Handlers {
+func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>Adapter dm<upstream>.<Upstream> /* …interfaces… */) *router.Handlers {
 	<op>UC := <operation>.New(<operation>.Params{Repo: <aggregate>Repo})
 	// ... build every usecase ...
 	return &router.Handlers{

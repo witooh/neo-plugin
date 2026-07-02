@@ -13,10 +13,10 @@ map to/from DTOs, delegate to `Exec`, shape the response. **No business logic.**
 internal/delivery/http/
     handler/<resource>/
         handler.go        # Handler struct + New() ONLY — no methods
-        <operation>.go    # ONE file per operation: the gin method + its request DTO + request mapper/validator
+        <operation>.go    # ONE file per operation: the gin method only (DTOs + mappers live in dto/)
         shared/error.go   # cross-handler edge helpers (validation-error translation)
     dto/
-        <resource>.go     # response DTOs + New<Resource>Response mappers (reused across that resource's ops)
+        <resource>.go     # request + response DTOs (resource-prefixed) + their mappers (To*/New<Resource>Response)
         shared.go         # response-mapper helpers (e.g. decimalToFloat)
     middleware/
         middleware.go     # Setup(r, serviceID): the standard chain, wrapping common-lib
@@ -27,8 +27,8 @@ internal/delivery/http/
 
 **One operation = one file.** A handler with N endpoints is N+1 files (`handler.go` + one
 per op), so two people adding different endpoints never touch the same file. The operation
-file is self-contained: its request DTO, its request→domain mapper, and its input
-validation all live beside the gin method.
+file holds only the gin method; its request/response DTOs and its request→domain mapper live
+together in `dto/<resource>.go`.
 
 ## `handler.go` — struct + constructor only
 
@@ -57,33 +57,30 @@ keep `Usecase`.
 
 ## `<operation>.go` — one endpoint per file
 
-Holds the gin method, **its** request DTO (with `binding` tags), and **its** request→domain
-mapper / validator. Response shaping calls a `dto.New<Resource>Response` mapper.
+Holds the gin method. The request DTO (`dto.<Resource><Op>Request`, with `binding` tags) and
+its request→domain mapper both live in `dto/`; the method binds the request, delegates, then
+shapes the response via `dto.New<Resource>Response`.
 
-> **Name-collision alias.** A handler package may share its name with the domain context it
-> maps to (`delivery/http/handler/<context>` and `domain/<context>` are both `package
-> <context>`). When the operation file imports that domain context, **alias the domain import**
-> (e.g. `dm<context>`) so the two don't clash. The skeletons below show the plain name for
-> brevity; alias it where the collision is real. (This repo's actual aliases: `repo-instance.md`.)
+> **Domain imports.** The per-layer domain packages (`entity`, `repository`, `event`, `service`,
+> root `domain`) have distinct names, so a handler/dto package imports them plain — no alias
+> needed. Only integration packages (`integration/<sys>`, `package <sys>`) can still collide with a
+> handler name; alias those (e.g. `dm<sys>`) where the clash is real. (This repo's actual
+> aliases: `repo-instance.md`.)
 
 ```go
 package <resource>
 
-type Request struct {                                   // request DTO stays here (package-scoped)
-	Amount decimal.Decimal `json:"amount" binding:"required"`
-}
-
-// <Op> reads the path/query, binds+validates the request (→ edge mapper), delegates to the
-// usecase (passing c as ctx), pushes any typed error for the middleware to map to a status,
-// then wraps the success payload in the standard envelope.
+// <Op> reads the path/query, binds the request DTO, delegates to the usecase (passing c as
+// ctx), pushes any typed error for the middleware to map to a status, then wraps the success
+// payload in the standard envelope.
 func (h *Handler) <Op>(c *gin.Context) {
 	id := c.Param("id")
-	var req Request
+	var req dto.<Resource><Op>Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(shared.HandleValidationError(err))
 		return
 	}
-	result, err := h.<Op>UC.Exec(c, id, toDomain(req))
+	result, err := h.<Op>UC.Exec(c, id, req.ToDomain())
 	if err != nil {
 		c.Error(err)
 		return
@@ -94,30 +91,43 @@ func (h *Handler) <Op>(c *gin.Context) {
 		Message: "<op> successfully", Data: dto.New<Resource>Response(result),
 	})
 }
-
-// toDomain maps the request DTO to the aliased domain aggregate.
-func toDomain(req Request) *dm<context>.<Aggregate> { /* ... */ }
 ```
 
-## `dto/` — response DTOs (centralised, resource-prefixed)
+## `dto/` — request + response DTOs (centralised, resource-prefixed)
 
-Response DTOs and their `New<Resource>Response` mappers live in the `dto` package, one file
-per resource. Because the package is shared, **type names are resource-prefixed** to avoid
-collisions (`AccountResponse`, `BalanceResponse`, `AccountListResponse`). Request DTOs do
-**not** move here — they stay inline in their operation file (package-scoped, so no prefix
-is needed). A handler that returns a port read-model directly needs no DTO file.
+Both request and response DTOs live in the `dto` package, one file per resource, with the
+request and response for the same operation kept together. Because the package is shared,
+**type names are resource-prefixed** to avoid collisions (`AccountCreateRequest`,
+`AccountResponse`, `AccountListResponse`).
+
+**DTO fields are primitive/wire types only** (`string`, `bool`, numbers) — never domain or
+third-party custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum). Plain types keep
+`binding:"required"` working (the validator can't detect a zero `decimal.Decimal`) and keep
+the wire contract independent of domain types. Convert at the edge in mapper funcs/methods:
+the request DTO parses its strings into domain values (e.g. `AmountDecimal() (decimal.Decimal,
+error)`, or a value-object `To<VO>()`); the `New<Resource>Response` mapper stringifies domain
+values (`.String()`). A handler that returns a port read-model directly needs no DTO file.
 
 ```go
 package dto
 
-import dm<context> "{{MODULE_PATH}}/internal/core/domain/<context>"   // aliased: dto is not package <context>
+import "{{MODULE_PATH}}/internal/core/domain/entity"   // domain data types (plain import — distinct name)
+
+type <Resource><Op>Request struct {
+	Amount string `json:"amount" binding:"required"` // wire type, not decimal.Decimal
+}
+
+// AmountDecimal parses the request string into the domain value (convert at the edge).
+func (r <Resource><Op>Request) AmountDecimal() (decimal.Decimal, error) {
+	return decimal.NewFromString(r.Amount)
+}
 
 type <Resource>Response struct {
 	Id string `json:"id"`
 }
 
-func New<Resource>Response(a *dm<context>.<Aggregate>) <Resource>Response {
-	return <Resource>Response{Id: a.Id().String()}
+func New<Resource>Response(a *entity.<Aggregate>) <Resource>Response {
+	return <Resource>Response{Id: a.Id().String()} // stringify domain values
 }
 ```
 
@@ -186,5 +196,6 @@ failures go through `shared.HandleValidationError` to become a typed 400 first.
 - ✗ Business rules, repository calls, or external calls in a handler — delegate to a usecase.
 - ✗ Methods on the handler in `handler.go` — each endpoint goes in its own operation file.
 - ✗ Returning the aggregate directly — always map to a response DTO via getters.
-- ✗ Request DTOs in `dto/` — keep them inline in the operation file.
+- ✗ DTOs inline in the operation file — request and response DTOs both live in `dto/<resource>.go`, resource-prefixed.
+- ✗ Domain/custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum) in a DTO field — use a primitive and convert in the mapper.
 - ✗ A handler importing another handler, the router, or a concrete adapter.

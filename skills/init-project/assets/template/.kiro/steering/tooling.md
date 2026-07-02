@@ -75,8 +75,8 @@ packages:
     config: { all: true, dir: internal/mocks/domain{{ trimPrefix "internal/core/domain" .InterfaceDirRelative }} }
 ```
 
-This generates: `internal/mocks/domain/<context>/...` (the co-located domain ports —
-repository, cache, event-publisher, the `integration/<sys>` gateways),
+This generates: `internal/mocks/domain/{repository,event}/...` (the centralized domain ports —
+repository, cache, event-publisher, plus the `integration/<sys>` gateways),
 `internal/mocks/gateway/...`, `internal/mocks/eventbus/...`, and `pkg/mocks/...`. Mock the
 **seams** — the domain-owned ports and the select adapter / `pkg` interfaces listed under
 `packages:`. Not domain logic.

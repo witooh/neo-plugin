@@ -44,7 +44,7 @@ RESIDUE_DIRS = [
     ("internal/adapter", True,  "singular internal/adapter/ → internal/delivery/http/ + internal/adapters/"),
     ("external",         True,  "outbound adapters belong in internal/adapters/gateway/ (integration.md)"),
     ("database",         True,  "persistence belongs in internal/adapters/repository/postgres/ (repository.md)"),
-    ("internal/domain",  True,  "flat internal/domain/ → internal/core/domain/<context>/ (domain.md)"),
+    ("internal/domain",  True,  "flat internal/domain/ → internal/core/domain/{entity,service,repository,event}/ (domain.md)"),
 ]
 
 # Framework packages banned inside core (the depguard contract — structure.md / domain.md).
@@ -123,7 +123,7 @@ def check_residue(root: Path) -> None:
 
 
 def check_nested_layers(root: Path) -> None:
-    """usecase/ outside core, repository/ outside adapters, any ports/ dir → NOTE (heuristic)."""
+    """usecase/ outside core, repository/ outside adapters+domain, any ports/ dir → NOTE (heuristic)."""
     internal = root / "internal"
     if not internal.is_dir():
         return
@@ -132,16 +132,17 @@ def check_nested_layers(root: Path) -> None:
         name = Path(dirpath).name
         if name == "usecase" and not rel.startswith("internal/core/usecase"):
             note(f"{rel}/", "usecase package outside internal/core/usecase/ (usecase.md)")
-        if name == "repository" and not rel.startswith("internal/adapters/repository"):
-            note(f"{rel}/", "repository package outside internal/adapters/repository/ (repository.md)")
+        if name == "repository" and not rel.startswith("internal/adapters/repository") \
+                and not rel.startswith("internal/core/domain/repository"):
+            note(f"{rel}/", "repository package outside internal/adapters/repository/ or internal/core/domain/repository/ (repository.md)")
         if name in ("ports", "port"):
-            note(f"{rel}/", "driven ports should be co-located in internal/core/domain/<context>/ (integration.md)")
+            note(f"{rel}/", "driven ports live in internal/core/domain/repository/ + event/, not a ports/ dir (domain.md)")
 
 
 def check_group_case(root: Path) -> None:
-    """Bounded-context group dirs directly under core/usecase + core/domain must be lowercase —
-    the context's package name, identical on both layers and to the blueprint (account, accountpool;
-    never Account/AccountPool). DRIFT (high-confidence structural fact)."""
+    """Group dirs directly under core/usecase (bounded-context names) and core/domain (the fixed
+    technical-layer names entity/service/repository/event/integration) must be lowercase — never
+    Account/Entity. DRIFT (high-confidence structural fact)."""
     for layer in ("internal/core/usecase", "internal/core/domain"):
         base = root / layer
         if not base.is_dir():
@@ -149,8 +150,8 @@ def check_group_case(root: Path) -> None:
         for p in sorted(base.iterdir()):
             if p.is_dir() and p.name not in SKIP_DIRS and p.name != p.name.lower():
                 drift(f"{layer}/{p.name}/",
-                      f"group dir must be lowercase (the <context> package name, matching "
-                      f"core/domain/ and the blueprint) — rename to {p.name.lower()}/ (structure.md)")
+                      f"group dir must be lowercase (a <context> package under usecase / a layer "
+                      f"name under domain) — rename to {p.name.lower()}/ (structure.md)")
 
 
 def check_dependency_rule(root: Path, module: str | None) -> None:

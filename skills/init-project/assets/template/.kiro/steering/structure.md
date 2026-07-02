@@ -48,7 +48,7 @@ the service it documents.
 |---|---|---|---|
 | `{{MODULE_PATH}}` | Go module path | the `module` line in `go.mod` | `example.com/org/<service>` |
 | `{{SERVICE_NAME}}` | short service name | tracer / container / config | `<service>` |
-| `<context>` | **lowercase** bounded-context name — the package/folder shared by `domain/<context>/` and `usecase/<context>/` (never PascalCase like `Order`) | — | `order`, `billing` |
+| `<context>` | **lowercase** bounded-context name — the folder shared by `usecase/<context>/` and `delivery/http/handler/<context>` (domain is per-layer, not `domain/<context>`; never PascalCase like `Order`) | — | `order`, `billing` |
 | `<Aggregate>` | an aggregate / entity | — | `Order`, `LineItem` |
 | `<Upstream>` | an external system | — | `Payment`, `Inventory` |
 | `<operation>` | snake_case usecase package | — | `cancel_order` |
@@ -76,13 +76,12 @@ config/                           CONFIGURATION (package config) — typed confi
   config.yaml                     runtime config values (mounted into the container)
 internal/
   core/                           THE CORE — domain + application logic (depends on nothing outward)
-    domain/                       THE MODEL — split per bounded context; each context owns its ports
-      <context>/                  a bounded context — package = folder (e.g. account)
-                                    encapsulated aggregates + value objects (private fields, factories, commands)
-                                    domain services (stateless package functions)
-                                    events.go, enums.go, errors.go (the context that owns them)
-                                    repository.go      persistence PORT interface(s), domain-owned
-                                    cache.go eventpublisher.go numbergenerator.go  other driven PORTs, co-located
+    domain/                       THE MODEL — split per technical layer (one package per stereotype)
+      enums.go errors.go          package domain — typed enums + typed errors (flat root files)
+      entity/                     package entity — aggregates + value objects + computed results + read-models
+      service/                    package service — domain services (stateless package functions)
+      repository/                 package repository — ALL driven persistence ports (centralized, one per file)
+      event/                      package event — EventPublisher + domain event definitions
       integration/<sys>/          EXTERNAL read-only domains — one package per upstream (e.g. product)
                                     gateway.go         driven PORT interface + its param/result types
                                     readmodels.go      read-models the core consumes (plain data)
@@ -99,8 +98,8 @@ internal/
     gateway/<sys>/                outbound HTTP adapters → implement integration/<sys> ports
     repository/postgres/          outbound persistence (sqlc): migrations, queries, seed, sqlc
     repository/redis/             low-level Redis client
-    repository/cache/             cache adapter → implements <context>.Cache (Redis-backed)
-  mocks/                          generated test doubles (mockery): domain/<context>, gateway, eventbus
+    repository/cache/             cache adapter → implements repository.Cache (Redis-backed)
+  mocks/                          generated test doubles (mockery): domain/{repository,event}, gateway, eventbus
 pkg/                              shared low-level libraries (no domain logic) — tested in isolation
   messaging/                      Kafka WIRE CONTRACT shared by inbound (delivery) + outbound (adapters):
     eventid/ models/ schema/        routing ids · Avro models · .avsc — in pkg/ so neither layer crosses the other
@@ -117,27 +116,35 @@ service are in `repo-instance.md`.
 Imports point **inward only**: `delivery / adapters → usecase → domain`. An inner layer must
 never import an outer one.
 
-- **`core/domain`** imports nothing from `usecase` / `adapters`. Each bounded-context
-  package (one per context, plus each `integration/<sys>`) **owns
-  its driven ports**: the repository interface (`repository.go`), and any other outbound
-  contract it requires (`cache.go`, `eventpublisher.go`, `numbergenerator.go`, the
-  `integration/<sys>/gateway.go` interface). A domain service may use its own context's
-  repository **interface** — still inward. **There is no central `internal/port/` package**;
-  ports live with the context that consumes them.
+- **`core/domain`** imports nothing from `usecase` / `adapters`. It is split by **technical
+  layer**: `entity` (data types), `service` (domain services), `repository` (ALL driven
+  persistence ports, **centralized**), `event` (event-bus ports + event defs), root `enums.go` /
+  `errors.go` (`package domain`), plus `integration/<sys>` (external gateways + read-models). Inside
+  the domain, refs are acyclic: `domain` ← `entity` ← {`repository`, `event`, `service`}. The **one
+  exception to centralized ports is `integration/<sys>/gateway.go`** — external-system ports stay
+  per-upstream.
 - **Ambient capabilities are the exception.** A *context-free technical primitive* every layer
   consumes identically, with no business semantics in its signature — the wall-clock
   (`clock.Clock`), a fresh id (`idgen.Generator`) — is **not** a driven port and is **not**
   co-located: it lives in `pkg/` (beside any pure-function domain helper there), with its own
   small interface + a `System()` constructor wired from `cmd/api`, faked in a `*test` sub-package.
-  The test: does the contract speak a context's language, driven by one context (→ co-located
+  The test: does the contract speak a context's language, driven by one context (→ a domain
   port), or is it a primitive every layer needs the same way (→ `pkg/`)? Repository / Cache /
   EventPublisher / Gateway / NumberGenerator are ports; clock & id-generation are `pkg/`. **Domain
   stays pure** — a domain service takes the resolved value (`now time.Time`, the way it takes
   `decimal.Decimal`, never a clock service); only the **usecase** holds the injected port and
   reads `.Now()` / `.NewString()` at the boundary.
 - **`core/usecase`** depends on `core/domain` + the port **interfaces** it needs — imported
-  from the domain context that owns them (`<context>.<Aggregate>Repository`, `<context>.Cache`,
-  `<upstream>.<Upstream>`, …). Never on a concrete adapter, never on another usecase.
+  from the centralized `repository` / `event` packages (`repository.<Aggregate>Repository`,
+  `repository.Cache`, `event.EventPublisher`) plus each `<upstream>.<Upstream>` from
+  `integration/<sys>`. Never on a concrete adapter, never on another usecase.
+- **Cross-capability collaboration goes through a consumer-defined port.** When one usecase needs another
+  capability's operation, it does **not** import that usecase and there is **no** central
+  driving-port package. The **consuming** side declares a narrow, consumer-defined port in
+  `core/domain/repository` (or `event`, expressed in the language it needs); an **adapter**
+  satisfies that port over the providing capability, wired at the composition root (`cmd/api`, the
+  only importer of usecases). The seam is a port like every other outbound dependency — never a
+  usecase→usecase import.
 - **`delivery`** (HTTP handler / Kafka consumer) *calls* a usecase — it translates transport ↔ usecase
   and lives at top level, a sibling of `adapters` (deliberately **not** nested under it).
 - **`adapters`** *implements* a driven port (repository / gateway / cache / producer).
@@ -178,7 +185,7 @@ not a license to guess.
 
 | Layer | Path | Responsibility | May import |
 |---|---|---|---|
-| Domain | `internal/core/domain/**` | Business rules, invariants, aggregates, domain services, typed errors, **and the driven ports each context owns** (repository / cache / gateway / …) | (nothing outward) |
+| Domain | `internal/core/domain/**` | Business rules, invariants, aggregates, domain services, typed errors, **and the centralized driven ports** (`repository/`, `event/`; external gateways in `integration/<sys>/`) | (nothing outward) |
 | Usecase | `internal/core/usecase/**` | Orchestrate one operation; transaction/flow | `core/domain` (+ the ports it owns) |
 | Delivery (driving) | `internal/delivery/**` | Translate transport ↔ usecase calls | `core/usecase`, `core/domain` |
 | Outbound adapter | `internal/adapters/{gateway,repository,eventbus}/**` | Implement a port against a real system | the owning `core/domain` context, `core/domain` |
@@ -206,10 +213,11 @@ review and by the gates. Per-layer detail lives in the linked guides.
   service takes the resolved value (`now time.Time`), a usecase injects the port (`clock.Clock` /
   `idgen.Generator`) and reads it at the boundary; `cmd/api` wires `System()`. The build fails on a
   direct call — **this is what stops the testability seam from rotting** (see "Ambient capabilities").
-- **Driven ports stay co-located** in the `core/domain/<context>` that owns them — there is
-  **no central `port/` package; do not reintroduce one** (`integration.md`, `domain.md`).
-  *Exception:* a context-free **ambient capability** (clock, id-generation) is a generic `pkg/`
-  utility, not a driven port — see "Ambient capabilities" under the dependency rule.
+- **Driven ports are centralized** in `core/domain/repository` (persistence) and
+  `core/domain/event` (event bus), one interface per file referencing `entity` types — **except**
+  external-system gateways, which stay in `core/domain/integration/<sys>/gateway.go`
+  (`integration.md`, `domain.md`). *Also:* a context-free **ambient capability** (clock,
+  id-generation) is a generic `pkg/` utility, not a driven port — see "Ambient capabilities".
 - **One layer per directory.** Don't add a new top-level package under `internal/`, or move a
   layer, without updating this file first.
 - **Cross-capability goes through a port:** a usecase never imports another usecase · an adapter
@@ -253,7 +261,7 @@ Open a file in a layer and its guide loads automatically. `manual` files load on
 
 | Guide | Loads when you touch | Covers |
 |---|---|---|
-| `domain.md` | `internal/core/domain/**` | per-context split, aggregate encapsulation, value objects, domain services, events, enums, typed errors, the co-located repository + driven-port interfaces, integration read-models |
+| `domain.md` | `internal/core/domain/**` | per-layer split (entity/service/repository/event + root enums), aggregate encapsulation, value objects, domain services, events, typed errors, centralized driven-port interfaces, integration read-models |
 | `usecase.md` | `internal/core/usecase/**` | the `usecase.go` + `exec.go` one-operation-per-package pattern |
 | `handler.md` | `internal/delivery/http/**` | inbound HTTP: handler (op-split) + DTO + router + middleware + error mapping |
 | `messaging.md` | `internal/delivery/consumer/**`, `internal/adapters/eventbus/**` | Kafka inbound processor + outbound producer + event infra |

@@ -15,15 +15,18 @@ copies across unchanged (they carry no repo names).
 
 ## Bounded contexts (`structure.md`, `domain.md`)
 
-_None yet._ neo adds one `internal/core/domain/<context>/` package per bounded context here —
-each owning its aggregates, value objects, domain services, `events.go` / `enums.go` /
-`errors.go`, and its co-located driven ports (`repository.go`, `cache.go`, …). External
-read-only upstreams go under `internal/core/domain/integration/<sys>/`.
+_None yet._ neo builds the model **per technical layer** under `internal/core/domain/` — aggregates
+& value objects in `entity/`, domain services in `service/`, driven persistence/cache ports
+**centralized** in `repository/`, event-bus ports + event definitions in `event/`, and typed enums /
+errors in the root `enums.go` / `errors.go` (package `domain`). Each bounded context contributes its
+types across those layer packages; its usecases live under `internal/core/usecase/<context>/<operation>/`.
+External read-only upstreams stay one-package-per-upstream under `internal/core/domain/integration/<sys>/`.
 
 ## Driven ports (`app.md`)
 
-_None yet._ As contexts appear, list their repositories, gateways, and other ports here
-(e.g. `<context>.<Aggregate>Repository`, `<upstream>.<Upstream>`).
+_None yet._ As the model grows, list the centralized ports here — persistence/cache in `repository`
+(e.g. `repository.<Aggregate>Repository`, `repository.Cache`), event-bus in `event`
+(`event.EventPublisher`), and each external gateway under `integration/<sys>` (`<sys>.<Upstream>`).
 
 ## Decomposed operations (`usecase.md`, `testing.md`)
 

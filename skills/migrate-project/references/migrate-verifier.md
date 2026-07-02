@@ -16,8 +16,10 @@ pre-migration picture).
    (`cmd/api/`, `internal/core/{domain,usecase}/`, `internal/adapters/{repository,gateway,eventbus}/`,
    `internal/delivery/http/`, `config/`, `pkg/`). Confirm imports point **inward only** — grep that no
    `internal/adapters` / `internal/delivery` / `pkg` file imports `core/usecase` outward, that
-   `core/domain` imports nothing outward, and that **no central `internal/port/` package** was
-   introduced. Run `golangci-lint run` — depguard / forbidigo must pass (or not exceed the baseline).
+   `core/domain` imports nothing outward, and that driven ports are **centralized** in
+   `core/domain/repository` + `core/domain/event` (external-system gateways in `integration/<sys>/`)
+   — **not** scattered per package and **not** in a rogue `internal/port/`. Run `golangci-lint run`
+   — depguard / forbidigo must pass (or not exceed the baseline).
 
 2. **Behavior preserved.** `go build ./...` + `go vet` clean; the **existing** `go test ./...` passes
    (the same tests that passed before — a deleted / disabled test to make it pass is a red flag, call
@@ -25,7 +27,7 @@ pre-migration picture).
 
 3. **Conventions per the steering** (spot-check, don't exhaustively re-derive): aggregates
    encapsulated (private fields + getters + factories, no setters — `domain.md`); driven ports
-   co-located in their domain context (`integration.md`); one-operation-per-usecase-package
+   centralized in `repository/` + `event/` (gateways in `integration/<sys>/`, `domain.md`); one-operation-per-usecase-package
    (`usecase.go` + `exec.go`, `usecase.md`); one-operation-per-handler-file + DTO mapping at the edge
    (`handler.md`); core is deterministic-by-injection (no `time.Now()` / `uuid.New()` in
    domain / usecase).

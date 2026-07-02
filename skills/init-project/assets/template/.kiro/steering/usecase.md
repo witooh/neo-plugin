@@ -6,9 +6,9 @@ fileMatchPattern: "**/internal/core/usecase/**"
 # Usecase Layer
 
 Application services that orchestrate **one operation**. They depend on `core/domain` and on
-the **port interfaces** it needs — each imported from the **domain context that owns it**
-(`<context>.<Aggregate>Repository`, `<context>.Cache`, `<upstream>.<Upstream>`, …; there is no
-central `internal/port/` package). Never on a concrete adapter, never on another
+the **port interfaces** it needs — the centralized `repository` / `event` packages
+(`repository.<Aggregate>Repository`, `repository.Cache`, `event.EventPublisher`) plus each external
+`<upstream>.<Upstream>` from `integration/<sys>`. Never on a concrete adapter, never on another
 usecase.
 
 ## One operation = one package
@@ -35,16 +35,16 @@ type <Op>Usecase interface {
 	Exec(ctx context.Context, /* inputs */) (/* result, */ error)
 }
 
-// Params holds the dependencies of the use case. Each port is imported from the domain
-// context that owns it (e.g. "{{MODULE_PATH}}/internal/core/domain/<context>").
+// Params holds the dependencies of the use case. Persistence/event ports come from the
+// centralized "{{MODULE_PATH}}/internal/core/domain/repository" (and .../event) packages.
 type Params struct {
-	Repo <context>.<Aggregate>Repository
+	Repo repository.<Aggregate>Repository
 	// <Upstream>Adapter <sys>.<Upstream>   // add driven ports as needed (from integration/<sys>)
 }
 
 // usecase is the unexported application service. Construct it with New.
 type usecase struct {
-	Repo <context>.<Aggregate>Repository
+	Repo repository.<Aggregate>Repository
 }
 
 // New builds the use case from its dependencies.

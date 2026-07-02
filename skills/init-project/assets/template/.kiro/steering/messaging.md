@@ -9,7 +9,7 @@ Two directions, plus a shared contract:
 
 - **Inbound** — `internal/delivery/consumer`: receive events, route them to usecases.
 - **Outbound** — `internal/adapters/eventbus`: publish domain events (implements the
-  `<context>.EventPublisher` port, co-located in `internal/core/domain/<context>`).
+  `event.EventPublisher` port in `internal/core/domain/event`).
 - **Infra** — `internal/adapters/eventbus/kafka`: shared client glue (producer/consumer).
 - **Contract** — `pkg/messaging`: the wire contract both directions share — `eventid`
   (routing ids), `models` (Avro transport models), `schema` (`.avsc`). It lives in `pkg/`
@@ -82,8 +82,8 @@ usecase; never pass a transport DTO into `domain`.
 
 ## Outbound — publisher
 
-Satisfies the `<context>.EventPublisher` port structurally — the usecase depends on the port
-(co-located in `internal/core/domain/<context>`); the composition root injects this adapter. Unlike the
+Satisfies the `event.EventPublisher` port structurally — the usecase depends on the port
+(in `internal/core/domain/event`); the composition root injects this adapter. Unlike the
 gateway/repository constructors that return their port interface, the producer constructor
 returns its concrete adapter type (`ProducerAdapter`) and an error:
 
@@ -91,8 +91,8 @@ returns its concrete adapter type (`ProducerAdapter`) and an error:
 func NewProducerAdapter(ctx context.Context, cfg *producer.Config) (ProducerAdapter, error) { /* ... */ }
 ```
 
-Publish **domain events** (from the owning context's `events.go`, e.g.
-`<context>.<Aggregate>Opened`) mapped to the wire model. Keep the published contract stable — it is
+Publish **domain events** (from the `event` package's `events.go`, e.g.
+`event.<Aggregate>Opened`) mapped to the wire model. Keep the published contract stable — it is
 an API.
 
 ## Semantics

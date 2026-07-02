@@ -15,15 +15,18 @@ the slice and hand it to the Verifier.
 - Work on the **migration branch** the orchestrator created — never the target's main branch.
 - **`git mv`** every relocation (preserve history); then rewrite the package clause + every import
   path (old module-relative → blueprint path) across the repo. `go build ./...` must resolve.
-- Move whole units per the steering: a bounded context → `internal/core/domain/<context>/` (aggregate
-  + co-located ports + events / enums / errors); its operations →
+- Move whole units per the steering: the domain model → `internal/core/domain/` split **per
+  technical layer** (aggregates & value objects → `entity/`, domain services → `service/`, driven
+  persistence/cache ports **centralized** in `repository/`, event-bus ports + events → `event/`,
+  typed enums / errors → root `enums.go` / `errors.go`); each capability's operations →
   `internal/core/usecase/<context>/<operation>/` (`usecase.go` + `exec.go`); its persistence →
   `internal/adapters/repository/postgres/`; external calls → `internal/adapters/gateway/<sys>/`;
-  handlers → `internal/delivery/http/handler/<resource>/`; ports co-located in the owning domain
-  context (no central `internal/port/`).
+  handlers → `internal/delivery/http/handler/<resource>/`. Driven ports are centralized in
+  `repository/` + `event/` (external-system gateways stay in `integration/<sys>/`) — there is no
+  central `internal/port/`.
 - **Convention gaps** — apply only what the steering requires, only behavior-preserving: aggregate
   encapsulation (private fields + getters + `New` / `Restore` factories, no setters — watch the
-  `json.Marshal` gotcha in `domain.md`), co-located driven ports, deterministic-by-injection (lift
+  `json.Marshal` gotcha in `domain.md`), centralized driven ports (`repository/` + `event/`), deterministic-by-injection (lift
   `time.Now()` / `uuid.New()` out of core into `clock.Clock` / `idgen.Generator`), DTO mapping at the
   edge.
 

@@ -89,15 +89,15 @@ Method bodies (in `<operation>.go`):
 
 ## Cache adapter — `internal/adapters/repository/cache`
 
-The `Cache` port is **co-located in the domain context that drives it** —
-`internal/core/domain/<context>/cache.go` (`<context>.Cache`). Same adapter shape: the constructor
+The `Cache` port lives in the centralized `repository` package —
+`internal/core/domain/repository/cache.go` (`repository.Cache`). Same adapter shape: the constructor
 returns that port. The cache adapter wraps the low-level Redis client in
 `internal/adapters/repository/redis`.
 
 ```go
-import dm<context> "{{MODULE_PATH}}/internal/core/domain/<context>"
+import "{{MODULE_PATH}}/internal/core/domain/repository"
 
-func NewCache(client *redis.Client) dm<context>.Cache { /* ... */ }
+func NewCache(client *redis.Client) repository.Cache { /* ... */ }
 ```
 
 ## Fakes for tests

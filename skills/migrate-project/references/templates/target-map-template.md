@@ -21,11 +21,11 @@ Analyzed: <YYYY-MM-DD or session marker>
 |---|---|---|
 | composition root | <e.g. app/ + cmd/main.go> | cmd/api/ |
 | http handlers | <e.g. internal/adapter/handler/<r>/> | internal/delivery/http/handler/<r>/ |
-| domain | <e.g. internal/domain/*.go (flat)> | internal/core/domain/<context>/ |
+| domain | <e.g. internal/domain/*.go (flat)> | internal/core/domain/ (per layer: entity/ service/ repository/ event/) |
 | usecase | <e.g. internal/<feat>/usecase/> | internal/core/usecase/<context>/<op>/ |
 | repository | <e.g. internal/<feat>/repository/ + database/postgres/> | internal/adapters/repository/postgres/ |
 | gateways | <e.g. external/<sys>/> | internal/adapters/gateway/<sys>/ |
-| ports | <e.g. internal/<feat>/ports/> | co-located in internal/core/domain/<context>/ |
+| ports | <e.g. internal/<feat>/ports/> | centralized in internal/core/domain/{repository,event}/ (gateways in integration/<sys>/) |
 
 ## Features / bounded contexts
 | Feature | Current home(s) | Notes (layers present, coupling) |
@@ -34,7 +34,7 @@ Analyzed: <YYYY-MM-DD or session marker>
 
 ## Convention gaps (vs steering)
 - [ ] aggregates: <plain structs / public fields> → encapsulate (private + getters + factories) — domain.md
-- [ ] ports: <central internal/<feat>/ports/> → co-locate per context — integration.md
+- [ ] ports: <feature-local internal/<feat>/ports/ or scattered> → centralize in internal/core/domain/repository/ + event/ (gateways stay integration/<sys>/) — domain.md
 - [ ] deterministic-by-injection: time.Now()/uuid.New() in core at <file:line> → clock/idgen — structure.md
 - [ ] DTO mapping: <returns aggregate raw?> → map at the edge — handler.md
 - [ ] <other gaps>

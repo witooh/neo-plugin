@@ -29,11 +29,12 @@ The canonical slice shape for a service that is already clean-but-different-dial
    substituted into its depguard rules) + `.kiro/steering/` + `CLAUDE.md`; relocate shared/edge code
    (error mapping, response envelope, middleware, config) into the blueprint layout; create the
    `internal/core/` skeleton. After S1 the contract is in place even though most features still fail it.
-2. **S2..Sn — one feature per slice** — relocate each bounded context into
-   `internal/core/domain/<context>/` + `internal/core/usecase/<context>/<operation>/` + the adapter
-   (`internal/adapters/{repository,gateway}`) + delivery (`internal/delivery/http/handler/<resource>`),
-   rewriting imports and filling convention gaps (aggregate encapsulation, co-located ports,
-   deterministic-by-injection) per the steering.
+2. **S2..Sn — one feature per slice** — relocate each bounded context into the per-layer domain
+   (`internal/core/domain/{entity,service,repository,event}`) + `internal/core/usecase/<context>/<operation>/`
+   + the adapter (`internal/adapters/{repository,gateway}`) + delivery
+   (`internal/delivery/http/handler/<resource>`), rewriting imports and filling convention gaps
+   (aggregate encapsulation, centralized ports in `repository/` + `event/`, deterministic-by-injection)
+   per the steering.
 3. **S-last — composition root** — converge wiring on `cmd/api/{app,http,adapters,consumer}.go`.
 
 ## 3. Slice state machine

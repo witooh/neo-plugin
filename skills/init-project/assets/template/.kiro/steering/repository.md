@@ -5,10 +5,10 @@ fileMatchPattern: "**/internal/adapters/repository/**,**/*.sql,sqlc.yaml"
 
 # Repository Layer (outbound persistence adapter)
 
-Implements the repository **interfaces** each domain context owns (e.g.
-`<context>.<Aggregate>Repository`) against PostgreSQL via **sqlc**-generated queries. The interface
-is domain-owned and co-located in its context (see `domain.md`); only the implementation lives
-here.
+Implements the driven persistence **interfaces** centralized in the domain `repository` package
+(e.g. `repository.<Aggregate>Repository`, speaking `entity` aggregates) against PostgreSQL via
+**sqlc**-generated queries. The interfaces are domain-owned (see `domain.md`); only the
+implementation lives here.
 
 ```
 internal/adapters/repository/postgres/
@@ -22,7 +22,7 @@ internal/adapters/repository/postgres/
     seed/              # seed data conventions
 
 internal/adapters/repository/redis/   # low-level Redis client
-internal/adapters/repository/cache/   # cache adapter → <context>.Cache (wraps redis; see integration.md)
+internal/adapters/repository/cache/   # cache adapter → repository.Cache (wraps redis; see integration.md)
 
 sqlc.yaml              # at the REPO ROOT — points queries/schema/out at the postgres dirs above
 ```
@@ -30,22 +30,25 @@ sqlc.yaml              # at the REPO ROOT — points queries/schema/out at the p
 ## Repository implementation
 
 ```go
-// Package postgres implements the <Aggregate>Repository port (from internal/core/domain/<context>)
+// Package postgres implements the <Aggregate>Repository port (from internal/core/domain/repository)
 // against PostgreSQL via sqlc.
 package postgres
 
-import <context> "{{MODULE_PATH}}/internal/core/domain/<context>"   // the port + aggregate it speaks
+import (
+	"{{MODULE_PATH}}/internal/core/domain/entity"     // the aggregate it speaks
+	"{{MODULE_PATH}}/internal/core/domain/repository" // the port it implements
+)
 
 type <aggregate>Repository struct {  // unexported
 	Queries *sqlc.Queries
 }
 
 // New<Agg>Repository returns the domain interface, not the concrete struct.
-func New<Aggregate>Repository(q *sqlc.Queries) <context>.<Aggregate>Repository {
+func New<Aggregate>Repository(q *sqlc.Queries) repository.<Aggregate>Repository {
 	return &<aggregate>Repository{Queries: q}
 }
 
-func (r *<aggregate>Repository) GetById(ctx context.Context, id uuid.UUID) (*<context>.<Aggregate>, error) {
+func (r *<aggregate>Repository) GetById(ctx context.Context, id uuid.UUID) (*entity.<Aggregate>, error) {
 	row, err := r.Queries.Get<Aggregate>ById(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -67,8 +70,8 @@ Never construct an aggregate with a struct literal here; reconstitute through it
 `Restore<Aggregate>` factory (see `domain.md`).
 
 ```go
-func mapSqlc<Aggregate>ToDomain(r sqlc.<Aggregate>) *<context>.<Aggregate> {
-	return <context>.Restore<Aggregate>(<context>.Restore<Aggregate>Param{
+func mapSqlc<Aggregate>ToDomain(r sqlc.<Aggregate>) *entity.<Aggregate> {
+	return entity.Restore<Aggregate>(entity.Restore<Aggregate>Param{
 		Id:        r.Id,
 		Status:    r.Status,
 		CreatedAt: r.CreatedAt,
@@ -77,8 +80,8 @@ func mapSqlc<Aggregate>ToDomain(r sqlc.<Aggregate>) *<context>.<Aggregate> {
 }
 ```
 
-> Per-TYPE-per-file aliasing: a file mapping `sqlc.<Aggregate>` → `<context>.<Aggregate>` cannot have
-> both unqualified, so the domain side is imported as `<context>` (or an alias) while `sqlc`
+> Per-TYPE-per-file aliasing: a file mapping `sqlc.<Aggregate>` → `entity.<Aggregate>` cannot have
+> both unqualified, so the domain side is imported as `entity` while `sqlc`
 > keeps its package name — name the local consistently within the file.
 
 When a row maps to a sub-value-object too, extract a small `mapSqlc<X>ToDomain` helper

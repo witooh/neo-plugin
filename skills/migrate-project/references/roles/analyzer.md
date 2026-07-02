@@ -18,17 +18,18 @@ rule. That is the shape the target must reach; you measure the gap against it. (
 2. **Current layout + dialect** — top-level dirs and where each layer lives now; name the dialect
    deltas (`app/` vs `cmd/api/`, `internal/adapter/` vs `internal/delivery/http/`, `external/` vs
    `internal/adapters/gateway/`, root `database/postgres/` vs `internal/adapters/repository/postgres/`,
-   flat `internal/domain/` vs `internal/core/domain/<context>/`). (Mocks live where `.mockery.yaml`
+   flat `internal/domain/` vs per-layer `internal/core/domain/{entity,service,repository,event}/`). (Mocks live where `.mockery.yaml`
    routes them — both `pkg/mocks/` and `internal/mocks/` are blueprint-valid; not a dialect delta.)
 3. **Features / bounded contexts** — every domain/feature you can identify (package, handler, route
    names); for each, where its domain model, usecase/service, repository, and handler currently sit.
 4. **Layers present vs absent / mixed** — is business logic cleanly separated or mixed (DB calls in
-   handlers)? Are aggregates encapsulated (private fields + getters) or plain structs? Ports
-   co-located or central? Is `time.Now()` / `uuid.New()` called inside core?
+   handlers)? Are aggregates encapsulated (private fields + getters) or plain structs? Are driven
+   ports **centralized** in `repository/` + `event/` (the blueprint target) or scattered? Is
+   `time.Now()` / `uuid.New()` called inside core?
 5. **Cross-cutting** — error handling, response envelope, middleware, config loader, logging: where
    each lives, and whether the target already has a `.golangci.yaml` / `.kiro/steering/`.
 6. **The delta** — per concern: `current path → blueprint path` plus the convention gaps
-   (encapsulation, co-located ports, deterministic-by-injection, DTO-at-edge). This is the heart of
+   (encapsulation, centralized ports, deterministic-by-injection, DTO-at-edge). This is the heart of
    the map.
 7. **Boundary check** — if the target has **no Go code** (empty / non-Go dir), STOP: this is a
    greenfield case for the **`init-project`** skill, not a migration. Status: NEEDS_CONTEXT.

@@ -10,35 +10,35 @@ No HTTP, no SQL, no logging, no framework types — pure business rules. **depgu
 transport/persistence/infra packages (`gin`, `net/http`, `database/sql`, `pgx`, `go-redis`, `kafka-go`)
 are denied in `domain` (and `usecase`) — the build fails on a regression.
 
-## Split per bounded context — each context owns its ports
+## Split per technical layer
 
-The model is **not** one flat package. It is split into one package per bounded context,
-and **each context owns the driven ports it consumes** (the ports-and-adapters seam lives
-here — there is no central `internal/port/` package).
+The model is split into one package per **technical layer** (stereotype), shared across every
+bounded context — **not** one package per context. Driven ports are **centralized** in
+`repository/` (plus `event/` for event-bus ports); external-system gateways are the one
+exception and stay under `integration/<sys>/`.
 
 ```
 core/domain/
-  <context>/                package = folder
-    <aggregate>.go          encapsulated aggregate(s) & value objects (private fields, factories, commands)
-    <service>.go            stateless domain services (package functions), one file per service
-    events.go               domain event definitions (the published contract)
-    enums.go                typed string/enum constants — owned by the context that uses them
-    errors.go               typed sentinel errors + HTTP-status category
-    repository.go           persistence PORT interface(s), domain-owned
-    cache.go                driven Cache port (when this context drives a cache)
-    eventpublisher.go       driven EventPublisher port (when this context emits events)
-    numbergenerator.go      any other co-located driven port
-  integration/<sys>/        EXTERNAL read-only domains — one package per upstream
+  enums.go                  package domain — ALL typed string/enum constants (one flat root file)
+  errors.go                 package domain — typed sentinel errors + HTTP-status category (root, when needed)
+  entity/                   package entity — ALL domain data types: aggregates + their component
+                            value objects + computed results + read-models (private fields, factories, commands)
+  service/                  package service — stateless domain services (package functions), one file per service
+  repository/               package repository — ALL driven persistence ports (one interface per file);
+                            prefix names to keep them distinct (<contextA>_dailyamount.go, <contextB>_dailyamount.go)
+  event/                    package event — EventPublisher & other event-bus ports + domain event definitions
+  integration/<sys>/        EXTERNAL read-only domains — one package per upstream (UNCHANGED)
     gateway.go              driven PORT interface + its param/result types (see integration.md)
     readmodels.go           read-models the core consumes (plain data, no behavior)
 ```
 
-> The package clause is the **context folder name** (`package <context>`). A handler package
-> may share that name (`delivery/http/handler/<context>`) — where a file imports both, the
-> domain import takes an alias. See `handler.md` / `app.md`.
+> The package clause is the **layer folder name** (`package entity` / `service` / `repository` /
+> `event`; the root `enums.go` / `errors.go` are `package domain`). Cross-layer refs inside the
+> domain are qualified — `entity` imports `domain` for enums; `repository` / `event` / `service`
+> import `entity` for the aggregates & value objects they speak in. `integration/<sys>` keeps one
+> package per upstream. Dependency order is acyclic: `domain` ← `entity` ← {`repository`, `event`, `service`}.
 
-The concrete contexts (aggregates, value objects, services, co-located ports) for this service
-are in `repo-instance.md`.
+The concrete aggregates, services, and ports for this service are in `repo-instance.md`.
 
 ## Aggregates — fully encapsulated
 
@@ -46,7 +46,7 @@ Fields are **private**. Read through getters; never expose or mutate a field dir
 Construct only through factories; change state only through command methods.
 
 ```go
-package <context> — the aggregate lives in its context package
+package entity — aggregates, value objects & read-models all live in the entity package
 
 // <Aggregate> ... All fields are private: create with New<Aggregate>, reconstitute
 // from storage with Restore<Aggregate>, read through getters, mutate through commands.
@@ -82,7 +82,7 @@ func (a *<Aggregate>) Activate(/* ... */) error { /* guard, then mutate */ }
 
 Rules:
 - **No setters.** Mutation = an intent-named command method that protects invariants
-  (`Activate`, `ApplyFinalRate`, `ReplaceSpecialListFlags` — never `SetX`), even for a one-field replace.
+  (`Activate`, `ApplyFinalRate`, `ReplaceStatusFlags` — never `SetX`), even for a one-field replace.
 - **Persistent state only — no transient field.** An aggregate holds the state that is persisted
   (its identity + invariants), nothing else. A value *resolved during an operation* — from an upstream
   or a computation — that is **not persisted** (response-only, excluded from the cache projection) does
@@ -121,41 +121,44 @@ Logic spanning entities / not owned by one aggregate. **Stateless package functi
 no `struct{}` receiver, no globals (precompute package-level `var` for constants only).
 
 ```go
-// Domain services are package functions on the SAME context package as the aggregate
-// (one <service>.go per domain service, in the same context package) — pure business logic spanning
-// aggregates. Depends only on its context's own types + driven repository port. Never HTTP/log/IO.
-package <context>
+// Domain services are package functions in the `service` package (one <service>.go per service) —
+// pure business logic spanning aggregates. Depends only on entity types + driven ports. Never HTTP/log/IO.
+package service
 
-func RequireUnderAggregateLimit(ctx context.Context, repo <Aggregate>Repository, /* ... */) error {
-	// read via the port, decide, return a typed domain error (defined in this context's errors.go)
-	return NewLimitExceededError(/* ... */)
+func RequireUnderAggregateLimit(ctx context.Context, repo repository.<Aggregate>Repository, agg *entity.<Aggregate> /* ... */) error {
+	// read via the port, decide, return a typed domain error (constructor from package domain)
+	return domain.NewLimitExceededError(/* ... */)
 }
 ```
 
-## Driven ports (domain-owned, co-located)
+## Driven ports (centralized in `repository/` + `event/`)
 
-Every outbound contract the context requires lives **in that context package** — the
-persistence `repository.go`, plus any `cache.go` / `eventpublisher.go` / `numbergenerator.go`
-the context drives, and (for an external system) the `integration/<sys>/gateway.go`. Usecases &
-domain services consume them; implementations live in `internal/adapters/...` (see
-`repository.md` / `integration.md`). Methods speak in aggregates, not rows.
+All driven ports the core consumes live in the central `repository/` package — persistence
+repositories, caches, number generators — one interface per file, referencing `entity` types.
+Event-bus ports live in `event/`. External-system gateways are the exception: they stay in
+`integration/<sys>/gateway.go` (see `integration.md`). Usecases & domain services consume these
+ports; implementations live in `internal/adapters/...` (see `repository.md` / `integration.md`).
+Methods speak in aggregates, not rows.
 
 ```go
-// repository.go — driven persistence port of the <Aggregate>, in its context package.
+// repository/<aggregate>.go — a driven persistence port, in the central repository package.
 // Implemented in internal/adapters/repository/postgres.
-package <context>
+package repository
+
+import "{{MODULE_PATH}}/internal/core/domain/entity"
 
 type <Aggregate>Repository interface {
-	GetById(ctx context.Context, id uuid.UUID) (*<Aggregate>, error)
-	Create(ctx context.Context, /* ... */) (*<Aggregate>, error)
+	GetById(ctx context.Context, id uuid.UUID) (*entity.<Aggregate>, error)
+	Create(ctx context.Context, /* ... */) (*entity.<Aggregate>, error)
 }
 ```
 
-The other driven ports follow the same shape, each its own file in the context package —
-e.g. `<context>/cache.go` (`Cache`, satisfied by `internal/adapters/repository/cache`),
-`<context>/eventpublisher.go` (`EventPublisher`, satisfied by `internal/adapters/eventbus`),
-`<context>/numbergenerator.go` (`NumberGenerator`). The gateway ports for external systems
-are documented in `integration.md` (`integration/<sys>/gateway.go`).
+Other driven ports follow the same shape: `repository/cache.go` (`Cache`, satisfied by
+`internal/adapters/repository/cache`), `repository/<x>.go` (`NumberGenerator`), and
+`event/eventpublisher.go` (`EventPublisher`, satisfied by `internal/adapters/eventbus`). When two
+contexts drive a similarly-named port, prefix the file (`repository/<contextA>_dailyamount.go`,
+`repository/<contextB>_dailyamount.go`). External-system gateway ports remain in
+`integration/<sys>/gateway.go`.
 
 **Not every injected interface is a domain port.** A *context-free ambient capability* with no
 business meaning that every layer consumes identically — the wall-clock, a fresh id — is **not**
@@ -169,11 +172,11 @@ language → port here; a technical primitive every layer needs the same way →
 
 ## Domain events
 
-Events live in the owning context's `events.go` (e.g. `<context>/events.go` defines
-`<Aggregate>Opened`) — exported fields, the published contract.
+Domain event definitions live in the `event` package (`event/events.go`), alongside the
+event-bus ports — exported fields, the published contract.
 
 ```go
-package <context>
+package event
 type <Aggregate>Opened struct { /* exported fields — the published contract */ }
 ```
 
@@ -186,9 +189,9 @@ data the adapter maps the upstream wire DTO into; no behavior.
 
 ## Typed errors + HTTP-status category
 
-`errors.go` defines constructors that wrap a cause and carry a category which a single
-edge mapper turns into an HTTP status (see `handler.md`). Domain/usecase code returns
-these; it never sets status codes itself.
+Typed errors live in a root `errors.go` (`package domain`, beside `enums.go`): constructors that
+wrap a cause and carry a category which a single edge mapper turns into an HTTP status (see
+`handler.md`). Domain/usecase code returns these; it never sets status codes itself.
 
 ```go
 func NewInvalidRequestError(cause error, msg string) error // → 400
