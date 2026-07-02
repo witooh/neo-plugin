@@ -2,18 +2,17 @@
 name: init-project
 description: >
   Scaffold a brand-new Go hexagonal / DDD microservice from a bundled, frozen template — an
-  empty-but-runnable snapshot of the account-service architecture (clean layers, tooling, infra
-  wiring, `.kiro/` steering + CLAUDE.md) with ZERO business domains. The generated project builds
-  and serves `GET /health` immediately and is ready for the `neo` skill (or Kiro) to add the first
-  domain with no setup. Asks for the new service's identity (Go module path, service name, service
-  id, target dir), runs the bundled `scaffold.py` (copy template + substitute sentinels + go mod
-  tidy + git init + go build), then verifies it (L1 deterministic `initcheck.py` + L2 fresh-eyes).
-  Trigger on: "init project", "/init-project", "scaffold a service", "new service from template",
-  "create a new service", "project boilerplate", "bootstrap a Go service", "สร้าง project ใหม่",
-  "สร้าง service ใหม่", "scaffold service ใหม่", "โครง service เปล่า", "ตั้งโปรเจกต์ใหม่ตาม
-  account-service", "ทำ boilerplate", "new Go service skeleton". Needs Go >= 1.26 and private-module
-  access (GOPRIVATE) for the org `common-lib` the template depends on. NOTE: this only CREATES the
-  empty skeleton — adding domains / AC / endpoints / tests is the `neo` skill, not this one.
+  empty-but-runnable account-service snapshot (clean layers, tooling, infra, `.kiro/` steering)
+  with ZERO business domains. It builds and serves `GET /health` immediately, ready for the
+  `neo` skill (or Kiro) to add the first domain with no setup. Asks the service identity (Go
+  module path, name, id, target dir), runs `scaffold.py` (copy + sentinel-substitute + go mod
+  tidy + git init + build), then verifies (L1 `initcheck.py` + L2 fresh-eyes). Trigger on:
+  "init project", "/init-project", "scaffold a service", "new service from template",
+  "bootstrap a Go service", "สร้าง project ใหม่", "สร้าง service ใหม่", "scaffold service ใหม่",
+  "โครง service เปล่า", "ตั้งโปรเจกต์ใหม่ตาม account-service", "ทำ boilerplate", "new Go service
+  skeleton". Needs Go >= 1.26 and GOPRIVATE access to the org `common-lib` the template needs.
+  NOTE: only CREATES the empty skeleton — adding domains / AC / endpoints / tests is the `neo`
+  skill.
 compatibility:
   environment: claude-code
   tools:

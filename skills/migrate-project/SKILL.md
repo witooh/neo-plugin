@@ -2,21 +2,16 @@
 name: migrate-project
 description: >
   Refactor an EXISTING Go service so its structure conforms to the account-service hexagonal / DDD
-  blueprint — the brownfield sibling of `init-project`. Reuses init-project's frozen template +
-  `.kiro/steering/` as the target-structure contract, then plans the migration as ordered,
-  independently-verifiable SLICES (one bounded context at a time), executes them on a dedicated branch
-  with `git mv` (history- and behavior-preserving), and verifies each slice (go build + test + vet +
-  golangci depguard/forbidigo). Plan-first — you approve the slice plan before any code moves — and
-  resumable across sessions via `<target>/docs/migration/plan.md`. Asks for the target service dir,
-  installs the architecture contract (`.golangci.yaml` + `.kiro/steering/` + CLAUDE.md), and finishes
-  with a three-layer verify (L1 `structurecheck.py` + L2 fresh-eyes + L3 completeness). Trigger on:
-  "migrate project", "/migrate-project", "migrate structure to account-service", "refactor to
-  hexagonal / clean architecture", "restructure an existing service", "conform this service to the
-  account-service layout", "align the service to the blueprint", "ย้ายโครงสร้างโปรเจกต์",
-  "refactor ให้เหมือน account-service", "จัดโครงสร้างใหม่ตาม account-service",
-  "migrate service เดิมให้เข้าโครง", "ปรับโครงสร้าง service ให้เหมือน account-service". NOTE: this
-  refactors an EXISTING codebase. Scaffolding a brand-new empty service is the **`init-project`**
-  skill; adding a domain / AC / endpoint / tests to a service is the **`neo`** skill.
+  blueprint — the brownfield sibling of `init-project` (which supplies the target-structure
+  contract: its frozen template + `.kiro/steering/` + `.golangci.yaml`). Plans the work as ordered,
+  independently-verifiable SLICES (one bounded context each), moves each on a branch with `git mv`
+  (behavior-preserving), and verifies per slice (go build/test/vet + golangci) plus a final
+  three-layer check (L1 `structurecheck.py` + L2 fresh-eyes + L3 completeness). Plan-first and
+  resumable via `<target>/docs/migration/plan.md`. Trigger on: "migrate project", "/migrate-project",
+  "restructure an existing service", "refactor ให้เหมือน account-service", "ย้ายโครงสร้างโปรเจกต์",
+  "จัดโครงสร้างใหม่ตาม account-service", "migrate service เดิมให้เข้าโครง", "ปรับโครงสร้าง service
+  ให้เหมือน account-service". NOTE: refactors EXISTING code — a brand-new empty service is
+  `init-project`; adding a domain / AC / endpoint / tests is `neo`.
 compatibility:
   environment: claude-code
   tools: [Agent, Read, AskUserQuestion]

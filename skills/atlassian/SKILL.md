@@ -1,21 +1,18 @@
 ---
 name: atlassian
 description: >
-  Interact with Jira and Confluence from the terminal via the `acli` (Atlassian CLI)
-  tool — view/search/create/edit/transition/assign/comment on Jira work items, manage
-  sprints, boards and projects, and read Confluence pages or manage spaces, all without
-  a browser. This skill is also the **acli reference** the `neo` skill points to: it
-  gives the command *map* plus the judgment `--help` can't (JQL, workflows, safety),
-  and for exact flags it has you run `acli <path> --help`. Trigger when the user wants a
-  direct, ad-hoc Jira/Confluence CLI action — "ดู issue ของฉัน", "view my issues",
-  "transition ไป In Progress", "move ticket to In Progress", "สร้าง bug ใน Jira",
-  "create a Jira task", "search ด้วย JQL", "find unassigned bugs", "ดู sprint ปัจจุบัน",
-  "current sprint", "bulk transition", "assign ให้ฉัน", "ดู Confluence page",
-  "list spaces", or any raw acli operation. NOTE — route elsewhere, NOT here: verifying
-  AC / test cases / design against a JIRA card, or any dev-workflow that only *reads* a
-  card → the `neo` skill (it runs read-only acli inline); publishing generated API docs
-  to Confluence → the `confluence-api-doc` skill (acli cannot write pages). This skill is for
-  direct Jira/Confluence operations the user asks for explicitly.
+  Interact with Jira and Confluence from the terminal via the `acli` (Atlassian CLI) —
+  view/search/create/edit/transition/assign/comment on Jira work items, manage sprints,
+  boards, and projects, and read Confluence pages or manage spaces, all without a browser.
+  Also the acli reference the `neo` skill points to: the command map plus the judgment
+  `--help` can't give (JQL, workflows, safety); run `acli <path> --help` for exact flags.
+  Trigger on a direct, ad-hoc Jira/Confluence CLI action — "ดู issue ของฉัน",
+  "view my issues", "transition ไป In Progress", "move ticket to In Progress",
+  "สร้าง bug ใน Jira", "create a Jira task", "search ด้วย JQL", "find unassigned bugs",
+  "ดู sprint ปัจจุบัน", "assign ให้ฉัน", "ดู Confluence page", "list spaces", or any raw
+  acli operation. Route elsewhere: verifying AC/test-cases/design against a JIRA card, or
+  any read-only card workflow → the `neo` skill (runs read-only acli inline); publishing
+  generated API docs to Confluence → `confluence-api-doc` (acli cannot write pages).
 compatibility:
   environment: claude-code
   tools:
