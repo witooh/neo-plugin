@@ -4,6 +4,9 @@
 Scope: upstream skills/ (except using-agent-skills), hooks/, agents/, references/.
 Everything else (docs/, commands/, manifests, README) is neo-owned and untouched.
 
+After --apply, scripts/bundle-references.sh re-fans the shared references/ files
+into the skills that cite them (the per-skill copies are generated artifacts).
+
 Per-file decision uses a 3-way compare so a neo hand-edit is never clobbered:
 
     theirs = transform(upstream @ new ref)
@@ -190,6 +193,10 @@ def main():
         STATE_FILE.write_text(json.dumps(state, indent=2) + "\n")
         print("-" * 60)
         print("applied %d file(s); baseline advanced -> %s" % (to_apply, commit[:12]))
+        bundle = run("bash", str(root / "scripts" / "bundle-references.sh"))
+        if bundle.returncode != 0:
+            die("bundle-references.sh failed: %s" % bundle.stderr.strip())
+        sys.stdout.write(bundle.stdout)
 
     return 2 if (conflicts or landmines) else 0
 

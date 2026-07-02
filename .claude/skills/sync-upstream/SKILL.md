@@ -15,7 +15,13 @@ upstream updates for the parts neo tracks, re-applies the deterministic
   `.claude-plugin/` manifests, `README.md`, `AGENTS.md`, `.github/`, and the
   `using-neo` router (neo's customized fork of `using-agent-skills`).
 
-Two files do the work:
+Top-level `references/` is the source of truth for the shared checklists. The
+apply step re-runs `scripts/bundle-references.sh`, which fans a copy into every
+skill whose SKILL.md cites one, keeping each skill dir self-contained for
+installers that copy skill dirs as-is (Kiro, pi). Those per-skill copies are
+**generated** — never hand-edit them.
+
+Three files do the work:
 
 - `assets/rebrand.py` — the deterministic transform and **single source of truth**
   for the `agent-skills → neo` rules. Edit this when upstream introduces a **new**
@@ -23,6 +29,9 @@ Two files do the work:
 - `assets/sync.py` — orchestration: fetch, transform in-scope files, classify
   neo-local vs upstream-removed, dry-run/apply, and advance the baseline recorded
   in `sync-state.json`.
+- `scripts/bundle-references.sh` (repo root) — post-apply fan-out of the shared
+  `references/` checklists into the skills that cite them (idempotent; safe to
+  run any time).
 
 ## Workflow
 
@@ -50,7 +59,9 @@ Two files do the work:
    ```bash
    python3 .claude/skills/sync-upstream/assets/sync.py --apply
    ```
-   Writes the changes and advances `last_synced_commit` / `synced_skills`.
+   Writes the changes, advances `last_synced_commit` / `synced_skills`, and
+   re-runs `scripts/bundle-references.sh` so the per-skill copies of shared
+   references track the updated sources.
 
 4. **Verify (do not skip).**
    ```bash
@@ -58,6 +69,7 @@ Two files do the work:
    bash hooks/session-start-test.sh                        # hook loads (path/brand intact)
    grep -rnI 'addyosmani' skills hooks agents references   # expect no output
    bash hooks/session-start.sh | jq -r .message | head -1  # expect: neo loaded. ...
+   bash scripts/bundle-references.sh                       # expect: 0 bundled, 0 pruned
    ```
    The hook test, the grep, and the hook message must pass. For `validate-skills.js`,
    the **upstream-owned** skills must stay green — the sync must not introduce a new

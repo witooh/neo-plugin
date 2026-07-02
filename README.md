@@ -365,7 +365,7 @@ neo/
 │   ├── gitlab/                        #   Integration (GitLab)
 │   └── using-neo/            #   Meta: how to use this pack
 ├── agents/                            # 4 specialist personas
-├── references/                        # 5 supplementary checklists
+├── references/                        # 7 shared checklists (source of truth — copies bundled into citing skills)
 ├── hooks/                             # Session lifecycle hooks
 ├── .claude/commands/                  # 10 slash commands (Claude Code)
 ├── .gemini/commands/                  # 10 slash commands (Gemini CLI)

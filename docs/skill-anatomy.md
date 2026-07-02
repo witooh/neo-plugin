@@ -142,7 +142,7 @@ When a skill ships runnable helpers under `scripts/`, each script follows these 
 - Skill directories: `lowercase-hyphen-separated`
 - Skill files: `SKILL.md` (always uppercase)
 - Supporting files: `lowercase-hyphen-separated.md`
-- References: stored in `references/` at the project root, not inside skill directories
+- References: shared checklists live in `references/` at the project root (the source of truth) and are bundled by `scripts/bundle-references.sh` into every skill that cites them, so each skill dir stays self-contained; skill-specific references live inside the skill's own `references/` dir
 
 ## Cross-Skill References
 
