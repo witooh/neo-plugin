@@ -1,0 +1,9 @@
+{
+  "name": "neo",
+  "version": "1.1.0",
+  "description": "Production-grade engineering skills for AI coding agents.",
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["./skills"]
+  }
+}

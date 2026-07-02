@@ -129,6 +129,26 @@ See [docs/opencode-setup.md](docs/opencode-setup.md).
 </details>
 
 <details>
+<summary><b>pi</b></summary>
+
+Installs as a native pi package; skills load unchanged and run via agent-driven selection (no slash commands). See [docs/pi-setup.md](docs/pi-setup.md).
+
+**Install from the repo:**
+
+```bash
+pi install git:github.com/witooh/neo-plugin
+```
+
+**Install from a local clone:**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+pi install ./neo-plugin
+```
+
+</details>
+
+<details>
 <summary><b>GitHub Copilot</b></summary>
 
 Use agent definitions from `agents/` as Copilot personas and skill content in `.github/copilot-instructions.md`. See [docs/copilot-setup.md](docs/copilot-setup.md).
@@ -351,5 +371,6 @@ neo/
 ├── .gemini/commands/                  # 10 slash commands (Gemini CLI)
 ├── commands/                          # 10 slash commands (Antigravity CLI)
 ├── plugin.json                        # Antigravity plugin manifest
+├── package.json                       # pi package manifest
 └── docs/                              # Setup guides per tool
 ```
