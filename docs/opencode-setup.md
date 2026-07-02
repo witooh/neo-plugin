@@ -144,6 +144,16 @@ These rules are enforced via `AGENTS.md`.
 
 ---
 
+## Load neo at session start (no SessionStart hook)
+
+Claude Code auto-loads the `using-neo` meta-skill through its `SessionStart` hook. OpenCode has no equivalent, but its system prompt comes from `AGENTS.md`, so add the rule below to your project's `AGENTS.md` so neo drives the flow from the first message:
+
+> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+
+Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
+
+---
+
 ## Limitations
 
 - No native slash commands (handled via intent mapping instead)
