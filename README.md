@@ -10,29 +10,29 @@ Skills encode the workflows, quality gates, and best practices that senior engin
  │Source│ ───▶ │ Idea │ ───▶ │ Spec │ ───▶ │ Code │ ───▶ │ Test │ ───▶ │  QA  │ ───▶ │  Go  │
  │Curate│      │Refine│      │  PRD │      │ Impl │      │Debug │      │ Gate │      │ Live │
  └──────┘      └──────┘      └──────┘      └──────┘      └──────┘      └──────┘      └──────┘
-  /ingest       /spec         /plan         /build        /test         /review       /ship
+  neo-ingest    neo-spec      neo-plan      neo-build     neo-test      neo-review    neo-ship
 ```
 
 ---
 
-## Commands
+## Entry Skills
 
-10 slash commands that map to the development lifecycle. Each one activates the right skills automatically.
+10 phase entry skills (`neo-<phase>`) that map to the development lifecycle. Each orchestrates the underlying method skills automatically, and works across every supported tool (on Claude Code they appear as `neo:neo-<phase>`).
 
-| What you're doing        | Command          | Key principle                          |
-| ------------------------ | ---------------- | -------------------------------------- |
-| Capture external context | `/ingest`        | Curate sources into the knowledge base |
-| Define what to build     | `/spec`          | Spec before code                       |
-| Plan how to build it     | `/plan`          | Small, atomic tasks                    |
-| Build incrementally      | `/build`         | One slice at a time                    |
-| Commit your work         | `/commit`        | Clean, atomic history                  |
-| Prove it works           | `/test`          | Tests are proof                        |
-| Review before merge      | `/review`        | Improve code health                    |
-| Audit web performance    | `/webperf`       | Measure before you optimize            |
-| Simplify the code        | `/code-simplify` | Clarity over cleverness                |
-| Ship to production       | `/ship`          | Faster is safer                        |
+| What you're doing        | Entry skill         | Key principle                          |
+| ------------------------ | ------------------- | -------------------------------------- |
+| Capture external context | `neo-ingest`        | Curate sources into the knowledge base |
+| Define what to build     | `neo-spec`          | Spec before code                       |
+| Plan how to build it     | `neo-plan`          | Small, atomic tasks                    |
+| Build incrementally      | `neo-build`         | One slice at a time                    |
+| Commit your work         | `neo-commit`        | Clean, atomic history                  |
+| Prove it works           | `neo-test`          | Tests are proof                        |
+| Review before merge      | `neo-review`        | Improve code health                    |
+| Audit web performance    | `neo-webperf`       | Measure before you optimize            |
+| Simplify the code        | `neo-code-simplify` | Clarity over cleverness                |
+| Ship to production       | `neo-ship`          | Faster is safer                        |
 
-Want fewer manual steps once the spec exists? **`/build auto`** generates the plan and implements every task in a single approved pass — you approve the plan once, then it runs autonomously. It removes the human stepping _between_ tasks, not the verification: every task is still test-driven and committed individually, and it pauses on failures or risky steps.
+Want fewer manual steps once the spec exists? **`neo-build auto`** generates the plan and implements every task in a single approved pass — you approve the plan once, then it runs autonomously. It removes the human stepping _between_ tasks, not the verification: every task is still test-driven and committed individually, and it pauses on failures or risky steps.
 
 Skills also activate automatically based on what you're doing — designing an API triggers `api-and-interface-design`, building UI triggers `frontend-ui-engineering`, and so on.
 
@@ -76,7 +76,7 @@ Copy any `SKILL.md` into `.cursor/rules/`, or reference the full `skills/` direc
 <details>
 <summary><b>Antigravity CLI</b></summary>
 
-Install as a native plugin for skills, subagents, and slash commands. See [docs/antigravity-setup.md](docs/antigravity-setup.md).
+Install as a native plugin for skills and subagents. See [docs/antigravity-setup.md](docs/antigravity-setup.md).
 
 **Install from the repo:**
 
@@ -187,9 +187,9 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ---
 
-## All 34 Skills
+## All 44 Skills
 
-The commands above are entry points. The pack includes 34 skills total — 33 workflow and tooling skills plus the `using-neo` meta-skill. Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
+The 10 `neo-<phase>` entry skills above are the phase entry points. The pack includes 44 skills total — those 10 plus 33 workflow and tooling skills and the `using-neo` meta-skill (all listed below). Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
 
 ### Meta - Discover which skill applies
 
@@ -272,9 +272,9 @@ Pre-configured specialist personas for targeted reviews:
 | [code-reviewer](agents/code-reviewer.md)                     | Senior Staff Engineer    | Five-axis code review with "would a staff engineer approve this?" standard                   |
 | [test-engineer](agents/test-engineer.md)                     | QA Specialist            | Test strategy, coverage analysis, and the Prove-It pattern                                   |
 | [security-auditor](agents/security-auditor.md)               | Security Engineer        | Vulnerability detection, threat modeling, OWASP assessment                                   |
-| [web-performance-auditor](agents/web-performance-auditor.md) | Web Performance Engineer | Core Web Vitals audit with Quick/Deep modes and a metric-honesty rule; run it via `/webperf` |
+| [web-performance-auditor](agents/web-performance-auditor.md) | Web Performance Engineer | Core Web Vitals audit with Quick/Deep modes and a metric-honesty rule; run it via `neo-webperf` |
 
-See [docs/agents.md](docs/agents.md) for the decision matrix, orchestration rules, and how personas compose with skills and slash commands.
+See [docs/agents.md](docs/agents.md) for the decision matrix, orchestration rules, and how personas compose with skills.
 
 ---
 
@@ -329,7 +329,9 @@ Every skill follows a consistent anatomy:
 
 ```
 neo/
-├── skills/                            # 34 skills (33 workflow/tooling + 1 meta)
+├── skills/                            # 44 skills (10 phase entry + 33 workflow/tooling + 1 meta)
+│   ├── neo-ingest/ neo-spec/ neo-plan/ neo-build/ neo-test/          #   Phase entry points
+│   ├── neo-review/ neo-code-simplify/ neo-commit/ neo-ship/ neo-webperf/  #   (orchestrate the method skills below)
 │   ├── markitdown/                    #   Ingest
 │   ├── interview-me/                  #   Define
 │   ├── idea-refine/                   #   Define
@@ -367,9 +369,6 @@ neo/
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 7 shared checklists (source of truth — copies bundled into citing skills)
 ├── hooks/                             # Session lifecycle hooks
-├── .claude/commands/                  # 10 slash commands (Claude Code)
-├── .gemini/commands/                  # 10 slash commands (Gemini CLI)
-├── commands/                          # 10 slash commands (Antigravity CLI)
 ├── plugin.json                        # Antigravity plugin manifest
 ├── package.json                       # pi package manifest
 └── docs/                              # Setup guides per tool

@@ -6,7 +6,7 @@ This guide explains how to use neo with [pi](https://pi.dev) — a minimal, exte
 
 pi is skill-first and aggressively extensible: capabilities are packaged as skills, prompts, extensions, and themes, and installed from npm, git, or a local path. neo's `skills/<name>/SKILL.md` files already match pi's skill format (`name` + `description` frontmatter), so every neo skill loads in pi with no conversion.
 
-pi has no native slash-command, subagent, or hook system, so — as with OpenCode — neo runs here as an **agent-driven workflow**: skills are selected automatically from intent rather than invoked by command.
+pi has no native slash-command, subagent, or hook system — and neo is command-free everywhere now — so, as with OpenCode, neo runs here as an **agent-driven workflow**: skills are selected automatically from intent.
 
 ---
 
@@ -50,9 +50,9 @@ pi maps each request to the appropriate skill and follows it. You do **not** inv
 - "fix a bug" → `debugging-and-error-recovery`
 - "review this code" → `code-review-and-quality`
 
-### 3. Lifecycle Mapping (Implicit Commands)
+### 3. Lifecycle Mapping
 
-neo's slash commands don't exist in pi; the lifecycle is expressed through skills instead:
+neo is command-free; its lifecycle is expressed through the `neo-<phase>` entry skills instead:
 
 - INGEST → `markitdown`
 - DEFINE → `spec-driven-development`
@@ -78,7 +78,7 @@ Because no hook enforces it, this depends on model compliance — weaker than Cl
 
 pi packages support only skills, prompts, extensions, and themes — so some neo surfaces don't carry over:
 
-- **No native slash commands** — `/spec`, `/plan`, etc. are replaced by intent-driven skill selection.
+- **No native slash commands** — neo is command-free everywhere; its `neo-<phase>` entry skills are selected from intent.
 - **No agent personas** — neo's `agents/` (code-reviewer, security-auditor, …) aren't installed as pi subagents; the equivalent review skills still apply.
 - **No lifecycle hooks** — neo's `hooks/` are Claude Code-specific and don't run in pi. See *Load neo at session start* above for the instruction-based replacement (add the rule to `AGENTS.md` / `CLAUDE.md`).
 - Skill invocation depends on model compliance, as with any agent-driven setup.
@@ -105,4 +105,4 @@ neo integrates with pi as a package:
 
 - neo skills load unchanged (shared `SKILL.md` format)
 - install via `pi install git:…` / local path, or use the bundled `.pi/skills` symlink
-- an agent-driven workflow replaces slash commands, closely matching the OpenCode experience
+- an agent-driven workflow through `neo-<phase>` entry skills, closely matching the OpenCode experience

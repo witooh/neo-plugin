@@ -4,7 +4,7 @@ This guide explains how to use Neo with OpenCode in a way that closely mirrors t
 
 ## Overview
 
-OpenCode supports custom `/commands`, but does not have a native plugin system or automatic skill routing like Claude Code.
+OpenCode does not have a native plugin system or automatic skill routing like Claude Code.
 
 Instead, we achieve parity through:
 
@@ -14,7 +14,7 @@ Instead, we achieve parity through:
 
 This creates an **agent-driven workflow** where skills are selected and executed automatically.
 
-While it is possible to recreate `/spec`, `/plan`, and other commands in OpenCode, this integration intentionally uses an agent-driven approach instead:
+neo ships no slash commands; this integration is agent-driven by design:
 
 - Skills are selected automatically based on intent
 - Workflows are enforced via `AGENTS.md`
@@ -72,7 +72,7 @@ Examples:
 
 The user does **not** need to explicitly request skills.
 
-### 3. Lifecycle Mapping (Implicit Commands)
+### 3. Lifecycle Mapping
 
 The development lifecycle is encoded implicitly:
 
@@ -84,7 +84,7 @@ The development lifecycle is encoded implicitly:
 - REVIEW → `code-review-and-quality`
 - SHIP → `shipping-and-launch`
 
-This replaces slash commands like `/spec`, `/plan`, etc.
+neo ships no slash commands — each phase is entered through its `neo-<phase>` skill, selected automatically from intent.
 
 ---
 
@@ -156,7 +156,7 @@ Because no hook enforces it, this depends on model compliance — weaker than Cl
 
 ## Limitations
 
-- No native slash commands (handled via intent mapping instead)
+- No native slash-command entry — neo's `neo-<phase>` entry skills are activated from intent instead
 - No plugin system (handled via prompt + structure)
 - Skill invocation depends on model compliance
 
@@ -186,4 +186,4 @@ OpenCode integration works by combining:
 - Strong agent rules (`AGENTS.md`)
 - Automatic skill invocation via reasoning
 
-This results in a **fully agent-driven, production-grade engineering workflow** without requiring plugins or manual commands.
+This results in a **fully agent-driven, production-grade engineering workflow** without requiring plugins or slash commands.

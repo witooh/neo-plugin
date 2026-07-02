@@ -8,7 +8,7 @@ This is the neo project — a collection of production-grade engineering skills 
 skills/       → Core skills (SKILL.md per directory)
 agents/       → Reusable agent personas (code-reviewer, test-engineer, security-auditor, web-performance-auditor)
 hooks/        → Session lifecycle hooks
-.claude/commands/ → Slash commands (/ingest, /spec, /plan, /build, /commit, /test, /review, /code-simplify, /ship; plus /webperf specialist audit)
+skills/neo-*/  → Phase entry skills (neo-ingest, neo-spec, neo-plan, neo-build, neo-test, neo-review, neo-code-simplify, neo-commit, neo-ship, neo-webperf) — cross-tool phase entry points that orchestrate the underlying method skills
 references/   → Supplementary checklists (testing, performance, security, accessibility, observability)
 docs/         → Setup guides for different tools
 ```
@@ -23,7 +23,7 @@ docs/         → Setup guides for different tools
 **Review:** code-review-and-quality, code-simplification, security-and-hardening, performance-optimization
 **Ship:** git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, observability-and-instrumentation, shipping-and-launch, open-collection, confluence-api-doc, openapi-doc
 
-> `api-spec` spans two phases — **Define** drafts the `docs/api/` contract spec-first (via `/spec`), **Ship** reconciles it from the built code via Update-from-code (via `/ship`). The api-doc chain's **consumers** cluster at **Ship**: `open-collection` (runnable Bruno collection) and `confluence-api-doc` (Confluence publish) fold into `/ship`; `openapi-doc` (read-only Go↔spec drift report) stays discoverable on demand.
+> `api-spec` spans two phases — **Define** drafts the `docs/api/` contract spec-first (via `neo-spec`), **Ship** reconciles it from the built code via Update-from-code (via `neo-ship`). The api-doc chain's **consumers** cluster at **Ship**: `open-collection` (runnable Bruno collection) and `confluence-api-doc` (Confluence publish) fold into `neo-ship`; `openapi-doc` (read-only Go↔spec drift report) stays discoverable on demand.
 
 ## Conventions
 
@@ -40,7 +40,7 @@ This repo is a rebranded fork of `addyosmani/agent-skills`; the `sync-upstream` 
 
 - **Upstream-owned — do NOT edit.** Two groups: (a) the skills listed under `synced_skills` in `.claude/skills/sync-upstream/sync-state.json` (the vendored agent-skills lifecycle skills); and (b) **everything in `hooks/`, `agents/`, and `references/`** — those three dirs are 100% upstream (neo has added no files of its own to them). The **only** exception is `using-neo` — neo's customized fork of `using-agent-skills`, deliberately carved out of the sync. Hand-editing any of these collides with the next upstream sync = merge CONFLICT. (If you ever add a *new* neo-specific hook/agent/reference, the sync auto-classifies it neo-local since it is absent from upstream.) The per-skill copies of shared references (`skills/<skill>/references/<name>.md`) are **generated** from top-level `references/` by `scripts/bundle-references.sh` — same rule: never hand-edit a copy; edit the top-level source (if neo-owned) and re-run the script.
 - **neo-local skills — edit freely.** Anything NOT in `synced_skills`: `api-spec` and the api-doc chain (`openapi-doc`, `open-collection`, `confluence-api-doc`), `init-project`, `migrate-project`, `atlassian`, `gitlab`, `e2e-playwright`, `markitdown`. The sync never touches these.
-- **To change upstream behavior, use a neo-owned file** — a slash command (`.claude/commands/`), `docs/`, `README.md`, `CLAUDE.md`, or a neo-local skill — never the upstream skill file. (This is why the api-spec wiring for `/spec` and `/ship` lives in the command files, not in `spec-driven-development` / `shipping-and-launch`.)
+- **To change upstream behavior, use a neo-owned file** — a neo-local entry skill (`skills/neo-<phase>/`), `docs/`, `README.md`, `CLAUDE.md`, or another neo-local skill — never the upstream skill file. (This is why the api-spec wiring for `neo-spec` and `neo-ship` lives in those entry skills, not in `spec-driven-development` / `shipping-and-launch`.)
 
 ## Contributing
 

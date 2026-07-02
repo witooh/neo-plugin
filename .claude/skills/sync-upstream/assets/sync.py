@@ -2,7 +2,7 @@
 """Sync upstream addyosmani/agent-skills into the neo fork.
 
 Scope: upstream skills/ (except using-agent-skills), hooks/, agents/, references/.
-Everything else (docs/, commands/, manifests, README) is neo-owned and untouched.
+Everything else (docs/, manifests, README) is neo-owned and untouched.
 
 After --apply, scripts/bundle-references.sh re-fans the shared references/ files
 into the skills that cite them (the per-skill copies are generated artifacts).

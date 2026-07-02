@@ -36,17 +36,17 @@ The agent should automatically map user intent to skills:
 
 ### Lifecycle Mapping (Implicit Commands)
 
-OpenCode does not support slash commands like `/spec` or `/plan`.
+neo ships no slash commands — every tool invokes a phase through its `neo-<phase>` entry skill, which orchestrates the underlying method skills below.
 
 Instead, the agent must internally follow this lifecycle:
 
-- INGEST → `markitdown`
-- DEFINE → `spec-driven-development`
-- PLAN → `planning-and-task-breakdown`
-- BUILD → `incremental-implementation` + `test-driven-development`
-- VERIFY → `debugging-and-error-recovery` (+ `e2e-playwright` for HTTP/API acceptance testing)
-- REVIEW → `code-review-and-quality`
-- SHIP → `shipping-and-launch` (+ `open-collection` / `confluence-api-doc` for the `docs/api` deliverable; `openapi-doc` for a read-only drift report)
+- INGEST → `neo-ingest` (runs `markitdown`)
+- DEFINE → `neo-spec` (runs `spec-driven-development`; drafts `api-spec` for HTTP features)
+- PLAN → `neo-plan` (runs `planning-and-task-breakdown`)
+- BUILD → `neo-build` (runs `incremental-implementation` + `test-driven-development`)
+- VERIFY → `neo-test` (runs `test-driven-development`; + `debugging-and-error-recovery` when something breaks, `e2e-playwright` for HTTP/API acceptance testing)
+- REVIEW → `neo-review` (runs `code-review-and-quality`; + `neo-code-simplify` to reduce complexity)
+- SHIP → `neo-ship` (runs `shipping-and-launch`; + `open-collection` / `confluence-api-doc` for the `docs/api` deliverable; `openapi-doc` for a read-only drift report)
 
 ### Execution Model
 
@@ -77,11 +77,11 @@ This repo has three composable layers. They have different jobs and should not b
 
 - **Skills** (`skills/<name>/SKILL.md`) — workflows with steps and exit criteria. The *how*. Mandatory hops when an intent matches.
 - **Personas** (`agents/<role>.md`) — roles with a perspective and an output format. The *who*.
-- **Slash commands** (`.claude/commands/*.md`) — user-facing entry points. The *when*. The orchestration layer.
+- **Entry skills** (`skills/neo-<phase>/SKILL.md`) — user-facing phase entry points that orchestrate the method skills. The *when*. The orchestration layer.
 
-Composition rule: **the user (or a slash command) is the orchestrator. Personas do not invoke other personas.** A persona may invoke skills.
+Composition rule: **the user (or a `neo-<phase>` entry skill) is the orchestrator. Personas do not invoke other personas.** A persona may invoke skills.
 
-The only multi-persona orchestration pattern this repo endorses is **parallel fan-out with a merge step** — used by `/ship` to run `code-reviewer`, `security-auditor`, and `test-engineer` concurrently and synthesize their reports. Do not build a "router" persona that decides which other persona to call; that's the job of slash commands and intent mapping.
+The only multi-persona orchestration pattern this repo endorses is **parallel fan-out with a merge step** — used by `neo-ship` to run `code-reviewer`, `security-auditor`, and `test-engineer` concurrently and synthesize their reports. Do not build a "router" persona that decides which other persona to call; that's the job of the entry skills and intent mapping.
 
 See [docs/agents.md](docs/agents.md) for the decision matrix and [references/orchestration-patterns.md](references/orchestration-patterns.md) for the full pattern catalog.
 

@@ -56,7 +56,7 @@ These three cover the most critical quality gaps in AI-assisted development.
 For comprehensive coverage, load skills by phase:
 
 ```
-Capturing context:   markitdown  (/ingest)
+Capturing context:   markitdown
 Starting a project:  spec-driven-development → planning-and-task-breakdown
 During development:  incremental-implementation + test-driven-development
 Before merge:        code-review-and-quality + security-and-hardening
@@ -97,34 +97,29 @@ The `agents/` directory contains pre-configured agent personas:
 | `code-reviewer.md` | Five-axis code review |
 | `test-engineer.md` | Test strategy and writing |
 | `security-auditor.md` | Vulnerability detection |
-| `web-performance-auditor.md` | Core Web Vitals & performance audit (via `/webperf`) |
+| `web-performance-auditor.md` | Core Web Vitals & performance audit (via `neo-webperf`) |
 
 Load an agent definition when you need specialized review. For example, ask your coding agent to "review this change using the code-reviewer agent persona" and provide the agent definition.
 
-## Using Commands
+## Entry Skills
 
-The `.claude/commands/` directory contains slash commands for Claude Code. For how they
-chain together into an end-to-end workflow, see [command-workflow.md](command-workflow.md).
+Each lifecycle phase has an entry skill named `neo-<phase>`. Invoking one runs the
+underlying workflow skill(s) for that phase. For how they chain together into an
+end-to-end workflow, see [command-workflow.md](command-workflow.md).
 
-| Command | Skill Invoked |
-|---------|---------------|
-| `/ingest` | markitdown |
-| `/spec` | spec-driven-development |
-| `/plan` | planning-and-task-breakdown |
-| `/build` | incremental-implementation + test-driven-development |
-| `/build auto` | planning-and-task-breakdown → incremental-implementation + test-driven-development (whole plan, one approval) |
-| `/test` | test-driven-development |
-| `/review` | code-review-and-quality |
-| `/code-simplify` | code-simplification |
-| `/ship` | shipping-and-launch |
-| `/webperf` | web-performance-auditor (specialist agent, web apps only) |
-| `/commit` | git-workflow-and-versioning |
-
-> **Note:** When installed as a Claude Code plugin you may see a warning like
-> _"Default commands/ folder is ignored because the manifest sets 'commands'"_.
-> This is expected. The root `commands/` directory belongs to the Antigravity CLI
-> and is intentionally separate from `.claude/commands/`. All Claude Code slash
-> commands load correctly from `.claude/commands/`; the warning is cosmetic.
+| Phase | Entry skill | Runs |
+|-------|-------------|------|
+| Ingest | `neo-ingest` | markitdown |
+| Define | `neo-spec` | spec-driven-development |
+| Plan | `neo-plan` | planning-and-task-breakdown |
+| Build | `neo-build` | incremental-implementation + test-driven-development |
+| Build | `neo-build auto` | planning-and-task-breakdown → incremental-implementation + test-driven-development (whole plan, one approval) |
+| Verify | `neo-test` | test-driven-development |
+| Review | `neo-review` | code-review-and-quality |
+| Review | `neo-code-simplify` | code-simplification |
+| Review | `neo-webperf` | web-performance-auditor (specialist agent, web apps only) |
+| Ship | `neo-ship` | shipping-and-launch |
+| Ship | `neo-commit` | git-workflow-and-versioning |
 
 ## Using References
 
@@ -141,7 +136,7 @@ Load a reference when you need detailed patterns beyond what the skill covers.
 
 ## Spec and task artifacts
 
-The `/spec` and `/plan` commands create working artifacts under `docs/tasks/<card>/` (`spec.md`, `plan.md`, `todo.md`). Treat them as **living documents** while the work is in progress:
+The `neo-spec` and `neo-plan` skills create working artifacts under `docs/tasks/<card>/` (`spec.md`, `plan.md`, `todo.md`). Treat them as **living documents** while the work is in progress:
 
 - Keep them in version control during development so the human and the agent have a shared source of truth.
 - Update them when scope or decisions change.

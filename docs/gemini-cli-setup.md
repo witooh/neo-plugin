@@ -111,26 +111,22 @@ Use the @skills/test-driven-development/SKILL.md skill to implement this fix.
 
 This is useful when you want to ensure a specific workflow is followed without waiting for auto-discovery.
 
-## Slash Commands
+## Lifecycle Entry Skills
 
-The repo ships 10 slash commands under `.gemini/commands/`: 8 lifecycle commands plus the `/webperf` specialist audit and the `/commit` helper. Gemini CLI auto-discovers them when you run from the project root.
+neo ships an entry skill per lifecycle phase, named `neo-<phase>`. Gemini CLI auto-discovers them alongside the other skills (Option 1) — there are no `.toml` commands to install. Describe your intent and Gemini activates the matching entry skill, which runs the underlying workflow skill(s).
 
-| Command | What it does |
-|---------|--------------|
-| `/ingest` | Ingest an external source into the knowledge base |
-| `/spec` | Write a structured spec before writing code |
-| `/planning` | Break work into small, verifiable tasks |
-| `/build` | Implement the next task incrementally |
-| `/test` | Run TDD workflow — red, green, refactor |
-| `/review` | Five-axis code review |
-| `/code-simplify` | Reduce complexity without changing behavior |
-| `/ship` | Pre-launch checklist via parallel persona fan-out |
-| `/webperf` | Audit browser-facing apps for Core Web Vitals and performance issues |
-| `/commit` | Create clean, atomic commits and judge when to rebase |
-
-Each command invokes the corresponding skill automatically — no manual skill loading required.
-
-> **Note:** Use `/planning` instead of `/plan` — `/plan` conflicts with a Gemini CLI internal command name.
+| Entry skill | What it does |
+|-------------|--------------|
+| `neo-ingest` | Ingest an external source into the knowledge base |
+| `neo-spec` | Write a structured spec before writing code |
+| `neo-plan` | Break work into small, verifiable tasks |
+| `neo-build` | Implement the next task incrementally |
+| `neo-test` | Run TDD workflow — red, green, refactor |
+| `neo-review` | Five-axis code review |
+| `neo-code-simplify` | Reduce complexity without changing behavior |
+| `neo-ship` | Pre-launch checklist via parallel persona fan-out |
+| `neo-webperf` | Audit browser-facing apps for Core Web Vitals and performance issues |
+| `neo-commit` | Create clean, atomic commits and judge when to rebase |
 
 ## Usage Tips
 

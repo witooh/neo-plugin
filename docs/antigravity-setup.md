@@ -1,12 +1,12 @@
 # Using neo with Antigravity CLI (agy)
 
-The `neo` package can be installed as a native plugin in the Antigravity CLI (`agy`), giving the agent access to structured workflows, personas, and custom slash commands.
+The `neo` package can be installed as a native plugin in the Antigravity CLI (`agy`), giving the agent access to structured workflows and personas.
 
 ## Setup
 
 ### Option 1: Native Plugin Installation (Recommended)
 
-Antigravity CLI has a first-class plugin system that registers skills, agents, and custom commands.
+Antigravity CLI has a first-class plugin system that registers skills and agents.
 
 **Install from the remote repository:**
 
@@ -41,26 +41,22 @@ agy plugin list
 
 ---
 
-## Slash Commands
+## Lifecycle Entry Skills
 
-The plugin registers 10 custom slash commands: 8 lifecycle commands plus the `/webperf` specialist audit and the `/commit` helper:
+The plugin ships an entry skill per lifecycle phase, named `neo-<phase>`. Antigravity auto-discovers them alongside the other skills (see *Skills & Discovery* below) — there are no `.toml` commands. Describe your intent and Antigravity activates the matching entry skill, which runs the underlying workflow skill(s):
 
-| Command | What it does | Activated Skill |
-|---------|--------------|-----------------|
-| `/ingest` | Ingest an external source into the knowledge base | `markitdown` |
-| `/spec` | Write a structured spec before writing code | `spec-driven-development` |
-| `/planning` | Break work into small, verifiable tasks | `planning-and-task-breakdown` |
-| `/build` | Implement the next task incrementally | `incremental-implementation` |
-| `/test` | Run TDD workflow — red, green, refactor | `test-driven-development` |
-| `/review` | Five-axis code review | `code-review-and-quality` |
-| `/code-simplify` | Reduce complexity without changing behavior | `code-simplification` |
-| `/ship` | Pre-launch checklist via parallel persona fan-out | `shipping-and-launch` |
-| `/webperf` | Audit browser-facing apps for Core Web Vitals and performance issues | `web-performance-auditor` |
-| `/commit` | Create clean, atomic commits and judge when to rebase | `git-workflow-and-versioning` |
-
-Each command automatically invokes the corresponding skill and guides the agent step-by-step.
-
-> **Note:** Use `/planning` instead of `/plan` to avoid conflicts with Antigravity's internal plan-generation command.
+| Entry skill | What it does | Runs |
+|-------------|--------------|------|
+| `neo-ingest` | Ingest an external source into the knowledge base | `markitdown` |
+| `neo-spec` | Write a structured spec before writing code | `spec-driven-development` |
+| `neo-plan` | Break work into small, verifiable tasks | `planning-and-task-breakdown` |
+| `neo-build` | Implement the next task incrementally | `incremental-implementation` |
+| `neo-test` | Run TDD workflow — red, green, refactor | `test-driven-development` |
+| `neo-review` | Five-axis code review | `code-review-and-quality` |
+| `neo-code-simplify` | Reduce complexity without changing behavior | `code-simplification` |
+| `neo-ship` | Pre-launch checklist via parallel persona fan-out | `shipping-and-launch` |
+| `neo-webperf` | Audit browser-facing apps for Core Web Vitals and performance issues | `web-performance-auditor` |
+| `neo-commit` | Create clean, atomic commits and judge when to rebase | `git-workflow-and-versioning` |
 
 ---
 

@@ -9,17 +9,17 @@ Specialist personas that play a single role with a single perspective. Each pers
 | [test-engineer](../agents/test-engineer.md) | QA Engineer | Test strategy, coverage analysis, Prove-It pattern |
 | [web-performance-auditor](../agents/web-performance-auditor.md) | Web Performance Engineer | Core Web Vitals audit, loading/rendering/network analysis |
 
-## How personas relate to skills and commands
+## How personas relate to skills and entry skills
 
 Three layers, each with a distinct job:
 
 | Layer | What it is | Example | Composition role |
 |-------|-----------|---------|------------------|
-| **Skill** | A workflow with steps and exit criteria | `code-review-and-quality` | The *how* — invoked from inside a persona or command |
+| **Skill** | A workflow with steps and exit criteria | `code-review-and-quality` | The *how* — invoked from inside a persona or entry skill |
 | **Persona** | A role with a perspective and an output format | `code-reviewer` | The *who* — adopts a viewpoint, produces a report |
-| **Command** | A user-facing entry point | `/review`, `/ship` | The *when* — composes personas and skills |
+| **Entry skill** | A user-facing entry point | `neo-review`, `neo-ship` | The *when* — composes personas and skills |
 
-The user (or a slash command) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
+The user (or an entry skill) is the orchestrator. **Personas do not call other personas.** Skills are mandatory hops inside a persona's workflow.
 
 ## When to use each
 
@@ -31,17 +31,17 @@ Pick this when you want one perspective on the current change and the user is in
 - "What tests are missing for the checkout flow?" → invoke `test-engineer` directly
 - "Audit Core Web Vitals on the product page" → invoke `web-performance-auditor` directly
 
-### Slash command (single persona behind it)
+### Entry skill (single persona behind it)
 Pick this when there's a repeatable workflow you'd otherwise re-explain every time.
 
-- `/review` → wraps `code-reviewer` with the project's review skill
-- `/test` → wraps `test-engineer` with TDD skill
-- `/webperf` → wraps `web-performance-auditor` for performance-focused audits on web apps
+- `neo-review` → wraps `code-reviewer` with the project's review skill
+- `neo-test` → wraps `test-engineer` with TDD skill
+- `neo-webperf` → wraps `web-performance-auditor` for performance-focused audits on web apps
 
-### Slash command (orchestrator — fan-out)
+### Entry skill (orchestrator — fan-out)
 Pick this only when **independent** investigations can run in parallel and produce reports that a single agent then merges.
 
-- `/ship` → fans out to `code-reviewer` + `security-auditor` + `test-engineer` in parallel, then synthesizes their reports into a go/no-go decision
+- `neo-ship` → fans out to `code-reviewer` + `security-auditor` + `test-engineer` in parallel, then synthesizes their reports into a go/no-go decision
 
 This is the only orchestration pattern this repo endorses. See [references/orchestration-patterns.md](../references/orchestration-patterns.md) for the full pattern catalog and anti-patterns.
 
@@ -51,16 +51,16 @@ This is the only orchestration pattern this repo endorses. See [references/orche
 Is the work a single perspective on a single artifact?
 ├── Yes → Direct persona invocation
 └── No  → Are the sub-tasks independent (no shared mutable state, no ordering)?
-         ├── Yes → Slash command with parallel fan-out (e.g. /ship)
-         └── No  → Sequential slash commands run by the user (/ingest → /spec → /plan → /build → /test → /review)
+         ├── Yes → Entry skill with parallel fan-out (e.g. neo-ship)
+         └── No  → Sequential entry skills run by the user (neo-ingest → neo-spec → neo-plan → neo-build → neo-test → neo-review)
 ```
 
 ## Worked example: valid orchestration
 
-`/ship` is the canonical fan-out orchestrator in this repo:
+`neo-ship` is the canonical fan-out orchestrator in this repo:
 
 ```
-/ship
+neo-ship
   ├── (parallel) code-reviewer    → review report
   ├── (parallel) security-auditor → audit report
   └── (parallel) test-engineer    → coverage report
@@ -81,7 +81,7 @@ Why this works:
 A `meta-orchestrator` persona whose job is "decide which other persona to call":
 
 ```
-/work-on-pr → meta-orchestrator
+neo-work-on-pr → meta-orchestrator
                   ↓ (decides "this needs a review")
               code-reviewer
                   ↓ (returns)
@@ -93,13 +93,13 @@ A `meta-orchestrator` persona whose job is "decide which other persona to call":
 Why this fails:
 - Pure routing layer with no domain value
 - Adds two paraphrasing hops → information loss + 2× token cost
-- The user already knows they want a review; let them call `/review` directly
-- Replicates work that slash commands and `AGENTS.md` intent-mapping already do
+- The user already knows they want a review; let them call `neo-review` directly
+- Replicates work that entry skills and `AGENTS.md` intent-mapping already do
 
 ## Rules for personas
 
 1. A persona is a single role with a single output format. If you find yourself adding a second role, create a second persona.
-2. **Personas do not invoke other personas.** Composition is the job of slash commands or the user. On Claude Code this is also a hard platform constraint — *"subagents cannot spawn other subagents"* — so the rule is enforced for you.
+2. **Personas do not invoke other personas.** Composition is the job of entry skills or the user. On Claude Code this is also a hard platform constraint — *"subagents cannot spawn other subagents"* — so the rule is enforced for you.
 3. A persona may invoke skills (the *how*).
 4. Every persona file ends with a "Composition" block stating where it fits.
 
@@ -107,7 +107,7 @@ Why this fails:
 
 The personas in this repo are designed to work as Claude Code subagents and as Agent Teams teammates without modification:
 
-- **As subagents:** auto-discovered when this plugin is enabled (no path config needed). Use the Agent tool with `subagent_type: code-reviewer` (or `security-auditor`, `test-engineer`). `/ship` is the canonical example.
+- **As subagents:** auto-discovered when this plugin is enabled (no path config needed). Use the Agent tool with `subagent_type: code-reviewer` (or `security-auditor`, `test-engineer`). `neo-ship` is the canonical example.
 - **As Agent Teams teammates** (experimental, requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`): reference the same persona name when spawning a teammate. The persona's body is **appended to** the teammate's system prompt as additional instructions (not a replacement), so your persona text sits on top of the team-coordination instructions the lead installs (SendMessage, task-list tools, etc.).
 
 Subagents only report results back to the main agent. Agent Teams let teammates message each other directly. Use subagents when reports are enough; use Agent Teams when sub-agents need to challenge each other's findings (e.g. competing-hypothesis debugging). See [references/orchestration-patterns.md](../references/orchestration-patterns.md) for the full mapping.

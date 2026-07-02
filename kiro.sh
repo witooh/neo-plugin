@@ -1,5 +1,5 @@
 #!/bin/bash
-# neo → Kiro installer. Copies neo's skills (+ command wrappers), agents, and
+# neo → Kiro installer. Copies neo's skills, agents, and
 # AGENTS.md steering into a Kiro config directory; shared reference checklists
 # are bundled into the skills that cite them. Run with --help for the layout.
 
@@ -12,11 +12,11 @@ usage() {
   cat <<'EOF'
 neo → Kiro installer
 
-Copies neo's skills, command wrappers, agents, and AGENTS.md into a Kiro
+Copies neo's skills, agents, and AGENTS.md into a Kiro
 configuration directory so Kiro can auto-discover them.
 
 Kiro layout (https://kiro.dev/docs/skills/):
-  .kiro/skills/      skills + command wrappers — each is a /<name> slash command
+  .kiro/skills/      skills — each is a /<name> slash command
                      (shared reference checklists ride inside the skills that cite them)
   .kiro/agents/      custom agent personas (markdown + YAML frontmatter)
   .kiro/steering/    AGENTS.md — always-on neo guidance
@@ -76,22 +76,6 @@ for dir in "$SCRIPT_DIR"/skills/*/; do
 done
 printf '  %-11s %d → %s/  %s\n' "skills:" "$skills" "$kiro_root/skills" "(as /<skill-name>)"
 
-# commands: .claude/commands/<name>.md -> .kiro/skills/<name>/SKILL.md
-# Thin wrapper skills so each is a short /<name> slash command. Inject the required
-# `name:` frontmatter and drop the Claude-only `neo:` skill namespace so the body
-# references Kiro skill names.
-cmds=0
-for file in "$SCRIPT_DIR"/.claude/commands/*.md; do
-  name="$(basename "$file" .md)"
-  mkdir -p "$kiro_root/skills/$name"
-  awk -v n="$name" '
-    NR==1 && /^---$/ { print; print "name: " n; next }
-    { gsub(/neo:/, ""); print }
-  ' "$file" > "$kiro_root/skills/$name/SKILL.md"
-  cmds=$((cmds + 1))
-done
-printf '  %-11s %d → %s/  %s\n' "commands:" "$cmds" "$kiro_root/skills" "(as /<name>)"
-
 # references: bundle each shared references/<file>.md into every skill whose SKILL.md
 # cites it, so the relative `references/<file>.md` pointer resolves inside the skill's
 # own dir (Kiro's self-contained skill model — no top-level references dir needed).
@@ -128,4 +112,4 @@ cp "$SCRIPT_DIR/AGENTS.md" "$kiro_root/steering/AGENTS.md"
 printf '  %-11s %d → %s/\n' "steering:" 1 "$kiro_root/steering"
 
 echo
-echo "Done. In Kiro, skills and commands appear as /<name> slash commands."
+echo "Done. In Kiro, skills appear as /<name> slash commands."
