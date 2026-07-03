@@ -34,6 +34,8 @@ Skills encode the workflows, quality gates, and best practices that senior engin
 
 Want fewer manual steps once the spec exists? **`neo-build auto`** generates the plan and implements every task in a single approved pass — you approve the plan once, then it runs autonomously. It removes the human stepping _between_ tasks, not the verification: every task is still test-driven and committed individually, and it pauses on failures or risky steps.
 
+Want to run the _entire_ lifecycle from one command? **`neo`** drives all the phases above in sequence — it detects where your feature is, runs each `neo-<phase>` in turn, and stops at every boundary to ask **go / stop / auto**. **`neo auto`** runs the whole flow after one approval, pausing only at commit, ship, blockers, or risky steps. The 10 entry skills stay directly callable; `neo` just sequences them.
+
 Skills also activate automatically based on what you're doing — designing an API triggers `api-and-interface-design`, building UI triggers `frontend-ui-engineering`, and so on.
 
 ---
@@ -187,15 +189,21 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ---
 
-## All 44 Skills
+## All 45 Skills
 
-The 10 `neo-<phase>` entry skills above are the phase entry points. The pack includes 44 skills total — those 10 plus 33 workflow and tooling skills and the `using-neo` meta-skill (all listed below). Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
+The 10 `neo-<phase>` entry skills above are the phase entry points. The pack includes 45 skills total — those 10 plus the `neo` lifecycle driver, 33 workflow and tooling skills, and the `using-neo` meta-skill (all listed below). Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
 
 ### Meta - Discover which skill applies
 
 | Skill                                  | What It Does                                                                      | Use When                                           |
 | -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------- |
 | [using-neo](skills/using-neo/SKILL.md) | Maps incoming work to the right skill workflow and defines shared operating rules | Starting a session or deciding which skill applies |
+
+### Driver - Run the whole lifecycle from one command
+
+| Skill                      | What It Does                                                                                                                                                            | Use When                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [neo](skills/neo/SKILL.md) | Drives the neo-\* phases end to end — detects the phase, runs each `neo-<phase>` in turn, gates at every boundary (go / stop / auto); `neo auto` flows after one approval | You want to run the full workflow from one entry instead of invoking each phase |
 
 ### Ingest - Capture external context
 
@@ -329,7 +337,8 @@ Every skill follows a consistent anatomy:
 
 ```
 neo/
-├── skills/                            # 44 skills (10 phase entry + 33 workflow/tooling + 1 meta)
+├── skills/                            # 45 skills (1 driver + 10 phase entry + 33 workflow/tooling + 1 meta)
+│   ├── neo/                             #   Lifecycle driver (drives the phase entries below)
 │   ├── neo-ingest/ neo-spec/ neo-plan/ neo-build/ neo-test/          #   Phase entry points
 │   ├── neo-review/ neo-code-simplify/ neo-commit/ neo-ship/ neo-webperf/  #   (orchestrate the method skills below)
 │   ├── markitdown/                    #   Ingest

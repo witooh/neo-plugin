@@ -8,6 +8,7 @@ This is the neo project — a collection of production-grade engineering skills 
 skills/       → Core skills (SKILL.md per directory)
 agents/       → Reusable agent personas (code-reviewer, test-engineer, security-auditor, web-performance-auditor)
 hooks/        → Session lifecycle hooks
+skills/neo/    → Lifecycle driver — one entry that drives the neo-* phases end to end (/neo, or /neo auto to flow after one approval)
 skills/neo-*/  → Phase entry skills (neo-ingest, neo-spec, neo-plan, neo-build, neo-test, neo-review, neo-code-simplify, neo-commit, neo-ship, neo-webperf) — cross-tool phase entry points that orchestrate the underlying method skills
 references/   → Supplementary checklists (testing, performance, security, accessibility, observability)
 docs/         → Setup guides for different tools
@@ -15,6 +16,7 @@ docs/         → Setup guides for different tools
 
 ## Skills by Phase
 
+**Driver:** neo (drives the neo-* phases end to end — `/neo`, `/neo auto`)
 **Ingest:** markitdown
 **Define:** interview-me, idea-refine, spec-driven-development, api-spec
 **Plan:** planning-and-task-breakdown

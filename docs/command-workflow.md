@@ -5,6 +5,12 @@ orchestrates the underlying method skill(s). This guide shows **how they chain t
 the order you run them in, what each reads and writes, and the shorter paths when you don't
 need the full flow.
 
+Prefer to run the chain from one command? The **`neo`** skill drives the whole sequence
+below — it detects the current phase, runs each `neo-<phase>` in turn, and gates at every
+boundary (go / stop / auto); **`neo auto`** flows through after one approval, stopping only
+at commit, ship, blockers, or risky steps. Everything in this guide still applies — `neo`
+sequences these entry skills, it doesn't replace them.
+
 ## The lifecycle at a glance
 
 ```
@@ -43,7 +49,8 @@ multiple features can be in flight at once.
 
 ## End-to-end walkthrough — a new feature
 
-This is the happy path from a JIRA card to production.
+This is the happy path from a JIRA card to production. To drive these steps from a single
+entry instead of invoking each one, run `neo` (or `neo auto` to flow after one approval).
 
 ### 1. `neo-ingest` — capture the source (optional but recommended)
 

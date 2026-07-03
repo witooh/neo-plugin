@@ -107,6 +107,11 @@ Each lifecycle phase has an entry skill named `neo-<phase>`. Invoking one runs t
 underlying workflow skill(s) for that phase. For how they chain together into an
 end-to-end workflow, see [command-workflow.md](command-workflow.md).
 
+To drive that whole chain from a single entry, use the **`neo`** skill: `neo` detects the
+current phase and runs each `neo-<phase>` in turn, gating at every boundary (go / stop /
+auto), while `neo auto` flows through after one approval. The phase entry skills below stay
+directly invocable — `neo` only sequences them.
+
 | Phase | Entry skill | Runs |
 |-------|-------------|------|
 | Ingest | `neo-ingest` | markitdown |

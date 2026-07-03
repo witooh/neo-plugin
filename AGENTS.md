@@ -48,6 +48,8 @@ Instead, the agent must internally follow this lifecycle:
 - REVIEW → `neo-review` (runs `code-review-and-quality`; + `neo-code-simplify` to reduce complexity)
 - SHIP → `neo-ship` (runs `shipping-and-launch`; + `open-collection` / `confluence-api-doc` for the `docs/api` deliverable; `openapi-doc` for a read-only drift report)
 
+The `neo` skill drives this whole sequence from one entry: it detects the current phase and runs each `neo-<phase>` above in turn, gating at every boundary (the user picks go / stop / auto); `neo auto` flows through after a single approval, stopping only at commit, ship, a blocker, or a high-risk step. A single `neo-<phase>` is still invocable on its own — `neo` only sequences them, it does not replace them.
+
 ### Execution Model
 
 For every request:

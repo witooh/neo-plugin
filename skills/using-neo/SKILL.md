@@ -9,6 +9,8 @@ description: Discovers and invokes agent skills. Use when starting a session or 
 
 Neo is a collection of engineering workflow skills organized by development phase. Each skill encodes a specific process that senior engineers follow. This meta-skill helps you discover and apply the right skill for your current task.
 
+To drive the whole neo-* lifecycle end to end from a single command — detecting the current phase and running each `neo-<phase>` in turn, with a gate at every boundary — use the `neo` skill (`/neo`, or `/neo auto` to flow after one approval). `neo` and `using-neo` coexist with different scopes: `neo` sequences only the neo-* phases, while `using-neo` (this skill) discovers *which* skill applies across the full catalog — including the non-neo-* skills that `neo` does not drive.
+
 ## Skill Discovery
 
 When a task arrives, identify the development phase and apply the corresponding skill:
