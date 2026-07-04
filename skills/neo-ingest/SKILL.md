@@ -49,15 +49,22 @@ Do not re-implement curation here — defer to `markitdown` for every mechanic.
 | "I'll just read the source into context and move on." | Ingest produces a reusable, provenance-stamped entry the whole workflow (and future sessions) can re-read — an in-context read is lost next turn. |
 | "I'll summarize the contract clauses to save space." | markitdown copies contract clauses verbatim; a paraphrase or translation is a second lossy transform that can drop a constraint. |
 | "The source has a live status, capture all of it." | Drop ephemeral state and note where to read it live — noise in docs/knowledge/ is worse than absence. |
+| "The full path documents exactly where the source file was." | For a filesystem source, record the **basename only** — an absolute path leaks the machine username into a checked-in doc. The sha256 validator identifies the file; the path adds nothing but PII. |
 
 ## Red Flags
 
 - Proceeding to spec/plan/build on a named-but-unread source without ingesting it.
 - Paraphrasing or translating a behaviour-constraining or contract clause.
 - Duplicating markitdown's curation steps here instead of deferring to it.
+- Leaking an absolute filesystem path (with the machine username) into the
+  entry — a local-file source must be recorded by **basename only** (e.g.
+  `image:diagram.png`, never `/Users/<name>/…/diagram.png`). The rule lives in
+  `markitdown`; this gate catches it before the entry ships.
 
 ## Verification
 
 - The source is curated into `docs/knowledge/<topic>.md` with provenance.
 - `docs/knowledge/INDEX.md` is updated.
 - `markitdown`'s own fidelity self-check passed (no dropped clauses).
+- No absolute host paths or usernames in the entry — filesystem-path sources are
+  recorded by basename (identity comes from the sha256 validator, not the path).

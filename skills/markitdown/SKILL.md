@@ -64,6 +64,27 @@ topic + fetched_at, so neo's ingest-first step can scan fast.
   that Markdown like any other text. Optional convenience — plain text/HTML needs
   no conversion; if `uvx` is unavailable, `pip install markitdown` then
   `markitdown <path>`.
+  - **Record the source by basename only** (`image:diagram.png`), never the
+    absolute path — an abs path leaks the machine username into a checked-in
+    doc. Use the file's sha256 as the validator for identity. (Applies to every
+    filesystem-path source, not just images.)
+  - **Diagram / whiteboard / screenshot:** `uvx markitdown` returns no usable
+    text (metadata only) — read the image directly (vision) and transcribe it;
+    the image itself is the source of truth, so say so in the entry.
+  - **Topology source** (boxes + arrows, a flow): embed a **Mermaid** diagram in
+    the entry — text an agent reads deterministically and a human renders —
+    rather than leaning on the raw image. Verify arrow directions at native
+    resolution first (see Fidelity), then validate the diagram renders.
+  - **PDF text — verify the conversion:** on some PDFs `uvx markitdown` drops
+    inter-word spaces (jams `PaymentGatewaySwitching`), which breaks both
+    verbatim copying and FTS search. Check a sample; if mangled, re-extract with
+    `pypdfium2` (`d[i].get_textpage().get_text_range()`) or read the PDF pages
+    directly — that faithful text is the source, not the markitdown output.
+  - **Large spec (many pages):** don't transcribe all of it. Index the clean
+    full text as a searchable source, then curate the stable map + verbatim
+    high-value clauses (endpoints, enums, error/response codes) into the entry;
+    page-reference the bulk field tables to the indexed source — a *named*
+    deferral, never a silent drop (KB4).
 - **HTML / text / verbal**: extract the facts with the source labeled
   accordingly — prose for context, but behaviour-constraining clauses copied
   verbatim, not summarised (Fidelity below).
@@ -90,6 +111,11 @@ Before finishing an entry, self-check at the clause level:
    the verbatim quote, never replace it).
 4. A clause that maps to neither → a dropped clause: **do not ship the entry;
    report BLOCKED** naming the missing clause.
+
+For an **image source**, transcription has an extra failure mode: a single
+full-frame read of a large image is downscaled and lossy. Crop each dense region
+at native resolution and re-read it before trusting the transcript — then
+clause-diff as above.
 
 This self-check catches obvious drops. The independent fresh-eyes pass that
 catches your *blind spots* (KB5) is a second, fresh-context re-fetch that
