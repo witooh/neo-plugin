@@ -79,6 +79,11 @@ the phase and reads back what it produced.
 ### 3. Gate at the boundary
 
 When a phase finishes, summarize what it produced, then ask before advancing.
+Before advancing, confirm any resolution that happened during the phase — an
+ingest landing, an open question answered, a decision made in conversation, a
+scope change — is reflected in **all** the card's docs (`spec.md`, `plan.md`,
+`todo.md`, `docs/knowledge/`) per `references/task-docs-sync.md`, not just the
+file the phase touched.
 
 - **Default `/neo` — ask every boundary.** Offer three choices every time:
   - **go** → run the next phase, then stop and ask again at the next boundary.
@@ -125,3 +130,6 @@ they don't navigate the workflow by hand.
   commit, ship, blockers, and high-risk steps stopped.
 - The project-wide Definition of Done that `using-neo` enforces holds for each
   phase's change, on top of that phase's own acceptance criteria.
+- At each boundary, mid-phase resolutions (ingests, answered OQs, decisions,
+  scope changes) are synced across `spec.md`/`plan.md`/`todo.md`/`docs/knowledge/`
+  (`references/task-docs-sync.md`).

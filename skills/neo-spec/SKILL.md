@@ -62,6 +62,12 @@ method; the method lives in `spec-driven-development`.
    place: replace endpoint-contract detail in the spec with a reference to
    `docs/api/` (link `docs/api/index.md` + the relevant `<domain>/<endpoint>.yaml`).
    The spec keeps business intent and AC; `docs/api/` is the single source of truth.
+7. **Amending an existing spec?** If `docs/tasks/<card>/spec.md` already exists
+   and this run changes it (a scope change, a deferral, a source resolution, a
+   new decision), the spec is not the only doc stating those facts — sync
+   `plan.md`/`todo.md` and the `docs/knowledge/` Related blocks per
+   `references/task-docs-sync.md`, so no downstream doc keeps the
+   pre-amendment state.
 
 ## Common Rationalizations
 
@@ -86,3 +92,6 @@ method; the method lives in `spec-driven-development`.
   of independently-testable, stable-ID (`AC-NNN`) criteria and a `## Sources` section.
 - For HTTP features, `api-spec` authored `docs/api/` and the spec references it
   (no duplicated contract).
+- If the run amended an existing spec, the task-docs sweep passed
+  (`references/task-docs-sync.md`): no `plan.md`/`todo.md` line still states
+  the pre-amendment fact.

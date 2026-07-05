@@ -122,6 +122,8 @@ Every skill includes a verification step. A task is not complete until verificat
 
 Per-skill verification is the local check. The project-wide bar that applies to *every* change, regardless of which skill is active, is the Definition of Done: tests pass, no regressions, behavior verified at runtime, docs updated. See `references/definition-of-done.md`. It complements each task's acceptance criteria rather than replacing them.
 
+"Docs updated" includes the card's working documents as a set: when a fact changes mid-flow — a source ingested, an open question answered, a decision made in conversation, a scope change — update **every** doc that states it (`docs/tasks/<card>/spec.md`, `plan.md`, `todo.md`, and `docs/knowledge/`), not just the nearest one. See `references/task-docs-sync.md`.
+
 ### 7. Read Before You Ask
 
 Load the context that already exists **before** generating output or asking the user anything. First and foremost, check the knowledge base at `docs/knowledge/` (start with its `INDEX.md`) — this is where `/neo-ingest` curates external sources: JIRA cards, docs, specs. Also consult the existing spec (`docs/tasks/<card>/`), the codebase, and `docs/design/` when relevant.

@@ -56,7 +56,9 @@ criteria; (2) load relevant context (existing code, patterns, types); (3) write 
 failing test for the expected behavior (RED); (4) implement the minimum code to
 pass (GREEN); (5) run the full test suite for regressions; (6) run the build to
 verify compilation; (7) commit with a descriptive message; (8) mark the task
-complete and stop.
+complete and sync the task docs — `todo.md` status, plus `plan.md`/`spec.md`
+wherever a decision, scope change, or resolution from this task appears (see
+`references/task-docs-sync.md`) — and stop.
 
 ### Autonomous: the whole plan (`/neo-build auto`)
 
@@ -77,7 +79,9 @@ complete and stop.
 5. **Execute every task in dependency order.** For each task run the full default
    loop (RED → GREEN → regression → build → commit → mark complete). Stage only
    the files that task touched plus its status update — never `git add -A` — one
-   commit per task so any point is a clean rollback.
+   commit per task so any point is a clean rollback. A task whose outcome
+   changed a decision, scope, or blocker state also syncs `plan.md`/`spec.md`
+   per `references/task-docs-sync.md` in the same commit.
 6. **Stop and ask** (don't push through) when a test can't pass or the build
    breaks without an obvious fix (→ `debugging-and-error-recovery`); the spec is
    ambiguous; or a task is high-risk/irreversible — auth, destructive migrations,
@@ -114,4 +118,6 @@ complete and stop.
   satisfied per slice.
 - In auto mode: one approval gate, per-task commits, and a final summary of what
   was done, skipped, or flagged.
+- Task docs are in sync after each task (`references/task-docs-sync.md`): no
+  stale decision/scope/blocker state left in `spec.md`/`plan.md`/`todo.md`.
 - Invoked with no mode arg, neo-build asks auto-vs-single before doing any work.

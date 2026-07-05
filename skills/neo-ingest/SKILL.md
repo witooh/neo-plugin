@@ -44,6 +44,13 @@ does **not** duplicate any curation logic; the method lives in `markitdown`.
 3. Confirm the source is captured so downstream phases can rely on it — and if
    this ingest satisfies a "not yet ingested" item in an existing requirement's
    Related block, update that block to link the new entry.
+4. **Sync the task docs.** If the ingest satisfies a plan task or resolves an
+   open question/decision, sweep `docs/tasks/<card>/` — `spec.md` (Sources),
+   `plan.md` (update note, decisions, task line, dependency graph, risks), and
+   `todo.md` — per `references/task-docs-sync.md` (plugin root:
+   `../../references/task-docs-sync.md` from this skill's directory), not just
+   the Related block. The capture isn't done while a tracker still says the
+   source is missing.
 
 Do not re-implement curation here — defer to `markitdown` for every mechanic.
 
@@ -55,6 +62,7 @@ Do not re-implement curation here — defer to `markitdown` for every mechanic.
 | "I'll summarize the contract clauses to save space." | markitdown copies contract clauses verbatim; a paraphrase or translation is a second lossy transform that can drop a constraint. |
 | "The source has a live status, capture all of it." | Drop ephemeral state and note where to read it live — noise in docs/knowledge/ is worse than absence. |
 | "The full path documents exactly where the source file was." | For a filesystem source, record the **basename only** — an absolute path leaks the machine username into a checked-in doc. The sha256 validator identifies the file; the path adds nothing but PII. |
+| "I updated the Related block, the capture is recorded." | The task docs (`spec.md`/`plan.md`/`todo.md`) still say "not yet ingested" — a future session reads the stale state and re-blocks the task or re-asks the user. Sweep them per `references/task-docs-sync.md`. |
 
 ## Red Flags
 
@@ -65,6 +73,8 @@ Do not re-implement curation here — defer to `markitdown` for every mechanic.
   entry — a local-file source must be recorded by **basename only** (e.g.
   `image:diagram.png`, never `/Users/<name>/…/diagram.png`). The rule lives in
   `markitdown`; this gate catches it before the entry ships.
+- Finishing an ingest that satisfies a plan task while `spec.md`, `plan.md`, or
+  `todo.md` still carries the ⛔ / "not yet ingested" state for that source.
 
 ## Verification
 
@@ -76,3 +86,8 @@ Do not re-implement curation here — defer to `markitdown` for every mechanic.
 - `markitdown`'s own fidelity self-check passed (no dropped clauses).
 - No absolute host paths or usernames in the entry — filesystem-path sources are
   recorded by basename (identity comes from the sha256 validator, not the path).
+- The task-docs sweep passed (`references/task-docs-sync.md`): re-grep of the
+  source name / OQ id / decision id / task id across `docs/tasks/<card>/` shows
+  zero stale "not yet ingested" / ⛔ states, and the doc-set walk caught
+  identifier-less counters ("N ingests remaining") (dated history notes
+  excepted).

@@ -45,6 +45,11 @@ Then:
 Save the plan to `docs/tasks/<card>/plan.md` and the task list to
 `docs/tasks/<card>/todo.md`.
 
+Re-planning a card whose `plan.md` already exists? Preserve dated history notes
+and completed-task lines, and sync any decision or scope change this revision
+introduces into `spec.md` and `todo.md` per `references/task-docs-sync.md` — a
+revised plan must not silently contradict the docs around it.
+
 ## Common Rationalizations
 
 | Excuse | Reality |
@@ -67,3 +72,6 @@ Save the plan to `docs/tasks/<card>/plan.md` and the task list to
 - Tasks are vertical slices in dependency order, with checkpoints between phases.
 - `planning-and-task-breakdown`'s own verification is satisfied and the plan was
   presented for human review.
+- On a re-plan: dated history and completed-task lines survived, and
+  `spec.md`/`todo.md` carry no state the revision superseded
+  (`references/task-docs-sync.md`).
