@@ -19,8 +19,23 @@ future agent or human can re-read with full provenance.
 
 ## What you produce
 
-One file at `docs/knowledge/<topic>.md` (or `<topic>-<n>.md` if the topic
-already has entries) containing:
+One file (or `<topic>-<n>.md` if the topic already has entries) placed in the
+bucket matching what the source **is**:
+
+- `docs/knowledge/contracts/<topic>.md` — an **API contract** (owned by the
+  providing system; may be consumed by many domains — flat, never grouped by
+  consumer, never duplicated per consumer).
+- `docs/knowledge/requirements/<domain>/<topic>.md` — a **requirement capture**
+  (JIRA card, brief); one card belongs to exactly one domain (e.g. `transfer/`).
+  Derive the domain from the card's bounded context; if genuinely ambiguous, ask.
+- `docs/knowledge/reference/<topic>.md` — **cross-cutting background**
+  (architecture whiteboards, sequences, lookup/config lists).
+
+(A repo whose `docs/knowledge/` is still flat and non-trivial to migrate may
+stay flat — follow the existing local layout; the buckets are the default for
+new KBs.)
+
+The file contains:
 
 ```markdown
 ---
@@ -45,8 +60,23 @@ topic: <short slug this entry belongs to>
 - validator: <etag/Last-Modified/sha or "none — re-fetch to revalidate">
 ```
 
+**A requirements entry must carry a curator "Related" block** — placed with the
+curator notes, above the verbatim body — because folders only locate files;
+links carry the relationships:
+
+- real relative markdown links to every `contracts/` and `reference/` entry the
+  card depends on, each annotated with the AC/rule that consumes it;
+- a named list of upstreams the card needs that are **not yet ingested** (a
+  named deferral, never a silent gap);
+- links to related requirements (e.g. the card that consumes this card's output).
+
+When a later ingest satisfies a "not yet ingested" item, update the consumer's
+Related block to link the new entry (this curator-block edit is not a silent
+entry edit — the verbatim body stays untouched).
+
 Maintain or create `docs/knowledge/INDEX.md` listing every entry with its
-topic + fetched_at, so neo's ingest-first step can scan fast.
+topic + fetched_at, grouped by the three buckets (requirements grouped by
+domain), so neo's ingest-first step can scan fast.
 
 ## How you ingest, by source type
 

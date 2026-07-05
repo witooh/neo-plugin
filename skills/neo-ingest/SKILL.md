@@ -34,11 +34,16 @@ does **not** duplicate any curation logic; the method lives in `markitdown`.
 ## The Workflow
 
 1. Identify the source the user named.
-2. Run the `markitdown` skill to curate it into `docs/knowledge/<topic>.md` with
-   provenance and to update `docs/knowledge/INDEX.md`. markitdown copies
-   behaviour-constraining and contract clauses verbatim (never paraphrased or
-   translated), drops ephemeral state, and refuses ephemeral noise.
-3. Confirm the source is captured so downstream phases can rely on it.
+2. Run the `markitdown` skill to curate it into the right `docs/knowledge/`
+   bucket (`contracts/` · `requirements/<domain>/` · `reference/` — markitdown
+   owns the placement rules) with provenance and to update
+   `docs/knowledge/INDEX.md`. markitdown copies behaviour-constraining and
+   contract clauses verbatim (never paraphrased or translated), drops ephemeral
+   state, and refuses ephemeral noise; a requirements entry gets a curator
+   **Related** block linking the contracts/reference entries it depends on.
+3. Confirm the source is captured so downstream phases can rely on it — and if
+   this ingest satisfies a "not yet ingested" item in an existing requirement's
+   Related block, update that block to link the new entry.
 
 Do not re-implement curation here — defer to `markitdown` for every mechanic.
 
@@ -63,8 +68,11 @@ Do not re-implement curation here — defer to `markitdown` for every mechanic.
 
 ## Verification
 
-- The source is curated into `docs/knowledge/<topic>.md` with provenance.
-- `docs/knowledge/INDEX.md` is updated.
+- The source is curated into its `docs/knowledge/` bucket
+  (`contracts/` / `requirements/<domain>/` / `reference/`) with provenance.
+- A requirements entry carries its **Related** block (dependency links +
+  named not-yet-ingested list).
+- `docs/knowledge/INDEX.md` is updated (grouped by bucket).
 - `markitdown`'s own fidelity self-check passed (no dropped clauses).
 - No absolute host paths or usernames in the entry — filesystem-path sources are
   recorded by basename (identity comes from the sha256 validator, not the path).
