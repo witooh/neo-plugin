@@ -3,14 +3,14 @@ name: neo-build
 description: >
   Entry point for the Build phase of the neo workflow — implement tasks
   incrementally, each test-driven, verified, and committed. Composes
-  `incremental-implementation` and `test-driven-development`; the default mode
-  does the next pending task then stops, and "auto" runs the whole
-  docs/tasks/<card>/plan.md in one approved pass (single checkpoint, per-task
-  commits, stopping on blockers via `debugging-and-error-recovery` and
-  `doubt-driven-development`). Use when a spec and plan exist and you are ready to
-  write code, when implementing a task slice, or when you invoke /neo-build or
-  /neo-build auto. The methods are `incremental-implementation` and
-  `test-driven-development`.
+  `incremental-implementation` and `test-driven-development`; invoked with no mode
+  it asks whether to run autonomously — `single` does the next pending task then
+  stops, and `auto` runs the whole docs/tasks/<card>/plan.md in one approved pass
+  (single checkpoint, per-task commits, stopping on blockers via
+  `debugging-and-error-recovery` and `doubt-driven-development`). Use when a spec
+  and plan exist and you are ready to write code, when implementing a task slice,
+  or when you invoke /neo-build, /neo-build single, or /neo-build auto. The methods
+  are `incremental-implementation` and `test-driven-development`.
 ---
 
 # Neo Build — incremental, test-driven Build entry point
@@ -36,15 +36,20 @@ commits. It does **not** reimplement those methods; they live in their own skill
 
 ### Modes
 
-- **`/neo-build`** — implement the *next* pending task, then stop (one slice at a
-  time).
+- **`/neo-build`** (no mode arg) — **ask first**: "Run autonomously through the
+  whole plan (auto), or one task at a time (single)?" Wait for the answer, then run
+  that mode. Don't assume a default — the ask is the point.
+- **`/neo-build single`** — implement the *next* pending task, then stop (one slice
+  at a time). Skips the ask.
 - **`/neo-build auto`** — generate the plan if needed, get a single approval, then
-  implement *every* task without stopping between them. `auto` (or `all`) selects
-  autonomous mode; anything else is the default single-task mode. Autonomous mode
-  is not faster *per task* — it runs the same test-driven loop — it only removes
-  the human stepping *between* tasks.
+  implement *every* task without stopping between them. Skips the ask.
 
-### Default: one task
+Mode keyword: `auto` (or `all`) selects autonomous mode; `single` (or `one`/`next`)
+selects single-task mode; no keyword means ask. Autonomous mode is not faster *per
+task* — it runs the same test-driven loop — it only removes the human stepping
+*between* tasks.
+
+### Single: one task
 
 Pick the next pending task from the plan, then: (1) read the task's acceptance
 criteria; (2) load relevant context (existing code, patterns, types); (3) write a
@@ -90,6 +95,7 @@ complete and stop.
 | "auto means I can skip the per-task commits." | Per-task commits are what make any point a clean rollback — one commit per task, staged precisely. |
 | "This migration is probably fine, keep going." | High-risk/irreversible steps are a mandatory stop-and-ask, even in auto mode. |
 | "No plan yet, I'll just start coding." | Require `docs/tasks/<card>/spec.md` (and a plan); don't invent requirements. |
+| "Bare /neo-build, I'll just do one task." | No mode arg means ask auto-vs-single first — don't assume single. |
 
 ## Red Flags
 
@@ -97,6 +103,8 @@ complete and stop.
 - `git add -A` in a per-task commit, absorbing unrelated changes.
 - Pushing through a broken build/test or a high-risk step in auto mode.
 - Starting with no spec/plan and inventing requirements.
+- Picking a mode on a bare `/neo-build` (no mode arg) instead of asking
+  auto-vs-single first.
 
 ## Verification
 
@@ -106,3 +114,4 @@ complete and stop.
   satisfied per slice.
 - In auto mode: one approval gate, per-task commits, and a final summary of what
   was done, skipped, or flagged.
+- Invoked with no mode arg, neo-build asks auto-vs-single before doing any work.
