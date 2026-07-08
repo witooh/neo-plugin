@@ -68,11 +68,11 @@ Shared org infrastructure (`common-lib`: `logger`, `stderr`, `stdresp`, `ctxutil
 
 ```
 cmd/api/                          COMPOSITION ROOT (package main) — wires concretes to interfaces
-  main.go                         thin entry point → Run(ctx)
+  main.go                         thin entry point → MustLoad + Run(ctx, cfg)
   app.go http.go consumer.go      build + wire adapters, repositories, usecases, handlers
   adapters.go
 config/                           CONFIGURATION (package config) — typed config + loader, beside config.yaml
-  config.go                       typed Config struct + Conf global + env/file loader
+  config.go                       typed Config struct + Load/MustLoad + env/file loader
   config.yaml                     runtime config values (mounted into the container)
 internal/
   core/                           THE CORE — domain + application logic (depends on nothing outward)
@@ -190,7 +190,7 @@ not a license to guess.
 | Delivery (driving) | `internal/delivery/**` | Translate transport ↔ usecase calls | `core/usecase`, `core/domain` |
 | Outbound adapter | `internal/adapters/{gateway,repository,eventbus}/**` | Implement a port against a real system | the owning `core/domain` context, `core/domain` |
 | Composition root | `cmd/api/**` | Build + wire everything | everything (the only place) |
-| Configuration | `config/**` | Typed `Config` + env/file loader → `config.Conf`; read once, injected as values | (its own leaf config types only) |
+| Configuration | `config/**` | Typed `Config` + env/file loader via `Load`/`MustLoad`; read once at startup, injected as values | (its own leaf config types only) |
 
 ## The invariants — keep the structure clean and the code readable (MUST)
 

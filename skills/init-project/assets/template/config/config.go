@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
@@ -15,8 +14,6 @@ import (
 	"example.com/neo/service/internal/adapters/repository/redis"
 	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/logger"
 )
-
-var Conf Config
 
 // Config is the typed runtime configuration. A freshly scaffolded service wires
 // only the infrastructure every service needs (logger, HTTP, Postgres, Redis,
@@ -53,13 +50,26 @@ type KafkaConfig struct {
 	UseAwsProfile bool   `mapstructure:"use_aws_profile"`
 }
 
-func init() {
-	if testing.Testing() {
-		return
+// Load reads the YAML config file, overlays environment-variable overrides, and
+// returns the decoded configuration. The composition root (cmd/api) calls it
+// explicitly at startup and threads the result through the wiring — there is no
+// package-level global and no init side effect.
+func Load() (*Config, error) {
+	var cfg Config
+	if err := load(&cfg); err != nil {
+		return nil, err
 	}
-	if err := load(&Conf); err != nil {
+	return &cfg, nil
+}
+
+// MustLoad is Load but panics on error. The composition root uses it at startup
+// where a missing/invalid config must abort the process.
+func MustLoad() *Config {
+	cfg, err := Load()
+	if err != nil {
 		panic(fmt.Errorf("fatal error config: %w", err))
 	}
+	return cfg
 }
 
 // load reads the YAML config file, overlays environment-variable overrides, and

@@ -20,17 +20,17 @@ func buildHandlers() *router.Handlers {
 	return &router.Handlers{}
 }
 
-func runHTTPServer(ctx context.Context, h *router.Handlers) error {
-	engine := router.New(*h, config.Conf.ServiceConfig.ServiceId)
+func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers) error {
+	engine := router.New(*h, svcCfg.ServiceId)
 
-	addr := config.Conf.ServiceConfig.Host + ":" + config.Conf.ServiceConfig.Port
+	addr := svcCfg.Host + ":" + svcCfg.Port
 	srv := &http.Server{Addr: addr, Handler: engine.Handler()}
 	logger.Info("server started", logger.String("url", addr))
 
 	go func() {
 		<-ctx.Done()
 		logger.Info("server is terminating...")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), config.Conf.ServiceConfig.ShutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), svcCfg.ShutdownTimeout)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			logger.Error("server shutdown error", logger.Err(err))

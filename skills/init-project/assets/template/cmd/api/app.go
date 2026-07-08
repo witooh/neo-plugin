@@ -19,20 +19,20 @@ import (
 // basis — a freshly scaffolded service must run with `go run ./cmd/api` alone.
 // neo replaces the best-effort wiring with real repositories, usecases and
 // handlers as it builds the first domain (see .kiro/steering/app.md).
-func Run(ctx context.Context) error {
-	if db := tryOpenDB(ctx); db != nil {
+func Run(ctx context.Context, cfg *config.Config) error {
+	if db := tryOpenDB(ctx, cfg.PostgresConfig); db != nil {
 		defer db.Close()
 	}
 
 	h := buildHandlers()
-	return runHTTPServer(ctx, h)
+	return runHTTPServer(ctx, cfg.ServiceConfig, h)
 }
 
 // tryOpenDB connects to Postgres when it is reachable, returning nil (after a
 // warning) when it is not — the empty skeleton never panics on a missing
 // database. neo swaps this for the real connection + sqlc.New(db) wiring.
-func tryOpenDB(ctx context.Context) *sql.DB {
-	db, err := sql.Open("pgx", config.Conf.PostgresConfig.ConnectionString())
+func tryOpenDB(ctx context.Context, pg config.PostgresConfig) *sql.DB {
+	db, err := sql.Open("pgx", pg.ConnectionString())
 	if err != nil {
 		logger.Warn("postgres not configured; serving without it", logger.Err(err))
 		return nil

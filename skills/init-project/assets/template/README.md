@@ -23,7 +23,7 @@ follows the documented layer patterns.
 ```
 neo-service/
 ├── cmd/api/                         # COMPOSITION ROOT (package main): entry + wiring
-│   ├── main.go                      #   thin entry point → Run(ctx)
+│   ├── main.go                      #   thin entry point → MustLoad + Run(ctx, cfg)
 │   └── app.go http.go               #   start server + best-effort infra + handler wiring
 ├── config/                          # typed config + loader, beside config.yaml
 ├── internal/

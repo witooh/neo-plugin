@@ -9,17 +9,17 @@ fileMatchPattern: "**/cmd/api/**,**/config/**"
 and usecases and wire them. This is where interfaces meet implementations; every other
 package programs to interfaces. `main.go` is a thin entry point. Runtime configuration
 lives in its own top-level **`config`** package (`config/config.go`), beside
-`config/config.yaml`; `cmd/api` imports it and reads `config.Conf`.
+`config/config.yaml`; `cmd/api` imports it, calls `config.MustLoad()`, and threads the result.
 
 ```
 cmd/api/               package main — composition root + entry point
-    main.go            tiny: build context, call Run(ctx)
-    app.go             Run(ctx): open infra (DB, cache), build adapters, start HTTP + consumer
+    main.go            tiny: MustLoad config, build context, call Run(ctx, cfg)
+    app.go             Run(ctx, cfg): open infra (DB, cache), build adapters, start HTTP + consumer
     adapters.go        construct the gateway / producer / number-generator adapters (each returns its port)
     http.go            buildHandlers + runHTTPServer (router lives in delivery/http/router)
     consumer.go        startKafkaConsumer (wires the processor)
 config/                package config — runtime configuration (imported by cmd/api)
-    config.go          typed Config struct + Conf global + env/file loader
+    config.go          typed Config struct + Load/MustLoad + env/file loader
     config.yaml        runtime config values (mounted into the container)
 ```
 
@@ -56,9 +56,10 @@ func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>A
 
 ```go
 func main() {
+	cfg := config.MustLoad()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := Run(ctx); err != nil {
+	if err := Run(ctx, cfg); err != nil {
 		logger.Fatal("service exited", logger.Err(err))
 	}
 }
@@ -72,7 +73,7 @@ number-generator adapters are constructed in `adapters.go`. Each `New...` return
 only place concrete adapter types are named.
 
 ```go
-db := openDB(config.Conf.DB)
+db := openDB(cfg.PostgresConfig)
 queries := sqlc.New(db)
 <aggregate>Repo := postgres.New<Aggregate>Repository(queries)            // → repository.<Aggregate>Repository
 <upstream>Adapter := <upstream>http.NewHTTPAdapter(<upstream>http.Config{}) // → <sys>.<Upstream>
@@ -98,8 +99,8 @@ func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>A
 	}
 }
 
-func runHTTPServer(ctx context.Context, h *router.Handlers) error {
-	engine := router.New(*h, config.Conf.ServiceConfig.ServiceId) // gin + middleware + /health + groups (delivery)
+func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers) error {
+	engine := router.New(*h, svcCfg.ServiceId) // gin + middleware + /health + groups (delivery)
 	srv := &http.Server{Addr: addr, Handler: engine.Handler()}
 	go func() { <-ctx.Done(); srv.Shutdown(shutdownCtx) }() // graceful shutdown on ctx cancel
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -125,16 +126,17 @@ return startConsumeLoop(ctx, kafkaClient, proc.Process)
 
 ## The `config` package (`config/config.go`)
 
-A typed `Config` struct loaded once into a package-level `config.Conf` — its own
-top-level **`package config`**, beside `config/config.yaml`. Group by concern
+A typed `Config` struct loaded once at startup via `config.MustLoad()` (or
+`config.Load()` for the error-returning variant) — its own top-level **`package config`**,
+beside `config/config.yaml`, with no package-level global. Group by concern
 (service, DB, kafka, each upstream). The loader reads the YAML file then overlays
 env-var overrides (upper-snake dotted path, e.g. `VAULT_BASE_URL`) — SIT/prod inject
 the full config this way. Secrets come from the environment / secret store — never
-commit them. `cmd/api` reads `config.Conf` and hands each adapter its slice via the
-adapter's own `Config` struct; adapters/usecases never read `config.Conf` directly.
+commit them. `cmd/api` calls `MustLoad`, then hands each adapter its slice via the
+adapter's own `Config` struct; adapters/usecases never read config globally.
 
 ## Don'ts
 
 - ✗ Business logic or HTTP/DTO shaping here — wiring only.
 - ✗ Passing concrete adapter types into `buildHandlers` — pass interfaces.
-- ✗ Reading `config.Conf` from inside a usecase/adapter — inject the needed values.
+- ✗ Reading config globally from inside a usecase/adapter — inject the needed values.
