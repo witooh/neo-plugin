@@ -29,6 +29,11 @@ the slice and hand it to the Verifier.
   `json.Marshal` gotcha in `domain.md`), centralized driven ports (`repository/` + `event/`), deterministic-by-injection (lift
   `time.Now()` / `uuid.New()` out of core into `clock.Clock` / `idgen.Generator`), DTO mapping at the
   edge.
+- **Per-service postgres schema** (blueprint: services share one database, one schema each, pinned
+  via `search_path` in the DSN + Makefile `PG_SCHEMA` + a compose `postgres-init` one-shot — see
+  the steering `repository.md`). If the target still uses its own database / the `public` schema,
+  do NOT silently move data: changing DB layout is not behavior-preserving. Report it as
+  DONE_WITH_CONCERNS so the user schedules the cutover.
 
 ## S1 — install the contract
 - Copy `INIT_TEMPLATE/.golangci.yaml` into the target (replacing any existing lint config), then

@@ -12,8 +12,8 @@ services:
       - DD_TRACE_AGENT_PORT=8126
       - DD_PROFILING_ENABLED=false
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
       valkey:
         condition: service_healthy
       kafka:
@@ -64,12 +64,30 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=app
+      # Services share the sit_core database; each service owns one schema inside it,
+      # pinned via search_path in every connection string.
+      - POSTGRES_DB=sit_core
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sit_core"]
       interval: 5s
       timeout: 3s
       retries: 10
       start_period: 10s
+
+  # One-shot: creates the service schema before neo-service starts and before
+  # migration-up runs (compose-up blocks on neo-service's depends_on, which waits
+  # for this to complete).
+  postgres-init:
+    image: postgres:17-alpine
+    container_name: postgres-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        psql -h postgres -U postgres -d sit_core -c 'CREATE SCHEMA IF NOT EXISTS neoschema;'
+    environment:
+      - PGPASSWORD=password

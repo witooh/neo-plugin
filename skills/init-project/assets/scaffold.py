@@ -28,6 +28,7 @@ from pathlib import Path
 SENTINEL_MODULE = "example.com/neo/service"
 SENTINEL_NAME = "neo-service"
 SENTINEL_ID = "NEOSVC"
+SENTINEL_SCHEMA = "neoschema"
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", "vendor"}
 AUTH_NEEDLES = (
@@ -51,6 +52,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--module-path", required=True, help="Go module path, e.g. gitlab.example.com/org/foo-service")
     p.add_argument("--service-name", required=True, help="kebab-case service name, e.g. foo-service")
     p.add_argument("--service-id", required=True, help="UPPER service id, e.g. NEOFOO")
+    p.add_argument("--schema", help="postgres schema owned by this service inside the shared database "
+                                    "(default: service name minus a trailing '-service', dashes -> underscores)")
     p.add_argument("--force", action="store_true", help="allow a non-empty target dir")
     p.add_argument("--no-build", action="store_true", help="skip the final go build")
     p.add_argument("--no-git", action="store_true", help="skip git init")
@@ -65,6 +68,8 @@ def validate(args: argparse.Namespace) -> None:
         fail(f"--service-name must be kebab-case [a-z0-9-]: {args.service_name!r}")
     if not re.fullmatch(r"[A-Z0-9_]+", args.service_id):
         fail(f"--service-id must be UPPER [A-Z0-9_]: {args.service_id!r}")
+    if args.schema and not re.fullmatch(r"[a-z][a-z0-9_]*", args.schema):
+        fail(f"--schema must be a lower snake_case postgres identifier: {args.schema!r}")
 
 
 def preflight(target: Path, force: bool) -> None:
@@ -129,14 +134,17 @@ def main() -> None:
     copy_template(src, target)
     log(f"created:  {target} (from frozen template)")
 
+    schema = args.schema or re.sub(r"-service$", "", args.service_name).replace("-", "_")
     counts = substitute(target, {
         SENTINEL_MODULE: args.module_path,
         SENTINEL_NAME: args.service_name,
         SENTINEL_ID: args.service_id,
+        SENTINEL_SCHEMA: schema,
     })
     log(f"rewrote:  module path  {SENTINEL_MODULE} -> {args.module_path}   ({counts[SENTINEL_MODULE]} files)")
     log(f"rewrote:  service name  {SENTINEL_NAME} -> {args.service_name}   ({counts[SENTINEL_NAME]} files)")
     log(f"rewrote:  service id    {SENTINEL_ID} -> {args.service_id}   ({counts[SENTINEL_ID]} files)")
+    log(f"rewrote:  pg schema     {SENTINEL_SCHEMA} -> {schema}   ({counts[SENTINEL_SCHEMA]} files)")
 
     if not args.no_tidy:
         r = run(["go", "mod", "tidy"], target)

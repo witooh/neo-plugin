@@ -5,8 +5,9 @@ description: >
   empty-but-runnable account-service snapshot (clean layers, tooling, infra, `.kiro/` steering)
   with ZERO business domains. It builds and serves `GET /health` immediately, ready for the
   `neo` skill (or Kiro) to add the first domain with no setup. Asks the service identity (Go
-  module path, name, id, target dir), runs `scaffold.py` (copy + sentinel-substitute + go mod
-  tidy + git init + build), then verifies (L1 `initcheck.py` + L2 fresh-eyes). Trigger on:
+  module path, name, id, postgres schema, target dir), runs `scaffold.py` (copy +
+  sentinel-substitute + go mod tidy + git init + build), then verifies (L1 `initcheck.py` + L2
+  fresh-eyes). Trigger on:
   "init project", "/init-project", "scaffold a service", "new service from template",
   "bootstrap a Go service", "สร้าง project ใหม่", "สร้าง service ใหม่", "scaffold service ใหม่",
   "โครง service เปล่า", "ตั้งโปรเจกต์ใหม่ตาม account-service", "ทำ boilerplate", "new Go service
@@ -54,7 +55,7 @@ Kafka running (it warns and continues — it never panics on missing infra).
 
 | Tool | Purpose |
 |---|---|
-| `AskUserQuestion` / chat | Gather the new service's identity (module path, name, id, target dir). |
+| `AskUserQuestion` / chat | Gather the new service's identity (module path, name, id, postgres schema, target dir). |
 | `Bash` | Run `assets/scaffold.py` (generate) + `assets/initcheck.py` (L1 verify). |
 | `Agent` | Dispatch the L2 fresh-eyes verifier (`references/init-verifier.md`). |
 | `Read` | Read the guide / verifier references. |
@@ -72,29 +73,33 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
 
 ## Steps
 
-1. **Gather identity.** Get four values from the user (ask for the module path first; derive
+1. **Gather identity.** Get five values from the user (ask for the module path first; derive
    sensible suggestions for the rest and confirm):
    - **module path** — the Go module path, e.g. `gitlab.awesome-poc-th.com/libero-engineering/core/<svc>`.
    - **service name** — kebab-case; default to the **last path segment** of the module.
    - **service id** — UPPER short id used in the error envelope / tracer (e.g. `NEOPAY`); suggest one
      from the name and confirm.
+   - **postgres schema** — the schema this service owns inside the shared database (services share
+     one database — `sit_core` — one schema per service, pinned via `search_path`); suggest the
+     service name minus a trailing `-service` with dashes→underscores (e.g. `account-service` →
+     `account`) and confirm.
    - **target dir** — where to create the project (suggest a sibling dir `../<service-name>`).
 
-   Confirm all four before generating. Never invent the module path — it is org-specific; ask.
+   Confirm all five before generating. Never invent the module path — it is org-specific; ask.
 
 2. **Generate.** Run the bundled scaffold:
    ```bash
    python3 <skill-dir>/assets/scaffold.py \
-     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id>
+     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema>
    ```
-   It copies the frozen template, substitutes the three sentinels, runs `go mod tidy`, `git init`, and
+   It copies the frozen template, substitutes the four sentinels, runs `go mod tidy`, `git init`, and
    `go build ./...`. If the build fails on private-module auth (the output prints a hint), re-run with
    `--no-build` and tell the user to run `go mod tidy && go build ./...` once they have access.
 
 3. **L1 verify (deterministic).** Run the checker; **every check must PASS**:
    ```bash
    python3 <skill-dir>/assets/initcheck.py \
-     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id>
+     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema>
    ```
    It proves: build + vet, module identity, `go mod verify`, no leftover sentinels, steering
    placeholders preserved, manifest present, zero business survivors, no domain imports in outer
@@ -113,7 +118,7 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
 ## Notes
 
 - The bundled template is a **frozen snapshot** under `assets/template/` (sentinel module path
-  `example.com/neo/service`, name `neo-service`, id `NEOSVC`). To refresh it when `account-service`'s
-  conventions change, follow `references/init-project-guide.md`.
+  `example.com/neo/service`, name `neo-service`, id `NEOSVC`, postgres schema `neoschema`). To
+  refresh it when `account-service`'s conventions change, follow `references/init-project-guide.md`.
 - Generic steering placeholders (`{{MODULE_PATH}}`, `<context>`, …) are intentionally left unresolved
-  for neo to fill per-domain — only the three sentinels are substituted at generation time.
+  for neo to fill per-domain — only the four sentinels are substituted at generation time.

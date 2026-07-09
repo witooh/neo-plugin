@@ -8,9 +8,9 @@ PG_USER     ?= postgres
 PG_PASSWORD ?= password
 PG_HOST     ?= localhost
 PG_PORT     ?= 5432
-PG_DATABASE ?= app
+PG_DATABASE ?= sit_core
 PG_SSLMODE  ?= disable
-PG_SCHEMA   ?= public
+PG_SCHEMA   ?= neoschema
 PG_CONNECTION_URL = postgres://$(PG_USER):$(PG_PASSWORD)@$(PG_HOST):$(PG_PORT)/$(PG_DATABASE)?sslmode=$(PG_SSLMODE)&search_path=$(PG_SCHEMA)
 
 MIGRATION_PATH ?= ../../internal/adapters/repository/postgres/migrations

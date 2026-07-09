@@ -6,7 +6,7 @@ right identity, has zero business survivors, keeps the steering placeholders, an
 serves /health via a best-effort (never-panicking) boot path.
 
 Usage:
-    initcheck.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID
+    initcheck.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID [--schema SCHEMA]
 Exit code 0 = all checks pass, 1 = a check failed, 2 = bad invocation.
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-SENTINELS = {"module": "example.com/neo/service", "name": "neo-service", "id": "NEOSVC"}
+SENTINELS = {"module": "example.com/neo/service", "name": "neo-service", "id": "NEOSVC", "schema": "neoschema"}
 SKIP_DIRS = {".git", "__pycache__", "node_modules", "vendor"}
 
 MANIFEST = [
@@ -116,7 +116,11 @@ def main() -> None:
     ap.add_argument("--module-path", required=True)
     ap.add_argument("--service-name", required=True)
     ap.add_argument("--service-id", required=True)
+    ap.add_argument("--schema", default=None,
+                    help="postgres schema passed to scaffold.py (default: derived from --service-name)")
     args = ap.parse_args()
+    if args.schema is None:
+        args.schema = re.sub(r"-service$", "", args.service_name).replace("-", "_")
 
     t = Path(args.target_dir).expanduser().resolve()
     if not t.is_dir():
@@ -135,7 +139,7 @@ def main() -> None:
     mv = subprocess.run(["go", "mod", "verify"], cwd=t, capture_output=True, text=True)
     check(mv.returncode == 0, "go mod verify", (mv.stdout + mv.stderr).strip()[:200])
 
-    user = {"module": args.module_path, "name": args.service_name, "id": args.service_id}
+    user = {"module": args.module_path, "name": args.service_name, "id": args.service_id, "schema": args.schema}
     leftover = []
     for key, sent in SENTINELS.items():
         if user[key] == sent:

@@ -133,15 +133,16 @@ func overlayEnv(m map[string]any, prefix string) {
 }
 
 // ConnectionString returns the PostgreSQL connection string.
-// The format is: postgres://username:password@host:port/database?sslmode=sslmode
-// Example: postgres://username:password@localhost:5432/mydb?sslmode=disable
+// The format is: postgres://username:password@host:port/database?sslmode=sslmode&search_path=schema
+// search_path pins the per-service schema — services share one database, one schema each.
 func (p *PostgresConfig) ConnectionString() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s",
 		p.User,
 		p.Password,
 		p.Host,
 		p.Port,
 		p.Database,
 		p.SSLMode,
+		p.Schema,
 	)
 }

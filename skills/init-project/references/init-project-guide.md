@@ -11,8 +11,9 @@ it is CI-verifiable as-is:
 | `example.com/neo/service` | `--module-path` | every `.go` import, `go.mod`, `sqlc.yaml`, `.golangci.yaml`, `.mockery.yaml` |
 | `neo-service` | `--service-name` | `docker-compose.yaml`, `.gitlab-ci.yml`, `Makefile`, `Dockerfile`, READMEs |
 | `NEOSVC` | `--service-id` | `config/config.yaml` (`service_id`) |
+| `neoschema` | `--schema` (default: service name minus `-service`, dashes→underscores) | `config/config.yaml` (`schema`), `Makefile` (`PG_SCHEMA`), `docker-compose.yaml` (`postgres-init`) |
 
-Generation (`scaffold.py`) is a **single-pass string substitution** of those three sentinels, then
+Generation (`scaffold.py`) is a **single-pass string substitution** of those four sentinels, then
 `go mod tidy` + `git init` + `go build`. Generic steering placeholders (`{{MODULE_PATH}}`,
 `{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels — they are left intact for `neo` to fill
 per-domain.
@@ -66,8 +67,9 @@ is committed.
 1. **Copy** a clean `account-service` into a scratch dir, excluding `.git/ vendor/ node_modules/
    __pycache__/ .DS_Store tests/e2e/{coverage,node_modules}/ *.out cover.profile` (keep `tools/`).
 2. **Rename to sentinels** across the tree: the real Go module path → `example.com/neo/service`, the
-   service/container name → `neo-service`, the service id (`NEOACCT`-style) → `NEOSVC`. `go build` to
-   prove the rename didn't break.
+   service/container name → `neo-service`, the service id (`NEOACCT`-style) → `NEOSVC`, the postgres
+   schema (`account`-style, in `config.yaml` / `Makefile` / compose `postgres-init`) → `neoschema`.
+   `go build` to prove the rename didn't break.
 3. **Gut the composition root first** (`cmd/api/app.go` → best-effort boot, `http.go` →
    `buildHandlers()` returns `&router.Handlers{}`, delete `adapters.go`/`consumer.go`), then the
    **router** (`router.go` → `/health` + empty `Handlers struct{}`, delete business route files), then

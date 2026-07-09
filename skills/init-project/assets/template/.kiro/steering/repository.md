@@ -110,6 +110,10 @@ repository method (or a transactor passed in) — usecases stay persistence-agno
 - **`migrations/`** are ordered and append-only; a schema change = a new migration
   (`make create-migration NAME=…`, applied with `make migration-up`), never an edit to a
   shipped one.
+- **Per-service postgres schema** — services share one database; this service owns exactly one
+  schema in it, created by the compose `postgres-init` one-shot and pinned via `search_path` in
+  every connection string (runtime DSN `config.PostgresConfig.ConnectionString`, Makefile
+  `PG_SCHEMA`). All objects, including `schema_migrations`, live there — never in `public`.
 - **`seed/`** holds idempotent seed SQL (e.g. `ON CONFLICT DO NOTHING`) for reference
   data — safe to re-run.
 - `sqlc.yaml` configures the input/output dirs, the engine, and type overrides (uuid,

@@ -38,9 +38,10 @@ You are given: the **target dir** and the intended **module path / service name 
    module/name/id. `CLAUDE.md` points at the steering as the source of truth.
 
 6. **Identity substituted cleanly.** `go.mod`'s module line is the intended module path;
-   `config.yaml`'s `service_id` is the intended id; `docker-compose.yaml`'s container name is the
-   intended name. No sentinel (`example.com/neo/service`, `neo-service`, `NEOSVC`) remains — unless the
-   user deliberately chose that value.
+   `config.yaml`'s `service_id` is the intended id and its `schema` is the intended per-service
+   postgres schema; `docker-compose.yaml`'s container name is the intended name. No sentinel
+   (`example.com/neo/service`, `neo-service`, `NEOSVC`, `neoschema`) remains — unless the user
+   deliberately chose that value.
 
 ## Output
 
