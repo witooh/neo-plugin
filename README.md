@@ -181,7 +181,30 @@ Re-running overwrites only neo-owned entries; other Kiro content is left intact.
 </details>
 
 <details>
-<summary><b>Codex / Other Agents</b></summary>
+<summary><b>Codex</b></summary>
+
+**Marketplace install:**
+
+```bash
+codex plugin marketplace add witooh/neo-plugin
+codex plugin add neo@neo
+```
+
+**Local / development:**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+cd neo-plugin
+codex plugin marketplace add .
+codex plugin add neo@neo
+```
+
+Start a new Codex thread after installation to load the skills.
+
+</details>
+
+<details>
+<summary><b>Other Agents</b></summary>
 
 Skills are plain Markdown - they work with any agent that accepts system prompts or instruction files. See [docs/getting-started.md](docs/getting-started.md).
 

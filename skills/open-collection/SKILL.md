@@ -57,11 +57,11 @@ Auto-detect (user can override): no `opencollection.yml` at the target → **Gen
 ## Step 1 · Locate the source + collection root + context
 - **Source** — the **api-spec** at `docs/api/*.yaml`; if it does not exist → **STOP** (run `/spec` — the api-spec skill authors it). In a monorepo, scope to the chosen service's `docs/api/`.
 - **Collection root** (in order): explicit path from the user → walk **up** from cwd for an existing `opencollection.yml` → an existing collection dir (one that holds an `opencollection.yml`) under `bruno/` | `bruno-collection/` | `open-collection/` → else propose `<repo-root>/bruno/` and **confirm before writing**. The api-spec source (`docs/api/`) is **outside** the collection root — never confuse the two.
-- Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (→ `info.name`), the dev port (→ `local` `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
+- Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (`info.name`), the dev port (the `local` environment's `baseUrl` — a small config peek, not a Go scan), and known environments (local/sit/uat/prod).
 
 ## Step 2 · Read the source endpoints
 Read [`references/request-template.md`](references/request-template.md) — **§0** (api-spec source). **Do not scan Go** — the api-spec was already drift-checked against the code by `openapi-doc`.
-- **Hand-map** each endpoint YAML → one request (`path_params`/`query_params` → `params`; `request_body.example` → `http.body.data` verbatim; `auth` → request/folder auth; `_meta.base_url` + `path` → the `{{baseUrl}}` URL). Render each endpoint's `docs:` with `yaml2md.py` (see Step 3). *(There is no `bru import openapi` — the custom YAML is not OpenAPI; always hand-map.)*
+- **Hand-map** each endpoint YAML → one request (`path_params`/`query_params` populate `params`; `request_body.example` → `http.body.data` verbatim; `auth` → request/folder auth; `_meta.base_url` + `path` → the `{{baseUrl}}` URL). Render each endpoint's `docs:` with `yaml2md.py` (see Step 3). *(There is no `bru import openapi` — the custom YAML is not OpenAPI; always hand-map.)*
 
 ## Step 3 · Generate / Update / Validate
 Write using [`references/request-template.md`](references/request-template.md) (per-file templates) + [`references/yaml-reference.md`](references/yaml-reference.md) (schema):
