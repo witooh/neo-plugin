@@ -31,8 +31,6 @@ jobs:
     needs: [validate-skills]
     runs-on: ubuntu-latest
     env:
-      COPILOT_HOME: ${{ runner.temp }}/copilot-home
-      COPILOT_CACHE_HOME: ${{ runner.temp }}/copilot-cache
       COPILOT_OFFLINE: 'true'
     steps:
       - uses: actions/checkout@v6
@@ -41,6 +39,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Configure isolated Copilot directories
+        run: |
+          echo "COPILOT_HOME=${RUNNER_TEMP}/copilot-home" >> "$GITHUB_ENV"
+          echo "COPILOT_CACHE_HOME=${RUNNER_TEMP}/copilot-cache" >> "$GITHUB_ENV"
 
       - name: Install GitHub Copilot CLI
         run: npm install -g @github/copilot
