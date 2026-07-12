@@ -43,6 +43,29 @@ Skills also activate automatically based on what you're doing — designing an A
 ## Quick Start
 
 <details>
+<summary><b>Codex</b></summary>
+
+**Marketplace install:**
+
+```bash
+codex plugin marketplace add witooh/neo-plugin
+codex plugin add neo@neo
+```
+
+**Local / development:**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+cd neo-plugin
+codex plugin marketplace add .
+codex plugin add neo@neo
+```
+
+Start a new Codex thread after installation to load the skills.
+
+</details>
+
+<details>
 <summary><b>Claude Code (recommended)</b></summary>
 
 **Marketplace install:**
@@ -64,6 +87,52 @@ Skills also activate automatically based on what you're doing — designing an A
 ```bash
 git clone https://github.com/witooh/neo-plugin.git
 claude --plugin-dir /path/to/neo
+```
+
+</details>
+
+<details>
+<summary><b>GitHub Copilot</b></summary>
+
+Install as a native Copilot plugin to load all skills, four custom subagents, and the neo session-start router together. See [docs/copilot-setup.md](docs/copilot-setup.md).
+
+**Marketplace install:**
+
+```bash
+copilot plugin marketplace add witooh/neo-plugin
+copilot plugin install neo@neo
+```
+
+**Direct install from GitHub:**
+
+```bash
+copilot plugin install witooh/neo-plugin
+```
+
+**Local / development:**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+copilot plugin install ./neo-plugin
+```
+
+</details>
+
+<details>
+<summary><b>Gemini CLI</b></summary>
+
+Install as native skills for auto-discovery, or add to `GEMINI.md` for persistent context. See [docs/gemini-cli-setup.md](docs/gemini-cli-setup.md).
+
+**Install from the repo:**
+
+```bash
+gemini skills install https://github.com/witooh/neo-plugin.git --path skills
+```
+
+**Install from a local clone:**
+
+```bash
+gemini skills install ./neo/skills/
 ```
 
 </details>
@@ -91,25 +160,6 @@ agy plugin install https://github.com/witooh/neo-plugin.git
 ```bash
 git clone https://github.com/witooh/neo-plugin.git
 agy plugin install ./neo
-```
-
-</details>
-
-<details>
-<summary><b>Gemini CLI</b></summary>
-
-Install as native skills for auto-discovery, or add to `GEMINI.md` for persistent context. See [docs/gemini-cli-setup.md](docs/gemini-cli-setup.md).
-
-**Install from the repo:**
-
-```bash
-gemini skills install https://github.com/witooh/neo-plugin.git --path skills
-```
-
-**Install from a local clone:**
-
-```bash
-gemini skills install ./neo/skills/
 ```
 
 </details>
@@ -151,33 +201,6 @@ pi install ./neo-plugin
 </details>
 
 <details>
-<summary><b>GitHub Copilot</b></summary>
-
-Install as a native Copilot plugin to load all skills, four custom subagents, and the neo session-start router together. See [docs/copilot-setup.md](docs/copilot-setup.md).
-
-**Marketplace install:**
-
-```bash
-copilot plugin marketplace add witooh/neo-plugin
-copilot plugin install neo@neo
-```
-
-**Direct install from GitHub:**
-
-```bash
-copilot plugin install witooh/neo-plugin
-```
-
-**Local / development:**
-
-```bash
-git clone https://github.com/witooh/neo-plugin.git
-copilot plugin install ./neo-plugin
-```
-
-</details>
-
-<details>
 <summary><b>Kiro IDE & CLI</b></summary>
 
 Run `kiro.sh` to install neo's skills (as `/<name>` slash commands), agents, and AGENTS.md steering into a Kiro config directory (`.kiro/`). See [Kiro docs](https://kiro.dev/docs/skills/).
@@ -197,29 +220,6 @@ cd neo-plugin
 ```
 
 Re-running overwrites only neo-owned entries; other Kiro content is left intact.
-
-</details>
-
-<details>
-<summary><b>Codex</b></summary>
-
-**Marketplace install:**
-
-```bash
-codex plugin marketplace add witooh/neo-plugin
-codex plugin add neo@neo
-```
-
-**Local / development:**
-
-```bash
-git clone https://github.com/witooh/neo-plugin.git
-cd neo-plugin
-codex plugin marketplace add .
-codex plugin add neo@neo
-```
-
-Start a new Codex thread after installation to load the skills.
 
 </details>
 
