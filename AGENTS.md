@@ -1,98 +1,143 @@
 # AGENTS.md
 
-This file provides guidance to AI coding agents (Claude Code, Cursor, Copilot, Antigravity, etc.) when working with code in this repository.
+This is the canonical repository guidance for every AI coding harness (Claude Code, Codex, Copilot, Cursor, OpenCode, Antigravity, and others). Harness-specific entry files must import or reference this file instead of duplicating its content; root `CLAUDE.md` imports it with `@AGENTS.md`.
 
 ## Repository Overview
 
-A collection of skills for Claude.ai and Claude Code for senior software engineers. Skills are packaged instructions and scripts that extend Claude and your coding agents capabilities.
+neo is a collection of production-grade engineering skills and specialist agent personas covering the software-development lifecycle from ingest through ship.
 
-## OpenCode Integration
+## Project Structure
 
-OpenCode uses a **skill-driven execution model** powered by the `skill` tool and this repository's `/skills` directory.
+```text
+skills/        Core skills (`SKILL.md` per directory)
+skills/neo/    Lifecycle driver (`neo` / `neo auto`)
+skills/neo-*/  Cross-tool phase entry skills
+agents/        Reusable specialist personas
+hooks/         Claude session lifecycle hooks
+references/    Canonical shared checklists
+docs/          Tool-specific setup guides
+```
+
+## Skill-Driven Execution
 
 ### Core Rules
 
-- If a task matches a skill, you MUST invoke it
-- Skills are located in `skills/<skill-name>/SKILL.md`
-- Never implement directly if a skill applies
-- Always follow the skill instructions exactly (do not partially apply them)
+- If a task matches a skill, invoke it before taking task actions.
+- Skills live at `skills/<skill-name>/SKILL.md`; read and follow the selected skill completely.
+- Use the harness's native skill mechanism; in OpenCode, invoke the selected skill with the `skill` tool.
+- Never implement directly when a skill applies, and never partially apply a skill workflow.
+- Load only the relevant skill and referenced resources; do not inject the whole catalog into context.
 
-### Intent → Skill Mapping
+### Intent to Skill Mapping
 
-The agent should automatically map user intent to skills:
-
-- Ingesting external docs / context (URL, card, file) → `markitdown`
-- Feature / new functionality → `spec-driven-development`, then `incremental-implementation`, `test-driven-development`
-- HTTP / API end-to-end acceptance tests (from acceptance criteria) → `e2e-playwright`
-- Planning / breakdown → `planning-and-task-breakdown`
-- Bug / failure / unexpected behavior → `debugging-and-error-recovery`
+- External docs or context → `markitdown`
+- Feature or new functionality → `spec-driven-development`, then `incremental-implementation` + `test-driven-development`
+- HTTP acceptance tests → `e2e-playwright`
+- Planning or breakdown → `planning-and-task-breakdown`
+- Bug, failure, or unexpected behavior → `debugging-and-error-recovery`
 - Code review → `code-review-and-quality`
-- Refactoring / simplification → `code-simplification`
+- Refactoring or simplification → `code-simplification`
 - API or interface design → `api-and-interface-design`
-- API contract drift (Go ↔ the `docs/api` spec) → `openapi-doc`
-- Runnable API collection (Bruno) from the `docs/api` spec → `open-collection`
-- Publish the `docs/api` spec to Confluence → `confluence-api-doc`
+- Go implementation vs `docs/api` drift → `openapi-doc`
+- Bruno collection from `docs/api` → `open-collection`
+- Publish `docs/api` to Confluence → `confluence-api-doc`
 - UI work → `frontend-ui-engineering`
 
-### Lifecycle Mapping (Implicit Commands)
+### Method Skills by Phase
 
-neo ships no slash commands — every tool invokes a phase through its `neo-<phase>` entry skill, which orchestrates the underlying method skills below.
+- **Driver:** `neo`
+- **Ingest:** `markitdown`
+- **Define:** `interview-me`, `idea-refine`, `spec-driven-development`, `api-spec`
+- **Plan:** `planning-and-task-breakdown`
+- **Build:** `incremental-implementation`, `test-driven-development`, `context-engineering`, `source-driven-development`, `doubt-driven-development`, `frontend-ui-engineering`, `api-and-interface-design`
+- **Verify:** `browser-testing-with-devtools`, `debugging-and-error-recovery`, `e2e-playwright`
+- **Review:** `code-review-and-quality`, `code-simplification`, `security-and-hardening`, `performance-optimization`
+- **Ship:** `git-workflow-and-versioning`, `ci-cd-and-automation`, `deprecation-and-migration`, `documentation-and-adrs`, `observability-and-instrumentation`, `shipping-and-launch`, `open-collection`, `confluence-api-doc`, `openapi-doc`
 
-Instead, the agent must internally follow this lifecycle:
+### Lifecycle Entry Skills
 
-- INGEST → `neo-ingest` (runs `markitdown`)
-- DEFINE → `neo-spec` (runs `spec-driven-development`; drafts `api-spec` for HTTP features)
-- PLAN → `neo-plan` (runs `planning-and-task-breakdown`)
-- BUILD → `neo-build` (runs `incremental-implementation` + `test-driven-development`)
-- VERIFY → `neo-test` (runs `test-driven-development`; + `debugging-and-error-recovery` when something breaks, `e2e-playwright` for HTTP/API acceptance testing)
-- REVIEW → `neo-review` (runs `code-review-and-quality`; + `neo-code-simplify` to reduce complexity)
-- SHIP → `neo-ship` (runs `shipping-and-launch`; + `open-collection` / `confluence-api-doc` for the `docs/api` deliverable; `openapi-doc` for a read-only drift report)
+- DRIVER → `neo` detects and sequences all phases; `neo auto` continues after one approval and stops only at commit, ship, blockers, or high-risk steps.
+- INGEST → `neo-ingest` runs `markitdown`.
+- DEFINE → `neo-spec` runs `spec-driven-development` and drafts `api-spec` for HTTP features.
+- PLAN → `neo-plan` runs `planning-and-task-breakdown`.
+- BUILD → `neo-build` runs `incremental-implementation` + `test-driven-development`.
+- VERIFY → `neo-test` runs `test-driven-development`, adding `debugging-and-error-recovery` for failures and `e2e-playwright` for HTTP acceptance criteria.
+- REVIEW → `neo-review` runs `code-review-and-quality`; `neo-code-simplify` reduces complexity.
+- SHIP → `neo-ship` runs `shipping-and-launch`, reconciles API drift, and refreshes `open-collection` / `confluence-api-doc` deliverables.
+- SUPPORT → `neo-webperf` audits web performance; `neo-commit` prepares atomic commits.
 
-The `neo` skill drives this whole sequence from one entry: it detects the current phase and runs each `neo-<phase>` above in turn, gating at every boundary (the user picks go / stop / auto); `neo auto` flows through after a single approval, stopping only at commit, ship, a blocker, or a high-risk step. A single `neo-<phase>` is still invocable on its own — `neo` only sequences them, it does not replace them.
+`api-spec` spans Define and Ship: Define authors the contract; Ship reconciles it from built code. `openapi-doc` remains a read-only drift report.
 
 ### Execution Model
 
 For every request:
 
-1. Determine if any skill applies (even 1% chance)
-2. Invoke the appropriate skill using the `skill` tool
-3. Follow the skill workflow strictly
-4. Only proceed to implementation after required steps (spec, plan, etc.) are complete
+1. Determine whether any skill applies, even for small tasks.
+2. Invoke the appropriate skill and follow its workflow exactly.
+3. Complete required spec, plan, test, and review gates before implementation or delivery.
+4. Treat thoughts such as “this is too small for a skill,” “I can quickly implement this,” or “I will gather context first” as rationalizations; skill discovery comes first.
 
-### Anti-Rationalization
+## Orchestration
 
-The following thoughts are incorrect and must be ignored:
+neo has three composable layers:
 
-- "This is too small for a skill"
-- "I can just quickly implement this"
-- "I’ll gather context first"
+- **Skills** (`skills/<name>/SKILL.md`) define *how* work is done.
+- **Personas** (`agents/<role>.md`) define *who* performs specialist work.
+- **Entry skills** (`skills/neo-<phase>/SKILL.md`) define *when* workflows run and orchestrate method skills.
 
-Correct behavior:
+The user or an entry skill is the orchestrator. Personas may invoke skills but must not invoke other personas. The only endorsed multi-persona composition is parallel fan-out with a merge step, used by `neo-ship` for `code-reviewer`, `security-auditor`, and `test-engineer`.
 
-- Always check for and use skills first
+See [docs/agents.md](docs/agents.md) and [references/orchestration-patterns.md](references/orchestration-patterns.md). Claude Code discovers personas in `agents/` as subagents and Agent Teams teammates; plugin agents silently ignore `hooks`, `mcpServers`, and `permissionMode` frontmatter fields.
 
-This ensures OpenCode behaves similarly to Claude Code with full workflow enforcement.
+## Skill Authoring Conventions
 
-## Orchestration: Personas, Skills, and Commands
+- Every skill lives in `skills/<kebab-case-name>/SKILL.md` with `name` and `description` YAML frontmatter.
+- Descriptions begin with what the skill does in third person, then state when to use it.
+- Standard skills include Overview, When to Use, Process, Common Rationalizations, Red Flags, and Verification.
+- Most skills are Markdown-only. Create supporting files only when content exceeds roughly 100 lines; never create per-skill zip packages.
+- Top-level `references/` is the source of truth for shared checklists. `scripts/bundle-references.sh` copies them into skills that must be self-contained; never hand-edit generated copies.
 
-This repo has three composable layers. They have different jobs and should not be confused:
+Before adding or significantly reworking a skill, follow [CONTRIBUTING.md](CONTRIBUTING.md#before-proposing-a-new-skill): search the catalog and open PRs, confirm the gap against [docs/skill-anatomy.md](docs/skill-anatomy.md), and prefer extending an existing skill.
 
-- **Skills** (`skills/<name>/SKILL.md`) — workflows with steps and exit criteria. The *how*. Mandatory hops when an intent matches.
-- **Personas** (`agents/<role>.md`) — roles with a perspective and an output format. The *who*.
-- **Entry skills** (`skills/neo-<phase>/SKILL.md`) — user-facing phase entry points that orchestrate the method skills. The *when*. The orchestration layer.
+## Upstream vs neo-Owned Files
 
-Composition rule: **the user (or a `neo-<phase>` entry skill) is the orchestrator. Personas do not invoke other personas.** A persona may invoke skills.
+The repo is a rebranded fork of `addyosmani/agent-skills`; `sync-upstream` imports upstream changes.
 
-The only multi-persona orchestration pattern this repo endorses is **parallel fan-out with a merge step** — used by `neo-ship` to run `code-reviewer`, `security-auditor`, and `test-engineer` concurrently and synthesize their reports. Do not build a "router" persona that decides which other persona to call; that's the job of the entry skills and intent mapping.
+- **Do not edit upstream-owned files:** skills listed in `synced_skills` in `.claude/skills/sync-upstream/sync-state.json`, plus upstream files in `hooks/`, `agents/`, and `references/`. The sole carved-out skill exception is `using-neo`.
+- **Edit neo-local files freely:** entry skills under `skills/neo-*`, this `AGENTS.md`, `docs/`, `README.md`, and skills absent from `synced_skills`, including `api-spec`, the API-doc chain, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `e2e-playwright`, and `markitdown`.
+- Put neo behavior changes in a neo-owned entry skill or other neo-owned file, never in its upstream method skill.
+- New neo-specific files added under an otherwise upstream-owned directory remain neo-local when absent upstream.
 
-See [docs/agents.md](docs/agents.md) for the decision matrix and [references/orchestration-patterns.md](references/orchestration-patterns.md) for the full pattern catalog.
+## Validation Commands
 
-**Claude Code interop:** the personas in `agents/` work as Claude Code subagents (auto-discovered from this plugin's `agents/` directory) and as Agent Teams teammates (referenced by name when spawning). Two platform constraints align with our rules: subagents cannot spawn other subagents, and teams cannot nest. Plugin agents silently ignore the `hooks`, `mcpServers`, and `permissionMode` frontmatter fields.
+- Skills: `node scripts/validate-skills.js`
+- Agent guidance SOT: `node scripts/validate-agent-guidance.js`
+- Copilot plugin: `node scripts/validate-copilot-plugin.js`
+- Claude hook: `bash hooks/session-start-test.sh`
+- Codex hook: `bash .codex-plugin/hooks/session-start-test.sh`
+- Claude plugin structure: `claude plugin validate .`
 
-## Creating a New Skill
+## Versioning and Releases
 
-> **Before you start:** run the pre-flight checks in [CONTRIBUTING.md](CONTRIBUTING.md#before-proposing-a-new-skill), search the catalog, check open PRs (`gh pr list --state open`), confirm the idea fits [docs/skill-anatomy.md](docs/skill-anatomy.md), and justify the gap in your PR description. Most new-skill ideas overlap an existing skill or an open PR; prefer extending an existing skill over adding a near-duplicate. CONTRIBUTING.md is the single source of truth for this workflow.
+When the user asks to bump the version, commit, or cut a release:
 
-Skills in this repo are markdown-first: each lives at `skills/<kebab-case-name>/SKILL.md` with YAML frontmatter (`name`, `description`) and follows the section anatomy (Overview, When to Use, Process, Common Rationalizations, Red Flags, Verification). Add a `scripts/` directory only when the skill ships runnable helpers; most skills are markdown only, and there are no per-skill zip packages.
+1. Bump the canonical `version` in `.claude-plugin/plugin.json` using SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes. Sync that version to `.plugin/plugin.json` and both version fields in `.github/plugin/marketplace.json`; `.claude-plugin/marketplace.json` intentionally has no version field. Follow the Codex packaging flow for its build-suffixed manifest version.
+2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
+3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Put the headline and Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
-For the full format, naming conventions, frontmatter rules, supporting-file thresholds, and writing principles, see [docs/skill-anatomy.md](docs/skill-anatomy.md), the single source of truth for skill structure. Do not restate that guidance here, link to it.
+Check prior releases before writing notes. Use `--latest=false` when backfilling an older release. The user runs `git commit`; never auto-commit.
+
+## Pull Requests
+
+- Before opening a PR, search the upstream repository's open PRs and issues for overlapping files or rules and coordinate instead of creating a conflict.
+- Target the upstream repository's default branch; remote names may differ (`upstream` and `origin` are conventional, not required).
+- Prefer small, focused PRs over broad refactors of shared files.
+
+## Boundaries
+
+- Always run the CONTRIBUTING pre-flight before creating a skill directory.
+- Always follow `docs/skill-anatomy.md` and run relevant validators.
+- Never add vague advice as a skill; skills must define actionable processes.
+- Never duplicate content between skills; reference another skill instead, except for generated bundled references.
+- Never hand-edit upstream-synced content or generated per-skill reference copies.
+- Never duplicate canonical repository guidance in `CLAUDE.md` or another harness adapter; update this file instead.

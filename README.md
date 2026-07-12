@@ -153,7 +153,27 @@ pi install ./neo-plugin
 <details>
 <summary><b>GitHub Copilot</b></summary>
 
-Use agent definitions from `agents/` as Copilot personas and skill content in `.github/copilot-instructions.md`. See [docs/copilot-setup.md](docs/copilot-setup.md).
+Install as a native Copilot plugin to load all skills, four custom subagents, and the neo session-start router together. See [docs/copilot-setup.md](docs/copilot-setup.md).
+
+**Marketplace install:**
+
+```bash
+copilot plugin marketplace add witooh/neo-plugin
+copilot plugin install neo@neo
+```
+
+**Direct install from GitHub:**
+
+```bash
+copilot plugin install witooh/neo-plugin
+```
+
+**Local / development:**
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+copilot plugin install ./neo-plugin
+```
 
 </details>
 

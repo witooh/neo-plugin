@@ -1,7 +1,7 @@
 # CLAUDE.md — editing the `migrate-project` skill
 
 Scoped guidance for anyone (human or Claude) **editing files under `skills/migrate-project/`**. The
-repo-root `CLAUDE.md` owns the wider wiring (hook polyglot, version bump, publish flow); this file
+repo-root `AGENTS.md` owns the wider wiring (hook polyglot, version bump, publish flow); this file
 owns the invariants that are easy to break when you touch `migrate-project` itself.
 
 **This is a maintainer doc, not runtime.** The skill never point-to-reads it, and it is not loaded
@@ -97,8 +97,8 @@ assets/
 3. **`preamble.md`** if a cross-cutting rule changes (every role reads it first).
 4. **Cross-references** — every `<file> §<section>` / steering-guide citation still resolves
    (`structure.md`, `domain.md`, … live in `INIT_TEMPLATE`).
-5. **Repo root** — README trigger table + `hooks/session-start` overview block + root `CLAUDE.md`
-   skills list (per root `CLAUDE.md` § Editing skills) if the trigger surface changed.
+5. **Repo root** — README trigger table + `hooks/session-start` overview block + root `AGENTS.md`
+   skills list (per root `AGENTS.md` § Skill Authoring Conventions) if the trigger surface changed.
 
 ## Verify before commit
 
@@ -110,5 +110,5 @@ assets/
 4. **Frontmatter** valid YAML; `tools` = `[Agent, Read, AskUserQuestion]`.
 5. **Runtime proof** (only the user can do this) — reinstall, then `/migrate-project` against a real
    service through P2 (analyze + plan), confirm the slice plan is sane before any code moves.
-6. **Bump `version`** in `.claude-plugin/plugin.json` + `marketplace.json` (root `CLAUDE.md` § Before
-   every commit). Don't reuse the skill `metadata.version` for that — they're separate.
+6. **Bump the plugin version** following root `AGENTS.md` § Versioning and Releases for every
+   publishable change. Don't reuse the skill `metadata.version` for that — they're separate.

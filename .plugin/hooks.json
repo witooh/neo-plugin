@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "printf '%s\\n' '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo skill. Route the request through its Skill Discovery flowchart and follow the selected skill before implementation.\"}'",
+        "powershell": "Write-Output '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo skill. Route the request through its Skill Discovery flowchart and follow the selected skill before implementation.\"}'",
+        "timeoutSec": 5
+      }
+    ]
+  }
+}

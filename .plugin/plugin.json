@@ -8,11 +8,22 @@
   "homepage": "https://github.com/witooh/neo-plugin",
   "repository": "https://github.com/witooh/neo-plugin",
   "license": "MIT",
-  "skills": "./skills",
+  "keywords": [
+    "skills",
+    "agents",
+    "engineering",
+    "spec",
+    "tdd",
+    "review",
+    "ship"
+  ],
+  "category": "Developer Tools",
   "agents": [
     "./agents/code-reviewer.md",
     "./agents/security-auditor.md",
     "./agents/test-engineer.md",
     "./agents/web-performance-auditor.md"
-  ]
+  ],
+  "skills": "./skills/",
+  "hooks": "./.plugin/hooks.json"
 }

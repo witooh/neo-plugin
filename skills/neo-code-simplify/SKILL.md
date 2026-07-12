@@ -3,7 +3,8 @@ name: neo-code-simplify
 description: >
   Entry point for the neo Review-phase simplification pass — reduce complexity
   without changing behavior. Delegates to `code-simplification` as the method and
-  applies neo conventions: read CLAUDE.md and project conventions, target
+  applies neo conventions: read AGENTS.md or the project's equivalent rules,
+  target
   recently changed code, simplify incrementally running tests after each change,
   then re-review the result via `code-review-and-quality`. Use when code works but
   reads as more complex than it should, when refactoring for clarity, or when you
@@ -16,9 +17,9 @@ description: >
 
 This is the neo entry point for the simplification pass in the Review phase. It
 orchestrates `code-simplification` as the underlying method and layers neo's
-conventions on top (ground in CLAUDE.md, target recent changes, test after each
-step, re-review at the end). It does **not** reimplement simplification; the
-method lives in `code-simplification`.
+conventions on top (ground in AGENTS.md or equivalent project rules, target
+recent changes, test after each step, re-review at the end). It does **not**
+reimplement simplification; the method lives in `code-simplification`.
 
 ## When to Use
 
@@ -33,7 +34,8 @@ method lives in `code-simplification`.
 Simplify recently changed code (or the specified scope) while preserving exact
 behavior:
 
-1. Read CLAUDE.md and study project conventions.
+1. Read AGENTS.md or the project's equivalent rules file (for example,
+   CLAUDE.md) and study project conventions.
 2. Identify the target code — recent changes unless a broader scope is specified.
 3. Understand the code's purpose, callers, edge cases, and test coverage before
    touching it.

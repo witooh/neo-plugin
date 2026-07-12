@@ -1,0 +1,34 @@
+{
+  "name": "neo",
+  "owner": {
+    "name": "Witoo Harianto"
+  },
+  "metadata": {
+    "description": "Production-grade engineering workflows for GitHub Copilot.",
+    "version": "1.7.2"
+  },
+  "plugins": [
+    {
+      "name": "neo",
+      "description": "Production-grade engineering skills, custom agents, and lifecycle routing for GitHub Copilot.",
+      "version": "1.7.2",
+      "source": ".",
+      "author": {
+        "name": "Witoo Harianto"
+      },
+      "homepage": "https://github.com/witooh/neo-plugin",
+      "repository": "https://github.com/witooh/neo-plugin",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "agents",
+        "engineering",
+        "spec",
+        "tdd",
+        "review",
+        "ship"
+      ],
+      "category": "Developer Tools"
+    }
+  ]
+}

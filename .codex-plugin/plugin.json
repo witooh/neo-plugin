@@ -1,6 +1,6 @@
 {
   "name": "neo",
-  "version": "1.7.1+codex.20260711143700",
+  "version": "1.7.2+codex.20260712050910",
   "description": "Production-grade engineering skills for AI coding agents \u2014 covering the full software development lifecycle from spec to ship.",
   "author": {
     "name": "Witoo Harianto"
@@ -17,7 +17,6 @@
     "ship"
   ],
   "skills": "./skills/",
-  "hooks": "./.codex-plugin/hooks/hooks.json",
   "interface": {
     "displayName": "Neo",
     "shortDescription": "Production-grade engineering workflows for Codex.",

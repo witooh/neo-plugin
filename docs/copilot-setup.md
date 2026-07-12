@@ -1,95 +1,143 @@
 # Using neo with GitHub Copilot
 
-## Setup
+neo installs as a native GitHub Copilot plugin. One installation provides the complete `skills/` pack, all custom agents as Copilot subagents, and a `sessionStart` hook that routes each session through the `using-neo` meta-skill.
 
-### Copilot Instructions
+This guide targets the current `copilot` CLI, not the legacy `gh copilot` extension.
 
-Copilot supports creating agent skills using a `.github/skills`, `.claude/skills`, or `.agents/skills` directory in your repository.
+## Prerequisites
+
+Install GitHub Copilot CLI if it is not already available:
 
 ```bash
-mkdir -p .github
-
-# Create files for essential skills
-cat /path/to/neo/skills/test-driven-development/SKILL.md > .github/skills/test-driven-development/SKILL.md
-cat /path/to/neo/skills/code-review-and-quality/SKILL.md > .github/skills/code-review-and-quality/SKILL.md
+npm install -g @github/copilot
 ```
 
-For more details, refer [Creating agent skills for GitHub Copilot](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-skills).
+The npm installation requires Node.js 22 or later. Copilot plugin availability can also be controlled by organization or enterprise policy.
 
-### Agent Personas (*.agent.md)
+## Native plugin installation (recommended)
 
-Copilot supports specialized agent personas. Use the neo agents:
+### Install from the neo marketplace
 
-> **Important:** GitHub Copilot requires custom agent files to be named `*.agent.md`.
-> Files named `*.md` are silently ignored by Copilot.
-> See [VS Code custom agents docs](https://code.visualstudio.com/docs/copilot/customization/custom-agents#_custom-agent-file-structure) for details.
+Register this repository as a marketplace, then install neo:
 
 ```bash
-# Create the agents directory and copy agent definitions
+copilot plugin marketplace add witooh/neo-plugin
+copilot plugin install neo@neo
+```
+
+The equivalent commands inside an interactive Copilot session are:
+
+```text
+/plugin marketplace add witooh/neo-plugin
+/plugin install neo@neo
+```
+
+### Install directly from GitHub
+
+Use a direct install when you do not need marketplace discovery:
+
+```bash
+copilot plugin install witooh/neo-plugin
+```
+
+### Install from a local clone
+
+Use this during neo development:
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+copilot plugin install ./neo-plugin
+```
+
+Copilot caches installed plugins. Re-run the local install command after changing the plugin source.
+
+## Verify the installation
+
+List installed plugins from the shell:
+
+```bash
+copilot plugin list
+```
+
+Then start an interactive session and verify the bundled components:
+
+```text
+/skills list
+/agent
+```
+
+The installation should expose:
+
+- Every skill under `skills/`, including the `neo` and `neo-<phase>` entry skills.
+- `code-reviewer`, `security-auditor`, `test-engineer`, and `web-performance-auditor` as custom agents. Copilot can select eligible custom agents as isolated subagents, or you can select one explicitly with `/agent`.
+- A `sessionStart` hook that tells Copilot to load `using-neo` before acting, so skill discovery remains on-demand instead of injecting all skill bodies into context.
+
+## Update or remove neo
+
+```bash
+copilot plugin update neo
+copilot plugin uninstall neo
+```
+
+After uninstalling neo, inspect or remove the marketplace itself:
+
+```bash
+copilot plugin marketplace list
+copilot plugin marketplace remove neo
+```
+
+## How the cross-harness package is structured
+
+The Copilot adapter reuses the canonical neo content wherever the formats agree:
+
+- `.plugin/plugin.json` is the Copilot-specific manifest. It points directly to the shared `skills/` and `agents/` directories.
+- `.plugin/hooks.json` is separate because Copilot hooks use a versioned, camel-case schema that differs from the Claude and Codex hook payloads.
+- `.github/plugin/marketplace.json` publishes the repo-root plugin as `neo@neo`.
+- Claude Code and Codex keep their own manifests and hook adapters under `.claude-plugin/` and `.codex-plugin/`; Antigravity keeps using the root `plugin.json`.
+
+This avoids copied skill or persona content while allowing each harness to keep its native manifest and hook contract.
+
+## Manual project-local fallback
+
+If plugins are disabled in your Copilot environment, install the same content at repository scope.
+
+### Skills
+
+Copilot discovers skills from `.github/skills/`, `.agents/skills/`, or `.claude/skills/`:
+
+```bash
+mkdir -p .github/skills
+cp -R /path/to/neo/skills/. .github/skills/
+```
+
+### Custom agents
+
+Repository-level Copilot agent files use the `*.agent.md` convention:
+
+```bash
 mkdir -p .github/agents
-cp /path/to/neo/agents/code-reviewer.md .github/agents/code-reviewer.agent.md
-cp /path/to/neo/agents/test-engineer.md .github/agents/test-engineer.agent.md
-cp /path/to/neo/agents/security-auditor.md .github/agents/security-auditor.agent.md
+cp /path/to/neo/agents/code-reviewer.md \
+  .github/agents/code-reviewer.agent.md
+cp /path/to/neo/agents/test-engineer.md \
+  .github/agents/test-engineer.agent.md
+cp /path/to/neo/agents/security-auditor.md \
+  .github/agents/security-auditor.agent.md
+cp /path/to/neo/agents/web-performance-auditor.md \
+  .github/agents/web-performance-auditor.agent.md
 ```
 
-Invoke agents in Copilot Chat:
-- `@code-reviewer Review this PR`
-- `@test-engineer Analyze test coverage for this module`
-- `@security-auditor Check this endpoint for vulnerabilities`
+### Always-on routing without the plugin hook
 
-### Custom Instructions (User Level)
+Add this rule to the project's `AGENTS.md`:
 
-For skills you want across all repositories:
+> At the start of every session, before acting on any task, load the neo meta-skill `.github/skills/using-neo/SKILL.md`. Route every task through its Skill Discovery flowchart, then load and follow every matching skill before implementation.
 
-1. Open VS Code → Settings → GitHub Copilot → Custom Instructions
-2. Add your most-used skill summaries
+This fallback relies on model compliance; the native plugin's `sessionStart` hook is the stronger setup.
 
-## Load neo at session start (no SessionStart hook)
+## Official references
 
-Claude Code auto-loads the `using-neo` meta-skill through its `SessionStart` hook. GitHub Copilot has no equivalent, but it reads `AGENTS.md`, so add the rule below to your project's `AGENTS.md` so neo drives the flow instead of the agent improvising:
-
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
-
-Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
-
-## Recommended Configuration
-
-### .github/copilot-instructions.md
-
-GitHub Copilot supports project-level instructions via `.github/copilot-instructions.md`.
-
-```markdown
-# Project Coding Standards
-
-## Testing
-- Write tests before code (TDD)
-- For bugs: write a failing test first, then fix (Prove-It pattern)
-- Test hierarchy: unit > integration > e2e (use the lowest level that captures the behavior)
-- Run `npm test` after every change
-
-## Code Quality
-- Review across five axes: correctness, readability, architecture, security, performance
-- Every PR must pass: lint, type check, tests, build
-- No secrets in code or version control
-
-## Implementation
-- Build in small, verifiable increments
-- Each increment: implement → test → verify → commit
-- Never mix formatting changes with behavior changes
-
-## Boundaries
-- Always: Run tests before commits, validate user input
-- Ask first: Database schema changes, new dependencies
-- Never: Commit secrets, remove failing tests, skip verification
-```
-
-### Specialized Agents
-
-Use the agents for targeted review workflows in Copilot Chat.
-
-## Usage Tips
-
-1. **Keep instructions concise** — Copilot instructions work best when focused. Summarize the key rules rather than including full skill files.
-2. **Use agents for review** — The code-reviewer, test-engineer, and security-auditor agents are designed for Copilot's agent model.
-3. **Reference in chat** — When working on a specific phase, paste the relevant skill content into Copilot Chat for context.
-4. **Combine with PR reviews** — Set up Copilot to review PRs using the code-reviewer agent persona.
+- [Finding and installing plugins for GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing)
+- [Creating a plugin for GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating)
+- [GitHub Copilot CLI plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference)
+- [GitHub Copilot hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference)
+- [Custom agents configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration)
