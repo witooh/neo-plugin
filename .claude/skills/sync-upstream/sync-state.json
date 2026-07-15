@@ -2,8 +2,8 @@
   "upstream_repo": "addyosmani/agent-skills",
   "upstream_path": "/Users/witoo.h/dev/public/agent-skills",
   "default_ref": "origin/main",
-  "last_synced_commit": "b50752be964f5d3e18600142899694db82f639cc",
-  "last_synced_date": "2026-07-06",
+  "last_synced_commit": "98967c45a42b88d6b8fb3a88b7ff6273920763d6",
+  "last_synced_date": "2026-07-15",
   "synced_skills": [
     "api-and-interface-design",
     "browser-testing-with-devtools",
