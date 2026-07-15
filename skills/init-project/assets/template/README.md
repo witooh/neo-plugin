@@ -7,7 +7,7 @@ for every inbound (HTTP, Kafka consumer) and outbound (Postgres, Redis, Kafka) i
 Dependencies point **inward only** — `delivery / adapters → usecase → domain`.
 
 It builds and serves `GET /health` out of the box with **no business domains yet**. Grow it
-with the **`neo`** skill (`/neo`) — it reads the engineering guides in `.kiro/steering/` and
+with the **`using-neo`** skill — it reads the engineering guides in `.kiro/steering/` and
 follows the documented layer patterns.
 
 ## Tech Stack
@@ -48,7 +48,7 @@ neo-service/
 ```
 
 `internal/core/domain`, `internal/core/usecase`, `internal/adapters/gateway` and the HTTP
-handlers are created by neo as it adds domains — a fresh skeleton has none. The contract for
+handlers are created through `using-neo` as it adds domains — a fresh skeleton has none. The contract for
 each layer lives in `.kiro/steering/` (start with `structure.md`).
 
 ## Getting Started
@@ -87,7 +87,7 @@ make compose-down      # tear down (removes volumes)
 
 ## Adding a feature
 
-This service is meant to be grown with the **`neo`** skill. `neo` reads `.kiro/steering/`
+This service is meant to be grown with the **`using-neo`** skill. `using-neo` reads `.kiro/steering/`
 (the source of truth for the architecture) and follows the layer-by-layer procedure in
 `new-feature-checklist.md`. Don't hand-improvise structure — if a pattern isn't in the
 steering, surface it and fold the decision back into the guide (see `structure.md`).

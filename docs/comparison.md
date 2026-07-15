@@ -17,11 +17,11 @@ People often ask how **neo** relates to two other popular "skills for coding age
 | | **neo** | **Superpowers** | **Matt Pocock's skills** |
 |---|---|---|---|
 | **Core idea** | Encode the full senior-engineering lifecycle as skills | A complete development *methodology* built on composable skills | One expert's `.claude` workflow, open-sourced |
-| **Organizing principle** | SDLC **phases** (Ingest→Define→Plan→Build→Verify→Review→Ship) with a meta-skill router | Disciplined execution loop (brainstorm → plan → execute) | A curated toolbox of focused commands |
+| **Organizing principle** | SDLC **phases** (Ingest→Define→Plan→Build→Verify→Review→Ship) behind one adaptive router | Disciplined execution loop (brainstorm → plan → execute) | A curated toolbox of focused commands |
 | **Lifecycle coverage** | Broad - idea refinement, API/UI design, security, performance, CI/CD, deprecation, ADRs, launch | Deep on the core build loop (TDD, debugging, planning, review) | Planning + build + tooling + knowledge mgmt, opinionated |
-| **Entry points** | Skill entry points, one per phase (`neo-ingest` `neo-spec` `neo-plan` `neo-build` `neo-test` `neo-review` `neo-code-simplify` `neo-ship`, plus `neo-webperf` and `neo-commit`) | Commands like `/brainstorming`, `/execute-plan` | Slash commands like `/tdd`, `/grill-me`, `/diagnose`, `/grill-with-docs` |
+| **Entry points** | One adaptive router (`using-neo`) for focused work or the full lifecycle | Commands like `/brainstorming`, `/execute-plan` | Slash commands like `/tdd`, `/grill-me`, `/diagnose`, `/grill-with-docs` |
 | **Tooling reach** | Multi-tool: Claude Code, Cursor, Gemini CLI, Antigravity, OpenCode, Windsurf, Copilot, pi | Multi-tool: Claude Code, Codex, Gemini CLI, OpenCode, Cursor, Copilot CLI, Factory Droid | Claude Code-first (also usable with Codex) |
-| **Distinctive mechanisms** | Anti-rationalization tables + Red Flags in every skill; review **personas** with parallel fan-out in `neo-ship`; reference checklists | Subagent-driven development with two-stage review; git-worktree isolation; skills-that-write-skills | "Grill me" requirement interrogation; strict agent-level TDD; pre-commit/git guardrails |
+| **Distinctive mechanisms** | Adaptive single-entry routing; anti-rationalization tables + Red Flags; review **personas** with parallel Ship fan-out; reference checklists | Subagent-driven development with two-stage review; git-worktree isolation; skills-that-write-skills | "Grill me" requirement interrogation; strict agent-level TDD; pre-commit/git guardrails |
 | **Best for** | Driving a feature through every phase with a human checkpoint at each | Long, autonomous, reasoning-heavy or exploratory work | A pragmatic, battle-tested daily loop for TypeScript-style projects |
 
 *(Adoption numbers for these projects are cited wildly differently across blogs; we've left them out rather than repeat unverified figures.)*
@@ -41,7 +41,13 @@ Matt open-sourced the actual `.claude` directory he uses day to day - a tight se
 **Repo:** <https://github.com/mattpocock/skills> · related: <https://github.com/mattpocock/agent-rules-books>
 
 ### neo - this project
-neo organizes the **entire product lifecycle** as skills, with a meta-skill (`using-neo`) that routes a task to the right one. Every skill carries a **Common Rationalizations** table (the excuses an agent makes to skip a step, each rebutted) and **Red Flags**. Skill entry points map one-to-one to lifecycle phases, and `neo-ship` fans out review **personas** - `code-reviewer`, `security-auditor`, `test-engineer`, `web-performance-auditor` - in parallel, then merges them into a go/no-go. It deliberately keeps a human checkpoint at each phase and runs across most major agent tools.
+neo organizes the **entire product lifecycle** as skills behind one adaptive
+entry point, `using-neo`. It routes focused work without widening scope or can
+drive the lifecycle from repository state. Every method skill carries a
+**Common Rationalizations** table and **Red Flags**. The Ship workflow fans out
+`code-reviewer`, `security-auditor`, and `test-engineer` in parallel, then merges
+them into a go/no-go; Webperf invokes its own specialist when applicable. It
+retains human checkpoints and runs across most major agent tools.
 
 ---
 

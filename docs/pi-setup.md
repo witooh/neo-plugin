@@ -52,7 +52,7 @@ pi maps each request to the appropriate skill and follows it. You do **not** inv
 
 ### 3. Lifecycle Mapping
 
-neo is command-free; its lifecycle is expressed through the `neo-<phase>` entry skills instead:
+neo is command-free; `using-neo` routes each request into this lifecycle:
 
 - INGEST → `markitdown`
 - DEFINE → `spec-driven-development`
@@ -66,9 +66,9 @@ neo is command-free; its lifecycle is expressed through the `neo-<phase>` entry 
 
 ## Load neo at session start (no SessionStart hook)
 
-Claude Code auto-loads the `using-neo` meta-skill through its `SessionStart` hook. pi has no hook system, but it reads `AGENTS.md` (or `CLAUDE.md`) as always-on context, so add the rule below to either file so neo drives the flow instead of relying on ad-hoc discovery:
+Claude Code auto-loads the `using-neo` router through its `SessionStart` hook. pi has no hook system, but it reads `AGENTS.md` (or `CLAUDE.md`) as always-on context, so add the rule below to either file so neo drives the flow instead of relying on ad-hoc discovery:
 
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
 
 Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
 
@@ -78,7 +78,7 @@ Because no hook enforces it, this depends on model compliance — weaker than Cl
 
 pi packages support only skills, prompts, extensions, and themes — so some neo surfaces don't carry over:
 
-- **No native slash commands** — neo is command-free everywhere; its `neo-<phase>` entry skills are selected from intent.
+- **No native slash commands** — neo is command-free everywhere; `using-neo` selects workflows from intent and repository state.
 - **No agent personas** — neo's `agents/` (code-reviewer, security-auditor, …) aren't installed as pi subagents; the equivalent review skills still apply.
 - **No lifecycle hooks** — neo's `hooks/` are Claude Code-specific and don't run in pi. See *Load neo at session start* above for the instruction-based replacement (add the rule to `AGENTS.md` / `CLAUDE.md`).
 - Skill invocation depends on model compliance, as with any agent-driven setup.
@@ -105,4 +105,4 @@ neo integrates with pi as a package:
 
 - neo skills load unchanged (shared `SKILL.md` format)
 - install via `pi install git:…` / local path, or use the bundled `.pi/skills` symlink
-- an agent-driven workflow through `neo-<phase>` entry skills, closely matching the OpenCode experience
+- an agent-driven workflow through the single `using-neo` router, closely matching the OpenCode experience

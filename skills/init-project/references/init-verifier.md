@@ -46,6 +46,6 @@ You are given: the **target dir** and the intended **module path / service name 
 ## Output
 
 A short report: each check PASS/FAIL with one line of evidence, then a final verdict — **is this a
-clean, empty, runnable skeleton ready for neo to extend?** Call out any business leak, panic-on-boot,
+clean, empty, runnable skeleton ready for `using-neo` to extend?** Call out any business leak, panic-on-boot,
 half-gutted file, missing scaffold, or substitution miss. Be specific (file + line). Do not fix
 anything — just report.

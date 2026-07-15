@@ -93,11 +93,11 @@ To enable these, ensure you have the relevant MCP extensions installed in your G
 
 Gemini CLI supports session lifecycle hooks. You can use these to automatically inject context or run validation scripts at the start of a session.
 
-To replicate the `neo` experience from other tools, you can configure a `SessionStart` hook that reminds you of the available skills or loads a meta-skill.
+To replicate the `neo` experience from other tools, configure a `SessionStart` hook that loads the `using-neo` router.
 
 If you would rather not configure a hook, add the neo-load rule to `GEMINI.md` so it loads as persistent context on every prompt:
 
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
 
 Because no hook enforces it, this depends on model compliance — weaker than a real `SessionStart` hook, but the closest hook-free equivalent.
 
@@ -111,22 +111,12 @@ Use the @skills/test-driven-development/SKILL.md skill to implement this fix.
 
 This is useful when you want to ensure a specific workflow is followed without waiting for auto-discovery.
 
-## Lifecycle Entry Skills
+## Single Entry Workflow
 
-neo ships an entry skill per lifecycle phase, named `neo-<phase>`. Gemini CLI auto-discovers them alongside the other skills (Option 1) — there are no `.toml` commands to install. Describe your intent and Gemini activates the matching entry skill, which runs the underlying workflow skill(s).
-
-| Entry skill | What it does |
-|-------------|--------------|
-| `neo-ingest` | Ingest an external source into the knowledge base |
-| `neo-spec` | Write a structured spec before writing code |
-| `neo-plan` | Break work into small, verifiable tasks |
-| `neo-build` | Implement the next task incrementally |
-| `neo-test` | Run TDD workflow — red, green, refactor |
-| `neo-review` | Five-axis code review |
-| `neo-code-simplify` | Reduce complexity without changing behavior |
-| `neo-ship` | Pre-launch checklist via parallel persona fan-out |
-| `neo-webperf` | Audit browser-facing apps for Core Web Vitals and performance issues |
-| `neo-commit` | Create clean, atomic commits and judge when to rebase |
+Keep `skills/using-neo/SKILL.md` in session context. Describe the outcome rather
+than selecting a phase command; `using-neo` routes focused work or drives the
+lifecycle from repository state. Use `using-neo single` for one unit and
+`using-neo auto` for approved autonomous progress with safety stops.
 
 ## Usage Tips
 

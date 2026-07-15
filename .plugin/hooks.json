@@ -4,8 +4,8 @@
     "sessionStart": [
       {
         "type": "command",
-        "bash": "printf '%s\\n' '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo skill. Route the request through its Skill Discovery flowchart and follow the selected skill before implementation.\"}'",
-        "powershell": "Write-Output '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo skill. Route the request through its Skill Discovery flowchart and follow the selected skill before implementation.\"}'",
+        "bash": "printf '%s\\n' '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\"}'",
+        "powershell": "Write-Output '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\"}'",
         "timeoutSec": 5
       }
     ]

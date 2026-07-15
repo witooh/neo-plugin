@@ -41,22 +41,12 @@ agy plugin list
 
 ---
 
-## Lifecycle Entry Skills
+## Single Entry Workflow
 
-The plugin ships an entry skill per lifecycle phase, named `neo-<phase>`. Antigravity auto-discovers them alongside the other skills (see *Skills & Discovery* below) — there are no `.toml` commands. Describe your intent and Antigravity activates the matching entry skill, which runs the underlying workflow skill(s):
-
-| Entry skill | What it does | Runs |
-|-------------|--------------|------|
-| `neo-ingest` | Ingest an external source into the knowledge base | `markitdown` |
-| `neo-spec` | Write a structured spec before writing code | `spec-driven-development` |
-| `neo-plan` | Break work into small, verifiable tasks | `planning-and-task-breakdown` |
-| `neo-build` | Implement the next task incrementally | `incremental-implementation` |
-| `neo-test` | Run TDD workflow — red, green, refactor | `test-driven-development` |
-| `neo-review` | Five-axis code review | `code-review-and-quality` |
-| `neo-code-simplify` | Reduce complexity without changing behavior | `code-simplification` |
-| `neo-ship` | Pre-launch checklist via parallel persona fan-out | `shipping-and-launch` |
-| `neo-webperf` | Audit browser-facing apps for Core Web Vitals and performance issues | `web-performance-auditor` |
-| `neo-commit` | Create clean, atomic commits and judge when to rebase | `git-workflow-and-versioning` |
+Antigravity auto-discovers `using-neo`, neo's canonical entry point. Describe
+the outcome you want; it selects the relevant phase contract and method skills.
+Use `using-neo single` for one unit or `using-neo auto` for approved autonomous
+progress with commit, ship, blocker, and risk stops.
 
 ---
 
@@ -102,9 +92,9 @@ You can invoke these personas directly within your session or when delegating ta
 ### Project-Specific Enforcements (`AGENTS.md`)
 To enforce strict skill compliance (e.g. requiring a spec or plan before writing code), copy or link `AGENTS.md` into the root of your workspace. Antigravity CLI reads this file to align the agent's behavior and planning phase with your team's conventions.
 
-To replicate Claude Code's `SessionStart` hook (which auto-loads the `using-neo` meta-skill), add the neo-load rule to that `AGENTS.md`:
+To replicate Claude Code's `SessionStart` hook (which auto-loads the `using-neo` router), add the neo-load rule to that `AGENTS.md`:
 
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
 
 Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
 

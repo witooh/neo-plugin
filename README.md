@@ -10,33 +10,33 @@ Skills encode the workflows, quality gates, and best practices that senior engin
  │Source│ ───▶ │ Idea │ ───▶ │ Spec │ ───▶ │ Code │ ───▶ │ Test │ ───▶ │  QA  │ ───▶ │  Go  │
  │Curate│      │Refine│      │  PRD │      │ Impl │      │Debug │      │ Gate │      │ Live │
  └──────┘      └──────┘      └──────┘      └──────┘      └──────┘      └──────┘      └──────┘
-  neo-ingest    neo-spec      neo-plan      neo-build     neo-test      neo-review    neo-ship
+                       using-neo — one adaptive entry point
 ```
 
 ---
 
-## Entry Skills
+## Single Entry Point
 
-10 phase entry skills (`neo-<phase>`) that map to the development lifecycle. Each orchestrates the underlying method skills automatically, and works across every supported tool (on Claude Code they appear as `neo:neo-<phase>`).
+Start every workflow with **`using-neo`**. It reads your intent and repository
+state, loads only the relevant phase contract, then invokes the underlying
+method skills automatically.
 
-| What you're doing        | Entry skill         | Key principle                          |
-| ------------------------ | ------------------- | -------------------------------------- |
-| Capture external context | `neo-ingest`        | Curate sources into the knowledge base |
-| Define what to build     | `neo-spec`          | Spec before code                       |
-| Plan how to build it     | `neo-plan`          | Small, atomic tasks                    |
-| Build incrementally      | `neo-build`         | One slice at a time                    |
-| Commit your work         | `neo-commit`        | Clean, atomic history                  |
-| Prove it works           | `neo-test`          | Tests are proof                        |
-| Review before merge      | `neo-review`        | Improve code health                    |
-| Audit web performance    | `neo-webperf`       | Measure before you optimize            |
-| Simplify the code        | `neo-code-simplify` | Clarity over cleverness                |
-| Ship to production       | `neo-ship`          | Faster is safer                        |
+| What you're doing | Routed workflow | Core method |
+|---|---|---|
+| Capture external context | Ingest | `markitdown` |
+| Define what to build | Define | `spec-driven-development` |
+| Break work into tasks | Plan | `planning-and-task-breakdown` |
+| Build incrementally | Build | `incremental-implementation` + `test-driven-development` |
+| Prove behavior | Verify | `test-driven-development` and runtime companions |
+| Review and simplify | Review | review, security, performance, and simplification skills |
+| Prepare commits | Commit | `git-workflow-and-versioning` |
+| Audit web performance | Webperf | `web-performance-auditor` / `performance-optimization` |
+| Decide production readiness | Ship | `shipping-and-launch` plus specialist fan-out |
 
-Want fewer manual steps once the spec exists? **`neo-build auto`** generates the plan and implements every task in a single approved pass — you approve the plan once, then it runs autonomously. It removes the human stepping _between_ tasks, not the verification: every task is still test-driven and committed individually, and it pauses on failures or risky steps.
-
-Want to run the _entire_ lifecycle from one command? **`neo`** drives all the phases above in sequence — it detects where your feature is, runs each `neo-<phase>` in turn, and stops at every boundary to ask **go / stop / auto**. **`neo auto`** runs the whole flow after one approval, pausing only at commit, ship, blockers, or risky steps. The 10 entry skills stay directly callable; `neo` just sequences them.
-
-Skills also activate automatically based on what you're doing — designing an API triggers `api-and-interface-design`, building UI triggers `frontend-ui-engineering`, and so on.
+With no mode, `using-neo` adapts to a focused request. **`using-neo single`** runs
+one task or phase. **`using-neo auto`** advances after one approval while still
+stopping at commit, ship, blockers, and high-risk work. Asking it to implement
+an approved full plan selects Build auto without widening the request to Ship.
 
 ---
 
@@ -232,21 +232,16 @@ Skills are plain Markdown - they work with any agent that accepts system prompts
 
 ---
 
-## All 45 Skills
+## All 34 Skills
 
-The 10 `neo-<phase>` entry skills above are the phase entry points. The pack includes 45 skills total — those 10 plus the `neo` lifecycle driver, 33 workflow and tooling skills, and the `using-neo` meta-skill (all listed below). Each skill is a structured workflow with steps, verification gates, and anti-rationalization tables. You can also reference any skill directly.
+`using-neo` is the only lifecycle entry point. Method skills remain directly
+reusable when explicitly requested.
 
-### Meta - Discover which skill applies
+### Single entry - Route and run the lifecycle
 
 | Skill                                  | What It Does                                                                      | Use When                                           |
 | -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [using-neo](skills/using-neo/SKILL.md) | Maps incoming work to the right skill workflow and defines shared operating rules | Starting a session or deciding which skill applies |
-
-### Driver - Run the whole lifecycle from one command
-
-| Skill                      | What It Does                                                                                                                                                            | Use When                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [neo](skills/neo/SKILL.md) | Drives the neo-\* phases end to end — detects the phase, runs each `neo-<phase>` in turn, gates at every boundary (go / stop / auto); `neo auto` flows after one approval | You want to run the full workflow from one entry instead of invoking each phase |
+| [using-neo](skills/using-neo/SKILL.md) | Adaptively routes focused work or drives the lifecycle with single/auto modes and safety gates | Starting any neo-assisted task |
 
 ### Ingest - Capture external context
 
@@ -323,7 +318,7 @@ Pre-configured specialist personas for targeted reviews:
 | [code-reviewer](agents/code-reviewer.md)                     | Senior Staff Engineer    | Five-axis code review with "would a staff engineer approve this?" standard                   |
 | [test-engineer](agents/test-engineer.md)                     | QA Specialist            | Test strategy, coverage analysis, and the Prove-It pattern                                   |
 | [security-auditor](agents/security-auditor.md)               | Security Engineer        | Vulnerability detection, threat modeling, OWASP assessment                                   |
-| [web-performance-auditor](agents/web-performance-auditor.md) | Web Performance Engineer | Core Web Vitals audit with Quick/Deep modes and a metric-honesty rule; run it via `neo-webperf` |
+| [web-performance-auditor](agents/web-performance-auditor.md) | Web Performance Engineer | Core Web Vitals audit with Quick/Deep modes and a metric-honesty rule; route it through `using-neo` Webperf |
 
 See [docs/agents.md](docs/agents.md) for the decision matrix, orchestration rules, and how personas compose with skills.
 
@@ -380,10 +375,8 @@ Every skill follows a consistent anatomy:
 
 ```
 neo/
-├── skills/                            # 45 skills (1 driver + 10 phase entry + 33 workflow/tooling + 1 meta)
-│   ├── neo/                             #   Lifecycle driver (drives the phase entries below)
-│   ├── neo-ingest/ neo-spec/ neo-plan/ neo-build/ neo-test/          #   Phase entry points
-│   ├── neo-review/ neo-code-simplify/ neo-commit/ neo-ship/ neo-webperf/  #   (orchestrate the method skills below)
+├── skills/                            # 34 active skills
+│   ├── using-neo/                     #   Single adaptive entry + phase references
 │   ├── markitdown/                    #   Ingest
 │   ├── interview-me/                  #   Define
 │   ├── idea-refine/                   #   Define
@@ -416,8 +409,7 @@ neo/
 │   ├── init-project/                  #   Scaffold (new Go service)
 │   ├── migrate-project/               #   Scaffold (brownfield migration)
 │   ├── atlassian/                     #   Integration (Jira/Confluence acli)
-│   ├── gitlab/                        #   Integration (GitLab)
-│   └── using-neo/            #   Meta: how to use this pack
+│   └── gitlab/                        #   Integration (GitLab)
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 7 shared checklists (source of truth — copies bundled into citing skills)
 ├── hooks/                             # Session lifecycle hooks

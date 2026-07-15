@@ -24,9 +24,9 @@ For skills you want across all projects, add them to Windsurf's global rules:
 
 ## Load neo at session start (no SessionStart hook)
 
-Claude Code auto-loads the `using-neo` meta-skill through its `SessionStart` hook. Windsurf has no equivalent, so add the rule below to the top of `.windsurfrules` so neo drives the flow instead of the agent improvising:
+Claude Code auto-loads the `using-neo` router through its `SessionStart` hook. Windsurf has no equivalent, so add the rule below to the top of `.windsurfrules` so neo drives the flow instead of the agent improvising:
 
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
 
 Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
 

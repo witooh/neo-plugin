@@ -15,7 +15,7 @@ it is CI-verifiable as-is:
 
 Generation (`scaffold.py`) is a **single-pass string substitution** of those four sentinels, then
 `go mod tidy` + `git init` + `go build`. Generic steering placeholders (`{{MODULE_PATH}}`,
-`{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels — they are left intact for `neo` to fill
+`{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels — they are left intact for `using-neo` to fill
 per-domain.
 
 ## What's in the template (KEEP)
@@ -47,7 +47,7 @@ handlers/DTOs/routes, business sqlc queries/migrations/seed (kept generic `sqlc/
 
 `cmd/api/app.go` starts the HTTP server first and dials Postgres **best-effort** — on a missing or
 unreachable DB it logs a warning (within a 2s timeout) and continues, so `go run ./cmd/api` serves
-`/health` standalone. A failed HTTP **bind** still panics (a genuine fatal error). When neo adds a
+`/health` standalone. A failed HTTP **bind** still panics (a genuine fatal error). When `using-neo` adds a
 real domain it tightens this as needed.
 
 ## Preconditions for generation

@@ -1,6 +1,6 @@
 # Using neo with GitHub Copilot
 
-neo installs as a native GitHub Copilot plugin. One installation provides the complete `skills/` pack, all custom agents as Copilot subagents, and a `sessionStart` hook that routes each session through the `using-neo` meta-skill.
+neo installs as a native GitHub Copilot plugin. One installation provides the complete `skills/` pack, all custom agents as Copilot subagents, and a `sessionStart` hook that routes each session through the `using-neo` single entry point.
 
 This guide targets the current `copilot` CLI, not the legacy `gh copilot` extension.
 
@@ -68,7 +68,7 @@ Then start an interactive session and verify the bundled components:
 
 The installation should expose:
 
-- Every skill under `skills/`, including the `neo` and `neo-<phase>` entry skills.
+- Every skill under `skills/`, with `using-neo` as the canonical lifecycle entry point.
 - `code-reviewer`, `security-auditor`, `test-engineer`, and `web-performance-auditor` as custom agents. Copilot can select eligible custom agents as isolated subagents, or you can select one explicitly with `/agent`.
 - A `sessionStart` hook that tells Copilot to load `using-neo` before acting, so skill discovery remains on-demand instead of injecting all skill bodies into context.
 
@@ -130,7 +130,7 @@ cp /path/to/neo/agents/web-performance-auditor.md \
 
 Add this rule to the project's `AGENTS.md`:
 
-> At the start of every session, before acting on any task, load the neo meta-skill `.github/skills/using-neo/SKILL.md`. Route every task through its Skill Discovery flowchart, then load and follow every matching skill before implementation.
+> At the start of every session, before acting on any task, load `.github/skills/using-neo/SKILL.md` as neo's single entry point. Route every request through its adaptive rules, then load and follow only the selected phase contract and method skills before implementation.
 
 This fallback relies on model compliance; the native plugin's `sessionStart` hook is the stronger setup.
 

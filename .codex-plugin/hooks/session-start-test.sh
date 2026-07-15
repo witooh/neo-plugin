@@ -54,6 +54,9 @@ if (!output.additionalContext?.includes('neo loaded.')) {
 if (!output.additionalContext.includes('# Using Neo')) {
   throw new Error('payload is missing using-neo content');
 }
+if (!output.additionalContext.includes('## Single Entry Point')) {
+  throw new Error('payload is missing the single-entry routing contract');
+}
 if ('priority' in payload || 'message' in payload) {
   throw new Error('payload still contains legacy priority/message fields');
 }

@@ -10,8 +10,8 @@ description: >
   "แก้ description", "list MRs", "list open MRs", "check pipeline", "pipeline status",
   "approve MR", or asks for a raw glab operation. NOTE: creating an MR ("สร้าง MR"),
   reviewing an MR ("review MR", "ตรวจ MR"), fixing issues/CI, or addressing review
-  feedback now route through the neo skill (which calls this skill for the glab I/O) —
-  do NOT trigger this skill directly for those; let neo orchestrate.
+  feedback now route through the using-neo skill (which calls this skill for the glab I/O) —
+  do NOT trigger this skill directly for those; let using-neo orchestrate.
 effort: low
 compatibility:
   environment: claude-code
@@ -24,9 +24,9 @@ metadata:
 
 # GitLab Skill (Claude Code)
 
-Use the `glab` CLI to interact with GitLab. This skill is the **glab execution arm**: the `neo` skill invokes it (via the `Skill` tool) to run glab for MR creation and review-comment posting, and you can also use it directly for lightweight, side-effect-free MR operations.
+Use the `glab` CLI to interact with GitLab. This skill is the **glab execution arm**: the `using-neo` skill invokes it (via the `Skill` tool) to run glab for MR creation and review-comment posting, and you can also use it directly for lightweight, side-effect-free MR operations.
 
-It provides **mechanics only** — **Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations. MR **review / fix / CI-fix / feedback orchestration now lives in the `neo` skill**; this skill no longer spawns review agents or hands off to other skills.
+It provides **mechanics only** — **Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations. MR **review / fix / CI-fix / feedback orchestration now lives in the `using-neo` skill**; this skill no longer spawns review agents or hands off to other skills.
 
 ## URL Parsing
 
@@ -39,20 +39,20 @@ These two values power most glab commands: `glab mr <cmd> <mr_id> --repo <repo_r
 
 ## Intent Detection
 
-This skill provides **glab mechanics only**. Determine which operation the user (or the calling `neo` skill) wants:
+This skill provides **glab mechanics only**. Determine which operation the user (or the calling `using-neo` skill) wants:
 
 | Signal                                                           | Operation                                                        |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
 | bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary"            | **MR Read** — fetch MR info + diff (+ notes) and summarize       |
-| "สร้าง MR", "create MR", "open MR" — or invoked by neo to create | **MR Create** — create a new MR from the current branch          |
+| "สร้าง MR", "create MR", "open MR" — or invoked by using-neo to create | **MR Create** — create a new MR from the current branch    |
 | "อัพเดท MR", "update description", "แก้ description"             | **MR Update** — rewrite the MR description                       |
 | "check pipeline", "pipeline status", failed-job logs             | **CI Inspection** — fetch pipeline status + job logs (no fixing) |
 | "list MRs", "approve MR", or a raw glab command                  | **Common glab Operations**                                       |
-| post a composed review comment (invoked by neo)                  | **Post a Comment**                                               |
+| post a composed review comment (invoked by using-neo)            | **Post a Comment**                                               |
 
-**Routes to neo, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `neo` skill. neo calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
+**Routes to using-neo, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `using-neo` skill. using-neo calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
 
-**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects). When neo invokes this skill, it states the operation explicitly — follow it.
+**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects). When using-neo invokes this skill, it states the operation explicitly — follow it.
 
 ---
 
@@ -140,7 +140,7 @@ Example — an AC-coverage table for `## Verification`:
 
 The description must accurately reflect what the commits and diff show. Read the actual code changes — do not just paraphrase commit messages. If commits are messy or unclear, the description should still be clear and well-organized based on what the diff reveals.
 
-If a JIRA card ID is provided (e.g., by the neo skill or the user), add a `JIRA: <ID>` line near the top of the description.
+If a JIRA card ID is provided (e.g., by the using-neo skill or the user), add a `JIRA: <ID>` line near the top of the description.
 
 ### Step 4: Create MR
 
@@ -285,7 +285,7 @@ Keep it terminal-friendly and scannable. Do NOT spawn specialist agents or post 
 
 ## CI Inspection (fetch only)
 
-Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI — fixing pipeline failures is orchestrated by the `neo` skill (Bug Fix flow), which calls this section to gather the logs.
+Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI — fixing pipeline failures is orchestrated by the `using-neo` skill (Bug Fix flow), which calls this section to gather the logs.
 
 ### Step 1: Pipeline Status
 
@@ -309,9 +309,9 @@ Collect the last ~100 lines of each failed job's log — these hold the actual e
 
 ---
 
-## Post a Comment (invoked by neo)
+## Post a Comment (invoked by using-neo)
 
-When neo has composed a review comment (it owns the table-first review template), it calls this skill to post the comment. Post the provided text **verbatim** — do not re-summarize, re-review, or add findings of your own:
+When using-neo has composed a review comment (it owns the table-first review template), it calls this skill to post the comment. Post the provided text **verbatim** — do not re-summarize, re-review, or add findings of your own:
 
 ```bash
 glab mr note <mr_id> --repo <repo_ref> -m "<composed_comment>"

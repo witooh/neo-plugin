@@ -4,14 +4,14 @@ description: >
   Interact with Jira and Confluence from the terminal via the `acli` (Atlassian CLI) —
   view/search/create/edit/transition/assign/comment on Jira work items, manage sprints,
   boards, and projects, and read Confluence pages or manage spaces, all without a browser.
-  Also the acli reference the `neo` skill points to: the command map plus the judgment
+  Also the acli reference the `using-neo` skill points to: the command map plus the judgment
   `--help` can't give (JQL, workflows, safety); run `acli <path> --help` for exact flags.
   Trigger on a direct, ad-hoc Jira/Confluence CLI action — "ดู issue ของฉัน",
   "view my issues", "transition ไป In Progress", "move ticket to In Progress",
   "สร้าง bug ใน Jira", "create a Jira task", "search ด้วย JQL", "find unassigned bugs",
   "ดู sprint ปัจจุบัน", "assign ให้ฉัน", "ดู Confluence page", "list spaces", or any raw
   acli operation. Route elsewhere: verifying AC/test-cases/design against a JIRA card, or
-  any read-only card workflow → the `neo` skill (runs read-only acli inline); publishing
+  any read-only card workflow → the `using-neo` skill (runs read-only acli inline); publishing
   generated API docs to Confluence → `confluence-api-doc` (acli cannot write pages).
 compatibility:
   environment: claude-code
@@ -26,7 +26,7 @@ metadata:
 # Atlassian CLI (acli) Skill
 
 Use the `acli` CLI (installed at `/opt/homebrew/bin/acli`) to drive Jira and Confluence
-from the terminal. This skill is the plugin's **acli reference** — the `neo` skill names it
+from the terminal. This skill is the plugin's **acli reference** — the `using-neo` skill names it
 as the source for acli usage.
 
 It is a **thin shell over `acli --help`**: this file gives you the *command map*, the

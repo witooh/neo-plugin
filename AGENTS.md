@@ -10,8 +10,7 @@ neo is a collection of production-grade engineering skills and specialist agent 
 
 ```text
 skills/        Core skills (`SKILL.md` per directory)
-skills/neo/    Lifecycle driver (`neo` / `neo auto`)
-skills/neo-*/  Cross-tool phase entry skills
+skills/using-neo/  Canonical adaptive router and phase contracts
 agents/        Reusable specialist personas
 hooks/         Claude session lifecycle hooks
 references/    Canonical shared checklists
@@ -45,7 +44,7 @@ docs/          Tool-specific setup guides
 
 ### Method Skills by Phase
 
-- **Driver:** `neo`
+- **Router:** `using-neo`
 - **Ingest:** `markitdown`
 - **Define:** `interview-me`, `idea-refine`, `spec-driven-development`, `api-spec`
 - **Plan:** `planning-and-task-breakdown`
@@ -54,17 +53,16 @@ docs/          Tool-specific setup guides
 - **Review:** `code-review-and-quality`, `code-simplification`, `security-and-hardening`, `performance-optimization`
 - **Ship:** `git-workflow-and-versioning`, `ci-cd-and-automation`, `deprecation-and-migration`, `documentation-and-adrs`, `observability-and-instrumentation`, `shipping-and-launch`, `open-collection`, `confluence-api-doc`, `openapi-doc`
 
-### Lifecycle Entry Skills
+### Single Entry Routing
 
-- DRIVER → `neo` detects and sequences all phases; `neo auto` continues after one approval and stops only at commit, ship, blockers, or high-risk steps.
-- INGEST → `neo-ingest` runs `markitdown`.
-- DEFINE → `neo-spec` runs `spec-driven-development` and drafts `api-spec` for HTTP features.
-- PLAN → `neo-plan` runs `planning-and-task-breakdown`.
-- BUILD → `neo-build` runs `incremental-implementation` + `test-driven-development`.
-- VERIFY → `neo-test` runs `test-driven-development`, adding `debugging-and-error-recovery` for failures and `e2e-playwright` for HTTP acceptance criteria.
-- REVIEW → `neo-review` runs `code-review-and-quality`; `neo-code-simplify` reduces complexity.
-- SHIP → `neo-ship` runs `shipping-and-launch`, reconciles API drift, and refreshes `open-collection` / `confluence-api-doc` deliverables.
-- SUPPORT → `neo-webperf` audits web performance; `neo-commit` prepares atomic commits.
+`using-neo` is the only canonical entry point. It infers a focused workflow from
+the request or detects the current phase for end-to-end work, loads the matching
+phase contract on demand, and invokes the method skills above.
+
+- No mode → adapt to explicit intent; end-to-end work gates every boundary.
+- `using-neo single` → run one task or one selected phase, then stop.
+- `using-neo auto` → continue after one approval, stopping at commit, ship,
+  blockers, and high-risk steps.
 
 `api-spec` spans Define and Ship: Define authors the contract; Ship reconciles it from built code. `openapi-doc` remains a read-only drift report.
 
@@ -72,8 +70,8 @@ docs/          Tool-specific setup guides
 
 For every request:
 
-1. Determine whether any skill applies, even for small tasks.
-2. Invoke the appropriate skill and follow its workflow exactly.
+1. Route the request through `using-neo`, even for small tasks.
+2. Load its relevant phase contract and invoke the selected method skill(s).
 3. Complete required spec, plan, test, and review gates before implementation or delivery.
 4. Treat thoughts such as “this is too small for a skill,” “I can quickly implement this,” or “I will gather context first” as rationalizations; skill discovery comes first.
 
@@ -83,9 +81,9 @@ neo has three composable layers:
 
 - **Skills** (`skills/<name>/SKILL.md`) define *how* work is done.
 - **Personas** (`agents/<role>.md`) define *who* performs specialist work.
-- **Entry skills** (`skills/neo-<phase>/SKILL.md`) define *when* workflows run and orchestrate method skills.
+- **Router** (`skills/using-neo/SKILL.md`) defines *when* workflows run and orchestrates method skills.
 
-The user or an entry skill is the orchestrator. Personas may invoke skills but must not invoke other personas. The only endorsed multi-persona composition is parallel fan-out with a merge step, used by `neo-ship` for `code-reviewer`, `security-auditor`, and `test-engineer`.
+The user or `using-neo` is the orchestrator. Personas may invoke skills but must not invoke other personas. The only endorsed multi-persona composition is parallel fan-out with a merge step, used by the Ship workflow for `code-reviewer`, `security-auditor`, and `test-engineer`.
 
 See [docs/agents.md](docs/agents.md) and [references/orchestration-patterns.md](references/orchestration-patterns.md). Claude Code discovers personas in `agents/` as subagents and Agent Teams teammates; plugin agents silently ignore `hooks`, `mcpServers`, and `permissionMode` frontmatter fields.
 
@@ -104,13 +102,14 @@ Before adding or significantly reworking a skill, follow [CONTRIBUTING.md](CONTR
 The repo is a rebranded fork of `addyosmani/agent-skills`; `sync-upstream` imports upstream changes.
 
 - **Do not edit upstream-owned files:** skills listed in `synced_skills` in `.claude/skills/sync-upstream/sync-state.json`, plus upstream files in `hooks/`, `agents/`, and `references/`. The sole carved-out skill exception is `using-neo`.
-- **Edit neo-local files freely:** entry skills under `skills/neo-*`, this `AGENTS.md`, `docs/`, `README.md`, and skills absent from `synced_skills`, including `api-spec`, the API-doc chain, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `e2e-playwright`, and `markitdown`.
-- Put neo behavior changes in a neo-owned entry skill or other neo-owned file, never in its upstream method skill.
+- **Edit neo-local files freely:** `skills/using-neo`, this `AGENTS.md`, `docs/`, `README.md`, and skills absent from `synced_skills`, including `api-spec`, the API-doc chain, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `e2e-playwright`, and `markitdown`.
+- Put neo behavior changes in `using-neo` or another neo-owned file, never in an upstream method skill.
 - New neo-specific files added under an otherwise upstream-owned directory remain neo-local when absent upstream.
 
 ## Validation Commands
 
 - Skills: `node scripts/validate-skills.js`
+- Single-entry routing: `node scripts/validate-using-neo.js`
 - Agent guidance SOT: `node scripts/validate-agent-guidance.js`
 - Copilot plugin: `node scripts/validate-copilot-plugin.js`
 - Claude hook: `bash hooks/session-start-test.sh`

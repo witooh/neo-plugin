@@ -11,7 +11,7 @@ description: >
   "restructure an existing service", "refactor ให้เหมือน account-service", "ย้ายโครงสร้างโปรเจกต์",
   "จัดโครงสร้างใหม่ตาม account-service", "migrate service เดิมให้เข้าโครง", "ปรับโครงสร้าง service
   ให้เหมือน account-service". NOTE: refactors EXISTING code — a brand-new empty service is
-  `init-project`; adding a domain / AC / endpoint / tests is `neo`.
+  `init-project`; adding a domain / AC / endpoint / tests is `using-neo`.
 compatibility:
   environment: claude-code
   tools: [Agent, Read, AskUserQuestion]
@@ -28,7 +28,7 @@ template + `.kiro/steering/` guides); this skill is the brownfield counterpart t
 codebase up to that blueprint, slice by slice, behavior-preserving and resumable.
 
 > **Boundary.** This refactors an **existing** codebase. An **empty / new** service → the
-> **`init-project`** skill (greenfield scaffold). Adding a domain / AC / endpoint → **`neo`**.
+> **`init-project`** skill (greenfield scaffold). Adding a domain / AC / endpoint → **`using-neo`**.
 
 ## Core Rules
 - **Orchestrate, never implement.** Every move / analysis / verify goes to a specialist via `Agent`.

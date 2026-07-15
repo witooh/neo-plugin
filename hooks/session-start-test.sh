@@ -32,6 +32,9 @@ if (hasJq) {
   if (!payload.message.includes('# Using Neo')) {
     throw new Error('message is missing using-neo content');
   }
+  if (!payload.message.includes('## Single Entry Point')) {
+    throw new Error('message is missing the single-entry routing contract');
+  }
 } else {
   if (payload.priority !== 'INFO') {
     throw new Error(`expected INFO priority when jq is missing, got ${payload.priority}`);

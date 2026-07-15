@@ -84,7 +84,8 @@ The development lifecycle is encoded implicitly:
 - REVIEW → `code-review-and-quality`
 - SHIP → `shipping-and-launch`
 
-neo ships no slash commands — each phase is entered through its `neo-<phase>` skill, selected automatically from intent.
+neo ships no slash commands — `using-neo` selects the relevant workflow from
+intent and repository state.
 
 ---
 
@@ -146,9 +147,9 @@ These rules are enforced via `AGENTS.md`.
 
 ## Load neo at session start (no SessionStart hook)
 
-Claude Code auto-loads the `using-neo` meta-skill through its `SessionStart` hook. OpenCode has no equivalent, but its system prompt comes from `AGENTS.md`, so add the rule below to your project's `AGENTS.md` so neo drives the flow from the first message:
+Claude Code auto-loads the `using-neo` router through its `SessionStart` hook. OpenCode has no equivalent, but its system prompt comes from `AGENTS.md`, so add the rule below to your project's `AGENTS.md` so neo drives the flow from the first message:
 
-> At the start of every session, before acting on any task, **load the neo meta-skill `skills/using-neo/SKILL.md`** and keep it in context for the whole session. Route every task through its **Skill Discovery** flowchart: identify the phase, then load and follow the matching `skills/<name>/SKILL.md` exactly — if a skill applies at all, it runs first; never jump straight to implementation. Obey the meta-skill's **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
 
 Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
 
@@ -156,7 +157,7 @@ Because no hook enforces it, this depends on model compliance — weaker than Cl
 
 ## Limitations
 
-- No native slash-command entry — neo's `neo-<phase>` entry skills are activated from intent instead
+- No native slash-command entry — `using-neo` activates workflows from intent instead
 - No plugin system (handled via prompt + structure)
 - Skill invocation depends on model compliance
 

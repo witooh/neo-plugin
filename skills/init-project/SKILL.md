@@ -4,7 +4,7 @@ description: >
   Scaffold a brand-new Go hexagonal / DDD microservice from a bundled, frozen template — an
   empty-but-runnable account-service snapshot (clean layers, tooling, infra, `.kiro/` steering)
   with ZERO business domains. It builds and serves `GET /health` immediately, ready for the
-  `neo` skill (or Kiro) to add the first domain with no setup. Asks the service identity (Go
+  `using-neo` skill (or Kiro) to add the first domain with no setup. Asks the service identity (Go
   module path, name, id, postgres schema, target dir), runs `scaffold.py` (copy +
   sentinel-substitute + go mod tidy + git init + build), then verifies (L1 `initcheck.py` + L2
   fresh-eyes). Trigger on:
@@ -12,7 +12,7 @@ description: >
   "bootstrap a Go service", "สร้าง project ใหม่", "สร้าง service ใหม่", "scaffold service ใหม่",
   "โครง service เปล่า", "ตั้งโปรเจกต์ใหม่ตาม account-service", "ทำ boilerplate", "new Go service
   skeleton". Needs Go >= 1.26 and GOPRIVATE access to the org `common-lib` the template needs.
-  NOTE: only CREATES the empty skeleton — adding domains / AC / endpoints / tests is the `neo`
+  NOTE: only CREATES the empty skeleton — adding domains / AC / endpoints / tests is the `using-neo`
   skill.
 compatibility:
   environment: claude-code
@@ -28,11 +28,11 @@ compatibility:
 Scaffold a **new Go hexagonal / DDD microservice** from a bundled, frozen template — an
 empty-but-runnable snapshot of the `account-service` architecture (clean layers + tooling + infra
 wiring + `.kiro/` steering + `CLAUDE.md`) with **zero business domains**. The generated project
-builds and serves `GET /health` immediately and is ready for `neo` (or Kiro) to add the first domain
+builds and serves `GET /health` immediately and is ready for `using-neo` (or Kiro) to add the first domain
 with no setup.
 
 > This skill **only creates the empty skeleton**. Authoring domains / AC / endpoints / tests is the
-> **`neo`** skill — point the user there once the project exists.
+> **`using-neo`** skill — point the user there once the project exists.
 
 ## What it produces
 
@@ -44,8 +44,8 @@ A complete service skeleton under the target dir:
 - **Tooling** — `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka),
   `.gitlab-ci.yml`, `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
 - **Agentic context** — `.kiro/steering/*` (architecture guides) + `.kiro/{skills,agents}` (Kiro neo
-  port) + `CLAUDE.md`, so `neo` / Kiro can add a domain with no setup.
-- `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **created by neo**, not the
+  port) + `CLAUDE.md`, so `using-neo` / Kiro can add a domain with no setup.
+- `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **created through using-neo**, not the
   skeleton — a fresh service legitimately has none.
 
 The boot path is **best-effort**: `go run ./cmd/api` serves `/health` even with no Postgres / Redis /
@@ -112,7 +112,7 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
    business leak, steering intact). Relay any issue it surfaces.
 
 5. **Report.** Summarize concisely: where the project is, that it builds + serves `/health`, and the
-   next step — `cd <dir> && go run ./cmd/api` (curl `localhost:8080/health`), then use **`/neo`** to
+   next step — `cd <dir> && go run ./cmd/api` (curl `localhost:8080/health`), then use **`using-neo`** to
    add the first domain.
 
 ## Notes
@@ -121,4 +121,4 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
   `example.com/neo/service`, name `neo-service`, id `NEOSVC`, postgres schema `neoschema`). To
   refresh it when `account-service`'s conventions change, follow `references/init-project-guide.md`.
 - Generic steering placeholders (`{{MODULE_PATH}}`, `<context>`, …) are intentionally left unresolved
-  for neo to fill per-domain — only the four sentinels are substituted at generation time.
+  for `using-neo` to fill per-domain — only the four sentinels are substituted at generation time.

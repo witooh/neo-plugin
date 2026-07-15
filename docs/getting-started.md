@@ -35,9 +35,11 @@ Copy the relevant `SKILL.md` content into your agent's system prompt, rules file
 
 **Conversation:** Reference the skill when giving instructions: "Follow the test-driven-development process for this change."
 
-### 4. Use the meta-skill for discovery
+### 4. Use the single entry router
 
-Start with the `using-neo` skill loaded. It contains a flowchart that maps task types to the appropriate skill.
+Start with the `using-neo` skill loaded. It is the single adaptive entry point:
+it maps intent and repository state to the appropriate workflow, then loads only
+the method skills and phase reference needed for that task.
 
 ## Recommended Setup
 
@@ -97,34 +99,17 @@ The `agents/` directory contains pre-configured agent personas:
 | `code-reviewer.md` | Five-axis code review |
 | `test-engineer.md` | Test strategy and writing |
 | `security-auditor.md` | Vulnerability detection |
-| `web-performance-auditor.md` | Core Web Vitals & performance audit (via `neo-webperf`) |
+| `web-performance-auditor.md` | Core Web Vitals & performance audit (via the `using-neo` Webperf workflow) |
 
 Load an agent definition when you need specialized review. For example, ask your coding agent to "review this change using the code-reviewer agent persona" and provide the agent definition.
 
-## Entry Skills
+## Single Entry Workflow
 
-Each lifecycle phase has an entry skill named `neo-<phase>`. Invoking one runs the
-underlying workflow skill(s) for that phase. For how they chain together into an
-end-to-end workflow, see [command-workflow.md](command-workflow.md).
-
-To drive that whole chain from a single entry, use the **`neo`** skill: `neo` detects the
-current phase and runs each `neo-<phase>` in turn, gating at every boundary (go / stop /
-auto), while `neo auto` flows through after one approval. The phase entry skills below stay
-directly invocable — `neo` only sequences them.
-
-| Phase | Entry skill | Runs |
-|-------|-------------|------|
-| Ingest | `neo-ingest` | markitdown |
-| Define | `neo-spec` | spec-driven-development |
-| Plan | `neo-plan` | planning-and-task-breakdown |
-| Build | `neo-build` | incremental-implementation + test-driven-development |
-| Build | `neo-build auto` | planning-and-task-breakdown → incremental-implementation + test-driven-development (whole plan, one approval) |
-| Verify | `neo-test` | test-driven-development |
-| Review | `neo-review` | code-review-and-quality |
-| Review | `neo-code-simplify` | code-simplification |
-| Review | `neo-webperf` | web-performance-auditor (specialist agent, web apps only) |
-| Ship | `neo-ship` | shipping-and-launch |
-| Ship | `neo-commit` | git-workflow-and-versioning |
+Use `using-neo` for both focused and end-to-end work. With no mode it adapts to
+your request; `using-neo single` runs one task or phase; `using-neo auto`
+continues after one approval while retaining commit, ship, blocker, and risk
+stops. See [command-workflow.md](command-workflow.md) for routing, artifacts,
+and modes.
 
 ## Using References
 
@@ -141,7 +126,9 @@ Load a reference when you need detailed patterns beyond what the skill covers.
 
 ## Spec and task artifacts
 
-The `neo-spec` and `neo-plan` skills create working artifacts under `docs/tasks/<card>/` (`spec.md`, `plan.md`, `todo.md`). Treat them as **living documents** while the work is in progress:
+The Define and Plan workflows create working artifacts under
+`docs/tasks/<card>/` (`spec.md`, `plan.md`, `todo.md`). Treat them as **living
+documents** while the work is in progress:
 
 - Keep them in version control during development so the human and the agent have a shared source of truth.
 - Update them when scope or decisions change.
