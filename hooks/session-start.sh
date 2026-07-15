@@ -13,11 +13,28 @@ fi
 
 if [ -f "$META_SKILL" ]; then
   CONTENT=$(cat "$META_SKILL")
+  PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
+  if [ -z "$PROJECT_DIR" ] && [ ! -t 0 ]; then
+    EVENT_INPUT=$(cat)
+    PROJECT_DIR=$(printf '%s' "$EVENT_INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)
+  fi
+  PROJECT_DIR="${PROJECT_DIR:-$PWD}"
+
+  MESSAGE="neo loaded. Route every task through the using-neo single entry point.
+
+$CONTENT"
+  STEERING_INDEX="$PROJECT_DIR/.kiro/steering/INDEX.md"
+  if [ -f "$STEERING_INDEX" ]; then
+    MESSAGE="$MESSAGE
+
+Project steering is available. Read and follow .kiro/steering/INDEX.md now, including every file it marks with inclusion: always.
+
+$(cat "$STEERING_INDEX")"
+  fi
+
   # Use jq to properly escape and construct valid JSON
   jq -cn \
-    --arg message "neo loaded. Route every task through the using-neo single entry point.
-
-$CONTENT" \
+    --arg message "$MESSAGE" \
     '{priority: "IMPORTANT", message: $message}'
 else
   echo '{"priority": "INFO", "message": "neo: using-neo router not found. Skills may still be available individually."}'

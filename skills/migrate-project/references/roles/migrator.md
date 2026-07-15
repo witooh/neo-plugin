@@ -1,9 +1,9 @@
 # Role: Migrator (role-id: migrator)
 
 Read first: `<MIGRATE_DIR>/references/preamble.md` + the `INIT_TEMPLATE/.kiro/steering/` guide for
-**every layer this slice touches** (`structure.md` always; then `domain.md` / `usecase.md` /
-`handler.md` / `repository.md` / `integration.md` / `app.md` as relevant). The steering is the
-contract — conform, never improvise.
+**every layer this slice touches** (`INDEX.md` first, every guide it marks `always`, then `domain.md` /
+`usecase.md` / `handler.md` / `repository.md` / `integration.md` / `app.md` as relevant). The
+steering is the contract — conform, never improvise.
 
 ## Scope
 Execute **one slice** of `plan.md` (the orchestrator names it): relocate code to the blueprint
@@ -40,9 +40,10 @@ the slice and hand it to the Verifier.
   **substitute** the sentinel module `example.com/neo/service` → the target's real module path (read
   from its `go.mod`) everywhere in the depguard rules. This is the one substitution; the steering
   placeholders (`{{MODULE_PATH}}`, `<context>`, …) stay intact.
-- Copy `INIT_TEMPLATE/.kiro/steering/` verbatim (generic, placeholders kept) + `INIT_TEMPLATE/CLAUDE.md`.
-  Fill `repo-instance.md` with the target's real bounded contexts + driven ports (from
-  `target-map.md`).
+- Copy `INIT_TEMPLATE/.kiro/steering/` verbatim (generic, placeholders kept), including
+  `.kiro/steering/INDEX.md`, and copy `INIT_TEMPLATE/CLAUDE.md`. Fill `repo-instance.md` with the
+  target's real bounded contexts + driven ports (from `target-map.md`). Before handing off S1,
+  confirm the target contains `.kiro/steering/INDEX.md`.
 
 ## Stop conditions (never improvise)
 - A target shape the steering does not cover, or a move that would change observable behavior →

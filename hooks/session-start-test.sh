@@ -3,44 +3,73 @@
 
 set -euo pipefail
 
-tmp_payload="$(mktemp)"
-trap 'rm -f "$tmp_payload"' EXIT
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+without_index="$tmp_dir/without-index"
+with_index="$tmp_dir/with-index"
+mkdir -p "$without_index" "$with_index/.kiro/steering"
+printf '%s\n' 'STEERING_INDEX_SENTINEL' > "$with_index/.kiro/steering/INDEX.md"
 
 has_jq=0
 if command -v jq >/dev/null 2>&1; then
   has_jq=1
 fi
 
-payload="$(bash hooks/session-start.sh)"
-printf '%s' "$payload" > "$tmp_payload"
+run_hook() {
+  local project_dir="$1"
+  printf '{"cwd":"%s"}' "$project_dir" |
+    CLAUDE_PROJECT_DIR="$project_dir" bash hooks/session-start.sh
+}
 
-HAS_JQ="$has_jq" PAYLOAD_PATH="$tmp_payload" node <<'NODE'
+run_hook "$without_index" > "$tmp_dir/without-index.json"
+run_hook "$with_index" > "$tmp_dir/with-index.json"
+
+HAS_JQ="$has_jq" PAYLOAD_DIR="$tmp_dir" node <<'NODE'
 const fs = require('fs');
+const path = require('path');
 
-const payload = JSON.parse(fs.readFileSync(process.env.PAYLOAD_PATH, 'utf8'));
+const withoutIndex = JSON.parse(
+  fs.readFileSync(path.join(process.env.PAYLOAD_DIR, 'without-index.json'), 'utf8'),
+);
+const withIndex = JSON.parse(
+  fs.readFileSync(path.join(process.env.PAYLOAD_DIR, 'with-index.json'), 'utf8'),
+);
 const hasJq = process.env.HAS_JQ === '1';
 
 if (hasJq) {
-  if (payload.priority !== 'IMPORTANT') {
-    throw new Error(`expected IMPORTANT priority, got ${payload.priority}`);
+  if (withoutIndex.priority !== 'IMPORTANT') {
+    throw new Error(`expected IMPORTANT priority, got ${withoutIndex.priority}`);
   }
 
-  if (!payload.message.includes('neo loaded.')) {
+  if (!withoutIndex.message.includes('neo loaded.')) {
     throw new Error('message is missing startup preface');
   }
 
-  if (!payload.message.includes('# Using Neo')) {
+  if (!withoutIndex.message.includes('# Using Neo')) {
     throw new Error('message is missing using-neo content');
   }
-  if (!payload.message.includes('## Single Entry Point')) {
+  if (!withoutIndex.message.includes('## Single Entry Point')) {
     throw new Error('message is missing the single-entry routing contract');
   }
+  if (withoutIndex.message.includes('STEERING_INDEX_SENTINEL')) {
+    throw new Error('message must not include steering when INDEX.md is absent');
+  }
+  if (withoutIndex.message.includes('Read and follow .kiro/steering/INDEX.md')) {
+    throw new Error('message must not mention steering INDEX.md when it is absent');
+  }
+  if (!withIndex.message.includes('Read and follow .kiro/steering/INDEX.md')) {
+    throw new Error('message is missing the steering INDEX.md instruction');
+  }
+  if (!withIndex.message.includes('STEERING_INDEX_SENTINEL')) {
+    throw new Error('message is missing steering INDEX.md content');
+  }
 } else {
-  if (payload.priority !== 'INFO') {
-    throw new Error(`expected INFO priority when jq is missing, got ${payload.priority}`);
+  if (withoutIndex.priority !== 'INFO') {
+    throw new Error(`expected INFO priority when jq is missing, got ${withoutIndex.priority}`);
   }
 
-  if (!payload.message.includes('jq is required')) {
+  if (!withoutIndex.message.includes('jq is required')) {
     throw new Error('message is missing jq fallback guidance');
   }
 }

@@ -12,9 +12,11 @@ pre-migration picture).
 
 ## Check each of these and report PASS/FAIL with evidence
 
-1. **Conforms to the blueprint layout + dependency rule.** Read `structure.md`. Confirm the layout
-   (`cmd/api/`, `internal/core/{domain,usecase}/`, `internal/adapters/{repository,gateway,eventbus}/`,
-   `internal/delivery/http/`, `config/`, `pkg/`). Confirm imports point **inward only** — grep that no
+1. **Conforms to the blueprint layout + dependency rule.** Confirm the target contains
+   `.kiro/steering/INDEX.md`. Read the blueprint `INDEX.md`, then every guide it marks
+   `inclusion: always`. Confirm the layout (`cmd/api/`, `internal/core/{domain,usecase}/`,
+   `internal/adapters/{repository,gateway,eventbus}/`, `internal/delivery/http/`, `config/`, `pkg/`).
+   Confirm imports point **inward only** — grep that no
    `internal/adapters` / `internal/delivery` / `pkg` file imports `core/usecase` outward, that
    `core/domain` imports nothing outward, and that driven ports are **centralized** in
    `core/domain/repository` + `core/domain/event` (external-system gateways in `integration/<sys>/`)

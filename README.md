@@ -140,7 +140,7 @@ gemini skills install ./neo/skills/
 <details>
 <summary><b>Cursor</b></summary>
 
-Copy any `SKILL.md` into `.cursor/rules/`, or reference the full `skills/` directory. See [docs/cursor-setup.md](docs/cursor-setup.md).
+Run `cursor.sh` to install neo's native skills, subagents, and a `sessionStart` hook that loads `using-neo` plus `.kiro/steering/INDEX.md` when present. The installer supports project (`.cursor/`) and global (`~/.cursor/`) scopes and preserves unrelated hooks. See [docs/cursor-setup.md](docs/cursor-setup.md).
 
 </details>
 
@@ -203,7 +203,7 @@ pi install ./neo-plugin
 <details>
 <summary><b>Kiro IDE & CLI</b></summary>
 
-Run `kiro.sh` to install neo's skills (as `/<name>` slash commands), agents, and AGENTS.md steering into a Kiro config directory (`.kiro/`). See [Kiro docs](https://kiro.dev/docs/skills/).
+Run `kiro.sh` to install neo's skills (as `/<name>` slash commands), agents, and a SessionStart hook that loads `using-neo` plus `.kiro/steering/INDEX.md` when present (Kiro IDE 1.0 / CLI v3) into a Kiro config directory (`.kiro/`). See the Kiro [skills](https://kiro.dev/docs/skills/) and [hooks](https://kiro.dev/docs/hooks/) docs.
 
 **Install globally (`~/.kiro`):**
 

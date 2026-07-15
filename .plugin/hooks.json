@@ -4,8 +4,8 @@
     "sessionStart": [
       {
         "type": "command",
-        "bash": "printf '%s\\n' '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\"}'",
-        "powershell": "Write-Output '{\"additionalContext\":\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\"}'",
+        "bash": "node -e 'const fs=require(\"fs\"),path=require(\"path\");let cwd=process.cwd();try{cwd=JSON.parse(fs.readFileSync(0,\"utf8\")).cwd||cwd}catch{};let context=\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\";const index=path.join(cwd,\".kiro\",\"steering\",\"INDEX.md\");try{if(fs.statSync(index).isFile()){context+=\"\\n\\nProject steering is available. Read and follow .kiro/steering/INDEX.md now, including every file it marks with inclusion: always.\\n\\n\"+fs.readFileSync(index,\"utf8\")}}catch{};process.stdout.write(JSON.stringify({additionalContext:context}))'",
+        "powershell": "node -e 'const fs=require(\"fs\"),path=require(\"path\");let cwd=process.cwd();try{cwd=JSON.parse(fs.readFileSync(0,\"utf8\")).cwd||cwd}catch{};let context=\"neo loaded. Before acting on any task, load and follow the using-neo single entry point. Let it route focused work or the lifecycle, then follow the selected method skills before implementation.\";const index=path.join(cwd,\".kiro\",\"steering\",\"INDEX.md\");try{if(fs.statSync(index).isFile()){context+=\"\\n\\nProject steering is available. Read and follow .kiro/steering/INDEX.md now, including every file it marks with inclusion: always.\\n\\n\"+fs.readFileSync(index,\"utf8\")}}catch{};process.stdout.write(JSON.stringify({additionalContext:context}))'",
         "timeoutSec": 5
       }
     ]

@@ -29,7 +29,7 @@ existing test suite + golangci all green.
 ## S1 — cross-cutting + install contract       (next unbuilt slice — elaborated to path level)
 Moves:
 - install `INIT_TEMPLATE/.golangci.yaml` → `<target>/.golangci.yaml`  (substitute example.com/neo/service → <target module>)
-- install `INIT_TEMPLATE/.kiro/steering/` → `<target>/.kiro/steering/`  (+ fill repo-instance.md with real contexts)
+- install `INIT_TEMPLATE/.kiro/steering/` → `<target>/.kiro/steering/`  (including INDEX.md; fill repo-instance.md with real contexts)
 - install `INIT_TEMPLATE/CLAUDE.md` → `<target>/CLAUDE.md`
 - <current edge path> → <blueprint path>     (error mapping / response envelope / middleware / config)
 - create `internal/core/{domain,usecase}/` skeleton

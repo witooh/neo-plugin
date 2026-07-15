@@ -12,15 +12,17 @@ The target-structure contract is the **steering guide set** the orchestrator poi
 
 ```
 INIT_TEMPLATE = <MIGRATE_DIR>/../init-project/assets/template
+  .kiro/steering/INDEX.md              the guide inventory + inclusion modes; read first
   .kiro/steering/structure.md          the primary map: layout + the inward-only dependency rule
   .kiro/steering/{domain,usecase,handler,repository,integration,app,messaging,testing,...}.md
   .kiro/steering/new-feature-checklist.md   the inside-out composition recipe (domain → … → wiring → tests)
   .golangci.yaml                       the machine-checkable architecture contract (depguard + forbidigo)
 ```
 
-Read the steering guide for **every layer you touch** before you touch it (`structure.md` always
-first). These guides carry verbatim-shaped skeletons and the gotchas tests miss — you should not
-need to read `account-service` source to learn a pattern. **The steering is the source of truth.**
+Read `INDEX.md` first, then every guide it marks `inclusion: always`, before doing any work. Read the
+steering guide for **every layer you touch** before you touch it. These guides carry verbatim-shaped
+skeletons and the gotchas tests miss — you should not need to read `account-service` source to learn
+a pattern. **The steering is the source of truth.**
 
 **Group-dir casing.** The bounded-context dirs directly under `internal/core/domain/` and
 `internal/core/usecase/` are **lowercase** — the context's package name, identical on both layers and

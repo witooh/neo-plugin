@@ -210,6 +210,8 @@ def check_contract(root: Path, module: str | None) -> None:
             drift(gl.name, f"sentinel module {SENTINEL_MODULE} not substituted to the target module path")
         elif module and module not in text:
             note(gl.name, f"depguard does not reference the target module {module} — confirm the layer rules are wired")
+    if not (root / ".kiro/steering/INDEX.md").is_file():
+        drift("(contract)", ".kiro/steering/INDEX.md not installed — steering guides are not discoverable")
     if not (root / ".kiro/steering/structure.md").is_file():
         note("(contract)", ".kiro/steering/ not installed — blueprint convention guides (install per blueprint)")
     if not (root / "CLAUDE.md").is_file():

@@ -1,66 +1,63 @@
 # Using neo with Cursor
 
-## Setup
+Cursor natively discovers [Agent Skills](https://cursor.com/docs/skills),
+[custom subagents](https://cursor.com/docs/subagents), and
+[hooks](https://cursor.com/docs/hooks). The `cursor.sh` installer puts neo in
+those native locations and requires `jq` to merge hook configuration safely.
 
-### Option 1: Rules Directory (Recommended)
+## Install globally
 
-Cursor supports a `.cursor/rules/` directory for project-specific rules:
-
-```bash
-# Create the rules directory
-mkdir -p .cursor/rules
-
-# Copy skills you want as rules
-cp /path/to/neo/skills/test-driven-development/SKILL.md .cursor/rules/test-driven-development.md
-cp /path/to/neo/skills/code-review-and-quality/SKILL.md .cursor/rules/code-review-and-quality.md
-cp /path/to/neo/skills/incremental-implementation/SKILL.md .cursor/rules/incremental-implementation.md
-```
-
-Rules in this directory are automatically loaded into Cursor's context.
-
-### Option 2: .cursorrules File
-
-Create a `.cursorrules` file in your project root with the essential skills inlined:
+Install for every Cursor project under `~/.cursor/`:
 
 ```bash
-# Generate a combined rules file
-cat /path/to/neo/skills/test-driven-development/SKILL.md > .cursorrules
-echo "\n---\n" >> .cursorrules
-cat /path/to/neo/skills/code-review-and-quality/SKILL.md >> .cursorrules
+./cursor.sh
+# or: ./cursor.sh --global
 ```
 
-## Load neo at session start (no SessionStart hook)
+## Install in one project
 
-Claude Code auto-loads the `using-neo` router through its `SessionStart` hook. Cursor has no equivalent, so add the rule below as an **always-applied** rule (e.g. `.cursor/rules/00-load-neo.md` with `alwaysApply: true`) so neo drives the flow instead of the agent improvising:
+Install under `<project>/.cursor/`:
 
-> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+```bash
+./cursor.sh --project /path/to/project
+```
 
-Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
+Running the installer again refreshes neo-owned skills, subagents, and the neo
+hook. Other files and hook entries remain intact.
 
-## Recommended Configuration
+## Installed layout
 
-### Essential Skills (Always Load)
+```text
+.cursor/
+├── skills/                    # one <name>/SKILL.md directory per neo skill
+├── agents/                    # neo custom subagents
+├── hooks/
+│   └── neo-session-context.sh
+└── hooks.json                 # neo sessionStart entry merged with existing hooks
+```
 
-Add these to `.cursor/rules/`:
+Shared reference checklists are copied into each skill that cites them, so
+relative `references/<file>.md` links continue to work inside Cursor's
+self-contained skill directories.
 
-1. `test-driven-development.md` — TDD workflow and Prove-It pattern
-2. `code-review-and-quality.md` — Five-axis review
-3. `incremental-implementation.md` — Build in small verifiable slices
+## Session context
 
-### Phase-Specific Skills (Load on Demand)
+At `sessionStart`, the hook returns Cursor's documented `additional_context`
+JSON response containing:
 
-For phase-specific work, create additional rule files as needed:
+1. The project's `.cursor/skills/using-neo/SKILL.md`, falling back to the
+   `using-neo` installed beside the hook.
+2. The project's `.kiro/steering/INDEX.md` only when that file exists, including
+   an instruction to read every guide it marks with `inclusion: always`.
 
-- `spec-development.md` -> `spec-driven-development/SKILL.md`
-- `frontend-ui.md` -> `frontend-ui-engineering/SKILL.md`
-- `security.md` -> `security-and-hardening/SKILL.md`
-- `performance.md` -> `performance-optimization/SKILL.md`
+Cursor project hooks run only in trusted workspaces. Check **View → Output →
+Hooks** if the hook does not appear to run.
 
-Add these to `.cursor/rules/` when working on relevant tasks, then remove when done to manage context limits.
+### Cursor IDE limitation
 
-## Usage Tips
-
-1. **Don't load all skills at once** - Cursor has context limits. Load 2-3 essential skills as rules and add phase-specific skills as needed.
-2. **Reference skills explicitly** - Tell Cursor "Follow the test-driven-development rules for this change" to ensure it reads the loaded rules.
-3. **Use agents for review** - Copy `agents/code-reviewer.md` content and tell Cursor to "review this diff using this code review framework."
-4. **Load references on demand** - When working on performance, add `performance.md` to `.cursor/rules/` or paste the checklist content directly.
+Some Cursor IDE versions have a confirmed issue where `sessionStart` accepts a
+valid `additional_context` response but does not deliver it to the agent. The
+hook and installer still follow Cursor's documented contract; if the Hooks
+output shows a successful response but the agent lacks neo context, check the
+[upstream Cursor issue](https://forum.cursor.com/t/cursor-app-hooks-bugs-of-additional-context/163990)
+for current status.

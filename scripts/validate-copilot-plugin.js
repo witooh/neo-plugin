@@ -6,6 +6,7 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 
@@ -43,11 +44,33 @@ function frontmatterValue(content, key) {
 }
 
 function validateHookCommand(command, shell, args) {
-  const output = execFileSync(shell, [...args, command], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-  const payload = JSON.parse(output);
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'neo-copilot-hook-'));
+  const withoutIndex = path.join(temporaryRoot, 'without-index');
+  const withIndex = path.join(temporaryRoot, 'with-index');
+  fs.mkdirSync(withoutIndex);
+  fs.mkdirSync(path.join(withIndex, '.kiro', 'steering'), { recursive: true });
+  fs.writeFileSync(
+    path.join(withIndex, '.kiro', 'steering', 'INDEX.md'),
+    'STEERING_INDEX_SENTINEL\n',
+  );
+
+  function runHook(cwd) {
+    const output = execFileSync(shell, [...args, command], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      input: JSON.stringify({ cwd }),
+    });
+    return JSON.parse(output);
+  }
+
+  let payload;
+  let payloadWithIndex;
+  try {
+    payload = runHook(withoutIndex);
+    payloadWithIndex = runHook(withIndex);
+  } finally {
+    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 
   assert(
     typeof payload.additionalContext === 'string',
@@ -56,6 +79,24 @@ function validateHookCommand(command, shell, args) {
   assert(
     payload.additionalContext.includes('using-neo'),
     `${shell} sessionStart hook must route through using-neo`,
+  );
+  assert(
+    !payload.additionalContext.includes('STEERING_INDEX_SENTINEL'),
+    `${shell} sessionStart hook must ignore absent steering INDEX.md`,
+  );
+  assert(
+    !payload.additionalContext.includes('Read and follow .kiro/steering/INDEX.md'),
+    `${shell} sessionStart hook must not mention absent steering INDEX.md`,
+  );
+  assert(
+    payloadWithIndex.additionalContext.includes(
+      'Read and follow .kiro/steering/INDEX.md',
+    ),
+    `${shell} sessionStart hook must instruct the session to read steering INDEX.md`,
+  );
+  assert(
+    payloadWithIndex.additionalContext.includes('STEERING_INDEX_SENTINEL'),
+    `${shell} sessionStart hook must include steering INDEX.md content`,
   );
 }
 

@@ -1,7 +1,7 @@
 #!/bin/bash
-# neo → Kiro installer. Copies neo's skills, agents, and
-# AGENTS.md steering into a Kiro config directory; shared reference checklists
-# are bundled into the skills that cite them. Run with --help for the layout.
+# neo → Kiro installer. Copies neo's skills, agents, and hooks into a Kiro
+# config directory; shared reference checklists are bundled into the skills
+# that cite them. Run with --help for the layout.
 
 set -euo pipefail
 shopt -s nullglob
@@ -12,14 +12,15 @@ usage() {
   cat <<'EOF'
 neo → Kiro installer
 
-Copies neo's skills, agents, and AGENTS.md into a Kiro
-configuration directory so Kiro can auto-discover them.
+Copies neo's skills, agents, and hooks into a Kiro configuration directory
+so Kiro can auto-discover them.
 
 Kiro layout (https://kiro.dev/docs/skills/):
   .kiro/skills/      skills — each is a /<name> slash command
                      (shared reference checklists ride inside the skills that cite them)
   .kiro/agents/      custom agent personas (markdown + YAML frontmatter)
-  .kiro/steering/    AGENTS.md — always-on neo guidance
+  .kiro/hooks/       SessionStart hook — loads using-neo and optional steering/INDEX.md
+                     (Kiro IDE 1.0 / CLI v3)
 
 Usage:
   ./kiro.sh                  install to global   ~/.kiro
@@ -106,10 +107,10 @@ for file in "$SCRIPT_DIR"/agents/*.md; do
 done
 printf '  %-11s %d → %s/\n' "agents:" "$agents" "$kiro_root/agents"
 
-# steering: root AGENTS.md -> .kiro/steering/  (always-on neo guidance)
-mkdir -p "$kiro_root/steering"
-cp "$SCRIPT_DIR/AGENTS.md" "$kiro_root/steering/AGENTS.md"
-printf '  %-11s %d → %s/\n' "steering:" 1 "$kiro_root/steering"
+# hooks: overwrite only neo's named hook; preserve every other user hook.
+mkdir -p "$kiro_root/hooks"
+cp "$SCRIPT_DIR/hooks/kiro/neo-session-context.json" "$kiro_root/hooks/"
+printf '  %-11s %d → %s/\n' "hooks:" 1 "$kiro_root/hooks"
 
 echo
-echo "Done. In Kiro, skills appear as /<name> slash commands."
+echo "Done. In Kiro, skills appear as /<name> slash commands; using-neo and optional steering load at session start."

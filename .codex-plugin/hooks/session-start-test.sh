@@ -35,15 +35,35 @@ process.stdout.write(commandHook.command);
 NODE
 )"
 
-tmp_payload="$(mktemp)"
-trap 'rm -f "$tmp_payload"' EXIT
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
 
-PLUGIN_ROOT="$plugin_root" bash -c "$command" > "$tmp_payload"
+without_index="$tmp_dir/without-index"
+with_index="$tmp_dir/with-index"
+mkdir -p "$without_index" "$with_index/.kiro/steering"
+printf '%s\n' 'STEERING_INDEX_SENTINEL' > "$with_index/.kiro/steering/INDEX.md"
 
-PAYLOAD_PATH="$tmp_payload" node <<'NODE'
+run_hook() {
+  local project_dir="$1"
+  printf '{"cwd":"%s"}' "$project_dir" |
+    PLUGIN_ROOT="$plugin_root" bash -c "$command"
+}
+
+run_hook "$without_index" > "$tmp_dir/without-index.json"
+run_hook "$with_index" > "$tmp_dir/with-index.json"
+
+PAYLOAD_DIR="$tmp_dir" node <<'NODE'
 const fs = require('fs');
-const payload = JSON.parse(fs.readFileSync(process.env.PAYLOAD_PATH, 'utf8'));
-const output = payload.hookSpecificOutput;
+const path = require('path');
+
+const withoutIndex = JSON.parse(
+  fs.readFileSync(path.join(process.env.PAYLOAD_DIR, 'without-index.json'), 'utf8'),
+);
+const withIndex = JSON.parse(
+  fs.readFileSync(path.join(process.env.PAYLOAD_DIR, 'with-index.json'), 'utf8'),
+);
+const output = withoutIndex.hookSpecificOutput;
+const outputWithIndex = withIndex.hookSpecificOutput;
 
 if (output?.hookEventName !== 'SessionStart') {
   throw new Error('payload is missing the Codex SessionStart event name');
@@ -57,8 +77,20 @@ if (!output.additionalContext.includes('# Using Neo')) {
 if (!output.additionalContext.includes('## Single Entry Point')) {
   throw new Error('payload is missing the single-entry routing contract');
 }
-if ('priority' in payload || 'message' in payload) {
+if ('priority' in withoutIndex || 'message' in withoutIndex) {
   throw new Error('payload still contains legacy priority/message fields');
+}
+if (output.additionalContext.includes('STEERING_INDEX_SENTINEL')) {
+  throw new Error('payload must not include steering when INDEX.md is absent');
+}
+if (output.additionalContext.includes('Read and follow .kiro/steering/INDEX.md')) {
+  throw new Error('payload must not mention steering INDEX.md when it is absent');
+}
+if (!outputWithIndex?.additionalContext?.includes('Read and follow .kiro/steering/INDEX.md')) {
+  throw new Error('payload is missing the steering INDEX.md instruction');
+}
+if (!outputWithIndex.additionalContext.includes('STEERING_INDEX_SENTINEL')) {
+  throw new Error('payload is missing steering INDEX.md content');
 }
 
 console.log('Codex SessionStart payload OK');

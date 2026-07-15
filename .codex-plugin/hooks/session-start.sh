@@ -13,10 +13,27 @@ fi
 
 if [ -f "$meta_skill" ]; then
   content=$(cat "$meta_skill")
-  jq -cn \
-    --arg context "neo loaded. Route every task through the using-neo single entry point.
+  project_dir=""
+  if [ ! -t 0 ]; then
+    event_input=$(cat)
+    project_dir=$(printf '%s' "$event_input" | jq -r '.cwd // empty' 2>/dev/null || true)
+  fi
+  project_dir="${project_dir:-$PWD}"
 
-$content" \
+  context="neo loaded. Route every task through the using-neo single entry point.
+
+$content"
+  steering_index="$project_dir/.kiro/steering/INDEX.md"
+  if [ -f "$steering_index" ]; then
+    context="$context
+
+Project steering is available. Read and follow .kiro/steering/INDEX.md now, including every file it marks with inclusion: always.
+
+$(cat "$steering_index")"
+  fi
+
+  jq -cn \
+    --arg context "$context" \
     '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $context}}'
 else
   jq -cn \
