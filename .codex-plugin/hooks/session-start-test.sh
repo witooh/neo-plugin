@@ -6,17 +6,20 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 plugin_root="$(cd "$script_dir/../.." && pwd)"
 manifest_path="$plugin_root/.codex-plugin/plugin.json"
-hooks_path="$plugin_root/.codex-plugin/hooks/hooks.json"
 
-MANIFEST_PATH="$manifest_path" node <<'NODE'
+hooks_path="$(MANIFEST_PATH="$manifest_path" node <<'NODE'
 const fs = require('fs');
 const manifest = JSON.parse(fs.readFileSync(process.env.MANIFEST_PATH, 'utf8'));
 
-if ('hooks' in manifest) {
-  throw new Error('plugin manifest must rely on the conventional Codex hooks path');
+if (manifest.hooks !== './.codex-plugin/hooks/hooks.json') {
+  throw new Error('plugin manifest must select the Codex-specific hooks file');
 }
-NODE
 
+process.stdout.write(manifest.hooks);
+NODE
+)"
+
+hooks_path="$plugin_root/${hooks_path#./}"
 command="$(HOOKS_PATH="$hooks_path" node <<'NODE'
 const fs = require('fs');
 const config = JSON.parse(fs.readFileSync(process.env.HOOKS_PATH, 'utf8'));

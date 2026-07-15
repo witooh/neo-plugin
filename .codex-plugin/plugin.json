@@ -17,6 +17,7 @@
     "ship"
   ],
   "skills": "./skills/",
+  "hooks": "./.codex-plugin/hooks/hooks.json",
   "interface": {
     "displayName": "Neo",
     "shortDescription": "Production-grade engineering workflows for Codex.",
