@@ -13,8 +13,45 @@ architecture, security, performance, and project conventions.
 - Use Critical / Important / Suggestion severity and anchor every actionable
   finding to `file:line` with a concrete fix.
 
-**Exit evidence:** all six axes were assessed and no Critical finding is hidden
-or silently accepted.
+### Acceptance-criteria gate (conditional)
+
+1. Locate the linked Jira card, task spec, or other source of intent and
+   enumerate every claimed AC. If a claimed source cannot be read, mark the AC
+   gate blocked; never infer its contents.
+2. If no AC exists after checking the linked sources, mark the AC gate `N/A`;
+   do not invent ACs.
+3. If ACs exist, verify both implementation behavior and test evidence for
+   every AC. Emit an `AC -> evidence` table with the AC, implementation
+   evidence, test level, test evidence, and status.
+4. Classify test evidence as `e2e`, `integration`, `unit-only`, or `none`. For
+   every HTTP-observable AC, follow `e2e-playwright`: an active passing E2E test
+   is required, and `unit-only` evidence is incomplete. Record why a
+   non-HTTP-observable AC uses lower-level evidence.
+5. A failed, uncovered, falsely claimed, or HTTP-observable unit-only AC is at
+   least an Important finding and forces REQUEST CHANGES. A missing E2E harness
+   does not waive this gate.
+
+### Project-wide unit coverage gate
+
+1. Discover and run the project's canonical unit-test coverage command. For a
+   project with multiple unit-test stacks, run and report each stack unless the
+   repository already defines a canonical aggregate.
+2. Require at least 80% project-wide unit line coverage across all first-party
+   source. Changed-lines, changed-package, or passing-test counts cannot
+   substitute for project-wide coverage, and legacy uncovered code remains in
+   scope for the current MR.
+3. Respect only existing generated, vendor, and third-party exclusions. Treat a
+   new or expanded coverage exclusion in the MR as a finding unless it has an
+   independent technical justification; never use exclusions to manufacture
+   the threshold.
+4. Report the command, measured percentage, scope/exclusions, and verdict. If
+   coverage is below 80%, cannot be reproduced, or omits a project unit-test
+   stack, raise at least an Important finding and force REQUEST CHANGES; the MR
+   must add tests until the whole project reaches the threshold.
+
+**Exit evidence:** all six axes were assessed; the AC gate is complete or `N/A`;
+project-wide unit line coverage is reproducibly at least 80%; and no Critical
+finding is hidden or silently accepted.
 
 ## Simplify
 

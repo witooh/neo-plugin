@@ -74,6 +74,11 @@ function main() {
     'skills/using-neo/references/review-ship.md': [
       'Conventions & Style',
       '`code-reviewer`',
+      'AC -> evidence',
+      '`e2e-playwright`',
+      '`unit-only`',
+      'project-wide unit line coverage',
+      '80%',
       '`security-auditor`',
       '`test-engineer`',
       'rollback plan',

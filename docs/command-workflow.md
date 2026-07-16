@@ -56,7 +56,7 @@ Otherwise it derives the card from repository state instead of asking.
 | Plan | Approved spec and codebase | Vertically sliced `plan.md` and `todo.md` |
 | Build | Plan, ACs, code | Test-first implementation and synchronized task status |
 | Verify | Behavior and ACs | RED/GREEN proof, regression/runtime/e2e evidence |
-| Review | Diff, spec, ACs | Six-axis findings with severity and `file:line` |
+| Review | Diff, spec, ACs | Six-axis findings; conditional AC -> evidence matrix; reproducible project-wide unit line coverage >=80% |
 | Simplify | Recently changed code | Smaller/clearer code with identical behavior |
 | Commit | Working tree and history | Precisely staged atomic commits when authorized |
 | Webperf | Web app and optional metrics/trace | Sourced scorecard and ranked findings |
