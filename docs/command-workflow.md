@@ -27,9 +27,13 @@ An explicit request to “implement the approved/full plan” selects Build auto
 It does not silently widen into Review or Ship. If Build scope is ambiguous and
 multiple tasks remain, the router asks auto versus single.
 
-Auto always stops at the standalone Commit phase, Ship, unresolved blockers, and
-high-risk or irreversible work. Repository rules may require the user to make
-all commits; those rules override Build auto's normal per-task commit behavior.
+Auto always stops at the standalone Commit phase, Ship, unresolved blockers,
+decision stops for newly discovered material decisions, and high-risk or
+irreversible work. A decision stop preserves the evidence and asks before
+changing approved scope, task boundaries, architecture, data models, public
+contracts, persistence strategy, or safety posture. Repository rules may
+require the user to make all commits; those rules override Build auto's normal
+per-task commit behavior.
 
 ## State detection for end-to-end work
 

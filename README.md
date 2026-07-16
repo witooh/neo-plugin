@@ -35,8 +35,9 @@ method skills automatically.
 
 With no mode, `using-neo` adapts to a focused request. **`using-neo single`** runs
 one task or phase. **`using-neo auto`** advances after one approval while still
-stopping at commit, ship, blockers, and high-risk work. Asking it to implement
-an approved full plan selects Build auto without widening the request to Ship.
+stopping at commit, ship, blockers, decision stops for newly discovered material
+decisions, and high-risk work. Asking it to implement an approved full plan
+selects Build auto without widening the request to Ship.
 
 ---
 

@@ -62,7 +62,8 @@ phase contract on demand, and invokes the method skills above.
 - No mode → adapt to explicit intent; end-to-end work gates every boundary.
 - `using-neo single` → run one task or one selected phase, then stop.
 - `using-neo auto` → continue after one approval, stopping at commit, ship,
-  blockers, and high-risk steps.
+  blockers, decision stops for newly discovered material decisions, and
+  high-risk steps.
 
 `api-spec` spans Define and Ship: Define authors the contract; Ship reconciles it from built code. `openapi-doc` remains a read-only drift report.
 

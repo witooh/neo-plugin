@@ -97,6 +97,30 @@ function main() {
     assertIncludes(router, gate, 'skills/using-neo/SKILL.md');
   }
 
+  const decisionStopContracts = {
+    'skills/using-neo/SKILL.md': [
+      '### Decision stops in auto mode',
+      'material decision',
+      'Ask for explicit approval',
+      'routine bounded fixes',
+    ],
+    'skills/using-neo/references/build-verify.md': [
+      '### Decision stops',
+      'material decision',
+      'Resume only after the user decides',
+    ],
+    'AGENTS.md': ['decision stop'],
+    'docs/command-workflow.md': ['decision stop'],
+    'README.md': ['decision stop'],
+  };
+
+  for (const [relativePath, markers] of Object.entries(decisionStopContracts)) {
+    const content = read(relativePath);
+    for (const marker of markers) {
+      assertIncludes(content, marker, relativePath);
+    }
+  }
+
   for (const skill of removedSkills) {
     const relativePath = `skills/${skill}`;
     if (fs.existsSync(path.join(root, relativePath))) {

@@ -36,11 +36,24 @@ guidance and the approved plan remain authoritative.
    regression -> build -> status-sync loop as single mode.
 6. Stage precisely and make one commit per task only when the approval and
    repository rules authorize agent commits; never use blind staging.
-7. Stop when a test/build failure lacks an obvious bounded fix, the spec is
-   ambiguous, or the work reaches a high-risk/irreversible operation. Use
-   `debugging-and-error-recovery` or `doubt-driven-development` as appropriate.
+7. Apply the decision-stop contract below. Otherwise, use
+   `debugging-and-error-recovery` or `doubt-driven-development` and continue
+   through bounded fixes that preserve the approved decisions.
 8. Resume from the next pending task after the blocker is resolved. Finish with
    completed tasks, tests, commits, skipped work, and risks.
+
+### Decision stops
+
+Stop Auto before making a material decision that was not part of the approval.
+In Build this includes changing scope or ACs, task boundaries or dependencies,
+architecture, data models, public contracts, persistence strategy, or safety
+posture in response to unexpected evidence. A fix that changes none of these is
+a bounded implementation correction and does not need another prompt.
+
+Preserve the RED/failure evidence, synchronize the paused task documents,
+present the issue and impact with a recommended remedy or concrete alternatives,
+then ask for explicit approval. Resume only after the user decides. When unsure
+whether a correction changes an approved decision, treat it as a decision stop.
 
 **Exit evidence:** every completed task has RED/GREEN proof, regression and
 build results, synchronized status, and no unrelated changes or unauthorized
