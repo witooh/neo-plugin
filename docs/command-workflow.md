@@ -57,7 +57,7 @@ Otherwise it derives the card from repository state instead of asking.
 |---|---|---|
 | Ingest | External source | Curated `docs/knowledge/` entry and index |
 | Define | Knowledge base, existing code, user decisions | `spec.md` with stable AC IDs; `docs/api/` for HTTP contracts |
-| Plan | Approved spec and codebase | Vertically sliced `plan.md` and `todo.md` |
+| Plan | Approved spec and codebase | Vertically sliced `plan.md` and `todo.md`, ending with `Phase N — Documentation sync and final gates` |
 | Build | Plan, ACs, code | Test-first implementation and synchronized task status |
 | Verify | Behavior and ACs | RED/GREEN proof, regression/runtime/e2e evidence |
 | Review | Diff, spec, ACs | Six-axis findings; conditional AC -> evidence matrix; reproducible project-wide unit line coverage >=80% |

@@ -63,6 +63,11 @@ function main() {
       '`AC-001`',
       '`docs/api/`',
       'vertically',
+      'project-wide unit line coverage',
+      '80%',
+      'coverage verification task',
+      'Phase N — Documentation sync and final gates',
+      'final consistency sweep',
     ],
     'skills/using-neo/references/build-verify.md': [
       'RED -> GREEN',
@@ -92,6 +97,12 @@ function main() {
       assertIncludes(contract, marker, relativePath);
     }
   }
+
+  assertIncludes(
+    read('docs/command-workflow.md'),
+    'Documentation sync and final gates',
+    'docs/command-workflow.md',
+  );
 
   for (const gate of ['commit', 'ship', 'blocker', 'high-risk']) {
     assertIncludes(router, gate, 'skills/using-neo/SKILL.md');

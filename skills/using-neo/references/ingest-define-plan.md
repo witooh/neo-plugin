@@ -56,10 +56,32 @@ do not.
    vertically.
 3. Give every task acceptance criteria, verification commands, dependencies,
    likely files, and a scope small enough for one focused implementation.
-4. Add checkpoints between major groups and present the plan for approval.
-5. Save `docs/tasks/<card>/plan.md` and `todo.md`.
-6. When revising an existing plan, preserve completed tasks and dated history;
+4. Add a coverage verification task and checkpoint. Discover and record the
+   canonical command, baseline, scope, and existing exclusions; require the
+   repository's stricter threshold or at least 80% project-wide unit line coverage.
+   If the baseline is lower, plan tests that raise the whole project; otherwise
+   add a blocking gate that prevents regression below the threshold.
+5. Keep all first-party source in scope and respect only existing generated,
+   vendor, and third-party exclusions. A new or expanded exclusion is a material
+   open question, never a substitute for adding tests.
+6. Add checkpoints between major groups.
+7. End every new or revised plan with a phase titled exactly
+   `Phase N — Documentation sync and final gates`, where `N` follows the
+   preceding phase. This mandatory phase must include:
+   - a documentation task that performs a final consistency sweep across the
+     card's spec, plan, todo, and relevant knowledge links;
+   - a final-gates task and checkpoint that apply the project Definition of Done
+     plus every applicable repository verification command; and
+   - explicit completion evidence and any remaining commit, ship, human-review,
+     or deployment stop.
+   Continue synchronizing documentation when facts change throughout earlier
+   phases; this final phase verifies consistency instead of deferring updates.
+8. Present the plan for approval.
+9. Save `docs/tasks/<card>/plan.md` and `todo.md`.
+10. When revising an existing plan, preserve completed tasks and dated history;
    sync resulting decisions or scope changes back to the spec and todo list.
 
 **Exit evidence:** plan and todo files agree, dependencies are ordered, no task
-is oversized or unverifiable, and the user approved the plan.
+is oversized or unverifiable, the coverage task preserves at least the project
+threshold, the mandatory final documentation-and-gates phase is present, and
+the user approved the plan.
