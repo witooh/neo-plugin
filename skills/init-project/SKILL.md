@@ -3,8 +3,8 @@ name: init-project
 description: >
   Scaffold a brand-new Go hexagonal / DDD microservice from a bundled, frozen template — an
   empty-but-runnable account-service snapshot (clean layers, tooling, infra, `.kiro/` steering)
-  with ZERO business domains. It builds and serves `GET /health` immediately, ready for the
-  `using-neo` skill (or Kiro) to add the first domain with no setup. Asks the service identity (Go
+  with ZERO business domains. It builds and serves `GET /health` immediately, ready for
+  `using-neo` (or Kiro) to add the first domain. Asks the service identity (Go
   module path, name, id, postgres schema, target dir), runs `scaffold.py` (copy +
   sentinel-substitute + go mod tidy + git init + build), then verifies (L1 `initcheck.py` + L2
   fresh-eyes). Trigger on:

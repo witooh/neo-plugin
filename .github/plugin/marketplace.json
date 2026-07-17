@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Production-grade engineering workflows for GitHub Copilot.",
-    "version": "2.1.3"
+    "version": "2.1.4"
   },
   "plugins": [
     {
       "name": "neo",
       "description": "Production-grade engineering skills, custom agents, and lifecycle routing for GitHub Copilot.",
-      "version": "2.1.3",
+      "version": "2.1.4",
       "source": ".",
       "author": {
         "name": "Witoo Harianto"

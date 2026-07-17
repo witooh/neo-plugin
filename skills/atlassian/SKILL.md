@@ -3,8 +3,8 @@ name: atlassian
 description: >
   Interact with Jira and Confluence from the terminal via the `acli` (Atlassian CLI) —
   view/search/create/edit/transition/assign/comment on Jira work items, manage sprints,
-  boards, and projects, and read Confluence pages or manage spaces, all without a browser.
-  Also the acli reference the `using-neo` skill points to: the command map plus the judgment
+  boards, and projects, and read Confluence pages or manage spaces without a browser.
+  The acli reference the `using-neo` skill points to: the command map plus the judgment
   `--help` can't give (JQL, workflows, safety); run `acli <path> --help` for exact flags.
   Trigger on a direct, ad-hoc Jira/Confluence CLI action — "ดู issue ของฉัน",
   "view my issues", "transition ไป In Progress", "move ticket to In Progress",
