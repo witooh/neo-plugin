@@ -23,6 +23,9 @@ jobs:
       - name: Validate using-neo routing
         run: node scripts/validate-using-neo.js
 
+      - name: Validate Pi package session hook
+        run: node scripts/validate-pi-package.js
+
       - name: Validate agent guidance source of truth
         run: node scripts/validate-agent-guidance.js
 

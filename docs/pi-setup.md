@@ -1,12 +1,12 @@
 # Using neo with pi
 
-This guide explains how to use neo with [pi](https://pi.dev) — a minimal, extensible AI coding-agent CLI. neo ships as a **pi package**: its skills load directly, and pi selects and runs them on demand.
+This guide explains how to use neo with [pi](https://pi.dev) — a minimal, extensible AI coding-agent CLI. neo ships as a **pi package**: its skills load directly, and a package extension injects the `using-neo` router into every session.
 
 ## Overview
 
 pi is skill-first and aggressively extensible: capabilities are packaged as skills, prompts, extensions, and themes, and installed from npm, git, or a local path. neo's `skills/<name>/SKILL.md` files already match pi's skill format (`name` + `description` frontmatter), so every neo skill loads in pi with no conversion.
 
-pi has no native slash-command, subagent, or hook system — and neo is command-free everywhere now — so, as with OpenCode, neo runs here as an **agent-driven workflow**: skills are selected automatically from intent.
+pi exposes lifecycle events through extensions. neo uses `session_start` to load its router context and `before_agent_start` to append that context before each agent run; method skills are then selected automatically from intent.
 
 ---
 
@@ -31,7 +31,7 @@ By default `pi install` writes to user settings (`~/.pi/agent/settings.json`), m
 
 **Use without installing (project-local):**
 
-pi auto-discovers skills from a project's `.pi/skills/` directory. The neo repo already includes a `.pi/skills` symlink to its `skills/` directory, so opening neo itself in pi exposes all skills with no install step.
+pi auto-discovers project resources from `.pi/`. The neo repo includes `.pi/skills` and `.pi/extensions` symlinks to its package resources, so opening neo itself in pi loads both the skills and the session-start extension with no install step.
 
 ---
 
@@ -39,7 +39,7 @@ pi auto-discovers skills from a project's `.pi/skills/` directory. The neo repo 
 
 ### 1. Skill Discovery
 
-pi scans skill locations at startup, reads each skill's `name` + `description`, and lists the available skills in its system prompt. When a task matches, pi loads the full `SKILL.md` on demand (progressive disclosure) — the skill body stays out of context until it's needed.
+pi scans skill locations at startup, reads each skill's `name` + `description`, and lists the available skills in its system prompt. The extension keeps the complete `using-neo` router in context; other skill bodies load on demand when that router selects them.
 
 ### 2. Automatic Skill Invocation
 
@@ -64,13 +64,14 @@ neo is command-free; `using-neo` routes each request into this lifecycle:
 
 ---
 
-## Load neo at session start (no SessionStart hook)
+## Load neo at session start
 
-Claude Code auto-loads the `using-neo` router through its `SessionStart` hook. pi has no hook system, but it reads `AGENTS.md` (or `CLAUDE.md`) as always-on context, so add the rule below to either file so neo drives the flow instead of relying on ad-hoc discovery:
+neo ships `extensions/using-neo-session-start.js`, which mirrors the session-context behavior used by the other harness adapters:
 
-> At the start of every session, before acting on any task, **load `skills/using-neo/SKILL.md` as neo’s single entry point** and keep it in context for the whole session. Route every request through its adaptive routing rules, load only the referenced phase contract and method skills selected for that request, and follow them before implementation. Obey its **Core Operating Behaviors** at all times. This rule is non-negotiable and persists past the first message.
+1. `session_start` reads the complete `skills/using-neo/SKILL.md` body and, when present, `.kiro/steering/INDEX.md` from the active project.
+2. `before_agent_start` appends that context to pi's existing system prompt before every agent run, so the router remains available after long sessions or compaction.
 
-Because no hook enforces it, this depends on model compliance — weaker than Claude Code's hook, but the closest hook-free equivalent.
+The package manifest loads the extension for installed copies. The `.pi/extensions` symlink loads the same extension when working directly in this repository. No manual `AGENTS.md` fallback is required.
 
 ---
 
@@ -80,8 +81,8 @@ pi packages support only skills, prompts, extensions, and themes — so some neo
 
 - **No native slash commands** — neo is command-free everywhere; `using-neo` selects workflows from intent and repository state.
 - **No agent personas** — neo's `agents/` (code-reviewer, security-auditor, …) aren't installed as pi subagents; the equivalent review skills still apply.
-- **No lifecycle hooks** — neo's `hooks/` are Claude Code-specific and don't run in pi. See *Load neo at session start* above for the instruction-based replacement (add the rule to `AGENTS.md` / `CLAUDE.md`).
-- Skill invocation depends on model compliance, as with any agent-driven setup.
+- **Different lifecycle API** — pi does not read the Claude/Codex hook manifests; neo provides the equivalent behavior through its bundled pi extension.
+- Method-skill selection remains agent-driven, while the `using-neo` router context itself is injected by the extension.
 
 ---
 
@@ -104,5 +105,6 @@ pi selects and runs the matching neo skill automatically.
 neo integrates with pi as a package:
 
 - neo skills load unchanged (shared `SKILL.md` format)
-- install via `pi install git:…` / local path, or use the bundled `.pi/skills` symlink
-- an agent-driven workflow through the single `using-neo` router, closely matching the OpenCode experience
+- the bundled extension injects `using-neo` plus optional project steering before every agent run
+- install via `pi install git:…` / local path, or use the bundled `.pi/skills` and `.pi/extensions` symlinks
+- method skills remain agent-driven behind the single `using-neo` router

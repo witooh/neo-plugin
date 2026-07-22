@@ -125,7 +125,7 @@ When the user asks to bump the version, commit, or cut a release:
 2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
 3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Put the headline and Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
-Check prior releases before writing notes. Use `--latest=false` when backfilling an older release. The user runs `git commit`; never auto-commit.
+Check prior releases before writing notes. Use `--latest=false` when backfilling an older release. Do not commit by default. The agent may create a local commit only when the user explicitly requests it or invokes an approved workflow that includes committing, such as `ship`; follow that workflow's staging, tagging, push, and release confirmation gates exactly.
 
 ## Pull Requests
 

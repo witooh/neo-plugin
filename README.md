@@ -184,7 +184,7 @@ See [docs/opencode-setup.md](docs/opencode-setup.md).
 <details>
 <summary><b>pi</b></summary>
 
-Installs as a native pi package; skills load unchanged and run via agent-driven selection (no slash commands). See [docs/pi-setup.md](docs/pi-setup.md).
+Installs as a native pi package; skills load unchanged, and a session extension injects the `using-neo` router before every agent run. See [docs/pi-setup.md](docs/pi-setup.md).
 
 **Install from the repo:**
 
@@ -413,6 +413,7 @@ neo/
 │   └── gitlab/                        #   Integration (GitLab)
 ├── agents/                            # 4 specialist personas
 ├── references/                        # 7 shared checklists (source of truth — copies bundled into citing skills)
+├── extensions/                        # Pi session-context extension
 ├── hooks/                             # Session lifecycle hooks
 ├── plugin.json                        # Antigravity plugin manifest
 ├── package.json                       # pi package manifest
