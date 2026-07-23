@@ -43,6 +43,8 @@ Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFAC
 
 `using-neo` always runs its **high-hallucination profile** (no model detection): single-surface slices, package tests after every task, hard evidence paths for external API fields, and a mandatory fresh-eyes pass on REVIEW — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
 
+`CONTEXT.md` at a target service root holds **business vocabulary only**. On FEATURE, if missing, `using-neo` bootstraps a minimal skeleton (no invented terms); `domain-modeling` appends terms only when ALIGN surfaces real ones with evidence. `.kiro/steering/` remains the code-convention layer.
+
 ## Skill Authoring Conventions
 
 - Every skill lives in `skills/<kebab-case-name>/SKILL.md` with `name` and `description` YAML frontmatter; description ≤ 1024 characters, third-person "what" first, then "when to use".

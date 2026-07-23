@@ -83,7 +83,10 @@ Steps run in order; nothing is skipped silently.
 - Do not re-ask ACs already on the card.
 - Build the open-decision list (gaps vs ingested contracts). Empty → proceed; else `grilling` one decision at a time.
 - Log closed decisions in the `spec.md` header with a date.
-- Unstable business terms → `domain-modeling` updates root `CONTEXT.md` (vocabulary only; `.kiro/steering/` owns code conventions).
+- **`CONTEXT.md` (business vocabulary only — never code conventions; those stay in `.kiro/steering/`):**
+  - **Bootstrap (once per repo):** on a FEATURE flow, if the repo root has no `CONTEXT.md`, create a minimal skeleton only — title + one line that vocabulary accumulates during ALIGN. Do **not** invent terms. Skip bootstrap on BUG, pure DOC/MR, gate re-runs, and resume of a fully closed card with nothing left to decide.
+  - **Seed (evidence only):** when ALIGN surfaces a new or unstable business term (or a closed decision that names a concept), run `domain-modeling` and append that term with a short definition grounded in the card/spec/knowledge path. Never bulk-seed from an old completed card.
+  - If `CONTEXT.md` already exists, only update it when terms change — do not rewrite.
 
 ### 3. API
 
