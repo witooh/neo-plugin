@@ -1,7 +1,7 @@
 {
   "name": "neo",
-  "version": "2.2.0",
-  "description": "Production-grade engineering skills for AI coding agents — covering the full software development lifecycle from spec to ship.",
+  "version": "3.0.0",
+  "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills.",
   "author": {
     "name": "Witoo Harianto"
   },
@@ -18,12 +18,6 @@
     "ship"
   ],
   "category": "Developer Tools",
-  "agents": [
-    "./agents/code-reviewer.md",
-    "./agents/security-auditor.md",
-    "./agents/test-engineer.md",
-    "./agents/web-performance-auditor.md"
-  ],
   "skills": "./skills/",
   "hooks": "./.plugin/hooks.json"
 }

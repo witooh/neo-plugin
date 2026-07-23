@@ -8,3 +8,7 @@ node_modules/
 .serena
 __pycache__/
 *.pyc
+
+# sync-mattpocock local clone cache
+.agents/skills/sync-mattpocock/.upstream-cache/
+.claude/skills/sync-mattpocock/.upstream-cache/

@@ -111,8 +111,8 @@ async function injectedSystemPrompt(projectDir) {
 		"hook must inject the using-neo skill body",
 	);
 	assert.ok(
-		basePrompt.includes("## Single Entry Point"),
-		"hook must inject the single-entry routing contract",
+		basePrompt.includes("## Intent table") && basePrompt.includes("## Gates"),
+		"hook must inject the routing contract (intent table + gates)",
 	);
 	assert.ok(
 		!basePrompt.includes("Read and follow .kiro/steering/INDEX.md"),

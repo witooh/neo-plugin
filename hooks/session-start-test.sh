@@ -9,21 +9,21 @@ trap 'rm -rf "$tmp_dir"' EXIT
 without_index="$tmp_dir/without-index"
 with_index="$tmp_dir/with-index"
 mkdir -p "$without_index" "$with_index/.kiro/steering"
-printf '%s\n' 'STEERING_INDEX_SENTINEL' > "$with_index/.kiro/steering/INDEX.md"
+printf '%s\n' 'STEERING_INDEX_SENTINEL' >"$with_index/.kiro/steering/INDEX.md"
 
 has_jq=0
 if command -v jq >/dev/null 2>&1; then
-  has_jq=1
+	has_jq=1
 fi
 
 run_hook() {
-  local project_dir="$1"
-  printf '{"cwd":"%s"}' "$project_dir" |
-    CLAUDE_PROJECT_DIR="$project_dir" bash hooks/session-start.sh
+	local project_dir="$1"
+	printf '{"cwd":"%s"}' "$project_dir" |
+		CLAUDE_PROJECT_DIR="$project_dir" bash hooks/session-start.sh
 }
 
-run_hook "$without_index" > "$tmp_dir/without-index.json"
-run_hook "$with_index" > "$tmp_dir/with-index.json"
+run_hook "$without_index" >"$tmp_dir/without-index.json"
+run_hook "$with_index" >"$tmp_dir/with-index.json"
 
 HAS_JQ="$has_jq" PAYLOAD_DIR="$tmp_dir" node <<'NODE'
 const fs = require('fs');
@@ -49,8 +49,8 @@ if (hasJq) {
   if (!withoutIndex.message.includes('# Using Neo')) {
     throw new Error('message is missing using-neo content');
   }
-  if (!withoutIndex.message.includes('## Single Entry Point')) {
-    throw new Error('message is missing the single-entry routing contract');
+  if (!withoutIndex.message.includes('## Intent table') || !withoutIndex.message.includes('## Gates')) {
+    throw new Error('message is missing the routing contract (intent table + gates)');
   }
   if (withoutIndex.message.includes('STEERING_INDEX_SENTINEL')) {
     throw new Error('message must not include steering when INDEX.md is absent');

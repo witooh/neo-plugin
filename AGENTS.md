@@ -1,143 +1,75 @@
 # AGENTS.md
 
-This is the canonical repository guidance for every AI coding harness (Claude Code, Codex, Copilot, Cursor, OpenCode, Antigravity, and others). Harness-specific entry files must import or reference this file instead of duplicating its content; root `CLAUDE.md` imports it with `@AGENTS.md`.
+Canonical repository guidance for AI coding harnesses working on this repo. Root `CLAUDE.md` imports it with `@AGENTS.md`.
 
 ## Repository Overview
 
-neo is a collection of production-grade engineering skills and specialist agent personas covering the software-development lifecycle from ingest through ship.
+neo is a thin engineering router plus a set of org-specific domain skills. It drives feature work end to end (ingest → align → api → spec → build → verify → review → doc → MR) with machine-verifiable gates, and borrows its generic method layer from the external `mattpocock/skills` plugin instead of bundling one.
+
+## Architecture — three layers
+
+- **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Detects intent, drives the flow, enforces gates. All neo behavior changes land here first.
+- **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `code-review`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
+- **Domain layer** — neo-owned skills in `skills/`: `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
+
+Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-skill verifiers) and in `using-neo`'s gate table. There are no personas and no phase-contract files. Method-layer updates run through `sync-mattpocock`; domain skills and the router are edited in place.
 
 ## Project Structure
 
 ```text
-skills/        Core skills (`SKILL.md` per directory)
-skills/using-neo/  Canonical adaptive router and phase contracts
-agents/        Reusable specialist personas
-hooks/         Claude session lifecycle hooks
-references/    Canonical shared checklists
-docs/          Tool-specific setup guides
+skills/            using-neo router + method layer (synced) + 10 domain skills
+hooks/             Claude Code session-start hook (injects using-neo)
+extensions/        pi session-start extension (injects using-neo + steering INDEX)
+.claude-plugin/    Claude Code plugin + marketplace manifests
+.plugin/           Generic plugin manifest mirror (hooks.json variant)
+.pi/               pi discovery symlinks (skills → ../skills, extensions → ../extensions)
+.agents/skills/    Repo-local skills for working on neo itself (ship, sync-mattpocock)
+scripts/           Validators
+docs/              Setup guides
 ```
 
-## Skill-Driven Execution
+## Harness Channels
 
-### Core Rules
+Two supported channels, one canonical content source:
 
-- If a task matches a skill, invoke it before taking task actions.
-- Skills live at `skills/<skill-name>/SKILL.md`; read and follow the selected skill completely.
-- Use the harness's native skill mechanism; in OpenCode, invoke the selected skill with the `skill` tool.
-- Never implement directly when a skill applies, and never partially apply a skill workflow.
-- Load only the relevant skill and referenced resources; do not inject the whole catalog into context.
+- **Claude Code**: plugin install; `hooks/session-start.sh` injects the full `using-neo` SKILL.md plus the target repo's `.kiro/steering/INDEX.md` when present.
+- **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` performs the same injection.
 
-### Intent to Skill Mapping
+Other harnesses are unsupported by design. If one is needed later, add a thin injection adapter — never fork skill content per harness.
 
-- External docs or context → `markitdown`
-- Feature or new functionality → `spec-driven-development`, then `incremental-implementation` + `test-driven-development`
-- HTTP acceptance tests → `e2e-playwright`
-- Planning or breakdown → `planning-and-task-breakdown`
-- Bug, failure, or unexpected behavior → `debugging-and-error-recovery`
-- Code review → `code-review-and-quality`
-- Refactoring or simplification → `code-simplification`
-- API or interface design → `api-and-interface-design`
-- Go implementation vs `docs/api` drift → `openapi-doc`
-- Bruno collection from `docs/api` → `open-collection`
-- Publish `docs/api` to Confluence → `confluence-api-doc`
-- UI work → `frontend-ui-engineering`
+## Execution Model
 
-### Method Skills by Phase
+Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFACTOR, or a direct domain-skill route), runs it continuously, and stops only at its four gates: spec+plan approval (human), AC coverage via `e2echeck` (machine), API contract via `apispeccheck` + drift (machine), MR/ship (human). Git branching belongs to the user; the only git side effects live behind the MR gate.
 
-- **Router:** `using-neo`
-- **Ingest:** `markitdown`
-- **Define:** `interview-me`, `idea-refine`, `spec-driven-development`, `api-spec`
-- **Plan:** `planning-and-task-breakdown`
-- **Build:** `incremental-implementation`, `test-driven-development`, `context-engineering`, `source-driven-development`, `doubt-driven-development`, `frontend-ui-engineering`, `api-and-interface-design`
-- **Verify:** `browser-testing-with-devtools`, `debugging-and-error-recovery`, `e2e-playwright`
-- **Review:** `code-review-and-quality`, `code-simplification`, `security-and-hardening`, `performance-optimization`
-- **Ship:** `git-workflow-and-versioning`, `ci-cd-and-automation`, `deprecation-and-migration`, `documentation-and-adrs`, `observability-and-instrumentation`, `shipping-and-launch`, `open-collection`, `confluence-api-doc`, `openapi-doc`
-
-### Single Entry Routing
-
-`using-neo` is the only canonical entry point. It infers a focused workflow from
-the request or detects the current phase for end-to-end work, loads the matching
-phase contract on demand, and invokes the method skills above.
-
-- No mode → adapt to explicit intent; end-to-end work gates every boundary.
-- `using-neo single` → run one task or one selected phase, then stop.
-- `using-neo auto` → continue after one approval, stopping at commit, ship,
-  blockers, decision stops for newly discovered material decisions, and
-  high-risk steps.
-
-`api-spec` spans Define and Ship: Define authors the contract; Ship reconciles it from built code. `openapi-doc` remains a read-only drift report.
-
-### Execution Model
-
-For every request:
-
-1. Route the request through `using-neo`, even for small tasks.
-2. Load its relevant phase contract and invoke the selected method skill(s).
-3. Complete required spec, plan, test, and review gates before implementation or delivery.
-4. Treat thoughts such as “this is too small for a skill,” “I can quickly implement this,” or “I will gather context first” as rationalizations; skill discovery comes first.
-
-## Orchestration
-
-neo has three composable layers:
-
-- **Skills** (`skills/<name>/SKILL.md`) define *how* work is done.
-- **Personas** (`agents/<role>.md`) define *who* performs specialist work.
-- **Router** (`skills/using-neo/SKILL.md`) defines *when* workflows run and orchestrates method skills.
-
-The user or `using-neo` is the orchestrator. Personas may invoke skills but must not invoke other personas. The only endorsed multi-persona composition is parallel fan-out with a merge step, used by the Ship workflow for `code-reviewer`, `security-auditor`, and `test-engineer`.
-
-See [docs/agents.md](docs/agents.md) and [references/orchestration-patterns.md](references/orchestration-patterns.md). Claude Code discovers personas in `agents/` as subagents and Agent Teams teammates; plugin agents silently ignore `hooks`, `mcpServers`, and `permissionMode` frontmatter fields.
+`using-neo` always runs its **high-hallucination profile** (no model detection): single-surface slices, package tests after every task, hard evidence paths for external API fields, and a mandatory fresh-eyes pass on REVIEW — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
 
 ## Skill Authoring Conventions
 
-- Every skill lives in `skills/<kebab-case-name>/SKILL.md` with `name` and `description` YAML frontmatter.
-- Descriptions begin with what the skill does in third person, then state when to use it.
-- Standard skills include Overview, When to Use, Process, Common Rationalizations, Red Flags, and Verification.
-- Most skills are Markdown-only. Create supporting files only when content exceeds roughly 100 lines; never create per-skill zip packages.
-- Top-level `references/` is the source of truth for shared checklists. `scripts/bundle-references.sh` copies them into skills that must be self-contained; never hand-edit generated copies.
-
-Before adding or significantly reworking a skill, follow [CONTRIBUTING.md](CONTRIBUTING.md#before-proposing-a-new-skill): search the catalog and open PRs, confirm the gap against [docs/skill-anatomy.md](docs/skill-anatomy.md), and prefer extending an existing skill.
-
-## Upstream vs neo-Owned Files
-
-The repo is a rebranded fork of `addyosmani/agent-skills`; `sync-upstream` imports upstream changes.
-
-- **Do not edit upstream-owned files:** skills listed in `synced_skills` in `.claude/skills/sync-upstream/sync-state.json`, plus upstream files in `hooks/`, `agents/`, and `references/`. The sole carved-out skill exception is `using-neo`.
-- **Edit neo-local files freely:** `skills/using-neo`, this `AGENTS.md`, `docs/`, `README.md`, and skills absent from `synced_skills`, including `api-spec`, the API-doc chain, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `e2e-playwright`, and `markitdown`.
-- Put neo behavior changes in `using-neo` or another neo-owned file, never in an upstream method skill.
-- New neo-specific files added under an otherwise upstream-owned directory remain neo-local when absent upstream.
+- Every skill lives in `skills/<kebab-case-name>/SKILL.md` with `name` and `description` YAML frontmatter; description ≤ 1024 characters, third-person "what" first, then "when to use".
+- Skill-owned assets (templates, verifiers, checkers) live inside that skill's directory. There is no shared `references/` tree.
+- Never reference a skill that does not exist in `skills/`. `scripts/validate-skills.js` enforces this (and rejects names of removed upstream skills).
+- Method-layer skills are synced, not hand-authored. Prefer expanding `sync-mattpocock`'s allowlist over copying content by hand. Do not edit a synced skill unless you intend the next sync to keep your edit (3-way compare) or conflict.
 
 ## Validation Commands
 
 - Skills: `node scripts/validate-skills.js`
-- Single-entry routing: `node scripts/validate-using-neo.js`
-- Agent guidance SOT: `node scripts/validate-agent-guidance.js`
-- Copilot plugin: `node scripts/validate-copilot-plugin.js`
+- pi package: `node scripts/validate-pi-package.js`
 - Claude hook: `bash hooks/session-start-test.sh`
-- Codex hook: `bash .codex-plugin/hooks/session-start-test.sh`
 - Claude plugin structure: `claude plugin validate .`
 
 ## Versioning and Releases
 
 When the user asks to bump the version, commit, or cut a release:
 
-1. Bump the canonical `version` in `.claude-plugin/plugin.json` using SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes. Sync that version to `.plugin/plugin.json` and both version fields in `.github/plugin/marketplace.json`; `.claude-plugin/marketplace.json` intentionally has no version field. Follow the Codex packaging flow for its build-suffixed manifest version.
+1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json`. `.claude-plugin/marketplace.json` intentionally has no version field.
 2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
-3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Put the headline and Added / Changed / Removed / Notes sections in the body; the title is the version only.
+3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Headline plus Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
-Check prior releases before writing notes. Use `--latest=false` when backfilling an older release. Do not commit by default. The agent may create a local commit only when the user explicitly requests it or invokes an approved workflow that includes committing, such as `ship`; follow that workflow's staging, tagging, push, and release confirmation gates exactly.
-
-## Pull Requests
-
-- Before opening a PR, search the upstream repository's open PRs and issues for overlapping files or rules and coordinate instead of creating a conflict.
-- Target the upstream repository's default branch; remote names may differ (`upstream` and `origin` are conventional, not required).
-- Prefer small, focused PRs over broad refactors of shared files.
+Do not commit by default. Create a local commit only when the user explicitly requests it or invokes an approved workflow that includes committing (such as `ship`); follow that workflow's confirmation gates exactly.
 
 ## Boundaries
 
-- Always run the CONTRIBUTING pre-flight before creating a skill directory.
-- Always follow `docs/skill-anatomy.md` and run relevant validators.
-- Never add vague advice as a skill; skills must define actionable processes.
-- Never duplicate content between skills; reference another skill instead, except for generated bundled references.
-- Never hand-edit upstream-synced content or generated per-skill reference copies.
-- Never duplicate canonical repository guidance in `CLAUDE.md` or another harness adapter; update this file instead.
+- Always run relevant validators before declaring skill work done.
+- Never add vague advice as a skill; skills define actionable processes.
+- Never duplicate content between skills or from the method layer; reference instead.
+- Never duplicate this guidance in `CLAUDE.md` or another adapter file; update this file.

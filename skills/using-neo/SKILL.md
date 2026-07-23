@@ -1,213 +1,163 @@
 ---
 name: using-neo
-description: Routes engineering work through neo's single adaptive entry point. Use when starting any task, selecting a workflow, running one phase, or driving work end to end from the repository's current state.
+description: Routes engineering work through neo's single entry point. Detects intent, drives the matching flow (ingest, align, api, spec, build, verify, review, doc, MR), enforces machine gates, and always applies the high-hallucination profile (small slices, hard evidence, fresh-eyes review). Use when starting any task.
 ---
 
 # Using Neo
 
-## Overview
+Single entry router. Every request routes here first: detect intent, run the matching flow, stop only at gates. The flow drives itself — never present a menu of methodologies.
 
-`using-neo` is neo's canonical entry point. It identifies the user's intent,
-loads only the workflow needed for that intent, delegates method work to the
-relevant specialist skills, and preserves the lifecycle's approval and safety
-gates.
+## Layers
 
-## Single Entry Point
+- **Router** (this skill): when things happen — intent, flow order, gates, resume, model profile.
+- **Method layer** (vendored from [mattpocock/skills](https://github.com/mattpocock/skills) via `sync-mattpocock`): `grilling`, `domain-modeling`, `tdd`, `code-review`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Live under `skills/<name>/`.
+- **Domain layer** (neo-owned): `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
 
-Start every neo workflow here. Do not ask the user to choose among
-phase-specific entry points or recreate separate phase commands.
+## Method-layer availability
 
-Use this order of precedence:
+Method skills ship inside this plugin. If `tdd` / `grilling` / `code-review` are missing, tell the maintainer once to run `sync-mattpocock`, then continue with inline minimums — do not block:
 
-1. Follow an explicitly requested scope such as review, test, plan, or ship.
-2. If the user asks for end-to-end work or to resume a feature, detect the
-   current lifecycle phase from repository state.
-3. Otherwise, select the narrowest workflow that fully satisfies the request.
-4. Load only the directly linked phase reference needed for that workflow.
-5. Invoke the method skills named by that reference; do not duplicate them.
+- **grilling**: one question at a time; stop when no open decisions remain.
+- **tdd**: failing test first, make it pass, refactor.
+- **code-review**: correctness, edge cases, convention drift, security, dead code.
+- **diagnosing-bugs**: reproduce first; one hypothesis; evidence before fix.
+- **domain-modeling**: record new/ambiguous business terms in `CONTEXT.md`.
 
-Never expand a focused request into the full lifecycle without the user asking
-for end-to-end work. Repository rules and explicit user instructions override
-the defaults here.
+## Grounding rules (always on, every model)
 
-## Adaptive Routing
+1. **Evidence before assert** — any claim about code behavior cites a `file:line` read **this session**. No cite → do not claim.
+2. **Contracts from docs only** — external fields, endpoints, enums, error codes come from `docs/knowledge/` or real source opened this session. Missing → **INGEST first**, never invent.
+3. **Hard evidence before write (external surface)** — before authoring/editing an api-spec field, handler DTO, mockoon stub, or client call to another system, name the evidence path (e.g. `docs/knowledge/contracts/…`). No path → stop and ingest. Invented field names are a hard violation.
+4. **Read back after edit** — re-read the changed region before declaring done.
+5. **One task, one verify** — run the relevant build/tests after each task; never batch unverified edits.
+6. **Unknown means say so and go look** — never fill a gap by guessing.
 
-Read existing context before routing: `AGENTS.md` or equivalent guidance,
-`docs/knowledge/INDEX.md`, relevant `docs/tasks/<card>/` artifacts, and the
-code/configuration in scope. Do not ask for facts the repository already
-contains.
+## High-hallucination profile (always on)
 
-```text
-Task arrives
-    |
-    |-- Named external source not curated? -> Ingest
-    |-- Intent still unclear? --------------> interview-me
-    |-- Rough idea needs variants? ---------> idea-refine
-    |-- New feature or significant change? -> Define
-    |     `-- HTTP contract? ---------------> api-spec Draft
-    |-- Approved spec needs tasks? ---------> Plan
-    |-- Implementing approved work? --------> Build
-    |     |-- UI? --------------------------> frontend-ui-engineering
-    |     |-- Public interface? ------------> api-and-interface-design
-    |     |-- Official docs required? ------> source-driven-development
-    |     `-- High stakes/uncertain? --------> doubt-driven-development
-    |-- Testing or proving a bug? ----------> Verify
-    |     |-- Browser runtime? -------------> browser-testing-with-devtools
-    |     `-- AC-driven HTTP e2e? ----------> e2e-playwright
-    |-- Unexpected failure? ----------------> debugging-and-error-recovery
-    |-- Reviewing a change? ----------------> Review
-    |     |-- Too complex? -----------------> Simplify
-    |     |-- Security focus? --------------> security-and-hardening
-    |     `-- Performance focus? -----------> performance-optimization
-    |            `-- Web app audit? --------> Webperf
-    |-- Preparing atomic commits? ----------> Commit
-    |-- CI/CD, ADR, observability, migration? -> matching method skill
-    `-- Production readiness/deploy? --------> Ship
-```
+**Default for every session and every model.** No model detection. Payment/external-API work and unreliable models both need the same net; detection is flaky and fails open (profile off when you need it most).
 
-Load the matching phase contract before acting:
+Announce once per session: `profile: high-hallucination`.
 
-| Workflow | Required reference |
+**Rules (on top of grounding 1–6):**
+
+| Area | Behavior |
 |---|---|
-| Ingest, Define, Plan | `references/ingest-define-plan.md` |
-| Build, Verify | `references/build-verify.md` |
-| Review, Simplify, Commit, Webperf, Ship | `references/review-ship.md` |
+| Slice size | One todo item = one edit surface (one package or one file cluster). No multi-package batches. |
+| BUILD verify | After **every** green test: run package tests for the touched package (not only at end of all tasks). |
+| API / DOC | Every new/changed request/response field lists its evidence path in the working notes or spec remark. |
+| REVIEW | Run `code-review`, **then** spawn one fresh-context subagent on the diff with only: “list incorrect claims, invented APIs, missing tests, convention breaks — evidence required”. Fix before DOC. |
+| BUG | Hypothesis must cite a `file:line` or log line before any fix. Concurrent/race bugs require a failing repro test first — no speculative locks. |
+| Narration | Prefer short status + evidence paths over long reasoning. If unsure, stop with one question. |
+| Recovery | On a wrong turn: revert or re-read source of truth, do not stack another guess on top. |
 
-The Webperf fallback also uses the bundled
-`references/performance-checklist.md` when browser/subagent tooling is absent.
+There is no opt-out flag. If a step in the table is impossible in the harness (e.g. no subagent), do the closest equivalent (second self-pass with only the diff in context) and say so.
 
-## Modes and Lifecycle Control
+## Intent table
 
-### Adaptive default
-
-With no mode, infer the workflow from the request:
-
-- A focused request runs only the selected workflow and stops after reporting
-  its result.
-- A request to implement an approved full plan selects Build auto. A request
-  for the next task selects Build single.
-- If Build scope is ambiguous and multiple tasks remain, ask whether to run the
-  whole plan (`auto`) or the next task (`single`).
-- An end-to-end request detects the earliest incomplete phase, runs it, then
-  offers `go`, `stop`, or `auto` at each lifecycle boundary.
-
-### Explicit modes
-
-- **`using-neo single`** (also `one` or `next`) runs one unit and stops. In
-  Build, the unit is the next pending task; elsewhere it is the selected phase.
-- **`using-neo auto`** (also `all`) gets one approval, then advances without
-  routine boundary prompts. It does not delegate material decisions discovered
-  during execution.
-
-Mode changes autonomy, not quality. Tests, verification, documentation sync,
-and risk checks remain mandatory.
-
-### Lifecycle path and state detection
-
-```text
-ingest (conditional) -> define -> plan -> build -> verify -> review
-                     -> simplify -> commit -> ship
-```
-
-Webperf is a conditional branch around Review/Ship for browser-facing web apps,
-not a mandatory linear phase.
-
-For end-to-end or resume requests, start at the earliest incomplete output:
-
-| Repository state | Start at |
+| Signal | Route |
 |---|---|
-| Named source absent from `docs/knowledge/` | Ingest |
-| Missing or unapproved `docs/tasks/<card>/spec.md` | Define |
-| Missing `plan.md` or `todo.md` | Plan |
-| Pending tasks or missing implementation/tests | Build, then Verify |
-| Implementation complete and tests green | Review, then Simplify |
-| Review gates clear | Commit, then Ship |
+| Card key, feature, behavior change | FEATURE flow |
+| Bug, failing test, unexpected behavior | BUG flow |
+| Refactor, simplification | REFACTOR flow |
+| Question, investigation | Answer directly or `research` — no ceremony |
+| Ingest a source (JIRA, Confluence, URL, file, Figma) | `markitdown` |
+| API contract or doc work | `api-spec` / `openapi-doc` / `open-collection` / `confluence-api-doc` |
+| MR or GitLab operation | `gitlab` |
+| JIRA operation | `atlassian` |
+| New service, restructure | `init-project` / `migrate-project` |
 
-Ask for `<card>` only when more than one feature is plausible and repository
-state cannot disambiguate it.
+Explicit user command overrides detection. Git branching is the user's: never create, switch, or guard branches. Only the MR step has git side effects, behind its gate.
 
-### Boundaries and hard stops
+## FEATURE flow
 
-- Default end-to-end mode pauses after each phase with `go / stop / auto`.
-- Auto mode stops at the standalone **commit** phase, **ship**, any unresolved
-  **blocker**, any newly discovered **material decision**, or any
-  **high-risk**/irreversible step such as auth, payments, secrets, destructive
-  migration, deletion, or deploy.
-- Build auto's per-task commits are covered only when the user explicitly
-  approved that Build mode and repository guidance permits agent commits.
-  Otherwise leave commits to the user.
-- Never deploy, push, rewrite shared history, or accept a Critical finding
-  without explicit authorization.
-- After every phase, sync decisions, scope changes, resolved questions, source
-  updates, and task status across all relevant task documents per
-  `references/task-docs-sync.md`.
+Steps run in order; nothing is skipped silently.
 
-### Decision stops in auto mode
+### 1. INGEST
 
-Treat unexpected evidence as a decision stop when continuing would require a
-material decision that the user has not already approved. A material decision
-changes approved scope or ACs, task boundaries or dependency order,
-architecture, the data model, a public interface, persistence strategy, or the
-safety posture; it also includes choosing among remedies with materially
-different tradeoffs.
+- Card key: fetch with `acli` (via `atlassian` conventions).
+- Detect Confluence / Figma / integration specs / attachments; `markitdown` each missing source into `docs/knowledge/` (check `INDEX.md`; supersede stale; keep provenance).
+- Resume: if `docs/tasks/<card>/` exists, read `spec.md` + `plan.md` + `todo.md` and offer to continue.
 
-At a decision stop:
+### 2. ALIGN — decision-grilling, not requirement discovery
 
-1. Preserve the failing evidence and stop before implementing the proposed
-   change.
-2. Synchronize the paused status and discovered issue across affected task
-   documents.
-3. State the issue, impact, evidence, and recommended remedy or concrete
-   alternatives.
-4. Ask for explicit approval and resume only after the user decides.
+- Do not re-ask ACs already on the card.
+- Build the open-decision list (gaps vs ingested contracts). Empty → proceed; else `grilling` one decision at a time.
+- Log closed decisions in the `spec.md` header with a date.
+- Unstable business terms → `domain-modeling` updates root `CONTEXT.md` (vocabulary only; `.kiro/steering/` owns code conventions).
 
-Continue automatically through routine bounded fixes that preserve every
-approved decision, such as formatting, syntax repair, deterministic
-regeneration, or a source-of-truth-mandated correction. If the fix would alter
-an approved decision, the decision stop takes precedence even when one remedy
-looks obvious. For example, concurrency evidence that invalidates an approved
-persistence strategy requires a decision stop before redesigning that strategy.
+### 3. API
 
-## Core Operating Behaviors
+- Endpoints involved → draft `docs/api/` with `api-spec` **before** plan.
+- Hard evidence rule applies to every external field (grounding rule 3).
 
-### Surface assumptions
+### 4. SPEC + PLAN
 
-Before non-trivial implementation, state assumptions about requirements,
-architecture, and scope. Stop and ask when an unresolved choice would materially
-change the result.
+- `docs/tasks/<card>/spec.md` (objective, ACs, non-goals), `plan.md`, `todo.md`.
+- Plan tasks must be single-surface slices (profile).
+- **GATE (human)**: present spec + plan; one approval runs through to the MR gate.
 
-### Push back with evidence
+### 5. BUILD
 
-Name concrete downsides and safer alternatives when an approach creates a clear
-risk. Follow the user's final decision once the tradeoff is understood.
+- Per task: `tdd` red-green-refactor; typecheck/lint on green; tick `todo.md`.
+- Read the matching `.kiro/steering/` guide before writing in a layer; `new-feature-checklist.md` when present.
+- Package-level tests after every task (profile table).
 
-### Keep changes minimal
+### 6. VERIFY
 
-Implement the smallest complete solution. Do not refactor adjacent code, remove
-unrelated dead code, or add speculative flexibility.
+- Unit: `make test` (or repo equivalent) + coverage.
+- E2E: `e2e-playwright` per-AC on isolated stack (docker-compose + mockoon).
+- **GATE (machine)**: `e2echeck` every HTTP-observable AC; `govulncheck` when available.
+- Failures → `diagnosing-bugs` — no blind retries.
 
-### Verify before completion
+### 7. REVIEW
 
-Every selected method skill's verification must pass. Apply the project-wide
-Definition of Done in `references/definition-of-done.md` in addition to task
-acceptance criteria.
+- `code-review` on the full diff; fix; re-verify.
+- Mandatory fresh-eyes pass after `code-review` (profile table).
 
-## Failure Modes to Avoid
+### 8. DOC
 
-- Loading every phase reference for a focused task.
-- Presenting a menu of methodologies instead of routing from intent.
-- Treating auto as permission to skip tests, commit, ship, or risk gates.
-- Treating auto approval as authority to make a material decision discovered
-  mid-flow.
-- Reimplementing method-skill guidance inside this router.
-- Asking questions already answered by the knowledge base or repository.
-- Leaving task documents contradictory after a decision or scope change.
+- `api-spec` sync-back; `openapi-doc` drift = 0.
+- **GATE (machine)**: `apispeccheck` passes.
+- Contract changed → `open-collection` + `VERSION.md`. Confluence only on request.
 
-## Verification
+### 9. MR
 
-- The chosen workflow matches explicit intent and repository state.
-- Only the relevant phase reference and method skills were loaded.
-- Adaptive, single, and auto modes followed their boundary rules.
-- Commit, ship, blocker, material-decision, and high-risk stops were honored.
-- Phase-specific verification and the Definition of Done passed.
-- Task artifacts remain synchronized.
+- **GATE (human)**: final diff summary + MR title/body; wait.
+- On confirm: `gitlab` push + MR to `develop`. Never commit/push before this gate.
+
+## BUG flow
+
+1. Ingest report/evidence.
+2. `diagnosing-bugs` — hypothesis needs `file:line` or log cite before fix.
+3. `tdd` failing repro first (concurrent test for races), then fix to green.
+4. HTTP-observable → e2e regression tagged to the card.
+5. `code-review` + fresh-eyes. Stop — user commits.
+
+## REFACTOR flow
+
+1. Confirm behavior-preserving scope.
+2. `codebase-design` for target shape.
+3. Small steps; tests green after each (single-surface slices).
+4. `code-review` + fresh-eyes. Stop.
+
+## Gates
+
+| Gate | Kind | Decider |
+|---|---|---|
+| Spec + plan approval | human | user |
+| AC coverage | machine | `e2echeck.py` |
+| API contract | machine | `apispeccheck.py` + drift report |
+| MR / ship | human | user |
+
+Everything else runs continuously. A blocker stops immediately with one precise question.
+
+## Rationalizations
+
+| Thought | Reality |
+|---|---|
+| "Too small for the flow" | Short flow, not no flow. |
+| "ACs are clear, skip ALIGN" | Only if the open-decision list is empty — produce it first. |
+| "I'll write tests after" | BUILD is `tdd`. Red test first. |
+| "I remember this API" | Grounding 2–3: evidence path or ingest. |
+| "Skip the profile on a strong model" | Profile is always on. Strong models still hallucinate contracts; gates + evidence are cheap insurance. |
+| "Fresh-eyes is overkill" | Catches invented APIs before DOC/MR. If no subagent, do a second self-pass on the diff only. |

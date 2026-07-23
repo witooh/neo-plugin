@@ -9,11 +9,11 @@ description: >
   independent fresh-eyes pass, and a completeness sweep. Trigger on: "publish api doc",
   "sync api doc", "push doc to confluence", "publish api spec to confluence",
   "อัปเดต api doc ไป confluence", "sync api spec to confluence". Also
-  trigger when the using-neo Ship flow needs API-doc publishing. NOTE: the api-spec is authored by the
+  trigger when using-neo requests API-doc publishing (DOC step). NOTE: the api-spec is authored by the
   `api-spec` skill; `openapi-doc` drift-checks Go against it; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
-  `docs/api/*.yaml` api-spec — if it does not exist, run
-  `/spec` first. Not a general Confluence editor.
+  `docs/api/*.yaml` api-spec — if it does not exist, author it with
+  `api-spec` first. Not a general Confluence editor.
 compatibility:
   environment: claude-code
   tools:
@@ -42,25 +42,33 @@ Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML ap
 6. **Convert** — markdown → Confluence storage per `publish-reference.md` § P6 (code blocks → code macro/CDATA **first**, then inline rules; mind the nested-list rule). Stage each page in the **gitignored** `.api-doc-publish/` as both a `<page>.json` manifest and a raw `storage/<page>.xml` (the latter feeds the round-trip).
 
 ### verify-L1 · Deterministic (pre-flight + round-trip)
+
 **L1a — pre-flight (before any push):**
+
 ```
 python3 <ASSET_DIR>/pubcheck.py .api-doc-publish/
 ```
+
 Well-formedness · CDATA/table/list balance · bare `&`/`<` · **source↔storage element counts**. Loop fix→re-stage→re-run until exit 0, OR ~3 rounds → escalate. **Never push storage that failed pre-flight.**
 
 Then **Sync** (REST create/update: domain-group pages → endpoint pages → parent page; version+1 on update; skip unchanged).
 
 **L1b — round-trip (after push):** re-fetch each page (`acli … --body-format storage --json`) and compare to the staged storage:
+
 ```
 python3 <ASSET_DIR>/pubcheck.py --roundtrip .api-doc-publish/storage/<page>.xml .api-doc-publish/refetched/<page>.xml
 ```
+
 Canonical compare (ignores Confluence's benign rewrites; CDATA must match exactly). Structural drift → review; **CDATA drift → a code example was mangled, investigate**. One round of fixes, then escalate.
 
 ### verify-L1.5 · Offer fresh-eyes (default yes)
+
 Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the published pages? (default: yes)"* — **no** → skip L2 (mark "skipped by user"); **yes** → L2.
 
 ### verify-L2 · Fresh-eyes verifier (independent agent)
+
 The pre-flight + round-trip prove the storage is well-formed and survived Confluence verbatim; they cannot judge whether the **conversion preserved meaning**. Dispatch a verifier that reads a sample of (source markdown ↔ converted storage) pairs:
+
 ```
 Agent(subagent_type: "general-purpose", description: "verify confluence publish", prompt: """
 # Role: Publish Verifier
@@ -78,12 +86,15 @@ storage in .api-doc-publish/ yourself.
 End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
+
 `SKILL_DIR` is mandatory. The verifier is read-only → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
 
 ### verify-L3 · Completeness sweep (omission critic)
+
 L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing entirely**. Re-enumerate every `docs/api/<domain>/<endpoint>.yaml` endpoint + every domain group, and confirm each maps to a created/updated Confluence page in the report, and that the parent overview (`_meta.overview`) was synced. Report any group/endpoint silently skipped; fix → re-sync.
 
 ### Output
+
 ```
 ## Confluence API Doc — publish
 **Source:** docs/api api-spec   **Parent page:** <id>
@@ -102,6 +113,7 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 ---
 
 ## What this skill is NOT
+
 - **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill; **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
 - **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
 - **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
