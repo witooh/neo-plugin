@@ -34,9 +34,7 @@ Method skills ship inside this plugin. If `tdd` / `grilling` / `code-review` are
 
 ## High-hallucination profile (always on)
 
-**Default for every session and every model.** No model detection. Payment/external-API work and unreliable models both need the same net; detection is flaky and fails open (profile off when you need it most).
-
-Announce once per session: `profile: high-hallucination`.
+**Default for every session and every model.** No model detection. Payment/external-API work and unreliable models both need the same net; detection is flaky and fails open (profile off when you need it most). Do not announce the profile name in chat — it is always on; just follow the rules.
 
 **Rules (on top of grounding 1–6):**
 
