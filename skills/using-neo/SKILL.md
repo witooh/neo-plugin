@@ -99,6 +99,8 @@ Steps run in order; nothing is skipped silently.
 
 ### 5. BUILD
 
+- **Skill invocation is mandatory.** Before the first production edit of each task, load + follow the skill matching the work: `tdd` for any code change (red first), `api-spec` for any API-contract touch, `e2e-playwright` for HTTP-AC coverage. Never shortcut a skill because the change is small, the answer is known, it is "type/DTO/wire-only", or "e2e comes later".
+- A conversational request that changes behavior or code ("แก้ X…") enters this flow — never an ad-hoc direct implement.
 - Per task: `tdd` red-green-refactor; typecheck/lint on green; tick `todo.md`.
 - Read the matching `.kiro/steering/` guide before writing in a layer; `new-feature-checklist.md` when present.
 - Package-level tests after every task (profile table).
@@ -150,6 +152,15 @@ Steps run in order; nothing is skipped silently.
 | API contract | machine | `apispeccheck.py` + drift report |
 | MR / ship | human | user |
 
+Before marking any task or card done:
+
+| Touched | Required, already run this session |
+|---|---|
+| Production code | Package/unit tests for the touched package, green |
+| `docs/api/` / API contract | `api-spec` verify (`apispeccheck` + its three-layer check) |
+| HTTP-observable AC | `e2e-playwright` / `e2echeck` |
+| MR | Through `gitlab` per the MR step |
+
 Everything else runs continuously. A blocker stops immediately with one precise question.
 
 ## Rationalizations
@@ -162,3 +173,5 @@ Everything else runs continuously. A blocker stops immediately with one precise 
 | "I remember this API" | Grounding 2–3: evidence path or ingest. |
 | "Skip the profile on a strong model" | Profile is always on. Strong models still hallucinate contracts; gates + evidence are cheap insurance. |
 | "Fresh-eyes is overkill" | Catches invented APIs before DOC/MR. If no subagent, do a second self-pass on the diff only. |
+| "Small / known answer / type-only / e2e later — implement directly" | **Forbidden.** Load + follow the matching skill before the first edit. Size and confidence are not exceptions. |
+| "Short conversational ask, no card — skip the flow" | A behavior/code change enters BUILD and its skill gates regardless of phrasing. Short request ≠ no skill. |
