@@ -3,16 +3,9 @@ const path = require("node:path");
 
 const usingNeoPath = path.resolve(__dirname, "../skills/using-neo/SKILL.md");
 
-function loadSessionContext(projectDir) {
+function loadSessionContext() {
 	const usingNeo = fs.readFileSync(usingNeoPath, "utf8");
-	let context = `neo loaded. Route every task through the using-neo single entry point.\n\n${usingNeo}`;
-	const steeringIndex = path.join(projectDir, ".kiro", "steering", "INDEX.md");
-
-	if (fs.existsSync(steeringIndex)) {
-		context += `\n\nProject steering is available. Read and follow .kiro/steering/INDEX.md now, including every file it marks with inclusion: always.\n\n${fs.readFileSync(steeringIndex, "utf8")}`;
-	}
-
-	return context;
+	return `neo loaded. Route every task through the using-neo single entry point.\n\n${usingNeo}`;
 }
 
 module.exports = function usingNeoSessionStart(pi) {
@@ -20,7 +13,7 @@ module.exports = function usingNeoSessionStart(pi) {
 
 	pi.on("session_start", (_event, ctx) => {
 		try {
-			sessionContext = loadSessionContext(ctx.cwd);
+			sessionContext = loadSessionContext();
 		} catch (error) {
 			sessionContext = undefined;
 			const reason = error instanceof Error ? error.message : String(error);

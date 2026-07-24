@@ -14,7 +14,7 @@ neo ships native pi wiring; no manual copying.
   ```
 
 - `.pi/skills` and `.pi/extensions` are symlinks back to the repo's `skills/` and `extensions/`, so a project-local checkout is discovered the same way as an installed package.
-- `extensions/using-neo-session-start.js` injects the full `using-neo` SKILL.md into the system prompt at session start, and appends the target repo's `.kiro/steering/INDEX.md` when present — identical behavior to the Claude Code hook.
+- `extensions/using-neo-session-start.js` injects the full `using-neo` SKILL.md into the system prompt at session start. It does not inject project steering; agent reads `.kiro/steering/` only when a skill/flow needs it.
 
 ## Method layer
 
@@ -30,4 +30,4 @@ python3 .agents/skills/sync-mattpocock/assets/sync.py --apply
 node scripts/validate-pi-package.js
 ```
 
-Asserts the package block, both symlinks, and the injection behavior (with and without a steering index).
+Asserts the package block, both symlinks, and that session start injects only `using-neo` (no steering index).

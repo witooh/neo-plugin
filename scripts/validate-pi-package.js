@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Validate Pi package discovery and using-neo session context injection. */
+/** Validate Pi package discovery and using-neo-only session context injection. */
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -88,16 +88,14 @@ async function injectedSystemPrompt(projectDir) {
 }
 
 (async () => {
-	const withoutIndex = path.join(tempRoot, "without-index");
-	const withIndex = path.join(tempRoot, "with-index");
-	fs.mkdirSync(withoutIndex, { recursive: true });
-	fs.mkdirSync(path.join(withIndex, ".kiro", "steering"), { recursive: true });
+	const projectDir = path.join(tempRoot, "project");
+	fs.mkdirSync(path.join(projectDir, ".kiro", "steering"), { recursive: true });
 	fs.writeFileSync(
-		path.join(withIndex, ".kiro", "steering", "INDEX.md"),
+		path.join(projectDir, ".kiro", "steering", "INDEX.md"),
 		"STEERING_INDEX_SENTINEL\n",
 	);
 
-	const basePrompt = await injectedSystemPrompt(withoutIndex);
+	const basePrompt = await injectedSystemPrompt(projectDir);
 	assert.ok(
 		basePrompt.startsWith("BASE_SYSTEM_PROMPT"),
 		"hook must preserve the existing system prompt",
@@ -116,17 +114,11 @@ async function injectedSystemPrompt(projectDir) {
 	);
 	assert.ok(
 		!basePrompt.includes("Read and follow .kiro/steering/INDEX.md"),
-		"hook must not mention a missing steering index",
-	);
-
-	const promptWithIndex = await injectedSystemPrompt(withIndex);
-	assert.ok(
-		promptWithIndex.includes("Read and follow .kiro/steering/INDEX.md"),
-		"hook must include the steering instruction when INDEX.md exists",
+		"hook must not inject steering instructions",
 	);
 	assert.ok(
-		promptWithIndex.includes("STEERING_INDEX_SENTINEL"),
-		"hook must include the steering index contents",
+		!basePrompt.includes("STEERING_INDEX_SENTINEL"),
+		"hook must not inject steering index contents even when INDEX.md exists",
 	);
 
 	const repeatedPrompt = await beforeAgentStart({ systemPrompt: "NEXT_TURN" });

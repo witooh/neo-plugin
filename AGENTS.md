@@ -33,7 +33,7 @@ docs/              Setup guides
 Two supported channels, one canonical content source:
 
 - **Claude Code**: plugin install; `hooks/session-start.sh` injects the full `using-neo` SKILL.md plus the target repo's `.kiro/steering/INDEX.md` when present.
-- **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` performs the same injection.
+- **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` injects only `using-neo` SKILL.md (no steering index).
 
 Other harnesses are unsupported by design. If one is needed later, add a thin injection adapter — never fork skill content per harness.
 
