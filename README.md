@@ -58,9 +58,21 @@ Other intents route straight to where they belong:
 
 **pi**
 
-The repo ships a `pi` package block in `package.json` with `.pi/` discovery symlinks;
-`extensions/using-neo-session-start.js` injects the router at session start and every skill under
-`skills/` is discovered automatically.
+Installs as a native pi package; skills load unchanged, and a session extension injects the
+`using-neo` router before every agent run. See [docs/pi-setup.md](docs/pi-setup.md).
+
+Install from the repo:
+
+```bash
+pi install git:github.com/witooh/neo-plugin
+```
+
+Install from a local clone:
+
+```bash
+git clone https://github.com/witooh/neo-plugin.git
+pi install ./neo-plugin
+```
 
 Either way the method skills ship inside the plugin — there is no second install.
 
