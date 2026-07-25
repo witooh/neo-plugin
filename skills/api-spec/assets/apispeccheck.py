@@ -28,6 +28,11 @@ ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
 ALLOWED_MANDATORY = {"M", "O"}
 KNOWN_TYPES = {"String", "Number", "Boolean", "Object", "Array", "Integer"}
 
+# An evidence citation inside a field's remark:  "… — evidence: docs/knowledge/contracts/pcc.md"
+EVIDENCE_RE = re.compile(r"evidence\s*:\s*([^\s,;)\"']+)", re.I)
+
+REPO_ROOT = None
+
 errors = []
 notes = []
 
@@ -38,6 +43,38 @@ def err(msg):
 
 def note(msg):
     notes.append(msg)
+
+
+def find_repo_root(api_dir):
+    """Nearest ancestor holding .git; else the grandparent of a <repo>/docs/api layout."""
+    cur = os.path.abspath(api_dir)
+    while True:
+        if os.path.isdir(os.path.join(cur, ".git")):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+    up = os.path.abspath(os.path.join(api_dir, "..", ".."))
+    return up if os.path.basename(os.path.dirname(os.path.abspath(api_dir))) == "docs" else os.path.abspath(api_dir)
+
+
+def check_evidence(remark, ctx, name):
+    """An evidence citation must resolve to a file in this repo.
+
+    A citation that points nowhere is worse than none at all: it reads as proof and is not.
+    Branch names and bare URLs are rejected by design — neither can be re-read later, which is
+    the whole purpose of citing evidence (grounding rule 2: ingest into docs/knowledge/ first).
+    """
+    for m in EVIDENCE_RE.finditer(str(remark)):
+        cited = m.group(1).rstrip(".,;")
+        if re.match(r"https?://", cited, re.I):
+            err(f"{ctx}: field '{name}' cites a bare URL as evidence ({cited}) — ingest it into "
+                f"docs/knowledge/ and cite that path instead")
+            continue
+        if REPO_ROOT and not os.path.exists(os.path.join(REPO_ROOT, cited)):
+            err(f"{ctx}: field '{name}' cites evidence '{cited}' which does not exist in the repo — "
+                f"cite an ingested path under docs/knowledge/, not a branch or ticket name")
 
 
 def load_yaml(path):
@@ -68,6 +105,8 @@ def check_fields(fields, ctx, objects_defined):
             note(f"{ctx}: field '{name}' has unusual type {f['type']!r} — needs fresh-eyes")
         if "object" in f and f["object"] not in objects_defined:
             err(f"{ctx}: field '{name}' references object '{f['object']}' not defined in objects:")
+        if f.get("remark"):
+            check_evidence(f["remark"], ctx, name)
 
 
 def check_errors(errs, ctx):
@@ -206,6 +245,8 @@ def main():
     if not os.path.isdir(api_dir):
         sys.stderr.write(f"apispeccheck: {api_dir} is not a directory\n")
         sys.exit(2)
+    global REPO_ROOT
+    REPO_ROOT = find_repo_root(api_dir)
 
     meta_path = os.path.join(api_dir, "_meta.yaml")
     meta = load_yaml(meta_path) if os.path.exists(meta_path) else None
