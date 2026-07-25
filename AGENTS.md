@@ -9,8 +9,8 @@ neo is a thin engineering router plus a set of org-specific domain skills. It dr
 ## Architecture — three layers
 
 - **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Detects intent, drives the flow, enforces gates. All neo behavior changes land here first.
-- **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `code-review`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
-- **Domain layer** — neo-owned skills in `skills/`: `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
+- **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
+- **Domain layer** — neo-owned skills in `skills/`: `code-review`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
 
 Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-skill verifiers) and in `using-neo`'s gate table. There are no personas and no phase-contract files. Method-layer updates run through `sync-mattpocock`; domain skills and the router are edited in place.
 

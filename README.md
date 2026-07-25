@@ -9,11 +9,11 @@ A thin engineering router plus org-specific domain skills for AI coding agents. 
 │ using-neo — injected at session start                │
 │ intent detection · flow · gates · resume             │
 ├─ METHOD LAYER (vendored from mattpocock/skills) ─────┤
-│ grilling · domain-modeling · tdd · code-review       │
-│ diagnosing-bugs · research · prototype               │
+│ grilling · domain-modeling · tdd · diagnosing-bugs   │
+│ research · prototype                                 │
 │ codebase-design · resolving-merge-conflicts          │
 ├─ DOMAIN LAYER (neo-owned) ───────────────────────────┤
-│ api-spec · e2e-playwright · openapi-doc              │
+│ code-review · api-spec · e2e-playwright · openapi-doc│
 │ open-collection · confluence-api-doc · markitdown    │
 │ init-project · migrate-project · atlassian · gitlab  │
 └──────────────────────────────────────────────────────┘

@@ -17,7 +17,6 @@ Allowlist is `sync-state.json:synced_skills` (source path → dest name):
 | Dest (`skills/`) | Upstream source |
 |---|---|
 | `tdd` | `skills/engineering/tdd` |
-| `code-review` | `skills/engineering/code-review` |
 | `diagnosing-bugs` | `skills/engineering/diagnosing-bugs` |
 | `domain-modeling` | `skills/engineering/domain-modeling` |
 | `research` | `skills/engineering/research` |
@@ -28,9 +27,13 @@ Allowlist is `sync-state.json:synced_skills` (source path → dest name):
 
 ## Out of scope (never touched)
 
-- All neo-owned skills: `using-neo`, `api-spec`, `e2e-playwright`, `openapi-doc`,
+- All neo-owned skills: `using-neo`, `code-review`, `api-spec`, `e2e-playwright`, `openapi-doc`,
   `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`,
   `migrate-project`, `atlassian`, `gitlab`
+- `code-review` **was** synced and is now neo-owned: upstream discovers standards from
+  `CODING_STANDARDS.md` / `CONTRIBUTING.md` and an issue tracker, none of which exist in this
+  org's services — the real sources are `.kiro/steering/` and `docs/tasks/<card>/spec.md`.
+  Re-adding it to the allowlist would overwrite that.
 - Entry skills from mattpocock that neo absorbed into the router
   (`grill-with-docs`, `implement`, `wayfinder`, `to-spec`, `to-tickets`, `triage`, …)
 - `hooks/`, `agents/`, manifests, docs, README
