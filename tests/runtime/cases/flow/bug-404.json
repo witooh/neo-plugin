@@ -1,0 +1,14 @@
+{
+  "id": "bug-404",
+  "skills": ["using-neo", "diagnosing-bugs", "tdd"],
+  "fixture": "go-service",
+  "prompt": "แก้ bug: GET /accounts/{id} คืน 500 ตอนหา account ไม่เจอ ควรเป็น 404",
+  "expect": {
+    "skillsLoaded": ["diagnosing-bugs", "tdd"],
+    "redBeforeGreen": true,
+    "fixApplied": true,
+    "ranCommand": ["\\b(go test|make test|make cover)\\b"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

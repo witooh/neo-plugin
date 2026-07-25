@@ -66,13 +66,35 @@ function parseFrontmatter(text) {
 	return out;
 }
 
+/**
+ * The parser above is forgiving; a real YAML loader is not. A plain (unquoted,
+ * non-block) value containing ": " reads as a nested mapping and makes the
+ * whole skill unloadable — which this validator used to report as PASSED.
+ */
+function unloadableFrontmatter(text) {
+	const match = text.match(/^---\n([\s\S]*?)\n---/);
+	if (!match) return null;
+	for (const line of match[1].split("\n")) {
+		const keyMatch = line.match(/^([a-zA-Z_-]+): +(\S.*)$/);
+		if (!keyMatch) continue;
+		const [, key, value] = keyMatch;
+		if (/^[>|]|^["']/.test(value)) continue;
+		if (/: /.test(value))
+			return `${key}: plain value contains ": " — YAML reads it as a nested mapping (quote it or use ">-")`;
+	}
+	return null;
+}
+
 for (const dir of fs.readdirSync(skillsDir)) {
 	const skillPath = path.join(skillsDir, dir, "SKILL.md");
 	if (!fs.existsSync(skillPath)) {
 		errors.push(`${dir}: missing SKILL.md`);
 		continue;
 	}
-	const fm = parseFrontmatter(fs.readFileSync(skillPath, "utf8"));
+	const raw = fs.readFileSync(skillPath, "utf8");
+	const unloadable = unloadableFrontmatter(raw);
+	if (unloadable) errors.push(`${dir}: ${unloadable}`);
+	const fm = parseFrontmatter(raw);
 	if (!fm) {
 		errors.push(`${dir}: missing YAML frontmatter`);
 		continue;

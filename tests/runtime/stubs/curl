@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Recording stub for curl — blocks every real network call during an eval run.
+echo "curl $*" >>"$EVAL_CALL_LOG"
+
+if [[ "$*" == *"-X POST"* || "$*" == *"-X PUT"* || "$*" == *"--request POST"* || "$*" == *"--request PUT"* ]]; then
+	echo '{"id":"900001","title":"stubbed page","version":{"number":1},"_links":{"webui":"/spaces/EVAL/pages/900001"}}'
+	exit 0
+fi
+
+echo '{"results":[],"size":0,"_links":{"base":"https://eval.atlassian.net/wiki"}}'

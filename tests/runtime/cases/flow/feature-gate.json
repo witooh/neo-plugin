@@ -1,0 +1,14 @@
+{
+  "id": "feature-gate",
+  "skills": ["using-neo", "api-spec", "domain-modeling"],
+  "fixture": "go-service",
+  "prompt": "เพิ่ม endpoint POST /accounts สำหรับสร้าง account ใหม่ ปิดข้อตัดสินใจให้แล้ว ไม่ต้องถามเพิ่ม: (1) id generate ฝั่ง server เป็น UUID v4 (2) body รับ name (required, 1-100 ตัวอักษร) และ balance (required, >= 0) (3) สำเร็จคืน 201 พร้อม body ของ account ที่สร้าง (4) validation ผิดคืน 400 รูปแบบ {\"error\": \"...\"} เดิม",
+  "expect": {
+    "skillsLoaded": ["api-spec"],
+    "filesWritten": ["^docs/api/.*\\.yaml$", "^docs/tasks/.*/spec\\.md$", "^docs/tasks/.*/plan\\.md$"],
+    "filesNotWritten": ["^internal/.*(?<!_test)\\.go$"],
+    "writeOrder": [["^docs/api/.*\\.yaml$", "^docs/tasks/.*/plan\\.md$"]],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

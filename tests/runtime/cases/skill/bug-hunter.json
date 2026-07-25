@@ -1,0 +1,18 @@
+{
+  "id": "bug-hunter",
+  "skills": ["bug-hunter"],
+  "fixture": "go-service-shipped",
+  "prompt": "card create-account build เสร็จแล้ว AC เขียวครบ ลอง hunt หา bug ที่ AC ไม่ได้ถามให้หน่อย",
+  "expect": {
+    "skillsLoaded": ["bug-hunter"],
+    "ranCommand": ["(grep|rg)\\b"],
+    "outputContains": ["empty|ว่าง|เว้นว่าง", "ACCOUNT_LIMIT_EXCEEDED"],
+    "filesNotWritten": ["^internal/account/(handler|repository|account)\\.go$"],
+    "sandbox": true,
+    "noGitWrites": true,
+    "postCommand": [
+      "grep -q 'len(req.Name) > 100' internal/account/handler.go",
+      "! grep -q 'req.Name == \"\"' internal/account/handler.go"
+    ]
+  }
+}

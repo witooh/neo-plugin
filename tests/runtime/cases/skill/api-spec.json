@@ -1,0 +1,14 @@
+{
+  "id": "api-spec",
+  "skills": ["api-spec"],
+  "fixture": "go-service",
+  "prompt": "เขียน api spec ที่ docs/api สำหรับ POST /accounts อย่างเดียว ยังไม่ต้องแก้โค้ด: body รับ name (required, 1-100 ตัวอักษร) และ balance (required, >= 0), สำเร็จคืน 201 พร้อม account ที่สร้าง (id เป็น UUID v4 ที่ server generate), validation ผิดคืน 400 รูปแบบ {\"error\": \"...\"}",
+  "expect": {
+    "skillsLoaded": ["api-spec"],
+    "filesWritten": ["^docs/api/_meta\\.yaml$", "^docs/api/[^/]+/[^/]+\\.yaml$"],
+    "filesNotWritten": ["^internal/.*\\.go$"],
+    "ranCommand": ["python3?\\s+[^|;&]*apispeccheck\\.py"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

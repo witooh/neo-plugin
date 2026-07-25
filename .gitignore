@@ -12,3 +12,4 @@ __pycache__/
 # sync-mattpocock local clone cache
 .agents/skills/sync-mattpocock/.upstream-cache/
 .claude/skills/sync-mattpocock/.upstream-cache/
+tests/runtime/reports/

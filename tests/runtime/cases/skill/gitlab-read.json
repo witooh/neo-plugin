@@ -1,0 +1,16 @@
+{
+  "id": "gitlab-read",
+  "skills": ["gitlab"],
+  "fixture": "go-service",
+  "stubs": ["glab"],
+  "setup": "git remote add origin https://gitlab.example.com/org/account-service.git",
+  "prompt": "สรุป MR !42 ให้หน่อย",
+  "expect": {
+    "skillsLoaded": ["gitlab"],
+    "cliCalled": ["glab mr (view|diff) 42"],
+    "cliNotCalled": ["glab mr (create|merge|approve|update)\\b|glab mr note (?!list)"],
+    "filesNotWritten": ["."],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

@@ -11,7 +11,7 @@ Single entry router. Every request routes here first: detect intent, run the mat
 
 - **Router** (this skill): when things happen — intent, flow order, gates, resume, model profile.
 - **Method layer** (vendored from [mattpocock/skills](https://github.com/mattpocock/skills) via `sync-mattpocock`): `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Live under `skills/<name>/`.
-- **Domain layer** (neo-owned): `code-review`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
+- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
 
 ## Method-layer availability
 
@@ -56,6 +56,8 @@ There is no opt-out flag. If a step in the table is impossible in the harness (e
 |---|---|
 | Card key, feature, behavior change | FEATURE flow |
 | Bug, failing test, unexpected behavior | BUG flow |
+| Everything is green — audit the gate itself | `falsifying` |
+| Everything is green — hunt what the ACs never asked | `bug-hunter` |
 | Refactor, simplification | REFACTOR flow |
 | Question, investigation | Answer directly or `research` — no ceremony |
 | Ingest a source (JIRA, Confluence, URL, file, Figma) | `markitdown` |
@@ -93,6 +95,7 @@ Steps run in order; nothing is skipped silently.
 
 ### 4. SPEC + PLAN
 
+- **Order**: with endpoints in scope, step 3's `docs/api/` files exist **before** `plan.md` is written. Writing the plan first is a flow violation — draft the contract, then plan against it.
 - `docs/tasks/<card>/spec.md` (objective, ACs, non-goals), `plan.md`, `todo.md`.
 - Plan tasks must be single-surface slices (profile). Each task names the **seam** its tests sit at (the public boundary — handler, use case, repository) in `plan.md`.
 - **GATE (human)**: present spec + plan; one approval runs through to the MR gate. Approving the plan pre-agrees its seams, so `tdd` does not re-ask per task; a task that needs a seam the plan never named stops and asks.
@@ -122,6 +125,7 @@ Steps run in order; nothing is skipped silently.
 
 - `api-spec` sync-back; `openapi-doc` drift = 0.
 - **GATE (machine)**: `apispeccheck` passes.
+- A gate, checker, or verification script changed in this card → `falsifying` on it before DOC closes.
 - Contract changed → `open-collection` + `VERSION.md`. Confluence only on request.
 
 ### 9. MR
@@ -194,6 +198,7 @@ Everything else runs continuously. A blocker stops immediately with one precise 
 | "Fresh-eyes is overkill" | Catches invented APIs before DOC/MR. If no subagent, do a second self-pass on the diff only. |
 | "Small / known answer / type-only / e2e later — implement directly" | **Forbidden.** Load + follow the matching skill before the first edit. Size and confidence are not exceptions. |
 | "Short conversational ask, no card — skip the flow" | A behavior/code change enters BUILD and its skill gates regardless of phrasing. Short request ≠ no skill. |
+| "Write spec + plan first, draft the api-spec after" | API is step 3, SPEC + PLAN is step 4. A plan written before the contract plans against guessed fields. |
 | "Tests pass, so coverage is fine" | Unstated is unmeasured. Run the coverage command and report the number, or the gate did not happen. |
 | "Coverage is short — exclude the generated package" | Widening an exclusion manufactures the threshold. Write the tests. |
 | "I ticked todo.md, that's the record" | Sweep spec + plan + knowledge in the same pass, then re-grep. A half-synced card misleads the next session. |

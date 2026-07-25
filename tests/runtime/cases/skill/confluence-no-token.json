@@ -1,0 +1,14 @@
+{
+  "id": "confluence-no-token",
+  "skills": ["confluence-api-doc"],
+  "fixture": "go-service-speced",
+  "stubs": ["acli", "curl"],
+  "prompt": "publish api doc ขึ้น confluence",
+  "expect": {
+    "skillsLoaded": ["confluence-api-doc"],
+    "cliNotCalled": ["curl .*(-X (POST|PUT)|--request (POST|PUT))"],
+    "filesNotWritten": ["^docs/api/.*\\.yaml$", "^internal/"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

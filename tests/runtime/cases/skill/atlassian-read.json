@@ -1,0 +1,15 @@
+{
+  "id": "atlassian-read",
+  "skills": ["atlassian"],
+  "fixture": "go-service",
+  "stubs": ["acli"],
+  "prompt": "ดู issue ACC-1 ให้หน่อย ว่ามี AC อะไรบ้าง",
+  "expect": {
+    "skillsLoaded": ["atlassian"],
+    "cliCalled": ["acli jira workitem view ACC-1"],
+    "cliNotCalled": ["acli jira workitem (transition|assign|create|edit|comment)"],
+    "filesNotWritten": ["."],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}
