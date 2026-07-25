@@ -28,7 +28,14 @@ Every test that exercises an acceptance criterion is titled:
 ```
 
 - **Spaces around the dash**: `[GI-74 - AC-001]`, not `[GI-74-AC-001]`.
-- `<CARD>` = the JIRA card (e.g. `GI-74`, `BFID-5`); `AC-NNN` = the criterion id.
+- `<CARD>` = the JIRA card (e.g. `GI-74`, `BFID-5`) **or** the task-folder slug when the work has no
+  JIRA key (`[awareness-answer-resp - AC-001]`). A leading test-case id is allowed too
+  (`[TC-028 - GI-52 - AC-001]`) — the AC id must be the **last** segment in the bracket; the card is
+  read as the last JIRA-style key in the label.
+- **Table-driven tests** may interpolate the AC id — `` it(`[GI-74 - ${tc.ac}] …`) `` — provided the
+  loop reads `for (const tc of TABLE)` and `TABLE` is an array literal holding literal
+  `ac: "AC-NNN"` entries. The tripwire follows that chain; any other shape is reported as
+  unresolvable rather than credited.
 - `<expected outcome>` names the HTTP result the AC asserts — e.g. `→ 400 INVALID_DATE_RANGE`,
   `→ 200 StandardResponse`. Keep the **stable error code** in the title; it doubles as documentation.
 - **One AC → several `it()`** is fine (e.g. a gate tested on the keep-path and the exclude-path).
@@ -50,6 +57,52 @@ present; the **L2 verifier judges whether it is legitimate** (a genuinely unobse
 lazy excuse for an AC that actually *is* HTTP-testable. Such ACs are not counted against the gate,
 but they must still be covered elsewhere (the unit suite) — that is the project's concern, recorded
 in the run report, not silently dropped.
+
+## Deferred ACs (the feature is not built this round)
+
+An `it.skip` says "HTTP cannot see this". It is the wrong tool for "we decided not to build this
+yet" — there is nothing to skip, because the behavior does not exist. Declare those in the AC
+source instead, on one machine-readable line:
+
+```markdown
+Deferred-ACs: AC-011, AC-012, AC-013 — biometric evaluation + challenge protocol deferred (D10)
+```
+
+The tripwire reports them as **declared deferred** and does not count them as uncovered. The reason
+is required — a deferral with no reason is how an AC gets silently dropped — and the L2 verifier
+judges whether it matches a real decision in the spec. Deferring is a **spec** edit, so it travels
+with the task-docs sync: un-deferring means deleting the id from this line in the same pass as
+writing the test.
+
+The word "deferred" in prose is **not** scanned, deliberately. A real spec line reads *"Was: defer
+AC-007/008/013 … AC-007 + AC-008 un-deferred … AC-013 remains deferred"* — any line-level match
+gets all three wrong.
+
+## Referring to another card's AC — keep the card id on the same line
+
+The tripwire harvests the AC ids it must cover from the spec text, and treats `AC-NNN` as
+**another card's** only when a different card id appears just before it **on the same line**
+(`GI-445 AC-008`, or `the GI-445 verify-session (AC-008)`). If markdown wrapping pushes the card
+id onto the previous line —
+
+```markdown
+- [`docs/tasks/GI-445/spec.md`](../GI-445/spec.md) — sibling verify spec; its
+  AC-008 verify-session is consumed here
+```
+
+— the reference is harvested as one of **this** card's criteria and reported as a phantom
+UNCOVERED, sending someone hunting for a test that should not exist. Write `GI-445 AC-008` on
+the same line. The look-behind is deliberately not widened past the line: doing so would let a
+card's own ACs be swallowed by a neighbouring mention, and a dropped AC is a false PASS — the
+failure direction that matters.
+
+## No-AC mode
+
+A task with no acceptance criteria has no coverage to gate. Title its tests `[<CARD>] <desc> →
+<expected>` — card prefix, no AC segment — and the tripwire reports `No-AC mode — coverage gate
+N/A`, still checking title grammar and card consistency. If the task really does have ACs, number
+them `AC-001…` in the spec first; No-AC mode is for tasks that genuinely have none, not a way
+around an unnumbered spec.
 
 ## Spec skeleton
 

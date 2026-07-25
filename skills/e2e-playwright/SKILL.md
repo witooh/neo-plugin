@@ -84,7 +84,9 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
 
 - **One `it()` per testable AC case**, titled `[<CARD> - AC-NNN] <desc> → <expected>` (spaces
   around the dash). One AC may have **several** `it()`s; a single test may **co-cover** ACs by
-  listing the extra ids on the same line (`// also AC-008`).
+  listing the extra ids on the same line (`// also AC-008`). `<CARD>` may be a task-folder slug
+  when there is no JIRA key, and a table-driven test may interpolate the id
+  (`` `[GI-74 - ${tc.ac}] …` ``) — see `references/e2e-template.md` for both.
 - **Reuse the project helpers** — `new ApiClient(globalThis.apiContext)`, `DbHelper` for
   seed/assert; follow the existing spec's per-spec **created-data teardown** in `afterAll`. Reach
   error paths through the project's fault **sentinels** when they exist (e.g. a `NODEFAIL` id) — do
@@ -95,6 +97,10 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
   masking, an internal side effect) is recorded as an `it.skip("[<CARD> - AC-NNN] … (why it is not
   HTTP-observable)")` **with the reason in the title** — a visible, declared classification, never a
   silent omission. (Whether the reason is *legitimate* is the L2 verifier's call.)
+- **Deferred ACs** — an AC whose feature is deliberately not built this round is **not** an
+  `it.skip` (there is nothing to skip). Declare it in the spec on one line —
+  `Deferred-ACs: AC-011, AC-012 — <why>` — and the gate reports it as declared deferred instead of
+  uncovered. The reason is required.
 - **Update** — touch the minimum; preserve hand-authored assertions; re-run L1 after.
 - **No-AC mode** — with no ACs, title tests `[<CARD>] <desc> → <expected>` (card prefix, no AC
   segment) and group by endpoint; the Step-4 coverage gate is then N/A.
@@ -111,7 +117,8 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
    ```
 
 3. **Map results → AC.** Cross the run's pass/fail (from the Jest output) with the coverage from L1
-   to emit an **AC → status** table: `pass` · `fail` · `uncovered` · `non-observable (skip)`. This
+   to emit an **AC → status** table: `pass` · `fail` · `uncovered` · `non-observable (skip)` ·
+   `deferred`. This
    table is the evidence for neo's **Verify-phase HTTP acceptance gate** — a real green run, not a
    claim, is what closes it. **No-AC mode:** emit a plain pass/fail table (no AC column).
 
@@ -125,7 +132,8 @@ python3 <ASSET_DIR>/e2echeck.py <e2e-root>/specs <ac-source> --card <CARD>
 
 `<ac-source>` is the resolved Step-1 source — `docs/tasks/<card>/spec.md` (neo) or the legacy
 `docs/design/<usecase>/` dir. It confirms every AC in the source is traced by an `it()` (active) or
-an `it.skip()` with a reason (declared non-observable), validates the `[<CARD> - AC-NNN]` title
+an `it.skip()` with a reason (declared non-observable) or a `Deferred-ACs:` line in the spec
+(declared deferred), validates the `[<CARD> - AC-NNN]` title
 grammar, and prints a coverage table. **Tripwire, not ground truth.**
 
 - **exit 0** → `PASS` → go to L1.5.
@@ -185,7 +193,7 @@ silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC 
 **Suite:** <e2e-root> (N specs)   **Card:** <CARD>   **Source-of-intent:** <what it was authored from>
 **Changes:** Created … / Updated … / —
 **Run:** <npm test result: N passed / M failed / K skipped>   **Evidence:** docs/tasks/<card>/e2e-run.txt
-**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable   (N/A in no-AC mode — report plain pass/fail)
+**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable · <deferred> deferred   (N/A in no-AC mode — report plain pass/fail)
 **Verification (three-layer):**
 - L1 e2echeck.py: ✅ PASS (0 error) / ❌ ESCALATED (N error after ~3 rounds) · loop rounds: 0-3
 - L2 fresh-eyes: ✅ Faithful / ⚠️ N gaps fixed / ⏭ Skipped / ⏸ Not run
