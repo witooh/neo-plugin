@@ -23,8 +23,8 @@ are not.
 ## Non-negotiables
 
 - **`.claude-plugin/plugin.json` is the canonical version source.** Sync the same
-  version to `.plugin/plugin.json` in the same bump. `marketplace.json`
-  carries no version field — never touch it for versioning.
+  version to `.plugin/plugin.json` and `package.json` in the same bump.
+  `marketplace.json` carries no version field — never touch it for versioning.
 - **Semver by change type:** `patch` = fix/docs, `minor` = new skill/feature,
   `major` = breaking.
 - **One annotated tag per bump, created after the commit:** `v<version>` (v-prefix),
@@ -67,8 +67,8 @@ echo "$cur -> $next"
 ### 3. Stage + draft (no commit yet)
 
 1. Bump the `version` field in `.claude-plugin/plugin.json` and sync the same
-   value into `.plugin/plugin.json` (Edit the `"version": "<cur>"` line to
-   `<next>` in both).
+   value into `.plugin/plugin.json` and `package.json` (Edit the
+   `"version": "<cur>"` line to `<next>` in all three).
 2. Pack everything: `git add -A` (all changes incl. untracked, plus the manifest).
 3. Draft the **commit message** — Conventional Commits (`type(scope): subject`),
    a body saying what changed and why, derived from `git diff --cached`. End with

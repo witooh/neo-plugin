@@ -65,7 +65,7 @@ Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFAC
 
 When the user asks to bump the version, commit, or cut a release:
 
-1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json`. `.claude-plugin/marketplace.json` intentionally has no version field.
+1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json` and `package.json` in the same bump. `.claude-plugin/marketplace.json` intentionally has no version field.
 2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
 3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Headline plus Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
