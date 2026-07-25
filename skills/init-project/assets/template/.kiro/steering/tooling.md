@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "Makefile,tools/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml"
+fileMatchPattern: "Makefile,tools/**,scripts/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml"
 ---
 
 # Tooling
@@ -13,6 +13,7 @@ tool module so they don't pollute the service's `go.mod`.
 | Target | Does |
 |---|---|
 | `make test` | Go unit + property tests |
+| `make test-cover` | the same tests with coverage, then **fails** below `COVERAGE_THRESHOLD` (default 80) |
 | `make compose-up` | `docker compose up -d --build` — **rebuilds the image** |
 | `make test-e2e` | run the black-box e2e suite against the running stack |
 | `make mock-gen` | regenerate mockery doubles into `internal/mocks` |
@@ -32,7 +33,15 @@ gofmt -l ./internal && goimports -w ./internal   # formatting (goimports at $(go
 go build ./... && go vet ./internal/...
 golangci-lint run ./internal/...                  # must equal the baseline issue count, not grow it
 make test                                          # all green
+make test-cover                                    # coverage gate — exits non-zero below the threshold
 ```
+
+`make test-cover` is the coverage gate, not a report: `scripts/check-coverage.sh` drops
+generated code (`mocks`, `sqlc`, the `*test` stub packages) from the denominator so the
+percentage reflects hand-written production Go, then exits non-zero below
+`COVERAGE_THRESHOLD`. CI runs the same script, so the local and pipeline numbers agree.
+When coverage is short, add tests — widening the exclusion list manufactures the threshold
+and is a review finding.
 
 Treat the current lint issue count as a **baseline**; a change may not increase it.
 Pre-existing issues in untouched files are not your regression.

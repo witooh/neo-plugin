@@ -33,6 +33,7 @@ MANIFEST = [
     "internal/delivery/http/router/router.go",
     "internal/delivery/http/middleware/middleware.go",
     "go.mod", "go.sum", "Dockerfile", "Makefile", "docker-compose.yaml",
+    "scripts/check-coverage.sh",
     ".kiro/steering/INDEX.md", ".kiro/steering/structure.md",
     ".kiro/steering/repo-instance.md", "CLAUDE.md",
     "tools/sqlc/go.mod", "tools/mockery/go.mod", "tools/golang-migrate/go.mod",

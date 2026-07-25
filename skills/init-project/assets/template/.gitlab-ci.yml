@@ -47,8 +47,8 @@ test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
   script:
-    - go test -short -mod=vendor ./... -coverprofile=cover.profile -coverpkg=$(go list -mod=vendor ./... | grep -vE '/internal/mocks(/|$)' | tr '\n' ',')
-    - go tool cover -func cover.profile
+    - go test -short -mod=vendor -coverpkg=./... ./... -coverprofile=cover.profile
+    - ./scripts/check-coverage.sh cover.profile "${COVERAGE_THRESHOLD:-80}"
   coverage: '/total:\s+\(statements\)\s+\d+.\d+%/'
   artifacts:
     paths:

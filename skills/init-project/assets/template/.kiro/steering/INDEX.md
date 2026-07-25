@@ -26,7 +26,7 @@ below before doing any work. This index is already loaded; currently, read
 | `messaging.md` | `fileMatch` | `**/internal/delivery/consumer/**,**/internal/adapters/eventbus/**,**/pkg/messaging/**` |
 | `repository.md` | `fileMatch` | `**/internal/adapters/repository/**,**/*.sql,sqlc.yaml` |
 | `testing.md` | `fileMatch` | `**/*_test.go` |
-| `tooling.md` | `fileMatch` | `Makefile,tools/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml` |
+| `tooling.md` | `fileMatch` | `Makefile,tools/**,scripts/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml` |
 | `usecase.md` | `fileMatch` | `**/internal/core/usecase/**` |
 | `new-feature-checklist.md` | `manual` | — |
 | `repo-instance.md` | `manual` | — |

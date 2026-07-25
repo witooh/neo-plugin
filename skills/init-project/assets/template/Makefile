@@ -17,6 +17,7 @@ MIGRATION_PATH ?= ../../internal/adapters/repository/postgres/migrations
 MIGRATION_CMD  ?= cd tools/golang-migrate; go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate
 
 PG_CONTAINER ?= postgres
+COVERAGE_THRESHOLD ?= 80
 
 .PHONY: vendor run-api dev \
         gen db-gen mock-gen \
@@ -62,10 +63,10 @@ test:
 test-short:
 	@go test -race -v -count=1 -short ./...
 
-# Run unit tests (-short) with coverage, then print the per-function coverage table.
+# Coverage gate, not a report: fails below COVERAGE_THRESHOLD. See tooling.md.
 test-cover:
-	@go test -short ./... -coverprofile=cover.profile
-	@go tool cover -func cover.profile
+	@go test -short -coverpkg=./... ./... -coverprofile=cover.profile
+	@./scripts/check-coverage.sh cover.profile "$(COVERAGE_THRESHOLD)"
 
 # Requires the service to be running (make compose-up) and migrations applied
 # (make migration-up). Global setup cleans + seeds the DB on its own.
