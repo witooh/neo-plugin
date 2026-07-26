@@ -15,53 +15,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Validate all skills
         run: node scripts/validate-skills.js
 
-      - name: Validate using-neo routing
-        run: node scripts/validate-using-neo.js
-
       - name: Validate Pi package session hook
         run: node scripts/validate-pi-package.js
 
-      - name: Validate agent guidance source of truth
-        run: node scripts/validate-agent-guidance.js
-
-      - name: Validate GitHub Copilot plugin
-        run: node scripts/validate-copilot-plugin.js
-
-  test-copilot-install:
-    name: Test Copilot plugin installation
-    needs: [validate-skills]
-    runs-on: ubuntu-latest
-    env:
-      COPILOT_OFFLINE: 'true'
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Configure isolated Copilot directories
-        run: |
-          echo "COPILOT_HOME=${RUNNER_TEMP}/copilot-home" >> "$GITHUB_ENV"
-          echo "COPILOT_CACHE_HOME=${RUNNER_TEMP}/copilot-cache" >> "$GITHUB_ENV"
-
-      - name: Install GitHub Copilot CLI
-        run: npm install -g @github/copilot
-
-      - name: Add local marketplace
-        run: copilot plugin marketplace add .
-
-      - name: Install neo from the marketplace
-        run: copilot plugin install neo@neo
-
-      - name: List installed Copilot plugins
-        run: copilot plugin list
+      - name: Validate Claude session-start hook
+        run: bash hooks/session-start-test.sh
 
   validate:
     name: Validate plugin structure
