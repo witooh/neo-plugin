@@ -98,6 +98,7 @@ Steps run in order; nothing is skipped silently.
 - **Order**: with endpoints in scope, step 3's `docs/api/` files exist **before** `plan.md` is written. Writing the plan first is a flow violation — draft the contract, then plan against it.
 - `docs/tasks/<card>/spec.md` (objective, ACs, non-goals), `plan.md`, `todo.md`.
 - Plan tasks must be single-surface slices (profile). Each task names the **seam** its tests sit at (the public boundary — handler, use case, repository) in `plan.md`.
+- Each task also states `Depends: T<n>, ...` or `Depends: none`. A task depends on another when it consumes a type, field, or file that the other creates. `todo.md` then groups tasks whose dependencies are all met into numbered **waves**, so independent slices are visible as parallelizable instead of hiding in a flat list. A single-task wave is normal — do not invent independence the code does not have.
 - **GATE (human)**: present spec + plan; one approval runs through to the MR gate. Approving the plan pre-agrees its seams, so `tdd` does not re-ask per task; a task that needs a seam the plan never named stops and asks.
 
 ### 5. BUILD
@@ -105,6 +106,7 @@ Steps run in order; nothing is skipped silently.
 - **Skill invocation is mandatory.** Before the first production edit of each task, load + follow the skill matching the work: `tdd` for any code change (red first), `api-spec` for any API-contract touch, `e2e-playwright` for HTTP-AC coverage. Never shortcut a skill because the change is small, the answer is known, it is "type/DTO/wire-only", or "e2e comes later".
 - A conversational request that changes behavior or code ("แก้ X…") enters this flow — never an ad-hoc direct implement.
 - Per task: `tdd` red-green-refactor; typecheck/lint on green; tick `todo.md`.
+- **Waves run concurrently.** Tasks in the same wave go out in one message, one `Agent` call per task, `run_in_background: true` on each. Different waves stay sequential. A wave agent writes only its own surface — production code plus that surface's unit tests. Build, vet, fmt, and ticking `todo.md` belong to the parent after the whole wave returns, never inside a wave agent: the slices keep source files disjoint, but a shared module build and a shared `todo.md` still collide.
 - Read the matching `.kiro/steering/` guide before writing in a layer; `new-feature-checklist.md` when present.
 - Package-level tests after every task (profile table).
 
