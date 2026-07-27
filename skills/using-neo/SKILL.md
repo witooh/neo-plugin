@@ -77,7 +77,7 @@ Steps run in order; nothing is skipped silently.
 
 - Card key: fetch with `acli` (via `atlassian` conventions).
 - Detect Confluence / Figma / integration specs / attachments; `markitdown` each missing source into `docs/knowledge/` (check `INDEX.md`; supersede stale; keep provenance).
-- Resume: if `docs/tasks/<card>/` exists, read `spec.md` + `plan.md` + `todo.md` and offer to continue.
+- Resume: if `docs/tasks/<card>/` exists, read `spec.md` + `plan.md` + `todo.md` and offer to continue. If only `docs/archive/tasks/<card>/` exists, the card is closed — state the archive path; do not auto-resume (reopen only on explicit ask — see Card archive).
 
 ### 2. ALIGN — decision-grilling, not requirement discovery
 
@@ -135,6 +135,7 @@ Steps run in order; nothing is skipped silently.
 
 - **GATE (human)**: final diff summary + MR title/body; wait.
 - On confirm: `gitlab` push + MR to `develop`. Never commit/push before this gate.
+- After the MR step completes, or the user closes the card without an MR: **Card archive**.
 
 ## BUG flow
 
@@ -144,6 +145,7 @@ Steps run in order; nothing is skipped silently.
 4. HTTP-observable → e2e regression tagged to the card.
 5. `code-review` + fresh-eyes.
 6. **Contract doc close** (mandatory when triggered — see below). Stop only after it passes — user commits.
+7. **Card archive** when the card folder is under `docs/tasks/` and no remaining work for it.
 
 ## REFACTOR flow
 
@@ -152,6 +154,7 @@ Steps run in order; nothing is skipped silently.
 3. Small steps; tests green after each (single-surface slices).
 4. `code-review` + fresh-eyes.
 5. **Contract doc close** if the refactor touched a contract surface (should be rare). Stop — user commits.
+6. **Card archive** when the card folder is under `docs/tasks/` and no remaining work for it.
 
 ## Contract doc close (every flow that edits production code)
 
@@ -208,7 +211,7 @@ No evidence → **stop and ask**. Do not ingest, do not rewrite D-notes, do not 
 ### 2. ALIGN — task-docs sync
 
 - Sweep **every** card/file that still states the old fact (cross-card when two cards share a decision).
-- `docs/tasks/<card>/{spec,plan,todo}.md` + knowledge entry: **append** dated supersede notes beside the old decision; never delete history.
+- Resolve card path (active `docs/tasks/<card>/` else `docs/archive/tasks/<card>/`), then `{spec,plan,todo}.md` + knowledge entry: **append** dated supersede notes beside the old decision; never delete history.
 - Re-grep the changed identifier and stale markers — zero remaining statements of the old state (task-docs sync rules).
 
 ### 3. API
@@ -224,15 +227,26 @@ No evidence → **stop and ask**. Do not ingest, do not rewrite D-notes, do not 
 - Grep remaining stale wording (old composite keys, superseded decision ids) across tests / e2e / bruno / task docs — zero hits, or listed as out-of-scope with reason.
 - Code changes only if VERIFY finds a real mismatch with the new SOT → hand off to BUG or FEATURE BUILD; RECONCILE does not invent product fixes.
 
-Stop. User commits. No MR unless they ask.
+Stop. User commits. No MR unless they ask. **Card archive** when the card folder is under `docs/tasks/` and no remaining work for it.
+
+## Card archive
+
+Finished cards leave `docs/tasks/` so the active tree stays a work queue — history is moved, not deleted.
+
+- **Path**: `docs/archive/tasks/<card>/` — noun **`archive`** (same pattern as `docs/knowledge/`, `docs/api/`, `docs/tasks/`), not the adjective `archived/`.
+- **Trigger**: no remaining neo work for `<card>` (FEATURE after MR gate done or explicit close without MR; BUG / REFACTOR / RECONCILE after that flow's final stop). Always **after** machine gates — never archive before VERIFY / `neocheck` / DOC.
+- **Action**: `mkdir -p docs/archive/tasks && mv docs/tasks/<card> docs/archive/tasks/<card>`. Never delete. Never archive mid-flow.
+- **Active writes + gates**: new/ongoing work and every machine gate (`neocheck`, `e2echeck`, e2e evidence paths, Spec-axis reads) stay on `docs/tasks/<card>/` only. Re-run a gate on a closed card → reopen first.
+- **Path resolve** (RECONCILE / task-docs sync / read-only history): `docs/tasks/<card>/` if present, else `docs/archive/tasks/<card>/`.
+- **Resume**: only `docs/tasks/<card>/`. Archive-only = closed; reopen = `mv` back to `docs/tasks/<card>/` on explicit user ask.
 
 ## Task-docs sync
 
 A card's `spec.md`, `plan.md`, and `todo.md` are one record split across files. When a fact changes, update **every** file that states it in the same pass — never only the nearest one. Ticking `todo.md` while `plan.md` still reads "blocked" plants a contradiction the next session will read and act on.
 
 - **Triggers**: a source is ingested, an open question is resolved, a decision is made mid-flow (a user answer in chat counts), scope changes, a task changes state, a risk resolves.
-- **Sweep**: `docs/tasks/<card>/{spec,plan,todo}.md`, plus the `docs/knowledge/` entry and its `INDEX.md`.
-- **Append, never erase**: a dated note is a changelog line and is correct for its date — add the new dated note beside it instead of rewriting it.
+- **Sweep**: resolve the card path (active `docs/tasks/<card>/` else `docs/archive/tasks/<card>/`), then `{spec,plan,todo}.md` there, plus the `docs/knowledge/` entry and its `INDEX.md`.
+- **Append, never erase**: a dated note is a changelog line and is correct for its date — add the new dated note beside it instead of rewriting it. Card archive (move to `docs/archive/tasks/`) is relocation, not erasure.
 - **Verify**: re-grep the changed identifier and the stale markers (`⛔`, "blocked", "TBD", "not yet ingested") — zero remaining statements of the old state. Grep finds identifiers, not counters: walk the file list too, since "N ingests remaining" summary lines carry no identifier.
 
 ## Gates
@@ -282,6 +296,7 @@ Everything else runs continuously. A blocker stops immediately with one precise 
 | "Tests pass, so coverage is fine" | Unstated is unmeasured. Run the coverage command and report the number, or the gate did not happen. |
 | "Coverage is short — exclude the generated package" | Widening an exclusion manufactures the threshold. Write the tests. |
 | "I ticked todo.md, that's the record" | Sweep spec + plan + knowledge in the same pass, then re-grep. A half-synced card misleads the next session. |
+| "Leave finished cards in docs/tasks/" | Archive to `docs/archive/tasks/<card>/` on close — active tree is the work queue, not history. |
 | "Code is right — just Update-from-code / fix api-spec" | Code ≠ requirement. RECONCILE: CAPTURE → INGEST → ALIGN, then structural API sync. Semantic rules never come from Go alone. |
 | "Commit message is enough evidence" | Lacks who/why/scope. CAPTURE still asks; stop if unanswered. |
 | "Only docs/api is stale" | Task D-notes and knowledge still state the old rule — next session will reverse the api fix. Sweep all three layers. |
