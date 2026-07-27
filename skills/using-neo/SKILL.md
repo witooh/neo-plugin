@@ -181,6 +181,12 @@ Ad-hoc "แก้ code ตรงๆ" that changes behavior still enters a flow (
 
 When **code already leads** the written requirement (hotfix, mid-card decision landed in code first, or docs/tasks still state a superseded rule). **KB stays SOT** — never promote code to SOT. Reuses existing skills only; no separate doc-from-code skill.
 
+**SOT layers (do not collapse):**
+
+- **Behavior SOT** — deployed/running code: what the system does now.
+- **Requirement / contract-intent SOT** — `docs/knowledge/` (after CAPTURE + ingest) plus task D-notes: what was agreed.
+- Code leads and CAPTURE has not run → requirement SOT is **stale or unknown**, not "code became SOT".
+
 Triggers (examples): "code นำหน้า", "reverse-sync", "reconcile doc", "hotfix แล้ว doc ค้าง", "sync doc ตาม code (มี evidence)".
 
 ### 0. CAPTURE — **GATE (human), never skip**

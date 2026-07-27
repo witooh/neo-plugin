@@ -43,7 +43,9 @@ python3 skills/using-neo/assets/neocheck.py <repo> <card>
 
 Everything between FEATURE gates runs continuously — one plan approval carries through to the MR
 gate. RECONCILE stops at CAPTURE until the decision is named; it never promotes code to requirement
-SOT (semantic rules come from the ingested knowledge / task notes, not from Go alone).
+SOT (semantic rules come from the ingested knowledge / task notes, not from Go alone). Two layers:
+running code is behavior SOT; KB after CAPTURE is requirement/contract-intent SOT. Code-leads without
+CAPTURE means requirement SOT is stale/unknown — not that code replaced it.
 
 Other intents route straight to where they belong:
 
