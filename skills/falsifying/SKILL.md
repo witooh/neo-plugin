@@ -82,6 +82,18 @@ you tried and why it held — that is the useful half of a negative result.
 - When a task is handed to a subagent whose success criterion is "make the gate green" — that
   brief is satisfiable by an empty test, so audit the result rather than the report.
 
+## The advisor gate — mandatory, twice
+
+Calling a gate broken is a claim about someone else's work, and "the counter-case stayed green"
+is one reading of an output you produced yourself. When the `advisor` tool is present in the
+session, consult it at two points: once before you commit to the reading — you have the run output
+and are about to declare the signal broken, or sound — and once before the result leaves your
+hands, with the write-up already drafted so it survives the round trip. Consult again when a
+counter-case will not trip either way, or when you drop one technique for the other.
+
+Report what came back alongside the artifact. If `advisor` is not in the session, substitute
+nothing — say in the write-up that no advisor was available and the reading had no outside reader.
+
 ## Hand-off
 
 A confirmed finding stops here. Fixing it is the **BUG flow**: `diagnosing-bugs` for the cause,
@@ -97,3 +109,4 @@ does not skip ahead to the patch.
 | "The docs and the code disagree, docs are stale" | Maybe. Decide from what runs, and write down which source you picked and why. |
 | "Constructing a fake failing case is a waste of time" | It is the only evidence that the gate has any power at all. |
 | "One source of truth, nothing to diff" | Count them. Endpoint paths lived in six places. |
+| "My counter-case proves it — no need to ask" | You wrote the counter-case and read its output. That is the pair the advisor gate exists to check. |

@@ -30,10 +30,83 @@ Scope is the **product**. For defects in the gates themselves, use `falsifying`.
 
 - **Every ground starts with a command**, not with reading. If a ground cannot produce a candidate
   list mechanically, it does not belong here.
-- **A candidate is not a finding.** Confirm it by making the code do the wrong thing, or record
-  why it cannot be reached, with evidence.
+- **A candidate is not a finding.** Close it by making the code do the wrong thing, by a run that
+  shows the behaviour is right, or by recording with evidence why it cannot be reached — the three
+  statuses the loop below assigns. A `file:line` citation is none of them; it is what a candidate
+  is made of. Impact and severity belong to CONFIRMED rows only, and a candidate that has not been
+  through the loop has no status to carry them.
 - **Never fix in the hunt.** A confirmed finding goes to the BUG flow: `diagnosing-bugs` for the
   cause, `tdd` for the repro. Hunting and fixing in one pass produces neither.
+
+## The hunt loop
+
+The six grounds below are **sources, not steps**. The hunt itself is a loop that closes one
+candidate at a time, because the shape that keeps failing is the other one: sweep all six grounds,
+collect forty candidates, then label them from memory at the end. Status decided at the end is
+status decided by narrative.
+
+**SWEEP** — run the ground commands, collect candidates. Nothing is judged yet; a sweep produces a
+list, not an opinion.
+
+**TRIAGE** — rank the list and **declare a budget out loud before the first iteration**. Ground 5
+alone measured ~70 hits on one service, so an unbudgeted hunt does not finish. Rank by how wrong
+the behaviour would be if the candidate is real, not by how cheap it is to check — cheapness-first
+ordering spends the whole budget on the shallow end. Eight iterations is a reasonable opening bid
+when nothing argues for another number.
+
+**LOOP — one candidate per iteration.** Never open the next one until the current one has a status:
+
+1. Take the top candidate.
+2. Build the check that must go red if it is real — a failing test, a request, a call with the
+   boundary value. Borrow the construction techniques in `diagnosing-bugs` Phase 1 rather than
+   restating them here, but not its completion criterion: a hunt has no user-reported symptom to
+   assert, and a candidate that resists every check becomes BLOCKED and yields the iteration
+   instead of stopping the session to ask.
+3. Run it. Red → **CONFIRMED**. Green → **KILLED**, with what the green run proves — and keep the
+   check: a candidate that came from a coverage gap dies as a defect while leaving behind the test
+   that was missing, which is the whole yield of that iteration. Cannot be run at all → **BLOCKED**,
+   with the specific reason it is unreachable — "looks fine" is not one.
+4. Write the entry to the ledger, then pick the next candidate.
+
+**EXIT** — budget spent, queue empty, or a CONFIRMED finding whose impact is loss of money, loss of
+data, or a security hole, which is handed over immediately instead of finishing the queue. Say
+which of the three ended it. A hunt stopped by a stated budget is a complete hunt with a stated
+stopping point, not a failed one.
+
+### The ledger
+
+The ledger lives in the conversation, not in a file. One row per candidate, written the moment its
+status is decided:
+
+| # | ground | candidate | status | evidence | impact |
+|---|---|---|---|---|---|
+| 1 | 3 | `Round` on refund split | CONFIRMED | `go test -run TestRefundSplit` — red, 0.01 lost | payout short by a cent per split |
+| 2 | 2 | `LIMIT_EXCEEDED` declared, never returned | CONFIRMED | new e2e forces the limit — got `INTERNAL_ERROR` | clients cannot distinguish a limit from an outage |
+| 3 | 6 | gateway retry on partial body | BLOCKED | upstream cannot be made to truncate from the test harness | unknown until a proxy fixture exists |
+
+Because it is not persisted, restate the whole table at EXIT — that restatement is the report's
+spine. A session that ends or compacts mid-hunt takes the ledger with it; that is the cost of
+keeping it out of the repo, and re-sweeping is cheaper than a stale file nobody trusts.
+
+## The advisor gate — mandatory, twice
+
+A hunt ends in judgment calls made alone: which candidates count, how hard to label them, when to
+stop. That is exactly the shape of work that ships overclaimed. When the `advisor` tool is present
+in the session, calling it is not optional here:
+
+1. **Before you leave the loop** — the exit condition has hit and you are about to call the hunt
+   done and attach impact. Consult before you write those labels, not after.
+2. **Before the report leaves your hands** — draft it first so it survives the round trip, then
+   consult, then send. Waiting until someone asks "did you consult?" is the failure this gate
+   exists for.
+
+Also consult mid-loop when a candidate will not resolve either way — neither red nor honestly
+killed — before writing it off as BLOCKED, or when you are about to abandon the triage order you
+declared.
+
+Put what came back into the report: the correction, the reframing, the labels it pushed back on.
+If `advisor` is not in the session, do not substitute anything for it — state plainly in the
+report that no advisor was available and the findings had no outside reader.
 
 ## Ground 1 — requirement fidelity (start here)
 
@@ -146,9 +219,16 @@ against what a sample response happened to contain.
 
 ## Report
 
-Per finding: the ground, the candidate command that surfaced it, the confirmation (a failing test,
-or why it cannot be reached), and the impact in one line. Then the grounds worked and what each
-turned up — including the ones that turned up nothing, so the next hunt starts elsewhere.
+The report is the ledger, rendered — not a fresh summary written from memory over it. CONFIRMED
+rows first with the failing check verbatim and the impact in one line, then BLOCKED, then KILLED
+(short: what was ruled out and by what run). Severity attaches to CONFIRMED rows only.
+
+Around the table: which grounds were swept and what each turned up — including the ones that turned
+up nothing, so the next hunt starts elsewhere — how the loop ended (budget / queue / hand-over), and
+what is still in the queue unchecked. An unchecked candidate is reported as unchecked, never
+dropped.
+
+One line on the advisor gate: consulted (and what it changed), or not available in this session.
 
 ## Rationalizations
 
@@ -160,3 +240,7 @@ turned up — including the ones that turned up nothing, so the next hunt starts
 | "Money maths is simple" | Rounding, scale, and wire format each have a boundary, and money is where a boundary costs. |
 | "I'll fix it while I'm here" | Confirm, hand to the BUG flow, keep hunting. Fixing mid-hunt loses both threads. |
 | "Nothing found, so nothing's wrong" | Record which grounds you worked. An unworked ground is not a clean one. |
+| "I have the file:line, that is my evidence" | It is evidence the code *says* that. A finding claims the code *does* the wrong thing, and that needs a run. |
+| "The report is ready — I'll get a second opinion if it's questioned" | The consult belongs before the report, not after the pushback. Afterwards it is damage control. |
+| "I'll label the whole sweep once I've looked through it" | That is the batch shape the loop replaced. Forty open candidates end up labelled from memory, and memory grades generously. |
+| "Budget's spent but the queue isn't empty" | Then the hunt ends with a queue, stated. Overrunning the budget silently is how a hunt becomes endless. |

@@ -7,8 +7,9 @@ Most agent setups hand you a pile of skills and hope the model picks the right o
 you: every request enters through a single router that detects intent, runs the matching flow, and
 refuses to call work done until the gates agree.
 
-- **Five gates, three of them machine-verified.** AC coverage, unit coverage, and the API contract
-  are decided by scripts, not by an agent's opinion of its own work.
+- **Six gates, three of them machine-verified.** AC coverage, unit coverage, and the API contract
+  are decided by scripts, not by an agent's opinion of its own work. CAPTURE is the human gate on
+  RECONCILE — who/why/scope before any knowledge or contract write.
 - **Evidence before assertion.** External fields, endpoints, and error codes come from ingested
   sources with a citable path — never from memory. A citation that points nowhere fails the build.
 - **Your git stays yours.** neo never creates, switches, or guards a branch. The only git side
@@ -17,35 +18,44 @@ refuses to call work done until the gates agree.
 ## The flow
 
 ```text
-  ingest → align → api → spec ─┤ 1 ├─ build → verify ─┤2 3├─ review → doc ─┤ 4 ├─ mr ─┤ 5 ├
+FEATURE
+  ingest → align → api → spec ─┤ 1 ├─ build → verify ─┤3 4├─ review → doc ─┤ 5 ├─ mr ─┤ 6 ├
                                 you                  machine              machine      you
+
+RECONCILE (code already leads the written requirement)
+  CAPTURE ─┤ 2 ├─ ingest KB → align task docs → structural api → verify
+            you
 ```
 
-|  #  | Gate                 | Kind    | Decided by                                                 |
-| :-: | -------------------- | ------- | ---------------------------------------------------------- |
-|  1  | Spec + plan approval | human   | you                                                        |
-|  2  | AC coverage          | machine | `e2echeck.py` — every HTTP-observable criterion has a test |
-|  3  | Unit coverage        | machine | the repo's own coverage command, ≥ 80%                     |
-|  4  | API contract         | machine | `apispeccheck.py` + drift report                           |
-|  5  | MR / ship            | human   | you                                                        |
+|  #  | Gate                          | Kind    | Decided by                                                            |
+| :-: | ----------------------------- | ------- | --------------------------------------------------------------------- |
+|  1  | Spec + plan approval          | human   | you (FEATURE)                                                         |
+|  2  | Decision evidence (CAPTURE)   | human   | you (RECONCILE) — source + who/why/scope before any KB/task/api write |
+|  3  | AC coverage                   | machine | `e2echeck.py` — every HTTP-observable criterion has a test            |
+|  4  | Unit coverage                 | machine | the repo's own coverage command, ≥ 80%                                |
+|  5  | API contract                  | machine | `apispeccheck.py` + drift report                                      |
+|  6  | MR / ship                     | human   | you                                                                   |
 
 ```bash
 # all three machine gates, one table, one exit code
 python3 skills/using-neo/assets/neocheck.py <repo> <card>
 ```
 
-Everything between gates runs continuously — one approval carries through to the MR gate.
+Everything between FEATURE gates runs continuously — one plan approval carries through to the MR
+gate. RECONCILE stops at CAPTURE until the decision is named; it never promotes code to requirement
+SOT (semantic rules come from the ingested knowledge / task notes, not from Go alone).
 
 Other intents route straight to where they belong:
 
-| You say                                   | neo runs                                              |
-| ----------------------------------------- | ----------------------------------------------------- |
-| a card key, a feature, "แก้ X"            | the full flow above                                   |
-| a bug, a failing test                     | `diagnosing-bugs` → red test → fix → review           |
-| a refactor                                | `codebase-design` → small steps → review              |
-| a question                                | answers — no ceremony                                 |
-| "everything's green but I don't trust it" | `falsifying` (the gate) or `bug-hunter` (the product) |
-| docs, MR, JIRA, scaffolding               | the matching domain skill                             |
+| You say                                   | neo runs                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| a card key, a feature, "แก้ X"            | FEATURE — the full flow above                                             |
+| a bug, a failing test                     | `diagnosing-bugs` → red test → fix → review                               |
+| a refactor                                | `codebase-design` → small steps → review                                  |
+| "code นำหน้า", reverse-sync, docs lag     | RECONCILE — CAPTURE → ingest KB → align → structural api-spec → verify    |
+| a question                                | answers — no ceremony                                                     |
+| "everything's green but I don't trust it" | `falsifying` (the gate) or `bug-hunter` (the product)                     |
+| docs, MR, JIRA, scaffolding               | the matching domain skill                                                 |
 
 ## Install
 

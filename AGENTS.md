@@ -41,7 +41,7 @@ Other harnesses are unsupported by design. If one is needed later, add a thin in
 
 ## Execution Model
 
-Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFACTOR, or a direct domain-skill route), runs it continuously, and stops only at its four gates: spec+plan approval (human), AC coverage via `e2echeck` (machine), API contract via `apispeccheck` + drift (machine), MR/ship (human). Git branching belongs to the user; the only git side effects live behind the MR gate.
+Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFACTOR, RECONCILE, or a direct domain-skill route), runs it continuously, and stops only at its gates: spec+plan approval (human), decision evidence on RECONCILE CAPTURE (human), AC coverage via `e2echeck` (machine), API contract via `apispeccheck` + drift (machine), contract doc close after production edits that touch the HTTP/contract surface (machine + direction rules), MR/ship (human). Git branching belongs to the user; the only git side effects live behind the MR gate.
 
 `using-neo` always runs its **high-hallucination profile** (no model detection): single-surface slices, package tests after every task, hard evidence paths for external API fields, and a mandatory fresh-eyes pass on REVIEW — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
 

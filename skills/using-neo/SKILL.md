@@ -1,6 +1,6 @@
 ---
 name: using-neo
-description: Routes engineering work through neo's single entry point. Detects intent, drives the matching flow (ingest, align, api, spec, build, verify, review, doc, MR), enforces machine gates, and always applies the high-hallucination profile (small slices, hard evidence, fresh-eyes review). Use when starting any task.
+description: Routes engineering work through neo's single entry point. Detects intent, drives the matching flow (FEATURE, BUG, REFACTOR, RECONCILE; ingest → align → api → spec → build → verify → review → doc → MR), enforces machine gates, and always applies the high-hallucination profile (small slices, hard evidence, fresh-eyes review). Use when starting any task.
 ---
 
 # Using Neo
@@ -59,6 +59,7 @@ There is no opt-out flag. If a step in the table is impossible in the harness (e
 | Everything is green — audit the gate itself | `falsifying` |
 | Everything is green — hunt what the ACs never asked | `bug-hunter` |
 | Refactor, simplification | REFACTOR flow |
+| Code shipped ahead of docs / reverse-sync / reconcile KB+task+api to code (with evidence) | RECONCILE flow |
 | Question, investigation | Answer directly or `research` — no ceremony |
 | Ingest a source (JIRA, Confluence, URL, file, Figma) | `markitdown` |
 | API contract or doc work | `api-spec` / `openapi-doc` / `open-collection` / `confluence-api-doc` |
@@ -141,14 +142,83 @@ Steps run in order; nothing is skipped silently.
 2. `diagnosing-bugs` — hypothesis needs `file:line` or log cite before fix.
 3. `tdd` failing repro first (concurrent test for races), then fix to green.
 4. HTTP-observable → e2e regression tagged to the card.
-5. `code-review` + fresh-eyes. Stop — user commits.
+5. `code-review` + fresh-eyes.
+6. **Contract doc close** (mandatory when triggered — see below). Stop only after it passes — user commits.
 
 ## REFACTOR flow
 
 1. Confirm behavior-preserving scope.
 2. `codebase-design` for target shape.
 3. Small steps; tests green after each (single-surface slices).
-4. `code-review` + fresh-eyes. Stop.
+4. `code-review` + fresh-eyes.
+5. **Contract doc close** if the refactor touched a contract surface (should be rare). Stop — user commits.
+
+## Contract doc close (every flow that edits production code)
+
+Docs go stale the moment code ships without them. **Skipping is not allowed when the trigger matches** — FEATURE already has DOC; BUG / REFACTOR / ad-hoc code edits use this same close.
+
+**Trigger** — any of:
+
+- Diff touches HTTP contract surface: route, handler, wire DTO, request/response field, status code, public error code, or anything `docs/api/` describes.
+- The change is HTTP-observable to a client (even if no DTO file renamed).
+- `docs/api/` exists for the service and the package that owns an endpoint changed.
+
+**Not a trigger** — pure internal logic with no wire/status/error change (state so in the close-out; do not pretend a trigger was skipped).
+
+**Close steps** (when triggered):
+
+1. `openapi-doc` — must end at **drift = 0** before stop.
+2. Direction per drift row:
+   - Spec still correct, code drifted → fix code (or stay in BUG); do not rewrite the spec to match a bug.
+   - Structural code matches an already-approved intent (bug card / existing AC / ingested knowledge) → `api-spec` **Update-from-code** for structural surface only; preserve hand-authored semantics; `apispeccheck` green; `VERSION.md` when contract files change.
+   - Code encodes a **new or superseded decision** not yet in KB/task docs → **leave this close** and run **RECONCILE** (CAPTURE first). Silent Update-from-code without CAPTURE is forbidden.
+3. Contract files changed → `open-collection` when the collection exists.
+4. State the trigger, command(s), and drift=0 verdict. Unstated = skipped = not done.
+
+Ad-hoc "แก้ code ตรงๆ" that changes behavior still enters a flow (BUG or FEATURE BUILD) — it does **not** get a doc exemption.
+
+## RECONCILE flow
+
+When **code already leads** the written requirement (hotfix, mid-card decision landed in code first, or docs/tasks still state a superseded rule). **KB stays SOT** — never promote code to SOT. Reuses existing skills only; no separate doc-from-code skill.
+
+Triggers (examples): "code นำหน้า", "reverse-sync", "reconcile doc", "hotfix แล้ว doc ค้าง", "sync doc ตาม code (มี evidence)".
+
+### 0. CAPTURE — **GATE (human), never skip**
+
+A commit alone is not a requirement source. Before any KB/task/api write, name:
+
+1. **Decision source** — JIRA comment / Confluence / chat / verbal from whom / explicit user approval of a commit+scope.
+2. **Who + why** — decider and reason (one line each).
+3. **Scope** — every fact being ratified (e.g. key = `referenceNo` only; fee from request into session + echo). List them; do not infer from the diff.
+
+No evidence → **stop and ask**. Do not ingest, do not rewrite D-notes, do not Update-from-code.
+
+### 1. INGEST
+
+- `markitdown` a **new** knowledge entry (or supersede note) — never silent edit of an old entry.
+- Provenance required: source id (e.g. `verbal:YYYY-MM-DD`, JIRA key, commit sha) + who/why/scope from CAPTURE.
+- Update `docs/knowledge/INDEX.md`.
+
+### 2. ALIGN — task-docs sync
+
+- Sweep **every** card/file that still states the old fact (cross-card when two cards share a decision).
+- `docs/tasks/<card>/{spec,plan,todo}.md` + knowledge entry: **append** dated supersede notes beside the old decision; never delete history.
+- Re-grep the changed identifier and stale markers — zero remaining statements of the old state (task-docs sync rules).
+
+### 3. API
+
+- `openapi-doc` first — report drift; for each drift decide direction with CAPTURE evidence (code correct → reconcile spec; spec correct → fix code, not this flow).
+- Semantic rules (`business_logic`, remarks, idempotency wording, fee rules) come from the **ingested knowledge / task D-notes**, never invented from Go.
+- Structural surface only via `api-spec` **Update-from-code** (routes / fields / types); preserve hand-authored M/O, `business_logic`, `remark`, `errors`.
+- Append `docs/api/VERSION.md`. Contract changed → `open-collection` when the collection exists.
+
+### 4. VERIFY
+
+- **GATE (machine)**: `apispeccheck` + `openapi-doc` drift = 0.
+- Grep remaining stale wording (old composite keys, superseded decision ids) across tests / e2e / bruno / task docs — zero hits, or listed as out-of-scope with reason.
+- Code changes only if VERIFY finds a real mismatch with the new SOT → hand off to BUG or FEATURE BUILD; RECONCILE does not invent product fixes.
+
+Stop. User commits. No MR unless they ask.
 
 ## Task-docs sync
 
@@ -164,6 +234,7 @@ A card's `spec.md`, `plan.md`, and `todo.md` are one record split across files. 
 | Gate | Kind | Decider |
 |---|---|---|
 | Spec + plan approval | human | user |
+| Decision evidence (RECONCILE CAPTURE) | human | user — source + who/why/scope before any KB write |
 | AC coverage | machine | `e2echeck.py` |
 | Unit coverage | machine | repo coverage command ≥ 80% |
 | API contract | machine | `apispeccheck.py` + drift report |
@@ -179,6 +250,7 @@ Before marking any task or card done:
 | Touched | Required, already run this session |
 |---|---|
 | Production code | Package/unit tests for the touched package, green — plus the coverage gate before the card is done |
+| Contract surface / HTTP-observable wire change | **Contract doc close** — `openapi-doc` drift = 0 (+ `api-spec` / RECONCILE as directed above). No close-out without the verdict. |
 | `docs/api/` / API contract | `api-spec` verify (`apispeccheck` + its three-layer check) |
 | HTTP-observable AC | `e2e-playwright` / `e2echeck` |
 | DB migration, config, or a public contract | Backward-compat against the deployed version checked; rollback path stated |
@@ -204,3 +276,8 @@ Everything else runs continuously. A blocker stops immediately with one precise 
 | "Tests pass, so coverage is fine" | Unstated is unmeasured. Run the coverage command and report the number, or the gate did not happen. |
 | "Coverage is short — exclude the generated package" | Widening an exclusion manufactures the threshold. Write the tests. |
 | "I ticked todo.md, that's the record" | Sweep spec + plan + knowledge in the same pass, then re-grep. A half-synced card misleads the next session. |
+| "Code is right — just Update-from-code / fix api-spec" | Code ≠ requirement. RECONCILE: CAPTURE → INGEST → ALIGN, then structural API sync. Semantic rules never come from Go alone. |
+| "Commit message is enough evidence" | Lacks who/why/scope. CAPTURE still asks; stop if unanswered. |
+| "Only docs/api is stale" | Task D-notes and knowledge still state the old rule — next session will reverse the api fix. Sweep all three layers. |
+| "Bug/hotfix — skip DOC, code is enough" | Contract doc close is mandatory when the trigger matches. Unstated drift = skipped = not done. |
+| "Internal-only, so I skipped without saying" | If not triggered, say so in one line. Silence is treated as a skipped gate. |

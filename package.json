@@ -1,6 +1,6 @@
 {
   "name": "neo",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Production-grade engineering skills for AI coding agents.",
   "keywords": ["pi-package"],
   "pi": {
