@@ -33,8 +33,14 @@ are not.
   notes body, never the title.
 - **Commit to the current branch** (this repo ships from `main` — do not open a
   feature branch).
-- Every commit message ends with the trailer:
-  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
+- Every commit message ends with a `Co-Authored-By:` trailer naming **the model that
+  wrote it** — the one you are running as right now, taken from your own session,
+  never copied from this file or from an earlier commit:
+  `Co-Authored-By: Claude <your model name> <noreply@anthropic.com>`.
+  A hardcoded name outlives the model and writes a false author into history that
+  a force-push is the only way to correct. If your session does not tell you which
+  model you are, drop the name rather than guess one:
+  `Co-Authored-By: Claude <noreply@anthropic.com>`
 
 ## Workflow
 
