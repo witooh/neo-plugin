@@ -1,0 +1,12 @@
+{
+  "id": "restructure-service",
+  "skills": ["using-neo", "migrate-project"],
+  "fixture": "go-service",
+  "prompt": "อยากย้ายโครงสร้าง service เดิมให้เข้าโครง hexagonal แบบ account-service ขอแผนก่อน ยังไม่ต้องขยับไฟล์",
+  "expect": {
+    "skillsLoaded": ["migrate-project"],
+    "filesNotWritten": ["^internal/"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

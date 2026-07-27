@@ -1,0 +1,13 @@
+{
+  "id": "view-mr",
+  "skills": ["using-neo", "gitlab"],
+  "fixture": "go-service",
+  "stubs": ["glab"],
+  "setup": "git remote add origin https://gitlab.example.com/org/account-service.git",
+  "prompt": "สรุป MR !42 ให้หน่อย",
+  "expect": {
+    "skillsLoaded": ["gitlab"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

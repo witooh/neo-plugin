@@ -70,7 +70,7 @@ Run it when the diff touches **untrusted input, authentication/authorization, se
 
 ### 4. Spawn both sub-agents in parallel
 
-Send a single message with two `Agent` tool calls. Use the `general-purpose` subagent for both.
+Send a single message with two `Agent` tool calls. Use the `fresh-eyes` subagent — read-only by tool grant, so a reviewer cannot edit the diff it reports on (harness without that type → `general-purpose`).
 
 **Standards sub-agent prompt** — include:
 

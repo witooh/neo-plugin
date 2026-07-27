@@ -1,0 +1,12 @@
+{
+  "id": "refactor-seam",
+  "skills": ["using-neo", "codebase-design"],
+  "fixture": "go-service",
+  "prompt": "อยาก refactor แยก validation ของ request ออกจาก handler ควรวาง seam ตรงไหน ยังไม่ต้องแก้โค้ด ขอแค่ข้อเสนอ",
+  "expect": {
+    "skillsLoaded": ["codebase-design"],
+    "filesNotWritten": ["\\.go$"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

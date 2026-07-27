@@ -70,7 +70,7 @@ Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the pu
 The pre-flight + round-trip prove the storage is well-formed and survived Confluence verbatim; they cannot judge whether the **conversion preserved meaning**. Dispatch a verifier that reads a sample of (source markdown ↔ converted storage) pairs:
 
 ```
-Agent(subagent_type: "general-purpose", description: "verify confluence publish", prompt: """
+Agent(subagent_type: "fresh-eyes", description: "verify confluence publish", prompt: """
 # Role: Publish Verifier
 Read first: <SKILL_DIR>/references/pub-verifier.md
 SKILL_DIR = <skill base dir>
@@ -87,7 +87,7 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
 
-`SKILL_DIR` is mandatory. The verifier is read-only → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
+`SKILL_DIR` is mandatory. The verifier is read-only by tool grant — `fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by instruction only) → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
 
 ### verify-L3 · Completeness sweep (omission critic)
 

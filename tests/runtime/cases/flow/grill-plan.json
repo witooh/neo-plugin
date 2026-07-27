@@ -1,0 +1,12 @@
+{
+  "id": "grill-plan",
+  "skills": ["using-neo", "grilling"],
+  "fixture": "go-service",
+  "prompt": "grill แผนนี้ให้หน่อย: จะเก็บเงิน balance เป็น float64 ใน Go service",
+  "expect": {
+    "skillsLoaded": ["grilling"],
+    "filesNotWritten": ["\\.go$"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

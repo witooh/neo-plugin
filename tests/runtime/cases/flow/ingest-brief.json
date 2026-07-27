@@ -1,0 +1,11 @@
+{
+  "id": "ingest-brief",
+  "skills": ["using-neo", "markitdown"],
+  "fixture": "go-service",
+  "prompt": "จำ context นี้ไว้ใน knowledge base: Account คือ entity ที่มียอดเงิน balance เป็นทศนิยม 2 ตำแหน่ง และต้องไม่ติดลบ",
+  "expect": {
+    "skillsLoaded": ["markitdown"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

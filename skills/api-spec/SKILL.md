@@ -86,7 +86,7 @@ Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the au
 Dispatch a verifier that did **not** author the spec — it re-reads the **source-of-intent** and the YAML independently and judges the semantic fidelity the script cannot (does the contract reflect the intent, M/O vs business rules, errors covering failure paths, business_logic matching the real flow, example consistency):
 
 ```
-Agent(subagent_type: "general-purpose", description: "verify api-spec", prompt: """
+Agent(subagent_type: "fresh-eyes", description: "verify api-spec", prompt: """
 # Role: API-Spec Semantic Verifier
 Read first: <SKILL_DIR>/references/api-spec-verifier.md
 SKILL_DIR = <skill base dir>
@@ -105,7 +105,7 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
 
-`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** reconcile the YAML → re-run `apispeccheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
+`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only by tool grant — `fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by instruction only) → **you** reconcile the YAML → re-run `apispeccheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
 

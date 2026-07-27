@@ -1,0 +1,11 @@
+{
+  "id": "e2e-from-ac",
+  "skills": ["using-neo", "e2e-playwright"],
+  "fixture": "go-service-speced",
+  "prompt": "เขียน e2e ตาม AC ใน docs/tasks/create-account/spec.md",
+  "expect": {
+    "skillsLoaded": ["e2e-playwright"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

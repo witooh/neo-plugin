@@ -44,13 +44,13 @@ codebase up to that blueprint, slice by slice, behavior-preserving and resumable
 ## Tools
 | Tool | Purpose |
 |---|---|
-| `Agent` | Dispatch a specialist (`subagent_type: "general-purpose"`): Analyzer · Mapper · Migrator · Verifier · Reviewer. |
+| `Agent` | Dispatch a specialist (`subagent_type: "general-purpose"`): Analyzer · Mapper · Migrator. **Verifier + Reviewer** → `"fresh-eyes"` — both are report-only by their own role spec, so a read-only tool grant stops them editing what they judge (harness without that type → `general-purpose`). |
 | `Read` | Read `<target>/docs/migration/{plan,target-map}.md` (resume + route) and project context (`CLAUDE.md`, `go.mod`). |
 | `AskUserQuestion` | Get the target dir; **CP1** plan approval; relay Open Questions. |
 
 ## Handoff (point-to-read)
 - **`MIGRATE_DIR`** = this skill's base dir (from the skill-load message *"Base directory for this
-  skill: …"*). The specialist is `general-purpose` and does not know it — send it on **every**
+  skill: …"*). The specialist is a generic agent and does not know it — send it on **every**
   dispatch.
 - **`INIT_TEMPLATE`** = `<MIGRATE_DIR>/../init-project/assets/template` — the frozen blueprint
   (steering guides + `.golangci.yaml` + `CLAUDE.md`). Send it too; the roles read the steering from
@@ -108,12 +108,15 @@ each slice is gated by its own verify; per-slice checkpoints would only re-litig
 
 ## Dispatch (point-to-read)
 ```
-Agent(subagent_type: "general-purpose", description: "<3-5 words>", prompt: """
+Agent(subagent_type: "general-purpose" | "fresh-eyes" for Verifier + Reviewer, description: "<3-5 words>", prompt: """
 # Role: <Name>  (role-id: <id>)
 Read first: <MIGRATE_DIR>/references/preamble.md + <MIGRATE_DIR>/references/roles/<role>.md
 (Mapper also: <MIGRATE_DIR>/references/migration-tracking.md + templates/plan-template.md)
 (Analyzer also: <MIGRATE_DIR>/references/templates/target-map-template.md)
 (Reviewer reads: <MIGRATE_DIR>/references/migrate-verifier.md)
+(Verifier + Reviewer are read-only: list Open Questions inline whatever the count, and report a
+ regression instead of fixing it — preamble §2's open-questions file and §3's "fix and re-verify"
+ belong to the writing roles. Scratch builds go to /tmp, never into the target tree.)
 MIGRATE_DIR   = <abs path of this skill>
 INIT_TEMPLATE = <MIGRATE_DIR>/../init-project/assets/template   # blueprint steering + .golangci.yaml + CLAUDE.md
 

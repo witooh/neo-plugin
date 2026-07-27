@@ -6,6 +6,7 @@
   "setup": "git remote add origin https://gitlab.example.com/org/account-service.git\ngit checkout -qb feat/not-found-404\nsed -i '' 's/writeError(w, http.StatusInternalServerError, \"internal error\")/if errors.Is(err, ErrNotFound) {\\n\\t\\t\\twriteError(w, http.StatusNotFound, \"account not found\")\\n\\t\\t\\treturn\\n\\t\\t}\\n\\t\\twriteError(w, http.StatusInternalServerError, \"internal error\")/' internal/account/handler.go\nsed -i '' 's|\"encoding/json\"|\"encoding/json\"\\n\\t\"errors\"|' internal/account/handler.go\ngofmt -w internal/account/handler.go\ngit -c user.email=eval@neo -c user.name=eval commit -aqm 'fix(account): return 404 when the account is missing'",
   "prompt": "ทำ MR ให้หน่อย",
   "expect": {
+    "skillsLoaded": ["gitlab"],
     "cliNotCalled": ["glab mr create"],
     "noGitWrites": true,
     "sandbox": true

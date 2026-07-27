@@ -43,7 +43,7 @@ Method skills ship inside this plugin. If `tdd` / `grilling` / `diagnosing-bugs`
 | Slice size | One todo item = one edit surface (one package or one file cluster). No multi-package batches. |
 | BUILD verify | After **every** green test: run package tests for the touched package (not only at end of all tasks). |
 | API / DOC | Every new/changed request/response field lists its evidence path in the working notes or spec remark. |
-| REVIEW | Run `code-review`, **then** spawn one fresh-context subagent on the diff with only: “list incorrect claims, invented APIs, missing tests, convention breaks — evidence required”. Fix before DOC. |
+| REVIEW | Run `code-review`, **then** spawn one fresh-context subagent (`subagent_type: "fresh-eyes"`) on the diff with only: “list incorrect claims, invented APIs, missing tests, convention breaks — evidence required”. Fix before DOC. |
 | BUG | Hypothesis must cite a `file:line` or log line before any fix. Concurrent/race bugs require a failing repro test first — no speculative locks. |
 | Narration | Prefer short status + evidence paths over long reasoning. If unsure, stop with one question. |
 | Recovery | On a wrong turn: revert or re-read source of truth, do not stack another guess on top. |
@@ -106,7 +106,7 @@ Steps run in order; nothing is skipped silently.
 - **Skill invocation is mandatory.** Before the first production edit of each task, load + follow the skill matching the work: `tdd` for any code change (red first), `api-spec` for any API-contract touch, `e2e-playwright` for HTTP-AC coverage. Never shortcut a skill because the change is small, the answer is known, it is "type/DTO/wire-only", or "e2e comes later".
 - A conversational request that changes behavior or code ("แก้ X…") enters this flow — never an ad-hoc direct implement.
 - Per task: `tdd` red-green-refactor; typecheck/lint on green; tick `todo.md`.
-- **Waves run concurrently.** Tasks in the same wave go out in one message, one `Agent` call per task, `run_in_background: true` on each. Different waves stay sequential. A wave agent writes only its own surface — production code plus that surface's unit tests. Build, vet, fmt, and ticking `todo.md` belong to the parent after the whole wave returns, never inside a wave agent: the slices keep source files disjoint, but a shared module build and a shared `todo.md` still collide.
+- **Waves run concurrently.** Tasks in the same wave go out in one message, one `Agent` call per task (`subagent_type: "neo-builder"`; where the harness has no such type, use `general-purpose` and paste this bullet's rules into the prompt), `run_in_background: true` on each. Different waves stay sequential. A wave agent writes only its own surface — production code plus that surface's unit tests. Build, vet, fmt, and ticking `todo.md` belong to the parent after the whole wave returns, never inside a wave agent: the slices keep source files disjoint, but a shared module build and a shared `todo.md` still collide.
 - Read the matching `.kiro/steering/` guide before writing in a layer; `new-feature-checklist.md` when present.
 - Package-level tests after every task (profile table).
 

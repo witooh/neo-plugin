@@ -106,8 +106,9 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
    layers, `/health` wired with an empty `Handlers`, and a best-effort (never-panicking) boot path. If
    any check FAILs, fix and re-run before reporting success.
 
-4. **L2 verify (fresh eyes).** Dispatch a sub-agent — `Agent(subagent_type: "general-purpose")` —
-   with the contract in `references/init-verifier.md`, passing the target dir. It independently
+4. **L2 verify (fresh eyes).** Dispatch a sub-agent — `Agent(subagent_type: "fresh-eyes")`,
+   read-only by tool grant (harness without that type → `general-purpose`) — with the contract in
+   `references/init-verifier.md`, passing the target dir. It independently
    confirms the project is a genuinely empty, runnable skeleton (serves `/health` without Docker, no
    business leak, steering intact). Relay any issue it surfaces.
 

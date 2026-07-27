@@ -1,0 +1,11 @@
+{
+  "id": "resolve-conflict",
+  "skills": ["using-neo", "resolving-merge-conflicts"],
+  "fixture": "go-service",
+  "setup": "B=$(git branch --show-current)\ngit checkout -qb incoming\nsed -i '' 's/\"internal error\"/\"lookup failed\"/' internal/account/handler.go\ngit -c user.email=eval@neo -c user.name=eval commit -aqm 'incoming: clearer error text'\ngit checkout -q \"$B\"\nsed -i '' 's/\"internal error\"/\"unexpected error\"/' internal/account/handler.go\ngit -c user.email=eval@neo -c user.name=eval commit -aqm 'mainline: reword error text'\ngit merge incoming >/dev/null 2>&1 || true",
+  "prompt": "มี merge conflict ค้างอยู่ ช่วยจัดการให้",
+  "expect": {
+    "skillsLoaded": ["resolving-merge-conflicts"],
+    "sandbox": true
+  }
+}

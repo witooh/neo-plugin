@@ -62,7 +62,7 @@ Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the dr
 ### verify-L2 · Fresh-eyes drift verifier (independent agent)
 Dispatch a verifier that re-reads the Go source **and** the api-spec independently and judges only the drift the script could not decide (the `NOTE` spots): unconfident struct matches, the response envelope, inline query/path params, custom-type fields, and **error-status tracing** (is each spec `errors[]` row backed by a Go sentinel, and every traced sentinel documented? — `go-scan-patterns.md §Error Tracing`):
 ```
-Agent(subagent_type: "general-purpose", description: "verify api-spec drift", prompt: """
+Agent(subagent_type: "fresh-eyes", description: "verify api-spec drift", prompt: """
 # Role: API-Spec Drift Verifier
 Read first: <SKILL_DIR>/references/openapi-doc-verifier.md
 SKILL_DIR = <skill base dir>
@@ -84,7 +84,7 @@ CLAUDE.md (the relevant section)
 End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
-`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → it reports drift findings; **reconciliation of `docs/api/*.yaml` is the `api-spec` skill's** (re-run `speccheck.py` to confirm nothing regressed). Do not auto-redispatch; if findings are deep, offer a second fresh-eyes round (default yes), then escalate.
+`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only by tool grant — `fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by instruction only) → it reports drift findings; **reconciliation of `docs/api/*.yaml` is the `api-spec` skill's** (re-run `speccheck.py` to confirm nothing regressed). Do not auto-redispatch; if findings are deep, offer a second fresh-eyes round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
 L1/L2 inspect endpoints they *matched*; L3 catches what was **silently un-compared** on either side. Re-derive **both inventories yourself** — the full route list straight from the router-setup file, and the full endpoint-file list from `docs/api/` — then confirm:

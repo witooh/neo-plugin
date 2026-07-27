@@ -1,0 +1,12 @@
+{
+  "id": "publish-confluence",
+  "skills": ["using-neo", "confluence-api-doc"],
+  "fixture": "go-service-speced",
+  "stubs": ["acli", "curl"],
+  "prompt": "publish api doc ขึ้น confluence",
+  "expect": {
+    "skillsLoaded": ["confluence-api-doc"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}

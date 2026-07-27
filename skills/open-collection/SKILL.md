@@ -98,7 +98,7 @@ Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the ge
 Dispatch a verifier that did **not** write the collection — it re-reads the api-spec itself and checks the judgment-level accuracy the script cannot (auth semantic mapping, header completeness, that the runnable body truly corresponds field-for-field to the api-spec, and that the rendered `docs:` reads faithfully):
 
 ```
-Agent(subagent_type: "general-purpose", description: "verify open collection", prompt: """
+Agent(subagent_type: "fresh-eyes", description: "verify open collection", prompt: """
 # Role: Open Collection Verifier
 Read first: <SKILL_DIR>/references/col-verifier.md
 SKILL_DIR = <skill base dir>
@@ -118,7 +118,7 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
 
-`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only → **you** fix the files → re-run `colcheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
+`SKILL_DIR` is mandatory — without it the verifier cannot read its role file and fails silently. The verifier is read-only by tool grant — `fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by instruction only) → **you** fix the files → re-run `colcheck.py`. Do not auto-redispatch; offer a second round (default yes), then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)
 

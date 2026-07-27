@@ -154,7 +154,7 @@ status + error code** (not a vacuous test), and is each `it.skip` reason a *real
 case (not a lazy excuse for a testable AC)?
 
 ```
-Agent(subagent_type: "general-purpose", description: "verify e2e specs", prompt: """
+Agent(subagent_type: "fresh-eyes", description: "verify e2e specs", prompt: """
 # Role: E2E Semantic Verifier
 Read first: <SKILL_DIR>/references/e2e-verifier.md
 SKILL_DIR = <skill base dir>
@@ -174,8 +174,9 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 """)
 ```
 
-`SKILL_DIR` is mandatory — without it the verifier cannot read its role file. The verifier is
-read-only → **you** reconcile the specs → re-run `e2echeck.py`. Offer a second round (default yes),
+`SKILL_DIR` is mandatory — without it the verifier cannot read its role file. The verifier is read-only by tool grant —
+`fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by
+instruction only) → **you** reconcile the specs → re-run `e2echeck.py`. Offer a second round (default yes),
 then escalate.
 
 ### verify-L3 · Completeness sweep (omission critic)

@@ -1,0 +1,11 @@
+{
+  "id": "research-topic",
+  "skills": ["using-neo", "research"],
+  "fixture": "go-service",
+  "prompt": "ช่วย research ว่าใน Go ควรใช้ package uuid ตัวไหนเป็นมาตรฐาน เก็บผลเป็น markdown ใน repo",
+  "expect": {
+    "skillsLoaded": ["research"],
+    "sandbox": true,
+    "noGitWrites": true
+  }
+}
