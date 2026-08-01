@@ -68,6 +68,16 @@ Other intents route straight to where they belong:
 /plugin install neo@neo
 ```
 
+**omp**
+
+Native omp package: the `omp` block in `package.json` loads an ESM session extension that injects the
+`using-neo` router, and `skills/` is discovered as-is. See [docs/omp-setup.md](docs/omp-setup.md).
+
+```bash
+omp plugin install github:witooh/neo-plugin   # from GitHub
+omp plugin link ./neo-plugin                  # from a local clone
+```
+
 **pi**
 
 Installs as a native pi package; skills load unchanged, and a session extension injects the
@@ -210,6 +220,7 @@ Validate before shipping:
 ```bash
 node scripts/validate-skills.js      # frontmatter + dead-reference scan
 node scripts/validate-pi-package.js  # pi package wiring
+node scripts/validate-omp-package.js # omp package wiring
 bash hooks/session-start-test.sh     # Claude Code hook
 claude plugin validate .             # plugin structure
 ```

@@ -1,8 +1,11 @@
 {
   "name": "neo",
-  "version": "3.1.3",
+  "version": "3.2.0",
   "description": "Production-grade engineering skills for AI coding agents.",
   "keywords": ["pi-package"],
+  "omp": {
+    "extensions": ["./extensions/using-neo-session-start.mjs"]
+  },
   "pi": {
     "extensions": ["./extensions/using-neo-session-start.js"],
     "skills": ["./skills"]

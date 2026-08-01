@@ -21,7 +21,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 ```text
 skills/            using-neo router + method layer (synced) + 10 domain skills
 hooks/             Claude Code session-start hook (injects using-neo)
-extensions/        pi session-start extension (injects using-neo + steering INDEX)
+extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
 .claude-plugin/    Claude Code plugin + marketplace manifests
 .plugin/           Generic plugin manifest mirror (hooks.json variant)
 .pi/               pi discovery symlinks (skills → ../skills, extensions → ../extensions)
@@ -32,10 +32,11 @@ docs/              Setup guides
 
 ## Harness Channels
 
-Two supported channels, one canonical content source:
+Three supported channels, one canonical content source:
 
 - **Claude Code**: plugin install; `hooks/session-start.sh` injects the full `using-neo` SKILL.md plus the target repo's `.kiro/steering/INDEX.md` when present.
 - **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` injects only `using-neo` SKILL.md (no steering index).
+- **omp**: `package.json` `omp` block (read before `pi`); `extensions/using-neo-session-start.mjs` — ESM factory, appends `using-neo` as its own `systemPrompt` block. Skills load from `skills/` with no manifest entry. See `docs/omp-setup.md`.
 
 Other harnesses are unsupported by design. If one is needed later, add a thin injection adapter — never fork skill content per harness.
 
@@ -58,6 +59,7 @@ Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFAC
 
 - Skills: `node scripts/validate-skills.js`
 - pi package: `node scripts/validate-pi-package.js`
+- omp package: `node scripts/validate-omp-package.js`
 - Claude hook: `bash hooks/session-start-test.sh`
 - Claude plugin structure: `claude plugin validate .`
 
