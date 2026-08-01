@@ -78,6 +78,11 @@ omp plugin install github:witooh/neo-plugin   # from GitHub
 omp plugin link ./neo-plugin                  # from a local clone
 ```
 
+Both paths bring up the router and the skills — the local link checked against a system-prompt dump,
+the GitHub install checked in a live session (router phrase present, `using-neo` in the skill
+catalog). `omp plugin uninstall neo` removes it. The `/marketplace` route loads the router but its
+skills did not reach the session catalog on omp 17.2.2 — prefer `plugin install` / `plugin link`.
+
 **pi**
 
 Installs as a native pi package; skills load unchanged, and a session extension injects the

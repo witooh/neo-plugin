@@ -23,7 +23,7 @@ omp plugin install github:witooh/neo-plugin   # from GitHub
 omp plugin link ./neo-plugin                  # from a local clone
 ```
 
-Measured on omp 17.2.2: a linked plugin exposes both surfaces — the router block in the system prompt and all 22 skills in the session skill catalog. A `/marketplace` install of the same tree loads the router extension but its skills did not reach the catalog; prefer `plugin install` / `plugin link` until that path is confirmed.
+Measured on omp 17.2.2. A local `plugin link` was checked against a dumped `systemPrompt`: two blocks, the router appended last, base block untouched, 22 neo skills in the catalog. The git install (`github:witooh/neo-plugin`, v3.2.0) was checked in a live session — the router phrase is present in the system prompt and `using-neo` is listed among the discovered skills. A `/marketplace` install of the same tree loads the router extension but its skills did not reach the catalog; prefer `plugin install` / `plugin link` until that path is confirmed.
 
 ## Verify
 
