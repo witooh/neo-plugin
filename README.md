@@ -56,7 +56,7 @@ Other intents route straight to where they belong:
 | a refactor                                | `codebase-design` → small steps → review                                  |
 | "code นำหน้า", reverse-sync, docs lag     | RECONCILE — CAPTURE → ingest KB → align → structural api-spec → verify    |
 | a question                                | answers — no ceremony                                                     |
-| "everything's green but I don't trust it" | `falsifying` (the gate) or `bug-hunter` (the product)                     |
+| "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP abuse) |
 | docs, MR, JIRA, scaffolding               | the matching domain skill                                                 |
 
 ## Install
@@ -114,7 +114,7 @@ Either way the method skills ship inside the plugin — there is no second insta
 │ research · prototype                                 │
 │ codebase-design · resolving-merge-conflicts          │
 ├─ DOMAIN LAYER (neo-owned) ───────────────────────────┤
-│ code-review · falsifying · bug-hunter                │
+│ code-review · falsifying · bug-hunter · attack-test  │
 │ api-spec · e2e-playwright · openapi-doc              │
 │ open-collection · confluence-api-doc · markitdown    │
 │ init-project · migrate-project · atlassian · gitlab  │
@@ -149,6 +149,7 @@ documented upstream.
 | `code-review`    | Two-axis review of a diff — Standards (`.kiro/steering/`) and Spec (`docs/tasks/<card>/spec.md`) — plus Security when the diff earns it |
 | `falsifying`     | Attacks a green signal: can this gate go red at all? Audits the apparatus, not the product                                              |
 | `bug-hunter`     | Hunts defects no gate covers, starting from the ingested originals in `docs/knowledge/`                                                 |
+| `attack-test`    | Fires abuse/hack paths over live HTTP after happy path — money-move, authz bypass, proof forge, idempotency                             |
 
 **The API contract chain**
 

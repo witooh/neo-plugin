@@ -11,7 +11,7 @@ Single entry router. Every request routes here first: detect intent, run the mat
 
 - **Router** (this skill): when things happen — intent, flow order, gates, resume, model profile.
 - **Method layer** (vendored from [mattpocock/skills](https://github.com/mattpocock/skills) via `sync-mattpocock`): `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Live under `skills/<name>/`.
-- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
+- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
 
 ## Method-layer availability
 
@@ -58,6 +58,7 @@ There is no opt-out flag. If a step in the table is impossible in the harness (e
 | Bug, failing test, unexpected behavior | BUG flow |
 | Everything is green — audit the gate itself | `falsifying` |
 | Everything is green — hunt what the ACs never asked | `bug-hunter` |
+| Happy path works — probe abuse/hack paths over live HTTP | `attack-test` |
 | Refactor, simplification | REFACTOR flow |
 | Code shipped ahead of docs / reverse-sync / reconcile KB+task+api to code (with evidence) | RECONCILE flow |
 | Question, investigation | Answer directly or `research` — no ceremony |

@@ -3,16 +3,13 @@ name: bug-hunter
 description: >-
   Hunts for latent defects in product code that no gate covers and nobody has reported — the gap
   between "every acceptance criterion passes" and "the code is right". Works six grounds, each
-  with a runnable command that lists candidates: requirement fidelity against `docs/knowledge/`
-  (did the spec misread the card or the upstream contract, so the code faithfully implements a
-  misunderstanding), contract surface never exercised, money and decimal arithmetic, calendar and
-  timezone arithmetic, idempotency and concurrency, and unvalidated upstream responses. Use when a
-  card is built and green and you want to know what it still gets wrong, before a risky release,
-  when inheriting unfamiliar code, or periodically against a service. Every finding must be a
-  failing test or an evidence-backed note on why it cannot be triggered; confirmed findings include
-  copy-pasteable reproduce steps and a proposed fix, then go to the BUG flow (do not fix in the
-  hunt). Not for a reported bug (`diagnosing-bugs`), a diff review (`code-review`), or auditing a
-  gate (`falsifying`).
+  with a runnable command that lists candidates: requirement fidelity against `docs/knowledge/`,
+  unexercised contract surface, money/decimal math, calendar/timezone math, idempotency and
+  concurrency, and unvalidated upstream responses. Use when a card is green and you want what it
+  still gets wrong, before a risky release, or on unfamiliar code. Every finding needs a failing
+  test or evidence it cannot trigger; confirmed findings include reproduce steps + proposed fix,
+  then BUG flow (do not fix in the hunt). Not for reported bugs (`diagnosing-bugs`), diff review
+  (`code-review`), gate audits (`falsifying`), or live HTTP abuse (`attack-test`).
 ---
 
 # Bug Hunter
@@ -25,7 +22,7 @@ Measured on a real card: it passed its AC gate with zero uncovered criteria whil
 contract, implemented in Go — was asserted by exactly **zero** tests. Nothing was broken according
 to any gate.
 
-Scope is the **product**. For defects in the gates themselves, use `falsifying`.
+Scope is the **product** via code and contracts. For defects in the gates themselves, use `falsifying`. For abuse paths against a running stack over HTTP, use `attack-test`.
 
 ## Rules of the hunt
 

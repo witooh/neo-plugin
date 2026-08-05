@@ -8,8 +8,8 @@ description: >-
   better than the work feels, before trusting a number in an MR, or when a suite passes on code
   nobody has exercised. Produces a failing case or a source-disagreement table as evidence; a
   confirmed finding is handed to the BUG flow, not fixed in place. Not for a reported bug with a
-  symptom (that is `diagnosing-bugs`), not a diff review (`code-review`), and not a hunt through
-  product code for latent defects (`bug-hunter`).
+  symptom (that is `diagnosing-bugs`), not a diff review (`code-review`), not a hunt through
+  product code for latent defects (`bug-hunter`), and not live HTTP abuse probes (`attack-test`).
 ---
 
 # Falsifying
@@ -21,7 +21,7 @@ passes something broken, and again when people learn to ignore it. This skill as
 light is lying and tries to prove it.
 
 Scope is the **apparatus**: checkers, gates, coverage numbers, CI jobs, test suites, dashboards.
-For latent defects in the product itself, use `bug-hunter`.
+For latent defects in the product itself, use `bug-hunter`. For abuse paths against a running stack over HTTP, use `attack-test`.
 
 ## Technique 1 — make it go red
 

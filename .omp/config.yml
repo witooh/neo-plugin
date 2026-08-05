@@ -1,0 +1,8 @@
+# Project-local omp settings for neo-plugin maintainers.
+# Global config may list `agents` under disabledProviders, which hides
+# `.agents/skills`. customDirectories points at that tree so ship /
+# sync-mattpocock stay discoverable. Prefer this over touching
+# disabledProviders in the project file.
+skills:
+  customDirectories:
+    - .agents/skills
