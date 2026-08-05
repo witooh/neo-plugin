@@ -19,12 +19,39 @@ neo ships native omp wiring; no manual copying.
 
 ## Install
 
+### Marketplace (recommended — enables upgrade)
+
 ```bash
-omp plugin install github:witooh/neo-plugin   # from GitHub
-omp plugin link ./neo-plugin                  # from a local clone
+omp plugin marketplace add witooh/neo-plugin
+omp plugin install neo@neo
 ```
 
-Measured on omp 17.2.2. A local `plugin link` was checked against a dumped `systemPrompt`: two blocks, the router appended last, base block untouched, 22 neo skills in the catalog. The git install (`github:witooh/neo-plugin`, v3.2.0) was checked in a live session — the router phrase is present in the system prompt and `using-neo` is listed among the discovered skills. A `/marketplace` install of the same tree loads the router extension but its skills did not reach the catalog; prefer `plugin install` / `plugin link` until that path is confirmed.
+Id is `neo@neo` (plugin name @ marketplace name). Catalog is `.claude-plugin/marketplace.json` in this repo (`source: "./"` — the marketplace repo is the plugin).
+
+### Upgrade / uninstall
+
+```bash
+omp plugin upgrade              # every outdated marketplace plugin
+omp plugin upgrade neo@neo      # neo only
+omp plugin uninstall neo@neo
+```
+
+- `omp plugin upgrade` **requires** `name@marketplace`. Bare `neo` is rejected.
+- Version comes from the installed plugin's manifest (`package.json` / `.claude-plugin/plugin.json`) after the marketplace catalog is refreshed; cutting a release that bumps those fields is what makes a newer version visible.
+- `marketplace.autoUpdate` (`off` / `notify` / `auto`, default `notify`) only applies to marketplace plugins.
+
+### Alternatives (no upgrade channel)
+
+```bash
+omp plugin install github:witooh/neo-plugin   # git dep; reinstall/force to move versions
+omp plugin link <path-to-local-clone>        # points at a working tree
+```
+
+Do not expect `omp plugin upgrade` to move a `github:` or `link` install.
+
+### Measured notes
+
+Measured on omp 17.2.2 / 17.2.9: marketplace `neo@neo` installs and lists under Marketplace Plugins; `github:witooh/neo-plugin` lists under npm Plugins and is outside `upgrade`. A local `plugin link` was checked against a dumped `systemPrompt` (router block appended, skills present). Prefer marketplace when you want version notify/upgrade.
 
 ## Verify
 

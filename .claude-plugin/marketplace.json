@@ -9,10 +9,7 @@
   "plugins": [
     {
       "name": "neo",
-      "source": {
-        "source": "github",
-        "repo": "witooh/neo-plugin"
-      },
+      "source": "./",
       "description": "Production-grade engineering skills covering every phase of software development: ingest, spec, plan, build, verify, review, and ship.",
       "homepage": "https://github.com/witooh/neo-plugin",
       "license": "MIT",
