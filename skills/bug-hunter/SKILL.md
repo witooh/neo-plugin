@@ -9,9 +9,10 @@ description: >-
   timezone arithmetic, idempotency and concurrency, and unvalidated upstream responses. Use when a
   card is built and green and you want to know what it still gets wrong, before a risky release,
   when inheriting unfamiliar code, or periodically against a service. Every finding must be a
-  failing test or an evidence-backed note on why it cannot be triggered; confirmed findings go to
-  the BUG flow. Not for a reported bug (`diagnosing-bugs`), a diff review (`code-review`), or
-  auditing a gate (`falsifying`).
+  failing test or an evidence-backed note on why it cannot be triggered; confirmed findings include
+  copy-pasteable reproduce steps and a proposed fix, then go to the BUG flow (do not fix in the
+  hunt). Not for a reported bug (`diagnosing-bugs`), a diff review (`code-review`), or auditing a
+  gate (`falsifying`).
 ---
 
 # Bug Hunter
@@ -36,7 +37,9 @@ Scope is the **product**. For defects in the gates themselves, use `falsifying`.
   is made of. Impact and severity belong to CONFIRMED rows only, and a candidate that has not been
   through the loop has no status to carry them.
 - **Never fix in the hunt.** A confirmed finding goes to the BUG flow: `diagnosing-bugs` for the
-  cause, `tdd` for the repro. Hunting and fixing in one pass produces neither.
+  cause, `tdd` for the repro. The report **must** include how to reproduce and a proposed fix so
+  the hand-off is actionable — write those, do not apply them. Hunting and editing production code
+  in one pass produces neither.
 
 ## The hunt loop
 
@@ -66,7 +69,13 @@ when nothing argues for another number.
    check: a candidate that came from a coverage gap dies as a defect while leaving behind the test
    that was missing, which is the whole yield of that iteration. Cannot be run at all → **BLOCKED**,
    with the specific reason it is unreachable — "looks fine" is not one.
-4. Write the entry to the ledger, then pick the next candidate.
+4. On **CONFIRMED**, before leaving the iteration, capture two fields the BUG flow needs:
+   - **Reproduce** — the concrete steps (or command) that made it go red, copy-pasteable. Prefer
+     the failing check you just ran; include inputs, expected vs actual, and the `file:line` that
+     misbehaves.
+   - **Proposed fix** — one concrete approach (where to change, what should happen instead). A
+     sketch, not a patch. Do not edit production code here.
+5. Write the entry to the ledger, then pick the next candidate.
 
 **EXIT** — budget spent, queue empty, or a CONFIRMED finding whose impact is loss of money, loss of
 data, or a security hole, which is handed over immediately instead of finishing the queue. Say
@@ -78,11 +87,11 @@ stopping point, not a failed one.
 The ledger lives in the conversation, not in a file. One row per candidate, written the moment its
 status is decided:
 
-| # | ground | candidate | status | evidence | impact |
-|---|---|---|---|---|---|
-| 1 | 3 | `Round` on refund split | CONFIRMED | `go test -run TestRefundSplit` — red, 0.01 lost | payout short by a cent per split |
-| 2 | 2 | `LIMIT_EXCEEDED` declared, never returned | CONFIRMED | new e2e forces the limit — got `INTERNAL_ERROR` | clients cannot distinguish a limit from an outage |
-| 3 | 6 | gateway retry on partial body | BLOCKED | upstream cannot be made to truncate from the test harness | unknown until a proxy fixture exists |
+| # | ground | candidate | status | evidence | impact | reproduce | proposed fix |
+|---|---|---|---|---|---|---|---|
+| 1 | 3 | `Round` on refund split | CONFIRMED | `go test -run TestRefundSplit` — red, 0.01 lost | payout short by a cent per split | `go test ./internal/refund -run TestRefundSplit` with parts `[10.005,10.005]`; want 20.01 got 20.00 at `split.go:42` | round half-up per part with banker's only on the final total; cover in `TestRefundSplit` |
+| 2 | 2 | `LIMIT_EXCEEDED` declared, never returned | CONFIRMED | new e2e forces the limit — got `INTERNAL_ERROR` | clients cannot distinguish a limit from an outage | POST create until count=limit+1; expect `LIMIT_EXCEEDED`, got `INTERNAL_ERROR` from `handler.go:88` | map the domain limit error to `LIMIT_EXCEEDED` in the handler; assert in e2e |
+| 3 | 6 | gateway retry on partial body | BLOCKED | upstream cannot be made to truncate from the test harness | unknown until a proxy fixture exists | — | — |
 
 Because it is not persisted, restate the whole table at EXIT — that restatement is the report's
 spine. A session that ends or compacts mid-hunt takes the ledger with it; that is the cost of
@@ -220,8 +229,24 @@ against what a sample response happened to contain.
 ## Report
 
 The report is the ledger, rendered — not a fresh summary written from memory over it. CONFIRMED
-rows first with the failing check verbatim and the impact in one line, then BLOCKED, then KILLED
-(short: what was ruled out and by what run). Severity attaches to CONFIRMED rows only.
+rows first, then BLOCKED, then KILLED (short: what was ruled out and by what run). Severity attaches
+to CONFIRMED rows only.
+
+Each **CONFIRMED** row expands beyond the table into a short block — mandatory, not optional:
+
+```
+### C<n> — <candidate one-liner>
+- **Impact:** …
+- **Evidence:** failing check / command and its red output (verbatim enough to re-run)
+- **Reproduce:** numbered steps or a single copy-pasteable command + inputs + expected vs actual
+- **Proposed fix:** where to change and what correct behaviour looks like (sketch, not a patch)
+- **Hand-off:** BUG flow (`diagnosing-bugs` → `tdd` repro first). Do not fix in this hunt.
+```
+
+A CONFIRMED finding without **Reproduce** and **Proposed fix** is an incomplete report — the BUG
+flow should not have to rediscover either. Reproduce must be something another session can run;
+"see above" or a bare `file:line` is not enough. Proposed fix stays advisory: naming the seam and
+the intended behaviour is enough; writing the patch is the BUG flow's job.
 
 Around the table: which grounds were swept and what each turned up — including the ones that turned
 up nothing, so the next hunt starts elsewhere — how the loop ended (budget / queue / hand-over), and
@@ -238,7 +263,9 @@ One line on the advisor gate: consulted (and what it changed), or not available 
 | "The spec says so" | The spec is an interpretation of the card. Ground 1 exists because it can be wrong. |
 | "That error code can't happen in practice" | It is in the contract. Either prove it is unreachable, or test it. |
 | "Money maths is simple" | Rounding, scale, and wire format each have a boundary, and money is where a boundary costs. |
-| "I'll fix it while I'm here" | Confirm, hand to the BUG flow, keep hunting. Fixing mid-hunt loses both threads. |
+| "I'll fix it while I'm here" | Confirm, write reproduce + proposed fix, hand to the BUG flow, keep hunting. Applying the patch mid-hunt loses both threads. |
+| "Reproduce is obvious from evidence" | Evidence proves it failed once. Reproduce is the recipe someone else runs cold — write the steps. |
+| "Proposed fix means I'm fixing it" | A sketch in the report is hand-off fuel. A patch in the tree is a fix. Only the second is forbidden here. |
 | "Nothing found, so nothing's wrong" | Record which grounds you worked. An unworked ground is not a clean one. |
 | "I have the file:line, that is my evidence" | It is evidence the code *says* that. A finding claims the code *does* the wrong thing, and that needs a run. |
 | "The report is ready — I'll get a second opinion if it's questioned" | The consult belongs before the report, not after the pushback. Afterwards it is damage control. |
