@@ -11,7 +11,7 @@ Single entry router. Every request routes here first: detect intent, run the mat
 
 - **Router** (this skill): when things happen — intent, flow order, gates, resume, model profile.
 - **Method layer** (vendored from [mattpocock/skills](https://github.com/mattpocock/skills) via `sync-mattpocock`): `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Live under `skills/<name>/`.
-- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`.
+- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`.
 
 ## Method-layer availability
 
@@ -67,6 +67,7 @@ There is no opt-out flag. If a step in the table is impossible in the harness (e
 | MR or GitLab operation | `gitlab` |
 | JIRA operation | `atlassian` |
 | New service, restructure | `init-project` / `migrate-project` |
+| Core/Aux SIT logs, Argo, secrets, postgres | `neo-core-sit` / `neo-aux-sit` |
 
 Explicit user command overrides detection. Git branching is the user's: never create, switch, or guard branches. Only the MR step has git side effects, behind its gate.
 
