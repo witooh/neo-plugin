@@ -43,6 +43,11 @@ You are given: the **target dir** and the intended **module path / service name 
    (`example.com/neo/service`, `neo-service`, `NEOSVC`, `neoschema`) remains — unless the user
    deliberately chose that value.
 
+7. **Compose standard images.** `docker-compose.yaml` pins
+   `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0` (see
+   `.kiro/steering/tooling.md` § *Docker Compose — standard images*). Fail on
+   `apache/kafka:3.7.0`, plain `valkey/valkey:…`, or ECR Hub mirrors for postgres/redis.
+
 ## Output
 
 A short report: each check PASS/FAIL with one line of evidence, then a final verdict — **is this a

@@ -177,6 +177,27 @@ def main() -> None:
     check('r.GET("/health"' in rtext and re.search(r"type Handlers struct\s*{\s*}", rtext) is not None,
           "/health route wired + empty Handlers", "")
 
+    # Standard compose images (tooling.md — Docker Compose — standard images).
+    compose = t / "docker-compose.yaml"
+    ctext = compose.read_text(encoding="utf-8") if compose.is_file() else ""
+    required_images = (
+        "valkey/valkey-bundle:8-alpine",
+        "postgres:17-alpine",
+        "apache/kafka:4.1.0",
+    )
+    missing_img = [img for img in required_images if img not in ctext]
+    banned = []
+    for bad, why in (
+        ("apache/kafka:3.7.0", "kafka must be 4.1.0"),
+        ("valkey/valkey:8-alpine", "use valkey-bundle, not plain valkey"),
+        ("public.ecr.aws/docker/library/postgres", "use Hub postgres:17-alpine"),
+        ("public.ecr.aws/docker/library/redis", "use valkey-bundle, not ECR redis"),
+    ):
+        if bad in ctext:
+            banned.append(why)
+    check(not missing_img and not banned, "compose standard images",
+          (f"missing {missing_img}; " if missing_img else "") + ("; ".join(banned) if banned else ""))
+
     ok, detail = probe_health(t)
     check(ok, "boots + serves /health without infra (no panic)", detail)
 

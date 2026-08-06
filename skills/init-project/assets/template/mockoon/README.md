@@ -10,8 +10,10 @@ A freshly scaffolded service has **no upstreams yet**. neo adds one stub file pe
 integration it introduces:
 
 1. Create `<name>.json` (unique env `uuid`, next free port, e.g. `8500`).
-2. Add a `mockoon` service to `docker-compose.yaml` (or extend it) that loads the file —
-   append it to both `--data` and `--port` in the same order — and expose the port.
+2. Add a `mockoon` service to `docker-compose.yaml` (or extend it) using
+   **`mockoon/cli:9.7.0`** that loads the file — append it to both `--data` and
+   `--port` in the same order — and expose the port. Image tag is pinned in
+   `.kiro/steering/tooling.md` (Docker Compose — standard images).
 3. Point the adapter's `base_url` in `config/config.yaml` at it (e.g. `http://mockoon:8500`).
 
 See `.kiro/steering/e2e.md` for the stub conventions — one route per `method + path`,

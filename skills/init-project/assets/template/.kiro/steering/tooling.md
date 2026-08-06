@@ -119,6 +119,36 @@ ENTRYPOINT ["/service"]
 Small final image (alpine), static binary. `docker-compose*.yaml`
 wires the service + its infra (DB, cache, kafka, upstream stubs) for local + e2e.
 
+## Docker Compose — standard images
+
+Local + e2e compose uses these pinned images. Do not invent tags or Hub/ECR
+mirrors; align every service's `docker-compose*.yaml` (and dockertest tags) to
+this list.
+
+### Required (every service scaffold)
+
+| Service | Image |
+|---|---|
+| cache | `valkey/valkey-bundle:8-alpine` |
+| postgres / postgres-init | `postgres:17-alpine` |
+| kafka | `apache/kafka:4.1.0` |
+
+### When the feature needs it
+
+| Service | Image | When |
+|---|---|---|
+| mockoon | `mockoon/cli:9.7.0` | first external HTTP upstream stub |
+| kafka-ui | `ghcr.io/kafbat/kafka-ui:latest` | local topic browsing (optional) |
+| migrate | `migrate/migrate:v4.18.1` | one-shot migration runner in compose (optional; Makefile uses `tools/golang-migrate`) |
+| localstack | `localstack/localstack:3.4` | AWS API mock |
+
+### Don'ts
+
+- ✗ `apache/kafka:3.7.0` (or any non-4.1.0 tag) — standard is `4.1.0`.
+- ✗ `valkey/valkey:8-alpine` — use **`valkey-bundle`**, not plain valkey.
+- ✗ `public.ecr.aws/docker/library/{postgres,redis}:…` mirrors in local compose — use the Hub paths above.
+- ✗ `redis:*` for the cache service — Valkey is the cache image.
+
 ## Don'ts
 
 - ✗ Committing `vendor/` (gitignored) or secrets (`.env*`, keys, `credentials*`).

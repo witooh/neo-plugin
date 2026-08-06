@@ -42,6 +42,13 @@ pre-migration picture).
 5. **Completeness.** Every feature / bounded context the Analyzer listed in `target-map.md` is
    present in the new layout. Every slice in `plan.md` is `done`. Nothing silently dropped.
 
+6. **Compose images (when `docker-compose*.yaml` exists).** Required tags match
+   `INIT_TEMPLATE/.kiro/steering/tooling.md` § *Docker Compose — standard images*:
+   `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`. Fail on
+   `apache/kafka:3.7.0`, plain `valkey/valkey:…`, or ECR Hub mirrors for postgres/redis in
+   local compose. Optional extras (`mockoon/cli:9.7.0`, kafka-ui, localstack, migrate runner)
+   must stay on that allow-list.
+
 ## Output
 A short report: each check PASS / FAIL with one line of evidence (`file:line`), then a final verdict
 — **is this a faithful, behavior-preserving migration to the blueprint?** Call out any

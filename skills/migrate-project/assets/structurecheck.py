@@ -218,6 +218,38 @@ def check_contract(root: Path, module: str | None) -> None:
         note("(contract)", "CLAUDE.md not installed — steering index (install per blueprint)")
 
 
+def check_compose_images(root: Path) -> None:
+    """Flag non-standard compose image tags (tooling.md) as NOTE.
+
+    DRIFT is reserved for high-confidence structural facts (layout/imports/
+    golangci contract) — see migrate-project CLAUDE.md. Compose tags on
+    brownfield targets (incl. account-service still on kafka 3.7.0) must not
+    fail structurecheck's CONFORMS regression guard. Hard fail lives in
+    initcheck (greenfield) + migrate-verifier L2 (slice-scoped)."""
+    files = sorted(
+        p for p in root.iterdir()
+        if p.is_file() and p.name.startswith("docker-compose")
+        and p.suffix in {".yaml", ".yml"}
+    )
+    if not files:
+        return
+    banned = [
+        ("valkey/valkey:8-alpine", "use valkey/valkey-bundle:8-alpine (tooling.md)"),
+        ("public.ecr.aws/docker/library/postgres", "use postgres:17-alpine Hub path (tooling.md)"),
+        ("public.ecr.aws/docker/library/redis", "use valkey/valkey-bundle:8-alpine (tooling.md)"),
+    ]
+    for f in files:
+        text = f.read_text(encoding="utf-8", errors="ignore")
+        rel = f.name
+        # Independent checks — never gate one ban behind another (multi-bad compose
+        # must surface every hit).
+        if "apache/kafka:" in text and "apache/kafka:4.1.0" not in text:
+            note(rel, "kafka image must be apache/kafka:4.1.0 (tooling.md)")
+        for bad, msg in banned:
+            if bad in text:
+                note(rel, msg)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Structure-conformance tripwire for a migrate-project target.")
     ap.add_argument("--target-dir", required=True)
@@ -239,6 +271,7 @@ def main() -> None:
     check_dependency_rule(root, module)
     check_ambient_calls(root)
     check_contract(root, module)
+    check_compose_images(root)
 
     by_loc: dict[str, dict[str, list[str]]] = {}
     for where, msg in DRIFT:

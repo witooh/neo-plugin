@@ -44,6 +44,16 @@ the slice and hand it to the Verifier.
   `.kiro/steering/INDEX.md`, and copy `INIT_TEMPLATE/CLAUDE.md`. Fill `repo-instance.md` with the
   target's real bounded contexts + driven ports (from `target-map.md`). Before handing off S1,
   confirm the target contains `.kiro/steering/INDEX.md`.
+- **Compose images** — when the slice touches `docker-compose*.yaml` (or S1 installs tooling
+  contract and compose already exists), align image tags to
+  `INIT_TEMPLATE/.kiro/steering/tooling.md` § *Docker Compose — standard images*
+  (`valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`; mockoon
+  `mockoon/cli:9.7.0` when present). Do not invent tags or switch to ECR Hub mirrors for local
+  compose. Path-only / same-major fixes (plain valkey → valkey-bundle, ECR → Hub) are
+  behavior-preserving. A **major** broker bump (e.g. kafka 3.x → 4.1.0) still lands the
+  standard tag, but report **DONE_WITH_CONCERNS** — same bar as the postgres-schema cutover
+  above; it is not a silent no-op. Optional extras (kafka-ui / localstack / migrate runner)
+  stay on the allowed list in that section.
 
 ## Stop conditions (never improvise)
 - A target shape the steering does not cover, or a move that would change observable behavior →
