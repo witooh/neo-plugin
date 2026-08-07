@@ -4,6 +4,8 @@ Heavy detail for the `confluence-api-doc` skill: auth, page-tree mapping, page�
 
 **Principle:** one endpoint = one Confluence page, assembled directly from the api-spec. Input is the **`docs/api/*.yaml` custom-YAML api-spec** — `_meta.yaml` (service-level) + one `<domain>/<endpoint>.yaml` per endpoint (the `api-spec` skill authors it; `openapi-doc` drift-checks Go against it). The YAML is already in doc-table shape, so each endpoint file **assembles** into a logical page shape (§ Step P3), then is converted to storage (P6), checked by the deterministic checks, and read by fresh-eyes. Uses `acli` for auth + reads, and the Confluence REST API via `curl` for writes (acli only supports page *view*, not create/update).
 
+**Audience:** Confluence pages are for **other teams that call this API**. Assemble the **consumer contract** (wire + caller-visible behaviour). The api-spec may hold internal/dev prose for neo; **strip it at P3** — never push ticket framing, evidence paths, ALIGN logs, internal renames, or implementer-only notes. See § Audience filter.
+
 ```
 docs/api/                       Confluence page tree
 ├── _meta.yaml             →    Parent page (overview · field info · common errors)
@@ -33,22 +35,45 @@ Resolve the write token at Step P7 (REST needs it; reads use acli's oauth).
 
 ## Step P3 — Assemble pages from the api-spec
 
-There is no pre-rendered markdown page — **assemble** each page's body from the endpoint YAML, then feed it to the P6 conversion. The custom YAML is already in doc-table shape (explicit field tables, `mandatory: M|O`, multi-flow business logic, per-endpoint errors), so this is a direct mapping — no `$ref` resolution, no extension hacks. Read each `docs/api/<domain>/<endpoint>.yaml` and build the page (sections **in this order** — the same shape the human-readable api-spec markdown uses; omit a section whose source key is absent):
+There is no pre-rendered markdown page — **assemble** each page's body from the endpoint YAML, then feed it to the P6 conversion. The custom YAML is already in doc-table shape (explicit field tables, `mandatory: M|O`, multi-flow business logic, per-endpoint errors), so this is a direct mapping — no `$ref` resolution, no extension hacks. Read each `docs/api/<domain>/<endpoint>.yaml` and build the page (sections **in this order** — the same shape the human-readable api-spec markdown uses; omit a section whose source key is absent). **Every prose field runs through the Audience filter below before it enters the assembled body.**
 
-- **Page title** = `<METHOD>: <path>` ← the endpoint's `method` (uppercased) + `path` (keeping the `{id}` form). **Group** = `domain`. (`endpoint` is the display name — it identifies the file/index, but the Confluence page is titled by method+path for stable create/update matching, so it is not repeated in-body.) Skip `health`.
+- **Page title** = `<METHOD>: <path>` ← the endpoint's `method` (uppercased) + `path` (keeping the `{id}` form). **Group** = `domain`. (`endpoint` is the display name — it identifies the file/index, but the Confluence page is titled by method+path for stable create/update matching, so it is not repeated in-body.) Skip `health`. **Never publish** `covers_ac`, `endpoint` display name as body text, or repo-only keys.
 - **Domain-group page** (one per `domain` — the endpoint pages' parent): title = `_meta.domains.<domain>.title` (fallback: `domain` in Title Case); body = `_meta.domains.<domain>.description` when present (else an empty container); order the groups by `_meta.domains.<domain>.seq`.
 - **Page body** — a logical page shape P6 can convert (no in-body H1; the title is held separately):
-  - intro paragraph ← `description`;
+  - intro paragraph ← `description` (**Audience-filtered**);
   - a **Method / Path / Auth** bullet list ← `method` / `path` / `auth`;
-  - **Path Parameters** table ← `path_params`, then **Query Parameters** table ← `query_params` — columns Field / Description / Type / **Mandatory** (the explicit `mandatory: M|O`) / Example / Remark; a field carrying `object: <Name>` shows an empty Example + "See `<Name>` Object below";
-  - **Request Body** table ← `request_body.fields`; **Request Example** ← `request_body.example` (a JSON code block);
-  - for each item in **`responses`**: a **Response (`status` `description`)** table ← its `fields`, then a **`<Name>` Object** sub-table for each entry in `objects`, then a **Response Example** ← its `example` (JSON code block);
-  - **Business Logic** ← `business_logic` (prose; preserve its multi-flow sub-headers / lists);
-  - **Error Responses** table ← `errors` — columns Status / Error Code / Error Message / Description, but **include the Error Code or Error Message column only when some entry carries that key** (`code` and `message` are both optional — e.g. create uses `code`, get/list use `message`);
-  - **Notes** ← `notes` (cross-cutting only; omit when empty).
-- **Parent page body** ← `_meta.yaml`: a **Version / Base URL** line ← `version` / `base_url`; **Overview** ← `overview`; **Field Information** ← `field_info` (a `###` sub-section per key, each a Code / Description table); **Common Error Responses** table ← `common_errors` (Status / Code / Error Message / Description).
+  - **Path Parameters** table ← `path_params`, then **Query Parameters** table ← `query_params` — columns Field / Description / Type / **Mandatory** (the explicit `mandatory: M|O`) / Example / Remark; a field carrying `object: <Name>` shows an empty Example + "See `<Name>` Object below"; **filter** each Description and Remark;
+  - **Request Body** table ← `request_body.fields` (filter Description/Remark); **Request Example** ← `request_body.example` (a JSON code block — examples stay verbatim);
+  - for each item in **`responses`**: a **Response (`status` `description`)** table ← its `fields` (filter Description/Remark), then a **`<Name>` Object** sub-table for each entry in `objects`, then a **Response Example** ← its `example` (JSON code block);
+  - **Business Logic** ← `business_logic` (prose; preserve multi-flow sub-headers / lists; **Audience-filter** ticket tags and internal cross-refs out of the prose);
+  - **Error Responses** table ← `errors` — columns Status / Error Code / Error Message / Description, but **include the Error Code or Error Message column only when some entry carries that key** (`code` and `message` are both optional — e.g. create uses `code`, get/list use `message`); **filter** Description cells;
+  - **Notes** ← only `notes[]` entries that survive the Audience filter (caller-facing cross-cutting rules). **Drop** the whole Notes section when every entry is internal/dev. Prefer omitting implementer changelog / "Amended YYYY-MM-DD…" notes entirely.
+- **Parent page body** ← `_meta.yaml`: a **Version / Base URL** line ← `version` / `base_url`; **Overview** ← `overview` (filter); **Field Information** ← `field_info` (a `###` sub-section per key, each a Code / Description table); **Common Error Responses** table ← `common_errors` (Status / Code / Error Message / Description; filter Description).
 
-The api-spec is the single source — assemble faithfully (every field row, every M/O, every error; standard OpenAPI tooling is not involved). Validate before converting: an endpoint YAML with no `responses` → skip + warn.
+The api-spec is the contract source — keep every **wire** field row, every M/O, every public error, every example. Do **not** keep every remark/note verbatim when it is internal. Validate before converting: an endpoint YAML with no `responses` → skip + warn.
+
+### Audience filter (strip before Confluence)
+
+Apply when assembling **any** prose that lands on a page: `description`, field `description` / `remark`, `business_logic`, error `description` / `message`, `notes[]`, `_meta.overview`, domain `description`. **Do not** alter JSON/examples, field `name`/`type`/`mandatory`/`example`, status codes, or error `code`.
+
+| Keep (consumer needs it) | Drop (dev / internal — leave in api-spec only) |
+|---|---|
+| What the field/endpoint is | Jira/card keys as framing (`GI-2226`, `[PAY-BFID-02-A]`, AC-NNN lists) unless the code/message itself is that string |
+| Wire name, type, M/O, example | `covers_ac` and any AC checklist |
+| Caller-visible behaviour (when returned, what fails) | Evidence / provenance paths (`docs/knowledge/…`, `docs/tasks/…`, commit SHAs) |
+| Auth, headers, idempotency rules the caller must send | ALIGN / decision-log lines (`ALIGN 2026-08-06`, "user-confirmed", "spec D3" as a process cite) |
+| Public error status / code / message meaning | Internal rename notes ("BFF maps to `miniQr`", "wire was camelCase", "⚠ ADVISORY from …") |
+| Algorithm facts the caller must know to **use** the value (e.g. CRC trailer, embedded id) | Implementation history ("Amended 2026-08-04…", "previously…", "un-deferred", "Draft proposal") |
+| Stable cross-service contract the **caller** owns | Repo-only cross-refs, Plan/Open-Question pointers, "TBC with BFF" process notes |
+
+**How to strip (minimal, not a rewrite):**
+1. Drop a whole `notes[]` item or remark sentence that is purely in the Drop column.
+2. Inside a kept sentence, cut parentheticals / trailing clauses that are only Drop (e.g. cut ` (GI-2226)` / ` Evidence: docs/…` / ` BFF renames to miniQr…`).
+3. Do **not** invent replacement prose. If a remark is entirely Drop, leave the Remark cell empty.
+4. Ticket keys that appear **inside** a public error message or a field example stay — only framing is dropped.
+5. `business_logic` keeps the numbered caller-visible steps; strip ticket tags and "see docs/tasks/…" tails from those steps.
+
+Sanitizing is part of assemble — the staged `source` markdown in `.api-doc-publish/*.json` is the **post-filter** body (what fresh-eyes and source↔storage counts compare against), not a raw dump of the YAML.
 
 ## Step P4 — Map to the page tree
 
@@ -175,3 +200,4 @@ Then: N groups, M API pages (K created / U updated / S skipped / F failed); **pr
 | HTTP 409 version conflict | re-fetch version with acli, retry |
 | pre-flight ERROR | fix the conversion, re-stage, re-run — never push failed storage |
 | round-trip CDATA drift | a code block was altered on store — investigate before declaring done |
+| staged page still has Drop-column prose (ticket framing, evidence paths, ALIGN, internal rename) | re-run Audience filter at P3, re-stage — do not "fix" by editing Confluence by hand |

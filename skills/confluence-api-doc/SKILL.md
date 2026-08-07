@@ -32,11 +32,20 @@ Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML ap
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is the `docs/api/*.yaml` custom-YAML api-spec (authored by the `api-spec` skill).
 
+## Audience (non-negotiable)
+
+Confluence is for **other teams that call this API** (BFF, mobile, partner). It is **not** a dump of the api-spec for the owning service's developers.
+
+- Publish the **wire contract** and **caller-visible behaviour** only.
+- **Strip internal/dev prose** at assemble time (P3) — do not push ticket framing, evidence paths, ALIGN logs, internal renames, changelog notes, or implementer-only cross-refs. Full strip list: `publish-reference.md` § Audience filter.
+- The api-spec may keep those for neo/traceability; Confluence must not.
+
+
 ## The spine
 
 1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/spec` to author it). Then take the Confluence parent-page URL → page ID.
 2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
-3. **Scan** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML — `description` → intro, `path_params`/`query_params`/`request_body.fields`/`responses[].fields` → field tables, `request_body.example` / `responses[].example` → example blocks, `business_logic` → its own section, `errors[]` → the Error Responses table; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3.)
+3. **Scan + sanitize** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML (P3) **through the Audience filter** — `description` → intro, field tables from params/body/responses, examples, `business_logic`, `errors[]`; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Drop pure-dev `notes[]`; never publish `covers_ac`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3 + Audience filter.)
 4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
 5. **Versions** — `acli confluence page view --id <id> --include-version --json`.
 6. **Convert** — markdown → Confluence storage per `publish-reference.md` § P6 (code blocks → code macro/CDATA **first**, then inline rules; mind the nested-list rule). Stage each page in the **gitignored** `.api-doc-publish/` as both a `<page>.json` manifest and a raw `storage/<page>.xml` (the latter feeds the round-trip).
@@ -76,9 +85,11 @@ Read first: <SKILL_DIR>/references/pub-verifier.md
 SKILL_DIR = <skill base dir>
 
 ## Task
-Independently judge conversion fidelity for a sample of pages — semantic preservation
-the pre-flight counts and round-trip cannot see. Read the source markdown + the staged
-storage in .api-doc-publish/ yourself.
+Independently judge (1) conversion fidelity and (2) audience fitness for a sample of
+pages — semantic preservation the pre-flight counts and round-trip cannot see, plus
+no leftover internal/dev prose. Read the source yaml + the staged storage in
+.api-doc-publish/ yourself. Apply the Audience filter in publish-reference.md /
+pub-verifier.md.
 
 ## Pages under review
 <list a representative sample: the most table-heavy, code-heavy, and nested-list pages>
@@ -117,4 +128,5 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 - **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill; **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
 - **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
 - **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
+- **Not** a mirror of every api-spec remark/note — internal/dev text stays in the repo; Confluence is consumer-facing only (Audience filter).
 - An HTTP 200 is **not** proof the content is right — that is the round-trip + fresh-eyes job.
