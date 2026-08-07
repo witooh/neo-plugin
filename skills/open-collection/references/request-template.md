@@ -2,7 +2,7 @@
 
 Templates for every file this skill writes when it turns the `docs/api/*.yaml` **API spec** (custom YAML) into a **runnable** Bruno OpenCollection. Section ordering and indentation are part of the contract — follow them exactly so output is byte-stable across runs.
 
-**The collection is self-documenting** — each request embeds a generated `docs:` block rendered from its api-spec endpoint (via `yaml2md.py`), and the collection root + folders carry the `_meta` overview / group prose. The runnable bits (URLs, params, bodies, headers, auth, environments) come from the same api-spec. Confluence publishing reads the api-spec directly (the `confluence-api-doc` skill). For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
+**The collection is self-documenting** — each request embeds a generated `docs:` block rendered from its api-spec endpoint (via `yaml2md.py`, **Audience-filtered** for callers), and the collection root + folders carry the `_meta` overview / group prose. The runnable bits (URLs, params, bodies, headers, auth, environments) come from the same api-spec and stay **verbatim**. Confluence publishing reads the api-spec directly (the `confluence-api-doc` skill). For schema-level details on each YAML key, see [`yaml-reference.md`](yaml-reference.md).
 
 ---
 
@@ -20,11 +20,11 @@ Input is the `docs/api/*.yaml` custom-YAML **API spec** (the `api-spec` skill's 
 | `query_params[]` | a `params` row `type: query` |
 | `auth` (`Bearer …`/`API Key`/`None`) | request/folder `auth` (§3) — bearer→bearer, apikey→apikey, None→none |
 | `request_body.example` | `http.body.data` **verbatim** (the runnable body — already JSON-ready) |
-| the whole endpoint (description / params / fields / business_logic / errors) | rendered into the request **`docs:`** by `yaml2md.py` (Spec mode) |
-| `_meta` (overview / field_info / common_errors) | the collection-root `docs:`; `_meta.domains.<d>` → the folder `docs:` |
+| the whole endpoint (description / params / fields / business_logic / errors) | rendered into the request **`docs:`** by `yaml2md.py` (**Audience-filtered** — no ticket framing, evidence paths, ALIGN, pure-dev notes, or `covers_ac`) |
+| `_meta` (overview / field_info / common_errors) | the collection-root `docs:`; `_meta.domains.<d>` → the folder `docs:` (overview prose filtered the same way) |
 
 - **Grouping** comes from the endpoint's `domain` (→ collection folder), mirroring the api-spec's by-domain tree.
-- Response field tables / `objects:` / `errors:` are doc-only for the runnable request, but **are** rendered into `docs:` (Spec mode) by `yaml2md.py` — never hand-write the `docs:` markdown.
+- Response field tables / `objects:` / `errors:` are doc-only for the runnable request, but **are** rendered into `docs:` by `yaml2md.py` — never hand-write the `docs:` markdown.
 - An endpoint with no `request_body` → request has **no** `http.body`.
 
 ---

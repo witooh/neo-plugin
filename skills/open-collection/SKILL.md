@@ -31,6 +31,15 @@ Turn the custom-YAML **API spec** at `docs/api/*.yaml` into a **runnable** Bruno
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill").
 
+## Audience (non-negotiable)
+
+Bruno `docs:` is for **other teams that call this API** (BFF, mobile, partner). It is **not** a dump of the api-spec for the owning service's developers.
+
+- Publish the **wire contract** and **caller-visible behaviour** only (runnable request + filtered docs).
+- **`yaml2md.py` applies the Audience filter** when rendering every `docs:` block — ticket framing (`GI-…`, `AC-…`), evidence paths (`docs/knowledge/…`), ALIGN/decision logs, internal renames, and pure-dev `notes[]` are stripped. Wire names, M/O, examples, and public error codes stay.
+- Never emit `covers_ac`. The api-spec may keep internal prose for neo; the collection must not.
+- K7 still requires `docs:` == `yaml2md` output — the filter lives **inside** the renderer so colcheck stays green.
+
 ## Output structure
 
 ```
@@ -73,7 +82,7 @@ Write using [`references/request-template.md`](references/request-template.md) (
 - **opencollection.yml** — `info.name` + ignore config + `docs:` = the `_meta` index rendered by `python3 <ASSET_DIR>/yaml2md.py --index docs/api/_meta.yaml docs/api`.
 - **environments/** — one file per environment; `baseUrl` + a var per `{{name}}` referenced in any request; secret-looking names → `value: ""` + `secret: true` (never write a literal secret).
 - **`<group>/folder.yml`** — display name, `seq` (10,20,30…), shared headers + auth derived from the endpoints' `auth`; `docs:` = the domain group prose from `_meta.domains.<group>`.
-- **`<group>/<endpoint>.yml`** — `info → http → docs → settings`. `http.body.data` is the endpoint's `request_body.example` JSON copied verbatim — never hand-assemble it. Omit `body` when the endpoint has no request body. **`docs:`** = `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` (the rendered endpoint Markdown — `colcheck.py` K7 enforces it matches exactly).
+- **`<group>/<endpoint>.yml`** — `info → http → docs → settings`. `http.body.data` is the endpoint's `request_body.example` JSON copied **verbatim** (runnable body is never filtered). Omit `body` when the endpoint has no request body. **`docs:`** = `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` (Audience-filtered endpoint Markdown — `colcheck.py` K7 enforces it matches exactly).
 - **Update** — diff against existing files; touch the minimum; **preserve** any user-added `headers`/`auth`/env values (often hand-typed secrets); re-render `docs:` from the api-spec; assign the next free `seq` for new requests.
 - **Validate** — no writes; run the verify layers below as a pure check and produce a report.
 
@@ -95,7 +104,7 @@ Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the ge
 
 ### verify-L2 · Fresh-eyes verifier (independent agent)
 
-Dispatch a verifier that did **not** write the collection — it re-reads the api-spec itself and checks the judgment-level accuracy the script cannot (auth semantic mapping, header completeness, that the runnable body truly corresponds field-for-field to the api-spec, and that the rendered `docs:` reads faithfully):
+Dispatch a verifier that did **not** write the collection — it re-reads the api-spec itself and checks the judgment-level accuracy the script cannot (auth semantic mapping, header completeness, that the runnable body truly corresponds field-for-field to the api-spec, that the rendered `docs:` reads faithfully, **and that no Drop-column internal/dev prose leaked into `docs:`**):
 
 ```
 Agent(subagent_type: "fresh-eyes", description: "verify open collection", prompt: """
@@ -105,8 +114,9 @@ SKILL_DIR = <skill base dir>
 
 ## Task
 Independently verify the collection just written against the docs/api/*.yaml api-spec.
-Check ONLY judgment-level accuracy (not the script's mechanical checks). Read the
-source yourself.
+Check judgment-level accuracy (not the script's mechanical checks) **and audience fitness**
+(consumer docs — no leftover internal/dev prose in docs:). Read the source yourself.
+Apply the Audience filter spirit in col-verifier.md / yaml2md.py.
 
 ## Files under review
 <list the request .yml + folder.yml files just created/updated> + the docs/api/*.yaml api-spec
@@ -147,3 +157,4 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 - **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill and drift-checked against Go by **`openapi-doc`**; this skill reads it.
 - **Not** a Confluence publisher — that is the **`confluence-api-doc`** skill.
 - **Not** a hand-authoring / curl-Postman-OpenAPI converter or interactive editor (there is no OpenAPI intermediate in this chain).
+- **Not** a mirror of every api-spec remark/note — internal/dev text stays in the repo; Bruno `docs:` is consumer-facing only (Audience filter in `yaml2md.py`).
