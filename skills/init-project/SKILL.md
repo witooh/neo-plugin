@@ -43,8 +43,8 @@ A complete service skeleton under the target dir:
   `pkg/{clock,idgen,cache/valkey,lib/kafka}`.
 - **Tooling** — `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka),
   `.gitlab-ci.yml`, `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
-- **Agentic context** — `.kiro/steering/*` (architecture guides) + `.kiro/{skills,agents}` (Kiro neo
-  port) + `CLAUDE.md`, so `using-neo` / Kiro can add a domain with no setup.
+- **Agentic context** — `.kiro/steering/*` (architecture guides) + `CLAUDE.md`.
+  Skills and agents come from the neo plugin / user install — **not** bundled under the service tree.
 - `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **created through using-neo**, not the
   skeleton — a fresh service legitimately has none.
 

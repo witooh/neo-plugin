@@ -22,8 +22,8 @@ You are given: the **target dir** and the intended **module path / service name 
    `pkg/messaging`, `pkg/accountnumber`, `tests/`, `docs/`. Confirm no `.go` file under
    `internal/adapters`, `internal/delivery`, or `pkg` imports `core/domain` or `core/usecase`. Spot-check
    that no business term (account, objective, vault, alpha, dopa, as400, customer-info, …) leaks into the
-   **service's own** files. (The `.kiro/skills` + `.kiro/agents` neo-port docs are exempt — they ship
-   verbatim and may contain examples.)
+   **service's own** files. There must be **no** `.kiro/skills/` or `.kiro/agents/` tree in the
+   scaffolded project (steering only under `.kiro/`).
 
 3. **`/health` + empty handler set.** `internal/delivery/http/router/router.go` registers
    `GET /health` and declares an **empty** `type Handlers struct{}`. `cmd/api/http.go` `buildHandlers()`

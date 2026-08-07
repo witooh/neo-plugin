@@ -28,7 +28,8 @@ per-domain.
   (prepare-mod / test / build), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, `.pre-commit-config.yaml`,
   `.gitignore`, the five pinned `tools/*` modules.
 - **Agentic context** — `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
-  `.kiro/{skills,agents}` (the Kiro neo port, frozen), `CLAUDE.md` (thin index over steering),
+  `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template —
+  those install from the neo plugin / `kiro.sh`, not per service.
   `bruno/` + `mockoon/` shells (READMEs + env; collections/stubs regenerate per-domain).
   - **`CLAUDE.md` is gitignored by design** (`template/.gitignore`): this is a **Kiro-first**
     layout — `.kiro/` steering is the source of truth. The scaffold *creates* `CLAUDE.md` (so Claude
@@ -83,7 +84,7 @@ is committed.
 6. **Verify**: `gofmt -l` clean, `go build ./...` + `go vet ./...` = 0, `go test -short ./...` green,
    and `go run ./cmd/api` + `curl /health` = `{"status":"ok"}` with **no Docker** and **no panic**.
    Grep that no `internal/core/domain|usecase` import survives in `adapters`/`delivery`/`pkg`, and that
-   no business term remains in service files (the `.kiro/{skills,agents}` neo port is exempt — it ships
-   as-is).
+   no business term remains in service files. Do **not** reintroduce `.kiro/skills` or `.kiro/agents`
+   into the freeze (plugin-owned, not project-owned).
 7. **Freeze**: `rsync` the verified scratch tree into `assets/template/` (same excludes) and re-run the
    build + `/health` check **inside** the frozen location to prove the copy dropped nothing.
