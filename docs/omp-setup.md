@@ -19,39 +19,42 @@ neo ships native omp wiring; no manual copying.
 
 ## Install
 
-### Marketplace (recommended — enables upgrade)
-
 ```bash
-omp plugin marketplace add witooh/neo-plugin
-omp plugin install neo@neo
+omp plugin install github:witooh/neo-plugin
 ```
 
-Id is `neo@neo` (plugin name @ marketplace name). Catalog is `.claude-plugin/marketplace.json` in this repo (`source: "./"` — the marketplace repo is the plugin).
+Lists under **npm Plugins** as `neo@<version>` (from `package.json` on the repo tip).
 
-### Upgrade / uninstall
-
-```bash
-omp plugin upgrade              # every outdated marketplace plugin
-omp plugin upgrade neo@neo      # neo only
-omp plugin uninstall neo@neo
-```
-
-- `omp plugin upgrade` **requires** `name@marketplace`. Bare `neo` is rejected.
-- Version comes from the installed plugin's manifest (`package.json` / `.claude-plugin/plugin.json`) after the marketplace catalog is refreshed; cutting a release that bumps those fields is what makes a newer version visible.
-- `marketplace.autoUpdate` (`off` / `notify` / `auto`, default `notify`) only applies to marketplace plugins.
-
-### Alternatives (no upgrade channel)
+### Update / uninstall
 
 ```bash
-omp plugin install github:witooh/neo-plugin   # git dep; reinstall/force to move versions
-omp plugin link <path-to-local-clone>        # points at a working tree
+# update — same install command + --force (re-resolves github:witooh/neo-plugin)
+omp plugin install github:witooh/neo-plugin --force
+
+omp plugin uninstall neo
 ```
 
-Do not expect `omp plugin upgrade` to move a `github:` or `link` install.
+- **Update = force reinstall.** There is no `omp plugin upgrade` path for `github:` installs
+  (that command is marketplace-only: `name@marketplace`).
+- After a release (e.g. `v3.4.0`), `--force` pulls the new tip; `omp plugin list` shows the new
+  `neo@<version>`.
+
+### Alternatives
+
+```bash
+omp plugin link <path-to-local-clone>   # dev: live working tree
+```
+
+Claude Code still uses its own marketplace channel (`/plugin marketplace add witooh/neo-plugin` +
+`neo@neo`) — that is separate from omp. Do not add `witooh/neo-plugin` as an omp marketplace for
+day-to-day use; prefer `github:` so version tracks the git dependency directly.
 
 ### Measured notes
 
-Measured on omp 17.2.2 / 17.2.9: marketplace `neo@neo` installs and lists under Marketplace Plugins; `github:witooh/neo-plugin` lists under npm Plugins and is outside `upgrade`. A local `plugin link` was checked against a dumped `systemPrompt` (router block appended, skills present). Prefer marketplace when you want version notify/upgrade.
+Measured on omp 17.x: `github:witooh/neo-plugin` installs as `neo@3.4.0` and is outside
+`omp plugin upgrade`. A marketplace `neo@neo` cache could stay on an older tip after a release
+(e.g. report "upgraded to 3.3.0" while `v3.4.0` was already shipped) — that is why omp docs use
+`github:` only.
 
 ## Verify
 

@@ -73,27 +73,21 @@ Other intents route straight to where they belong:
 Native omp package: the `omp` block in `package.json` loads an ESM session extension that injects the
 `using-neo` router, and `skills/` is discovered as-is. See [docs/omp-setup.md](docs/omp-setup.md).
 
-**Recommended — marketplace** (this is the path that supports `upgrade`):
-
 ```bash
-omp plugin marketplace add witooh/neo-plugin
-omp plugin install neo@neo
+# install
+omp plugin install github:witooh/neo-plugin
+
+# update (same command + --force — pulls latest tip / release)
+omp plugin install github:witooh/neo-plugin --force
+
+# uninstall
+omp plugin uninstall neo
 ```
 
-```bash
-omp plugin upgrade              # all outdated marketplace plugins
-omp plugin upgrade neo@neo      # neo only
-omp plugin uninstall neo@neo
-```
+Lists under **npm Plugins** as `neo@<version>`. Do **not** use `omp plugin marketplace` or
+`omp plugin upgrade` for neo — those are marketplace-only and will not track this install.
 
-`omp plugin upgrade` only accepts `name@marketplace`. A plain GitHub/npm install of neo is a different arm and will not show up there.
-
-**Alternatives** (no marketplace upgrade channel):
-
-```bash
-omp plugin install github:witooh/neo-plugin   # git dep under ~/.omp/plugins
-omp plugin link <path-to-local-clone>        # dev: live tree, no version bump flow
-```
+Dev against a working tree: `omp plugin link <path-to-local-clone>`.
 
 **pi**
 

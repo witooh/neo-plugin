@@ -9,7 +9,7 @@ neo = router (`using-neo`) + method skills (vendored from [mattpocock/skills](ht
 /plugin install neo@neo
 ```
 
-For pi, see [pi-setup.md](pi-setup.md). For omp (marketplace install + upgrade), see [omp-setup.md](omp-setup.md).
+For pi, see [pi-setup.md](pi-setup.md). For omp (GitHub install + force upgrade), see [omp-setup.md](omp-setup.md).
 
 ## First run
 
