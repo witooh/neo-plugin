@@ -42,6 +42,16 @@ if (hasJq) {
     throw new Error(`expected IMPORTANT priority, got ${withoutIndex.priority}`);
   }
 
+  if (withoutIndex.additionalContext !== withoutIndex.message) {
+    throw new Error('additionalContext must match message');
+  }
+  if (withoutIndex.hookSpecificOutput?.hookEventName !== 'SessionStart') {
+    throw new Error('hookSpecificOutput.hookEventName must be SessionStart');
+  }
+  if (withoutIndex.hookSpecificOutput?.additionalContext !== withoutIndex.message) {
+    throw new Error('hookSpecificOutput.additionalContext must match message');
+  }
+
   if (!withoutIndex.message.includes('neo loaded.')) {
     throw new Error('message is missing startup preface');
   }

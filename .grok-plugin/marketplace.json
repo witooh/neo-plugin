@@ -1,0 +1,21 @@
+{
+  "name": "neo",
+  "description": "Production-grade engineering skills for AI coding agents — covering the full software development lifecycle from spec to ship.",
+  "owner": {
+    "name": "Witoo Harianto",
+    "url": "https://github.com/witooh"
+  },
+  "plugins": [
+    {
+      "name": "neo",
+      "description": "Production-grade engineering skills covering every phase of software development: ingest, spec, plan, build, verify, review, and ship.",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/witooh/neo-plugin.git"
+      },
+      "homepage": "https://github.com/witooh/neo-plugin",
+      "keywords": ["skills", "agents", "engineering", "spec", "tdd", "review", "ship"]
+    }
+  ]
+}

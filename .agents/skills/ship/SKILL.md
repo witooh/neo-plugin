@@ -23,8 +23,9 @@ are not.
 ## Non-negotiables
 
 - **`.claude-plugin/plugin.json` is the canonical version source.** Sync the same
-  version to `.plugin/plugin.json` and `package.json` in the same bump.
-  `marketplace.json` carries no version field — never touch it for versioning.
+  version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root `plugin.json`,
+  and `package.json` in the same bump. Marketplace indexes carry no version
+  field — never touch them for versioning.
 - **Semver by change type:** `patch` = fix/docs, `minor` = new skill/feature,
   `major` = breaking.
 - **One annotated tag per bump, created after the commit:** `v<version>` (v-prefix),
@@ -73,8 +74,9 @@ echo "$cur -> $next"
 ### 3. Stage + draft (no commit yet)
 
 1. Bump the `version` field in `.claude-plugin/plugin.json` and sync the same
-   value into `.plugin/plugin.json` and `package.json` (Edit the
-   `"version": "<cur>"` line to `<next>` in all three).
+   value into `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root
+   `plugin.json`, and `package.json` (Edit the `"version": "<cur>"` line to
+   `<next>` in all five).
 2. Pack everything: `git add -A` (all changes incl. untracked, plus the manifest).
 3. Draft the **commit message** — Conventional Commits (`type(scope): subject`),
    a body saying what changed and why, derived from `git diff --cached`. End with
@@ -126,6 +128,6 @@ release-status line from "NOT committed" to "SHIPPED v<next>".
 - Working tree is clean → nothing to ship; do not cut an empty release.
 - `gh auth status` fails → resolve auth first; a half-done chain (pushed, no
   release) is worse than not starting.
-- Tempted to edit `marketplace.json` for the version → don't; it has no version field.
+- Tempted to edit a `marketplace.json` for the version → don't; those indexes have no version field.
 - Release **title** contains the headline → wrong; title is `v<version>` only.
 - Pushing before the user confirmed the preview → never; the confirm gate is the point.

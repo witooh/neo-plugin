@@ -8,5 +8,13 @@
   "homepage": "https://github.com/witooh/neo-plugin",
   "repository": "https://github.com/witooh/neo-plugin",
   "license": "MIT",
-  "skills": "./skills"
+  "keywords": [
+    "skills",
+    "agents",
+    "engineering",
+    "spec",
+    "tdd",
+    "review",
+    "ship"
+  ]
 }

@@ -68,6 +68,17 @@ Other intents route straight to where they belong:
 /plugin install neo@neo
 ```
 
+**Grok Build**
+
+Native Grok plugin: `.grok-plugin/marketplace.json` plus `.grok-plugin/plugin.json`, skills from `skills/`. See [docs/grok-setup.md](docs/grok-setup.md).
+
+```bash
+grok plugin install witooh/neo-plugin --trust
+grok plugin enable neo
+```
+
+Grok 1.0.3 does not inject `using-neo` at session start (hook stdout is ignored). Use `/using-neo` or rely on skill auto-invocation.
+
 **omp**
 
 Native omp package: the `omp` block in `package.json` loads an ESM session extension that injects the
@@ -230,11 +241,13 @@ python3 .agents/skills/sync-mattpocock/assets/sync.py --apply  # write
 Validate before shipping:
 
 ```bash
-node scripts/validate-skills.js      # frontmatter + dead-reference scan
-node scripts/validate-pi-package.js  # pi package wiring
-node scripts/validate-omp-package.js # omp package wiring
-bash hooks/session-start-test.sh     # Claude Code hook
-claude plugin validate .             # plugin structure
+node scripts/validate-skills.js       # frontmatter + dead-reference scan
+node scripts/validate-pi-package.js   # pi package wiring
+node scripts/validate-omp-package.js  # omp package wiring
+node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
+bash hooks/session-start-test.sh      # Claude Code hook
+claude plugin validate .              # Claude plugin structure
+grok plugin validate .                # Grok plugin structure
 ```
 
 ## License

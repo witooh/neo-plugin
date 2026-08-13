@@ -5,7 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SCRIPT=\"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ]&& bash \"$SCRIPT\" || true"
+            "command": "ROOT=\"${GROK_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"; SCRIPT=\"$ROOT/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] || SCRIPT=\"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true",
+            "timeout": 15
           }
         ]
       }

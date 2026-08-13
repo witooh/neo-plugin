@@ -1,4 +1,5 @@
 {
   "name": "neo",
-  "description": "Production-grade engineering skills for AI coding agents."
+  "version": "3.6.0",
+  "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills."
 }

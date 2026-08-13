@@ -9,11 +9,11 @@ neo = router (`using-neo`) + method skills (vendored from [mattpocock/skills](ht
 /plugin install neo@neo
 ```
 
-For pi, see [pi-setup.md](pi-setup.md). For omp (GitHub install + force upgrade), see [omp-setup.md](omp-setup.md).
+For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi-setup.md). For omp (GitHub install + force upgrade), see [omp-setup.md](omp-setup.md).
 
 ## First run
 
-Open a session in your service repo. The session-start hook injects `using-neo`; if the target repo has `.kiro/steering/INDEX.md`, that is injected too. Then just state your task:
+Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task:
 
 ```
 ทำ GI-543

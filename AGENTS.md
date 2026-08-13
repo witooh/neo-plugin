@@ -23,6 +23,7 @@ skills/            using-neo router + method layer (synced) + 14 domain skills
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
 .claude-plugin/    Claude Code plugin + marketplace manifests
+.grok-plugin/      Grok Build marketplace index + plugin manifest
 .plugin/           Generic plugin manifest mirror (hooks.json variant)
 .pi/               pi discovery symlinks (skills → ../skills, extensions → ../extensions)
 .agents/skills/    Repo-local maintainer skills (ship, sync-mattpocock); omp discovers via `.omp/config.yml` → `skills.customDirectories`
@@ -33,9 +34,10 @@ docs/              Setup guides
 
 ## Harness Channels
 
-Three supported channels, one canonical content source:
+Four supported channels, one canonical content source:
 
 - **Claude Code**: plugin install; `hooks/session-start.sh` injects the full `using-neo` SKILL.md plus the target repo's `.kiro/steering/INDEX.md` when present.
+- **Grok Build**: `.grok-plugin/marketplace.json` + `.grok-plugin/plugin.json`; skills load from `skills/` by convention. The same `hooks/session-start.sh` adapter emits `using-neo` on SessionStart (Claude `{priority, message}` plus `additionalContext`). Grok 1.0.3 runs the hook but does not put stdout into the model context — routing then falls back to skill auto-invocation plus `/using-neo`. See `docs/grok-setup.md`.
 - **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` injects only `using-neo` SKILL.md (no steering index).
 - **omp**: `package.json` `omp` block (read before `pi`); `extensions/using-neo-session-start.mjs` — ESM factory, appends `using-neo` as its own `systemPrompt` block. Skills load from `skills/` with no manifest entry. See `docs/omp-setup.md`.
 
@@ -61,14 +63,16 @@ Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFAC
 - Skills: `node scripts/validate-skills.js`
 - pi package: `node scripts/validate-pi-package.js`
 - omp package: `node scripts/validate-omp-package.js`
+- Grok package: `node scripts/validate-grok-package.js`
 - Claude hook: `bash hooks/session-start-test.sh`
 - Claude plugin structure: `claude plugin validate .`
+- Grok plugin structure: `grok plugin validate .`
 
 ## Versioning and Releases
 
 When the user asks to bump the version, commit, or cut a release:
 
-1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json` and `package.json` in the same bump. `.claude-plugin/marketplace.json` intentionally has no version field.
+1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root `plugin.json`, and `package.json` in the same bump. Marketplace indexes (`.claude-plugin/marketplace.json`, `.grok-plugin/marketplace.json`) intentionally have no version field.
 2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
 3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Headline plus Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
