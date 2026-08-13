@@ -42,7 +42,8 @@ A complete service skeleton under the target dir:
   (with `/health`), `internal/adapters/repository/{postgres,redis,cache}`,
   `pkg/{clock,idgen,cache/valkey,lib/kafka}`.
 - **Tooling** — `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka),
-  `.gitlab-ci.yml`, `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
+  `.gitlab-ci.yml` (workflow + Go cache; `prepare-mod` / `test` / `ec2-shell` `build` — no e2e until
+  `tests/e2e` exists), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
 - **Agentic context** — `.kiro/steering/*` (architecture guides) + `CLAUDE.md`.
   Skills and agents come from the neo plugin / user install — **not** bundled under the service tree.
 - `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **created through using-neo**, not the

@@ -25,8 +25,9 @@ per-domain.
   `internal/adapters/repository/{postgres,redis,cache}` (low-level clients + `sqlc/db.go` +
   `transactor`/`utilities`/`dberror`), `pkg/{clock,idgen,cache/valkey,lib/kafka}` (ambient + generic kafka).
 - **Tooling** — `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres+valkey+kafka), `.gitlab-ci.yml`
-  (prepare-mod / test / build), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, `.pre-commit-config.yaml`,
-  `.gitignore`, the five pinned `tools/*` modules.
+  (workflow auto-cancel + Go module cache; stages `prepare-mod` / `test` / `build` on `ec2-shell` for
+  image push — no DinD build, no `e2e-test` until the service has `tests/e2e`), `.golangci.yaml`,
+  `.mockery.yaml`, `sqlc.yaml`, `.pre-commit-config.yaml`, `.gitignore`, the five pinned `tools/*` modules.
 - **Agentic context** — `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
   `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template —
   those install from the neo plugin / `kiro.sh`, not per service.

@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "Makefile,tools/**,scripts/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml"
+fileMatchPattern: "Makefile,tools/**,scripts/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml,.gitlab-ci.yml"
 ---
 
 # Tooling
@@ -105,6 +105,31 @@ an unreferenced func/type/const/test-helper fails the lint, so dead code can't a
 silently. No `revive`/`stylecheck`/`staticcheck` naming rules — which is why snake_case
 usecase package names lint clean. Keep the set small and meaningful; don't add a linter
 that floods the baseline.
+
+## GitLab CI — `.gitlab-ci.yml`
+
+Empty-skeleton pipeline (no `tests/e2e` yet). Align with the org core services that already
+tuned CI for speed — **not** the older DinD build path.
+
+| Piece | Required shape |
+|---|---|
+| `workflow` | `auto_cancel.on_new_commit: interruptible`; skip branch pipelines when an MR is open (`$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS` → `when: never`) |
+| Go cache | top-level `cache.paths`: `.go/pkg/mod/`, `.go/bin/` with `GOPATH: ${CI_PROJECT_DIR}/.go` |
+| `prepare-mod` | `go mod download` + `go mod vendor`; `vendor/` artifact (1 day); `CI_JOB_TOKEN` rewrite for the private module host |
+| `test` | `needs: [prepare-mod]`; `go test -short -mod=vendor` + `scripts/check-coverage.sh` (threshold 80) |
+| `build` | tag **`ec2-shell`** (host docker socket — **not** `linux` + DinD); job-local `DOCKER_CONFIG` + ECR `credHelpers` / `ecr-login`; assume-role to n005; `docker build` + `docker push` of `${ECR_URI}/${ECR_REPO_NAME}:${IMAGE_TAG}`; `interruptible: false` |
+| stages (skeleton) | `prepare-mod` → `test` → `build` |
+
+**When `using-neo` adds HTTP e2e**, insert stage `e2e-test` (between `test` and `build`) modeled on
+payment-gateway: DinD image + `docker compose up`, migrate on the compose network, Node test
+container with service-specific `API_BASE_URL` / `DB_SCHEMA`. Do not copy e2e into a service that
+has no `tests/e2e` yet.
+
+### Don'ts
+
+- ✗ `build` on `tags: ["linux"]` with `docker:*-dind` + manual `docker login` / `aws ecr get-login-password` — prefer `ec2-shell` + credential helper (faster, shared runner socket).
+- ✗ Creating the ECR repository from CI (`aws ecr create-repository`) — repo is provisioned out-of-band.
+- ✗ Omitting `workflow.auto_cancel` / dual branch+MR pipelines — wastes runners on superseded commits.
 
 ## Dockerfile — two-stage
 

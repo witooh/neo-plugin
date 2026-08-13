@@ -49,6 +49,14 @@ pre-migration picture).
    local compose. Optional extras (`mockoon/cli:9.7.0`, kafka-ui, localstack, migrate runner)
    must stay on that allow-list.
 
+7. **GitLab CI (when `.gitlab-ci.yml` exists).** Shape matches
+   `INIT_TEMPLATE/.gitlab-ci.yml` / tooling.md § *GitLab CI*: `workflow` auto-cancel + no dual
+   branch+MR pipelines; Go cache paths; `prepare-mod` → vendor artifact; `test` uses `-mod=vendor`
+   + coverage script; `build` uses **`ec2-shell`** + ECR credential helper (fail if build is still
+   `linux`+DinD with manual `docker login` / `create-repository`). Keep service-specific jobs
+   (e2e, deploy) if present and still valid — absence of `e2e-test` on a service without
+   `tests/e2e` is PASS, not a gap.
+
 ## Output
 A short report: each check PASS / FAIL with one line of evidence (`file:line`), then a final verdict
 — **is this a faithful, behavior-preserving migration to the blueprint?** Call out any

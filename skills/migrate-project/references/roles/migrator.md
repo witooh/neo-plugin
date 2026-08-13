@@ -54,6 +54,16 @@ the slice and hand it to the Verifier.
   standard tag, but report **DONE_WITH_CONCERNS** — same bar as the postgres-schema cutover
   above; it is not a silent no-op. Optional extras (kafka-ui / localstack / migrate runner)
   stay on the allowed list in that section.
+- **GitLab CI** — when the slice touches `.gitlab-ci.yml` (or S1 installs tooling contract and
+  `.gitlab-ci.yml` already exists), align to `INIT_TEMPLATE/.gitlab-ci.yml` +
+  `INIT_TEMPLATE/.kiro/steering/tooling.md` § *GitLab CI*: `workflow.auto_cancel` + skip branch
+  pipelines while an MR is open; Go `cache` on `.go/pkg/mod/` + `.go/bin/`; `prepare-mod` vendor
+  artifact; `test` with `-mod=vendor` + `scripts/check-coverage.sh`; **`build` on `ec2-shell`** with
+  job-local `DOCKER_CONFIG` / ECR `ecr-login` (not `linux`+DinD + manual `docker login`). Keep any
+  **existing** service-specific jobs the target already relies on (e.g. `e2e-test` with real
+  `tests/e2e`, extra deploy stages) — merge blueprint shape into them; do not delete working e2e.
+  Adding a brand-new `e2e-test` job when the tree has no `tests/e2e` is out of scope (report
+  DONE_WITH_CONCERNS if the old CI referenced paths that no longer exist).
 
 ## Stop conditions (never improvise)
 - A target shape the steering does not cover, or a move that would change observable behavior →

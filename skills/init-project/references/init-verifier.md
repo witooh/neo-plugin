@@ -48,6 +48,12 @@ You are given: the **target dir** and the intended **module path / service name 
    `.kiro/steering/tooling.md` § *Docker Compose — standard images*). Fail on
    `apache/kafka:3.7.0`, plain `valkey/valkey:…`, or ECR Hub mirrors for postgres/redis.
 
+8. **GitLab CI shape.** `.gitlab-ci.yml` has `workflow.auto_cancel`, Go module `cache` paths
+   (`.go/pkg/mod/`, `.go/bin/`), `prepare-mod` → vendor artifact, `test` with `-mod=vendor` +
+   coverage script, and `build` on **`ec2-shell`** with ECR credential helper. Fail if `build` is
+   still `linux` + DinD + manual `docker login` / `create-repository`. Absence of `e2e-test` is
+   expected (no `tests/e2e` in the skeleton).
+
 ## Output
 
 A short report: each check PASS/FAIL with one line of evidence, then a final verdict — **is this a
