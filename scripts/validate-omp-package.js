@@ -20,6 +20,14 @@ assert.deepEqual(
 	"package.json must load the omp session-start extension",
 );
 
+for (const agentName of ["fresh-eyes", "neo-builder"]) {
+	const agentPath = path.join(root, "agents", `${agentName}.md`);
+	assert.ok(
+		fs.existsSync(agentPath),
+		`agents/${agentName}.md must ship with the plugin`,
+	);
+}
+
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "neo-omp-ext-"));
 process.on("exit", () => fs.rmSync(tempRoot, { recursive: true, force: true }));
 

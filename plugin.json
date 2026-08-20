@@ -1,5 +1,5 @@
 {
   "name": "neo",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills."
 }

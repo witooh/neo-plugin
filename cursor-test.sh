@@ -31,8 +31,12 @@ if [ ! -f "$project_dir/.cursor/skills/using-neo/SKILL.md" ]; then
   echo "FAIL: cursor.sh omitted using-neo from project skills" >&2
   exit 1
 fi
-if [ ! -f "$project_dir/.cursor/agents/code-reviewer.md" ]; then
-  echo "FAIL: cursor.sh omitted project subagents" >&2
+if [ ! -f "$project_dir/.cursor/agents/fresh-eyes.md" ]; then
+  echo "FAIL: cursor.sh omitted fresh-eyes" >&2
+  exit 1
+fi
+if [ ! -f "$project_dir/.cursor/agents/neo-builder.md" ]; then
+  echo "FAIL: cursor.sh omitted neo-builder" >&2
   exit 1
 fi
 if [ ! -f "$project_dir/.cursor/hooks/neo-session-context.sh" ]; then

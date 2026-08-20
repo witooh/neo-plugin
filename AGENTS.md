@@ -20,6 +20,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 
 ```text
 skills/            using-neo router + method layer (synced) + 14 domain skills
+agents/            omp/kiro/cursor task agents (`fresh-eyes`, `neo-builder`) — not user-level copies
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
 .claude-plugin/    Claude Code plugin + marketplace manifests
