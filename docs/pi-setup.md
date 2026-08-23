@@ -14,7 +14,7 @@ neo ships native pi wiring; no manual copying.
   ```
 
 - `.pi/skills` and `.pi/extensions` are symlinks back to the repo's `skills/` and `extensions/`, so a project-local checkout is discovered the same way as an installed package.
-- `extensions/using-neo-session-start.js` injects the full `using-neo` SKILL.md into the system prompt at session start. It does not inject project steering; the agent reads `.kiro/steering/` only when a skill needs it.
+- `extensions/using-neo-session-start.js` injects the full `using-neo` SKILL.md into the system prompt at session start. It does not inject project steering; the agent reads `.kiro/steering/` only when a skill needs it. Graph dispatch: `Task`/`Agent` when the runtime exposes the catalog type; otherwise one node at a time per `skills/using-neo/GRAPH.md`.
 
 ## Method layer
 

@@ -62,11 +62,11 @@ Method skills ship inside this plugin. If `tdd` / `grilling` / `diagnosing-bugs`
 | Narration | Short status + evidence paths. If unsure, one question. |
 | Recovery | On a wrong turn: revert or re-read the source of truth. Do not stack another guess. |
 
-There is no opt-out. If a step is impossible in the harness (no subagent), do the closest equivalent and say so.
+There is no opt-out. If a step is impossible in this harness (no parallel subagent API), run nodes sequentially with the same template and say so in the fan-in evidence. That is still the graph, not an exemption.
 
 ## Orchestrator
 
-- **Strict delegation.** You never edit production, tests, `docs/knowledge/` entries, `docs/api/` contracts, or e2e specs — not a one-line fix, not a review finding. You write only `local://graph.md` and the omp todo list, **and only when you dispatch at least one node**. A direct answer writes neither.
+- **Strict delegation.** You never edit production, tests, `docs/knowledge/` entries, `docs/api/` contracts, or e2e specs — not a one-line fix, not a review finding. You write only graph state — `local://graph.md` when the harness has it, plus the harness todo tool — **and only when you dispatch at least one node**. A direct answer writes neither. Never a repo file for graph state.
 - **Shared commands are yours**: module build, vet, fmt, coverage, `neocheck.py`, `e2echeck`, `apispeccheck`, docker/mockoon, `openapi-doc`, every `git` read. Nodes do not share a build or a stack.
 - **Nodes never talk to each other.** Star: node → you → next node. A node missing something it was not given reports `blocked`.
 - **A node report is a claim, not a result.** Verify it (GRAPH.md fan-in) before marking `done`.

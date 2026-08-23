@@ -90,7 +90,7 @@ Batch-level context (one per wave): the user ask, closed decisions, contract pat
 
 - Edge test: A depends on B when A consumes a symbol, field, or file B creates. Nothing else is an edge.
 - Same-file writers serialize.
-- Graph state is orchestrator-only and never appears in a SURFACE: `local://graph.md`, the omp todo list.
+- Graph state is orchestrator-only and never appears in a SURFACE: `local://graph.md` or the harness todo tool.
 - Wave width ≤ 6. More ready nodes → next wave.
 - A single-node wave is the common case. Do not invent independence the work does not have.
 - Do not pass `effort` unless the harness schema lists it. Plugin agents already pin `thinking-level: xhigh`.
@@ -106,7 +106,7 @@ Every wave, in this order:
 5. Reviewer node — **only** if this wave's diff touches production, `docs/api/`, or e2e specs. Brief: "list incorrect claims, invented APIs, missing tests, convention breaks — evidence required". If the diff touches untrusted input, auth, secrets, money, or PII, also load `code-review`'s Security axis into that brief.
 6. Findings become new nodes in the next wave. You do not fix them.
 7. Read a changed region yourself only when a node reported `blocked` or returned no test output.
-8. Update `local://graph.md` and the omp todo: status + the evidence line. No evidence line, no `done`.
+8. Update graph state (`local://graph.md` or the harness todo tool): status + the evidence line. No evidence line, no `done`.
 
 ## Retry and escalation
 
@@ -114,18 +114,21 @@ A failed node is re-dispatched **once**, with its own failure output pasted into
 
 ## Harness mapping
 
-omp-first. Other harnesses degrade; say so in the fan-in evidence.
+Every supported harness runs the same graph. The table is how to dispatch, not a ranking. Sequential execution is only when the runtime has no parallel subagent API — say so in the fan-in evidence.
 
 | Harness | Wave dispatch | Node identity | Results |
 |---|---|---|---|
-| omp | one `task` call per wave; `tasks[]` = one entry per node; batch `context` = ask + decisions + contract paths + non-goals | agent name from the catalog, `name` = node id, `outputSchema` = the report schema above | auto-delivered; `hub jobs` / `hub wait` for a straggler; `hub send` to steer one node |
-| Claude Code / Kiro / Cursor | one message, one Agent/Task call per node, background on each | catalog name as the subagent type | one tool result per call |
-| Grok / pi | as Claude Code when a subagent type exists; otherwise `task` with SURFACE / FORBIDDEN / REPORT pasted in | — | — |
-| no subagent support | you execute the node inline, one node at a time, and say so | — | — |
+| omp | one `task` call per wave; `tasks[]` = one entry per node; batch `context` = ask + decisions + contract paths + non-goals | catalog name as `agent`, `name` = node id, `outputSchema` = the report schema above | auto-delivered; `hub jobs` / `hub wait` for a straggler; `hub send` to steer one node |
+| Claude Code | one message, one `Agent` call per node, `run_in_background: true` on each | `subagent_type` = catalog name (`agents/*.md` in the plugin) | one tool result per call; wait for every node before fan-in |
+| Cursor | same Agent/Task shape after `./cursor.sh` | `.cursor/agents/` copies of `agents/*.md` | same |
+| Kiro | same after `./kiro.sh` | `.kiro/agents/` copies of `agents/*.md` | same |
+| pi | `Task`/`Agent` when the runtime exposes the catalog type; otherwise one node at a time with SURFACE / FORBIDDEN / REPORT pasted | session injects `using-neo` | say so in the fan-in evidence if sequential |
+| Grok | `/using-neo` if SessionStart stdout is dropped; then same as Claude Code when `Agent` exists; otherwise sequential with the template | plugin `skills/` + `agents/` | say so in the fan-in evidence if sequential |
+| no subagent API | you execute the node inline, one node at a time, same template | — | say so |
 
 ## Graph state
 
-`local://graph.md` is the graph. The omp todo list is the wave queue. You are the only writer of both, and you write them only when you dispatch at least one node. A direct answer creates neither.
+`local://graph.md` is the graph when the harness has that URI (omp). Otherwise keep the same table in the harness todo tool — never create a repo file for it. You are the only writer, and you write state only when you dispatch at least one node. A direct answer creates neither.
 
 ```
 # graph

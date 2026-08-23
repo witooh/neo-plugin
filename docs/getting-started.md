@@ -9,7 +9,7 @@ neo = router (`using-neo`) + method skills (vendored from [mattpocock/skills](ht
 /plugin install neo@neo
 ```
 
-For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi-setup.md). For omp (GitHub install + force upgrade), see [omp-setup.md](omp-setup.md).
+For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi-setup.md). For omp, see [omp-setup.md](omp-setup.md). Cursor: `./cursor.sh`. Kiro: `./kiro.sh`.
 
 ## First run
 

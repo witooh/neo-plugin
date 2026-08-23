@@ -51,7 +51,7 @@ if [[ "$without_index" != *"# Using Neo"* ]]; then
   echo "FAIL: Kiro hook omitted using-neo context without .kiro/steering/INDEX.md" >&2
   exit 1
 fi
-if [[ "$without_index" != *"## Single Entry Point"* ]]; then
+if [[ "$without_index" != *"## Intent table"* ]]; then
   echo "FAIL: Kiro hook emitted incomplete using-neo context" >&2
   exit 1
 fi

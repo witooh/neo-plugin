@@ -91,7 +91,7 @@ if [[ "$without_index_context" != *"# Using Neo"* ]]; then
   echo "FAIL: Cursor hook omitted using-neo without INDEX.md" >&2
   exit 1
 fi
-if [[ "$without_index_context" != *"## Single Entry Point"* ]]; then
+if [[ "$without_index_context" != *"## Intent table"* ]]; then
   echo "FAIL: Cursor hook emitted incomplete using-neo context" >&2
   exit 1
 fi

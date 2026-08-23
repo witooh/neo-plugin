@@ -68,7 +68,7 @@ Same adapter as Claude: `hooks/hooks.json` → `SessionStart` → `hooks/session
 
 Grok 1.0.3 **runs** that hook. Whether the model sees the body is a runner question — the official hooks guide says SessionStart stdout is ignored. Do not write `using-neo` into `~/.grok/rules/` or the target repo's `.grok/rules/` from the hook.
 
-If the runner drops the payload, routing still has `/using-neo` and skill auto-invocation. Grok already reads the target repo's `AGENTS.md` / `CLAUDE.md`. It does **not** auto-read `.kiro/steering/INDEX.md` (same as pi/omp).
+If the runner drops the payload, routing still has `/using-neo` and skill auto-invocation. Graph dispatch matches Claude Code when `Agent` exists (`agents/*.md` in the plugin); otherwise one node at a time per `skills/using-neo/GRAPH.md`. Grok already reads the target repo's `AGENTS.md` / `CLAUDE.md`. It does **not** auto-read `.kiro/steering/INDEX.md` (same as pi/omp).
 
 ## Verify
 

@@ -35,14 +35,15 @@ docs/              Setup guides
 
 ## Harness Channels
 
-Four supported channels, one canonical content source:
+Four supported channels plus two installer channels, one canonical content source (`using-neo` + `GRAPH.md`). Graph dispatch is first-class on each — see `skills/using-neo/GRAPH.md` harness mapping.
 
-- **Claude Code**: plugin install; `hooks/session-start.sh` injects the full `using-neo` SKILL.md plus the target repo's `.kiro/steering/INDEX.md` when present.
-- **Grok Build**: `.grok-plugin/marketplace.json` + `.grok-plugin/plugin.json`; skills load from `skills/` by convention. The same `hooks/session-start.sh` adapter emits `using-neo` on SessionStart (Claude `{priority, message}` plus `additionalContext`). Grok 1.0.3 runs the hook but does not put stdout into the model context — routing then falls back to skill auto-invocation plus `/using-neo`. See `docs/grok-setup.md`.
-- **pi**: `package.json` `pi` block + `.pi/` symlinks; `extensions/using-neo-session-start.js` injects only `using-neo` SKILL.md (no steering index).
-- **omp**: `package.json` `omp` block (read before `pi`); `extensions/using-neo-session-start.mjs` — ESM factory, appends `using-neo` as its own `systemPrompt` block. Skills load from `skills/` with no manifest entry. See `docs/omp-setup.md`.
+- **Claude Code**: plugin install; `hooks/session-start.sh` injects `using-neo`; `agents/*.md` are plugin subagents (`Agent` + `subagent_type`).
+- **Grok Build**: `.grok-plugin/` + `skills/` + `agents/`. Same SessionStart hook; Grok 1.0.3 may drop stdout — `/using-neo` then. See `docs/grok-setup.md`.
+- **pi**: `package.json` `pi` block; session extension injects `using-neo`. Task/Agent when present; else sequential with the GRAPH template.
+- **omp**: `package.json` `omp` block; ESM session extension; plugin-root `agents/` as task agents. See `docs/omp-setup.md`.
+- **Cursor / Kiro**: `./cursor.sh` / `./kiro.sh` copy skills, `agents/*.md`, and SessionStart hooks (`hooks/cursor/`, `hooks/kiro/`).
 
-Other harnesses are unsupported by design. If one is needed later, add a thin injection adapter — never fork skill content per harness.
+Do not fork skill content per harness. A new channel gets a thin injection adapter only.
 
 ## Execution Model
 

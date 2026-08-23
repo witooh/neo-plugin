@@ -113,6 +113,15 @@ pi install ./neo-plugin
 
 Either way the method skills ship inside the plugin — there is no second install.
 
+**Cursor / Kiro**
+
+```bash
+./cursor.sh --project    # or --global → ~/.cursor
+./kiro.sh --project      # or --global → ~/.kiro
+```
+
+Copies `skills/`, `agents/*.md` (graph nodes), and the SessionStart hook that injects `using-neo`. Graph dispatch uses the same Agent/Task shape as Claude Code. See `skills/using-neo/GRAPH.md`.
+
 ## Architecture
 
 ```text
