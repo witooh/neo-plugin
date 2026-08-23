@@ -208,7 +208,14 @@ const isProdGo = (p) => p.endsWith(".go") && !p.endsWith("_test.go");
 function assert(expect, trace, workdir, changed, calls, answer) {
 	const out = [];
 	const root = fs.realpathSync(workdir);
-	const rel = (p) => path.relative(root, path.resolve(root, p));
+	const rel = (p) => {
+		const abs = path.resolve(root, p);
+		let real = abs;
+		try {
+			real = fs.realpathSync(abs);
+		} catch {}
+		return path.relative(root, real);
+	};
 	const edited = trace.filter((t) => t.tool === "edit" || t.tool === "write");
 	const check = (name, ok, detail) => out.push({ name, ok, detail });
 

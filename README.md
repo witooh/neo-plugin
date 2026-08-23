@@ -36,12 +36,21 @@ ask → loop or graph?
 | MR / ship | human | you asked to ship |
 
 ```bash
-# three machine gates, one table — only when a card folder already exists
+# three machine gates, one table — AC gate reads docs/tasks/<card>/spec.md (or --ac-source PATH)
 python3 skills/using-neo/assets/neocheck.py <repo> <card>
 ```
 
 There is no FEATURE / BUG / RECONCILE pipeline. Domain skills (`tdd`, `api-spec`, `e2e-playwright`, …)
 are what a **node** loads, not a step list the router walks.
+
+A card key does get a **work record** under `docs/tasks/<card>/`, three files answering three different
+questions plus a transcript. `spec.md` — what was asked: objective, `AC-NNN`, non-goals, dated decisions,
+written by an `author` node, and the file every AC-aware gate and skill reads. `plan.md` — how the work was
+cut: one row per node with its surface, seam, and `depends`, carrying no status. `todo.md` — what happened:
+wave, status, and an evidence line per node, plus the gate ledger and a session stamp. The router writes the
+last two itself, in full, **before** the first dispatch, which is what lets a later session resume instead of
+restart — a row flipped to `dispatched` at dispatch time is how it tells a node that started from one that was
+only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them waits for approval.
 
 | You say | neo runs |
 |---|---|

@@ -6,10 +6,13 @@ The gates already exist; the failure mode this closes is a human or an agent run
 two of the three and calling the card done. One command, one table, one exit code —
 so "were the gates run?" is answerable from a single pasted block instead of trust.
 
-  python3 neocheck.py <repo> <card> [--timeout SECONDS] [--min-coverage PCT]
+  python3 neocheck.py <repo> <card> [--ac-source PATH] [--timeout SECONDS] [--min-coverage PCT]
 
 Runs, against <repo>:
-  AC coverage    e2echeck.py   tests/e2e/specs + docs/tasks/<card>/spec.md --card <card>
+  AC coverage    e2echeck.py   tests/e2e/specs + this card's AC source --card <card>
+                 AC source = docs/tasks/<card>/spec.md, or --ac-source PATH for a legacy
+                 docs/design/<usecase>/ layout. An e2e suite with no AC source is a FAIL,
+                 not a skip: a skip prints as "not applicable" and counts toward green.
   Unit coverage  the repo's own coverage target (discovered from its Makefile)
   API contract   apispeccheck.py docs/api --check
 
@@ -64,14 +67,24 @@ def coverage_target(repo):
     return best
 
 
-def gate_ac(repo, card, timeout):
+def ac_source_path(repo, card, override):
+    """Where this card's ACs live: the explicit override, else the neo spec."""
+    if override:
+        return override if os.path.isabs(override) else os.path.join(repo, override)
+    return os.path.join(repo, "docs", "tasks", card, "spec.md")
+
+
+def gate_ac(repo, card, timeout, override=None):
     specs = os.path.join(repo, "tests", "e2e", "specs")
-    spec_md = os.path.join(repo, "docs", "tasks", card, "spec.md")
+    src = ac_source_path(repo, card, override)
     if not os.path.isdir(specs):
         return "SKIP", "no tests/e2e/specs", "—"
-    if not os.path.isfile(spec_md):
-        return "SKIP", f"no docs/tasks/{card}/spec.md", "—"
-    cmd = [sys.executable, E2ECHECK, specs, spec_md, "--card", card]
+    if not os.path.exists(src):
+        # SKIP counts toward the green summary and prints as "not applicable", so the
+        # likeliest real gap — nobody wrote this card's ACs down — would read as a pass.
+        # A card claimed done against a live e2e suite has an AC source, or it has a gap.
+        return "FAIL", f"no AC source at {os.path.relpath(src, repo)}", "—"
+    cmd = [sys.executable, E2ECHECK, specs, src, "--card", card]
     rc, out = run(cmd, repo, timeout)
     if "No-AC mode" in out:
         return ("PASS" if rc == 0 else "FAIL"), "No-AC mode — nothing to cover", f"e2echeck.py … --card {card}"
@@ -106,7 +119,7 @@ def gate_coverage(repo, timeout, minimum):
     return "PASS", f"{pct}% ≥ {minimum}%", cmd
 
 
-def suite_title_sweep(repo, card, timeout):
+def suite_title_sweep(repo, card, timeout, override=None):
     """Title-grammar problems across the WHOLE suite, not just this card's files.
 
     The AC gate deliberately downgrades a malformed title in another card's file to a note, so
@@ -115,10 +128,10 @@ def suite_title_sweep(repo, card, timeout):
     file is in scope, and surfaces the count — as information, not as this card's failure.
     """
     specs = os.path.join(repo, "tests", "e2e", "specs")
-    spec_md = os.path.join(repo, "docs", "tasks", card, "spec.md")
-    if not (os.path.isdir(specs) and os.path.isfile(spec_md)):
+    src = ac_source_path(repo, card, override)
+    if not (os.path.isdir(specs) and os.path.exists(src)):
         return None
-    _rc, out = run([sys.executable, E2ECHECK, specs, spec_md], repo, timeout)
+    _rc, out = run([sys.executable, E2ECHECK, specs, src], repo, timeout)
     bad = [ln for ln in out.splitlines() if ln.startswith("ERROR:") and "is not in [<CARD> - AC-NNN] form" in ln]
     return len(bad)
 
@@ -134,20 +147,30 @@ def gate_api(repo, timeout):
 
 
 def main():
-    pos = [a for a in sys.argv[1:] if not a.startswith("--")]
+    argv = sys.argv[1:]
+    ac_source = None
+    if "--ac-source" in argv:
+        i = argv.index("--ac-source")
+        if i + 1 >= len(argv):
+            sys.stderr.write("neocheck: --ac-source needs a path\n")
+            sys.exit(2)
+        ac_source = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    pos = [a for a in argv if not a.startswith("--")]
     opts = {"--timeout": 900, "--min-coverage": 80}
     for flag in opts:
-        if flag in sys.argv:
-            i = sys.argv.index(flag)
-            if i + 1 < len(sys.argv):
-                if not sys.argv[i + 1].isdigit():
-                    sys.stderr.write(f"neocheck: {flag} needs a whole number, got {sys.argv[i + 1]!r}\n")
+        if flag in argv:
+            i = argv.index(flag)
+            if i + 1 < len(argv):
+                if not argv[i + 1].isdigit():
+                    sys.stderr.write(f"neocheck: {flag} needs a whole number, got {argv[i + 1]!r}\n")
                     sys.exit(2)
-                opts[flag] = int(sys.argv[i + 1])
-                pos = [a for a in pos if a != sys.argv[i + 1]]
+                opts[flag] = int(argv[i + 1])
+                pos = [a for a in pos if a != argv[i + 1]]
     timeout, minimum = opts["--timeout"], opts["--min-coverage"]
     if len(pos) < 2:
-        sys.stderr.write("usage: neocheck.py <repo> <card> [--timeout SECONDS] [--min-coverage PCT]\n")
+        sys.stderr.write("usage: neocheck.py <repo> <card> [--ac-source PATH]"
+                         " [--timeout SECONDS] [--min-coverage PCT]\n")
         sys.exit(2)
     repo, card = os.path.abspath(pos[0]), pos[1]
     if not os.path.isdir(repo):
@@ -159,7 +182,7 @@ def main():
             sys.exit(2)
 
     rows = [
-        ("AC coverage",) + gate_ac(repo, card, timeout),
+        ("AC coverage",) + gate_ac(repo, card, timeout, ac_source),
         ("Unit coverage",) + gate_coverage(repo, timeout, minimum),
         ("API contract",) + gate_api(repo, timeout),
     ]
@@ -168,7 +191,7 @@ def main():
     w = max(len(r[0]) for r in rows)
     for name, status, detail, cmd in rows:
         print(f"  {name:<{w}}  {status:<5}  {detail:<34}  {cmd}")
-    sweep = suite_title_sweep(repo, card, timeout)
+    sweep = suite_title_sweep(repo, card, timeout, ac_source)
     if sweep:
         print(f"\n  suite-wide: {sweep} malformed test title(s) in other cards' files — not this"
               f" card's gate, but someone owns them (re-run e2echeck without --card to list)")
