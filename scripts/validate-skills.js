@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Lean validator for neo skills.
+ * Lean validator for neo skills and agents.
  *   1. Every skills/<dir>/SKILL.md has YAML frontmatter with name (matching the
  *      directory) and a non-empty description ≤ 1024 characters.
- *   2. No file in skills/, hooks/, extensions/, AGENTS.md, or README.md
- *      references a removed (dead) skill name.
+ *   2. Every agents/<name>.md has frontmatter name equal to the basename and a
+ *      non-empty description.
+ *   3. No file in skills/, agents/, hooks/, extensions/, AGENTS.md, or README.md
+ *      references a removed skill name or an unknown agent name.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -110,6 +112,30 @@ for (const dir of fs.readdirSync(skillsDir)) {
 		);
 }
 
+const agentsDir = path.join(root, "agents");
+const knownAgents = new Set(["general-purpose", "scout", "task"]);
+let agentCount = 0;
+if (fs.existsSync(agentsDir)) {
+	for (const file of fs.readdirSync(agentsDir)) {
+		if (!file.endsWith(".md")) continue;
+		agentCount += 1;
+		const agentPath = path.join(agentsDir, file);
+		const raw = fs.readFileSync(agentPath, "utf8");
+		const fm = parseFrontmatter(raw);
+		const base = file.slice(0, -3);
+		if (!fm || !fm.name) {
+			errors.push(`agents/${file}: missing name`);
+		} else if (fm.name !== base) {
+			errors.push(
+				`agents/${file}: frontmatter name "${fm.name}" does not match file`,
+			);
+		}
+		if (!fm || !fm.description) errors.push(`agents/${file}: missing description`);
+		knownAgents.add(base);
+	}
+}
+
+
 function scanFile(filePath) {
 	const rel = path.relative(root, filePath);
 	const lines = fs.readFileSync(filePath, "utf8").split("\n");
@@ -117,6 +143,13 @@ function scanFile(filePath) {
 		for (const dead of DEAD_SKILLS) {
 			if (new RegExp(`(^|[^a-z0-9-])${dead}([^a-z0-9-]|$)`).test(line)) {
 				errors.push(`${rel}:${i + 1}: references removed skill "${dead}"`);
+			}
+		}
+		const agentRef = /(?:subagent_type|agent):\s*"([a-z0-9-]+)"/g;
+		let m;
+		while ((m = agentRef.exec(line)) !== null) {
+			if (!knownAgents.has(m[1])) {
+				errors.push(`${rel}:${i + 1}: references unknown agent "${m[1]}"`);
 			}
 		}
 	});
@@ -135,6 +168,7 @@ walk(skillsDir);
 walk(path.join(root, "hooks"));
 if (fs.existsSync(path.join(root, "extensions")))
 	walk(path.join(root, "extensions"));
+if (fs.existsSync(agentsDir)) walk(agentsDir);
 for (const f of ["AGENTS.md", "README.md"]) {
 	const p = path.join(root, f);
 	if (fs.existsSync(p)) scanFile(p);
@@ -146,5 +180,5 @@ if (errors.length) {
 	process.exit(1);
 }
 console.log(
-	`PASSED — ${fs.readdirSync(skillsDir).length} skills validated, no dead references.`,
+	`PASSED — ${fs.readdirSync(skillsDir).length} skills, ${agentCount} agents validated, no dead references.`,
 );

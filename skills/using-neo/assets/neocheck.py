@@ -13,7 +13,7 @@ Runs, against <repo>:
   Unit coverage  the repo's own coverage target (discovered from its Makefile)
   API contract   apispeccheck.py docs/api --check
 
-Judgment gates (api-spec drift, code-review, fresh-eyes, spec/plan + MR approval) are NOT
+Judgment items (api-spec drift, code-review, fresh-eyes, MR if the user asked to ship) are NOT
 run here and are listed as outstanding, so the table never reads as more than it is.
 
 Exit 0 = every machine gate passed; 1 = at least one failed; 2 = usage/setup error.
@@ -29,10 +29,10 @@ E2ECHECK = os.path.join(SKILL_ROOT, "e2e-playwright", "assets", "e2echeck.py")
 APISPECCHECK = os.path.join(SKILL_ROOT, "api-spec", "assets", "apispeccheck.py")
 
 MANUAL_GATES = [
-    ("API drift", "openapi-doc — Go source vs docs/api"),
-    ("Code review", "code-review — Standards / Spec / Security"),
-    ("Fresh eyes", "REVIEW step — independent pass on the diff"),
-    ("Spec + plan, MR", "human approval"),
+    ("API drift", "openapi-doc — Go source vs docs/api — when HTTP/contract touched"),
+    ("Code review", "fresh-eyes + Security axis when the diff earns it"),
+    ("Fresh eyes", "only when the wave diff touches production / docs/api / e2e"),
+    ("MR", "human confirm — only if the user asked to ship"),
 ]
 
 

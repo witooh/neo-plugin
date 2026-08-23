@@ -39,6 +39,14 @@ if [ ! -f "$project_dir/.cursor/agents/neo-builder.md" ]; then
   echo "FAIL: cursor.sh omitted neo-builder" >&2
   exit 1
 fi
+if [ ! -f "$project_dir/.cursor/agents/neo-author.md" ]; then
+  echo "FAIL: cursor.sh omitted neo-author" >&2
+  exit 1
+fi
+if [ ! -f "$project_dir/.cursor/agents/neo-e2e.md" ]; then
+  echo "FAIL: cursor.sh omitted neo-e2e" >&2
+  exit 1
+fi
 if [ ! -f "$project_dir/.cursor/hooks/neo-session-context.sh" ]; then
   echo "FAIL: cursor.sh omitted the project hook script" >&2
   exit 1

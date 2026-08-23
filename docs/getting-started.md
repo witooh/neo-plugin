@@ -13,33 +13,33 @@ For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi
 
 ## First run
 
-Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task:
+Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task.
+
+The router is an **orchestrator**. Default is a **loop** (one node, or a direct answer). A **graph** is earned when specialties hand off, work fans out, or a reviewer is required. The main agent does not edit production, tests, contracts, or e2e specs — `neo-builder` / `neo-author` / `neo-e2e` do.
 
 ```
-ทำ GI-543
+แก้ GET /accounts/{id} ให้คืน 404 ตอนหาไม่เจอ
 ```
 
-neo fetches the card, ingests referenced sources into `docs/knowledge/`, closes open design decisions with you (grilling), drafts the API contract, writes `docs/tasks/GI-543/spec.md` + `plan.md` + `todo.md`, and waits for your approval. After one approval it runs TDD build, per-AC e2e (`e2echeck` gate), code review, doc sync (`apispeccheck` gate), and stops at the MR gate.
+That is one job: one `neo-builder` node, `tdd`, then the orchestrator runs the package tests. No ingest → align → spec pipeline.
 
-## The six gates
+## Gates (conditional)
 
-| Gate | Kind |
-|---|---|
-| Spec + plan approval | human (FEATURE) |
-| Decision evidence (CAPTURE) | human (RECONCILE) — source + who/why/scope before any KB/task/api write |
-| AC coverage (`e2echeck.py`) | machine |
-| Unit coverage (repo coverage command ≥ 80%) | machine |
-| API contract (`apispeccheck.py` + drift) | machine |
-| MR / ship | human |
+| Gate | Kind | When |
+|---|---|---|
+| Package tests + unit coverage ≥ 80% | machine | production code touched |
+| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs or e2e specs |
+| API contract (`apispeccheck.py` + drift) | machine | `docs/api/` or HTTP wire touched |
+| MR / ship | human | you asked to ship |
 
-Everything between FEATURE gates runs continuously. RECONCILE stops at CAPTURE until the decision is named. Git branching is yours — neo never touches branches; the only git side effects sit behind the MR gate.
+There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching is yours — neo never touches branches; commit / push only when you ask, through `gitlab`.
 
 ## Other entry points
 
-- Bug: paste the bug card or describe the failure — diagnose, red test, fix, review.
-- Refactor: state the target — behavior-preserving steps with tests green throughout.
-- RECONCILE: when code already leads the written requirement — CAPTURE → ingest KB → align task docs → structural api-spec → verify (never promote code to requirement SOT).
-- Direct ops: `docs/api` work, Bruno collections, Confluence publishing, JIRA/GitLab operations, and Go service scaffolding route straight to the matching domain skill.
+- Question / research: answered in one loop — no graph.
+- Bug: paste the failure — `diagnosing-bugs`, then one `build` node.
+- Refactor: `codebase-design`, then `build` node(s) if you asked for the edit.
+- Direct ops: `docs/api` work, Bruno collections, Confluence publishing, JIRA/GitLab operations, and Go service scaffolding route to the matching domain skill (an `author` node writes the file).
 
 ## Updating the method layer (maintainers)
 

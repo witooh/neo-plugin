@@ -15,7 +15,7 @@ neo ships native omp wiring; no manual copying.
 - `extensions/using-neo-session-start.mjs` is an ESM factory — omp's extension loader rejects the CommonJS pi module (`Extension does not export a valid factory function`), so the two harnesses get one file each over the same `skills/using-neo/SKILL.md`.
 - omp hands `before_agent_start` an ordered `systemPrompt` **block array** (14.7+) and takes one back; the extension appends the router as its own block instead of string-joining, which would flatten the base prompt into a comma-separated line.
 - `skills/<name>/SKILL.md` is omp's native skill layout, so the plugin's skills are discovered alongside the extension. No `skills` entry in the manifest is needed.
-- `agents/fresh-eyes.md` and `agents/neo-builder.md` are omp task agents discovered from the plugin package root. Do not also install same-named files under `~/.omp/agent/agents/` — user-level names win and hide plugin updates.
+- `agents/fresh-eyes.md`, `agents/neo-builder.md`, `agents/neo-author.md`, and `agents/neo-e2e.md` are omp task agents discovered from the plugin package root. Do not also install same-named files under `~/.omp/agent/agents/` — user-level names win and hide plugin updates.
 - **Maintainer skills** live under `.agents/skills/` (`ship`, `sync-mattpocock`) — not the shipped plugin catalog. Project `.omp/config.yml` sets `skills.customDirectories: [.agents/skills]` so omp still discovers them when the global config has `agents` in `disabledProviders` (common on this machine). Prefer `customDirectories` here; do not touch `disabledProviders` in the project file — `customDirectories` is enough.
 
 ## Install

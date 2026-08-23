@@ -20,7 +20,7 @@ assert.deepEqual(
 	"package.json must load the omp session-start extension",
 );
 
-for (const agentName of ["fresh-eyes", "neo-builder"]) {
+for (const agentName of ["fresh-eyes", "neo-builder", "neo-author", "neo-e2e"]) {
 	const agentPath = path.join(root, "agents", `${agentName}.md`);
 	assert.ok(
 		fs.existsSync(agentPath),

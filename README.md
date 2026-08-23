@@ -1,63 +1,56 @@
 # neo
 
-**A thin engineering router for AI coding agents.** One entry point drives a feature from a card
-to a merge request — and stops only where a human decides or a machine can prove it.
+**A thin engineering router for AI coding agents.** The injected main agent
+orchestrates: it decides loop vs graph, dispatches specialist nodes to do the
+edits, and stops only where a machine can prove the work or a human confirms.
 
 Most agent setups hand you a pile of skills and hope the model picks the right one. neo picks for
-you: every request enters through a single router that detects intent, runs the matching flow, and
-refuses to call work done until the gates agree.
+you: every request enters through a single router. The default is a **loop**. A **graph** is earned
+when specialties hand off, work fans out, or a reviewer is required.
 
-- **Six gates, three of them machine-verified.** AC coverage, unit coverage, and the API contract
-  are decided by scripts, not by an agent's opinion of its own work. CAPTURE is the human gate on
-  RECONCILE — who/why/scope before any knowledge or contract write.
+- **Loop first.** One job stays one node. Do not draw an org chart to summarize a PDF.
+- **Conditional machine gates.** Unit coverage, AC coverage, and the API contract fire from the
+  touched surface, decided by scripts, not by an agent's opinion of its own work.
 - **Evidence before assertion.** External fields, endpoints, and error codes come from ingested
-  sources with a citable path — never from memory. A citation that points nowhere fails the build.
-- **Your git stays yours.** neo never creates, switches, or guards a branch. The only git side
-  effects sit behind the MR gate.
+  sources with a citable path — never from memory.
+- **Your git stays yours.** neo never creates, switches, or guards a branch. Commit / push only
+  when you ask, through `gitlab`.
+- **One orchestrator, many nodes.** The main agent owns the graph and the verdict. `neo-builder`,
+  `neo-author`, and `neo-e2e` make the edits. `fresh-eyes` reviews only a production / contract / e2e diff.
 
-## The flow
+## How a request runs
 
 ```text
-FEATURE
-  ingest → align → api → spec ─┤ 1 ├─ build → verify ─┤3 4├─ review → doc ─┤ 5 ├─ mr ─┤ 6 ├
-                                you                  machine              machine      you
-
-RECONCILE (code already leads the written requirement)
-  CAPTURE ─┤ 2 ├─ ingest KB → align task docs → structural api → verify
-            you
+ask → loop or graph?
+         │
+         ├─ loop (default) ── one node or a direct answer ── fan-in ─┤ gates? ├─ done
+         │
+         └─ graph (earned) ── wave of disjoint nodes ── fan-in ─┤ gates? ├─ next wave / done
 ```
 
-|  #  | Gate                          | Kind    | Decided by                                                            |
-| :-: | ----------------------------- | ------- | --------------------------------------------------------------------- |
-|  1  | Spec + plan approval          | human   | you (FEATURE)                                                         |
-|  2  | Decision evidence (CAPTURE)   | human   | you (RECONCILE) — source + who/why/scope before any KB/task/api write |
-|  3  | AC coverage                   | machine | `e2echeck.py` — every HTTP-observable criterion has a test            |
-|  4  | Unit coverage                 | machine | the repo's own coverage command, ≥ 80%                                |
-|  5  | API contract                  | machine | `apispeccheck.py` + drift report                                      |
-|  6  | MR / ship                     | human   | you                                                                   |
+| Gate | Kind | When |
+|---|---|---|
+| Package tests + unit coverage ≥ 80% | machine | production code touched |
+| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs or e2e specs |
+| API contract (`apispeccheck.py` + drift = 0) | machine | `docs/api/` or HTTP wire touched |
+| MR / ship | human | you asked to ship |
 
 ```bash
-# all three machine gates, one table, one exit code
+# three machine gates, one table — only when a card folder already exists
 python3 skills/using-neo/assets/neocheck.py <repo> <card>
 ```
 
-Everything between FEATURE gates runs continuously — one plan approval carries through to the MR
-gate. RECONCILE stops at CAPTURE until the decision is named; it never promotes code to requirement
-SOT (semantic rules come from the ingested knowledge / task notes, not from Go alone). Two layers:
-running code is behavior SOT; KB after CAPTURE is requirement/contract-intent SOT. Code-leads without
-CAPTURE means requirement SOT is stale/unknown — not that code replaced it.
+There is no FEATURE / BUG / RECONCILE pipeline. Domain skills (`tdd`, `api-spec`, `e2e-playwright`, …)
+are what a **node** loads, not a step list the router walks.
 
-Other intents route straight to where they belong:
-
-| You say                                   | neo runs                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------- |
-| a card key, a feature, "แก้ X"            | FEATURE — the full flow above                                             |
-| a bug, a failing test                     | `diagnosing-bugs` → red test → fix → review                               |
-| a refactor                                | `codebase-design` → small steps → review                                  |
-| "code นำหน้า", reverse-sync, docs lag     | RECONCILE — CAPTURE → ingest KB → align → structural api-spec → verify    |
-| a question                                | answers — no ceremony                                                     |
-| "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP abuse) |
-| docs, MR, JIRA, scaffolding               | the matching domain skill                                                 |
+| You say | neo runs |
+|---|---|
+| a question | answers — one loop, no graph |
+| "แก้ X", a card key, a behavior change | loop or graph; writer node(s) do the edit |
+| a bug, a failing test | `diagnosing-bugs` → one `build` node |
+| a refactor | `codebase-design` → `build` node(s) if you asked for the edit |
+| "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP) |
+| docs, MR, JIRA, scaffolding | the matching domain skill, via an `author` node when a file is written |
 
 ## Install
 
@@ -125,7 +118,9 @@ Either way the method skills ship inside the plugin — there is no second insta
 ```text
 ┌─ ROUTER ─────────────────────────────────────────────┐
 │ using-neo — injected at session start                │
-│ intent detection · flow · gates · resume             │
+│ orchestrator · loop-or-graph · gates · verdict       │
+├─ NODE LAYER (agents/) ───────────────────────────────┤
+│ neo-builder · neo-author · neo-e2e · fresh-eyes      │
 ├─ METHOD LAYER (vendored from mattpocock/skills) ─────┤
 │ grilling · domain-modeling · tdd · diagnosing-bugs   │
 │ research · prototype                                 │
@@ -138,7 +133,8 @@ Either way the method skills ship inside the plugin — there is no second insta
 └──────────────────────────────────────────────────────┘
 ```
 
-- **Router** — _when_ things happen. One skill, injected into every session.
+- **Router** — _when_ things happen. One skill, injected into every session. Mechanics in `GRAPH.md`.
+- **Node layer** — _who_ writes. Specialist agents; the orchestrator never edits the product.
 - **Method layer** — _how_ generic engineering is done. Vendored via `sync-mattpocock`
   (allowlist + 3-way compare), shipped inside the plugin.
 - **Domain layer** — _how_ this org's work is done: the API contract chain, AC-driven e2e gates,
@@ -153,7 +149,7 @@ documented upstream.
 
 | Skill        | Purpose                                                                         |
 | ------------ | ------------------------------------------------------------------------------- |
-| `using-neo`  | The router — intent, flows, gates, resume                                       |
+| `using-neo`  | The orchestrator — loop-or-graph, dispatch, gates, verdict                          |
 | `markitdown` | Ingest JIRA, Confluence, URLs, and files into `docs/knowledge/` with provenance |
 | `atlassian`  | JIRA / Confluence operations via `acli`                                         |
 | `gitlab`     | GitLab MR operations via `glab`                                                 |

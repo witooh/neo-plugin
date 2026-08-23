@@ -4,15 +4,15 @@ Canonical repository guidance for AI coding harnesses working on this repo. Root
 
 ## Repository Overview
 
-neo is a thin engineering router plus a set of org-specific domain skills. It drives feature work end to end (ingest → align → api → spec → build → verify → review → doc → MR) with machine-verifiable gates, and borrows its generic method layer from the external `mattpocock/skills` plugin instead of bundling one.
+neo is a thin engineering router plus a set of org-specific domain skills. The injected router is an orchestrator: it decides loop vs graph, dispatches specialist nodes, and stops only where a machine gate or a human confirm can prove the work. The generic method layer is vendored from the external `mattpocock/skills` plugin.
 
 ## Architecture — three layers
 
-- **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Detects intent, drives the flow, enforces gates. All neo behavior changes land here first.
+- **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Owns loop-or-graph, dispatch, gates, and the verdict. Dispatch mechanics live in `skills/using-neo/GRAPH.md`. All neo behavior changes land here first.
 - **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
 - **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
 
-`falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/`, since `spec.md` is an interpretation and a misread card produces code that passes every gate — and `attack-test` fires abuse paths over live HTTP against a running stack (skip-step, forge-proof, IDOR, idempotency). All three stop at a confirmed symptom and hand off to the BUG flow; none fixes in place.
+`falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/`, since a spec file is an interpretation and a misread card produces code that passes every gate — and `attack-test` fires abuse paths over live HTTP against a running stack (skip-step, forge-proof, IDOR, idempotency). All three stop at a confirmed symptom and hand off to the orchestrator; none fixes in place.
 
 Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-skill verifiers) and in `using-neo`'s gate table. There are no personas and no phase-contract files. Method-layer updates run through `sync-mattpocock`; domain skills and the router are edited in place.
 
@@ -20,7 +20,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 
 ```text
 skills/            using-neo router + method layer (synced) + 14 domain skills
-agents/            omp/kiro/cursor task agents (`fresh-eyes`, `neo-builder`) — not user-level copies
+agents/            graph nodes (`neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes`) — not user-level copies
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
 .claude-plugin/    Claude Code plugin + marketplace manifests
@@ -46,11 +46,13 @@ Other harnesses are unsupported by design. If one is needed later, add a thin in
 
 ## Execution Model
 
-Every request routes through `using-neo`. It selects a flow (FEATURE, BUG, REFACTOR, RECONCILE, or a direct domain-skill route), runs it continuously, and stops only at its gates: spec+plan approval (human), decision evidence on RECONCILE CAPTURE (human), AC coverage via `e2echeck` (machine), unit coverage via the repo coverage command ≥ 80% (machine), API contract via `apispeccheck` + drift (machine), MR/ship (human). Contract doc close (`openapi-doc` drift = 0, plus `api-spec` / RECONCILE as directed) is required before marking done when production edits touch the HTTP/contract surface — close-out rule, not an extra row in the gate table. Git branching belongs to the user; the only git side effects live behind the MR gate.
+Every request routes through `using-neo`. The router is an orchestrator: it decides whether the work is a **loop** (default) or a **graph** (only when specialties hand off, work fans out, or a reviewer is required), dispatches node agents to make the edits, and owns every gate and the completeness verdict. It never edits production, tests, knowledge entries, contracts, or e2e specs — those go through `neo-builder` / `neo-author` / `neo-e2e`. Dispatch mechanics live in `skills/using-neo/GRAPH.md`.
 
-`using-neo` always runs its **high-hallucination profile** (no model detection): single-surface slices, package tests after every task, hard evidence paths for external API fields, and a mandatory fresh-eyes pass on REVIEW — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
+Machine gates are **conditional** on the touched surface: unit coverage via the repo coverage command ≥ 80% when production code changed; AC coverage via `e2echeck` when HTTP-observable ACs or e2e specs are in play; API contract via `apispeccheck` + drift = 0 when `docs/api/` or the HTTP wire changed. An MR is a human confirm through `gitlab` only when the user asks. There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching belongs to the user.
 
-`CONTEXT.md` at a target service root holds **business vocabulary only**. On FEATURE, if missing, `using-neo` bootstraps a minimal skeleton (no invented terms); `domain-modeling` appends terms only when ALIGN surfaces real ones with evidence. `.kiro/steering/` remains the code-convention layer.
+`using-neo` always runs its **high-hallucination profile** (no model detection): single-surface nodes, package tests after every wave that wrote production code, hard evidence paths for external API fields, and a `fresh-eyes` pass only when the wave diff touches production, `docs/api/`, or e2e specs — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
+
+`CONTEXT.md` at a target service root holds **business vocabulary only**. A `neo-author` node appends a term when the work surfaces one with evidence. The orchestrator does not bootstrap or edit it. `.kiro/steering/` remains the code-convention layer.
 
 ## Skill Authoring Conventions
 
