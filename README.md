@@ -1,29 +1,31 @@
 # neo
 
-**A thin engineering router for AI coding agents.** The injected main agent
-orchestrates: it decides loop vs graph, dispatches specialist nodes to do the
-edits, and stops only where a machine can prove the work or a human confirms.
+**A thin engineering router for AI coding agents.** The injected main agent owns the work:
+it decides loop vs graph, makes the edits itself by default, hands a surface to a specialist
+node when the work fans out or a reviewer is required, and stops only where a machine can
+prove the work or a human confirms.
 
 Most agent setups hand you a pile of skills and hope the model picks the right one. neo picks for
 you: every request enters through a single router. The default is a **loop**. A **graph** is earned
 when specialties hand off, work fans out, or a reviewer is required.
 
-- **Loop first.** One job stays one node. Do not draw an org chart to summarize a PDF.
+- **Loop first.** One job stays one job, done inline. Do not draw an org chart to summarize a PDF.
 - **Conditional machine gates.** Unit coverage, AC coverage, and the API contract fire from the
   touched surface, decided by scripts, not by an agent's opinion of its own work.
 - **Evidence before assertion.** External fields, endpoints, and error codes come from ingested
   sources with a citable path — never from memory.
 - **Your git stays yours.** neo never creates, switches, or guards a branch. Commit / push only
   when you ask, through `gitlab`.
-- **One orchestrator, many nodes.** The main agent owns the graph and the verdict. `neo-builder`,
-  `neo-author`, and `neo-e2e` make the edits. `fresh-eyes` reviews only a production / contract / e2e diff.
+- **One owner, optional nodes.** The main agent does the work and owns the verdict. `neo-builder`,
+  `neo-author`, and `neo-e2e` take a surface when the work fans out or must fail in isolation.
+  `fresh-eyes` reviews only a production / contract / e2e diff.
 
 ## How a request runs
 
 ```text
 ask → loop or graph?
          │
-         ├─ loop (default) ── one node or a direct answer ── fan-in ─┤ gates? ├─ done
+         ├─ loop (default) ── inline, one node, or a direct answer ── fan-in ─┤ gates? ├─ done
          │
          └─ graph (earned) ── wave of disjoint nodes ── fan-in ─┤ gates? ├─ next wave / done
 ```
@@ -41,25 +43,25 @@ python3 skills/using-neo/assets/neocheck.py <repo> <card>
 ```
 
 There is no FEATURE / BUG / RECONCILE pipeline. Domain skills (`tdd`, `api-spec`, `e2e-playwright`, …)
-are what a **node** loads, not a step list the router walks.
+are what the router — or the node it hands the surface to — loads, not a step list it walks.
 
 A card key does get a **work record** under `docs/tasks/<card>/`, three files answering three different
 questions plus a transcript. `spec.md` — what was asked: objective, `AC-NNN`, non-goals, dated decisions,
-written by an `author` node, and the file every AC-aware gate and skill reads. `plan.md` — how the work was
-cut: one row per node with its surface, seam, and `depends`, carrying no status. `todo.md` — what happened:
-wave, status, and an evidence line per node, plus the gate ledger and a session stamp. The router writes the
-last two itself, in full, **before** the first dispatch, which is what lets a later session resume instead of
-restart — a row flipped to `dispatched` at dispatch time is how it tells a node that started from one that was
-only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them waits for approval.
+and the file every AC-aware gate and skill reads. `plan.md` — how the work was cut: one row per surface
+with who writes it, its seam, and `depends`, carrying no status. `todo.md` — what happened: wave, status,
+and an evidence line per row, plus the gate ledger and a session stamp. The router writes the last two
+itself, in full, **before** the first edit, which is what lets a later session resume instead of restart —
+a row flipped to `dispatched` the moment work starts is how it tells a surface that was started from one
+that was only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them waits for approval.
 
 | You say | neo runs |
 |---|---|
 | a question | answers — one loop, no graph |
-| "แก้ X", a card key, a behavior change | loop or graph; writer node(s) do the edit |
-| a bug, a failing test | `diagnosing-bugs` → one `build` node |
-| a refactor | `codebase-design` → `build` node(s) if you asked for the edit |
+| "แก้ X", a card key, a behavior change | loop or graph; the router edits, or writer node(s) when it fans out |
+| a bug, a failing test | `diagnosing-bugs` → the fix, inline or one `build` node |
+| a refactor | `codebase-design` → the edit(s) if you asked for them |
 | "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP) |
-| docs, MR, JIRA, scaffolding | the matching domain skill, via an `author` node when a file is written |
+| docs, MR, JIRA, scaffolding | the matching domain skill — via an `author` node when several files fan out |
 
 ## Install
 
@@ -152,7 +154,8 @@ Copies `skills/`, `agents/*.md` (graph nodes), and the SessionStart hook that in
 ```
 
 - **Router** — _when_ things happen. One skill, injected into every session. Mechanics in `GRAPH.md`.
-- **Node layer** — _who_ writes. Specialist agents; the orchestrator never edits the product.
+- **Node layer** — _who else_ writes. Specialist agents the router hands a surface to when the work
+  fans out, must fail in isolation, or needs an independent reviewer.
 - **Method layer** — _how_ generic engineering is done. Vendored via `sync-mattpocock`
   (allowlist + 3-way compare), shipped inside the plugin.
 - **Domain layer** — _how_ this org's work is done: the API contract chain, AC-driven e2e gates,
@@ -167,7 +170,7 @@ documented upstream.
 
 | Skill        | Purpose                                                                         |
 | ------------ | ------------------------------------------------------------------------------- |
-| `using-neo`  | The orchestrator — loop-or-graph, dispatch, gates, verdict                          |
+| `using-neo`  | The router — loop-or-graph, the edits, dispatch, gates, verdict               |
 | `markitdown` | Ingest JIRA, Confluence, URLs, and files into `docs/knowledge/` with provenance |
 | `atlassian`  | JIRA / Confluence operations via `acli`                                         |
 | `gitlab`     | GitLab MR operations via `glab`                                                 |

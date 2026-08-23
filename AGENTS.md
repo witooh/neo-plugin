@@ -4,11 +4,11 @@ Canonical repository guidance for AI coding harnesses working on this repo. Root
 
 ## Repository Overview
 
-neo is a thin engineering router plus a set of org-specific domain skills. The injected router is an orchestrator: it decides loop vs graph, dispatches specialist nodes, and stops only where a machine gate or a human confirm can prove the work. The generic method layer is vendored from the external `mattpocock/skills` plugin.
+neo is a thin engineering router plus a set of org-specific domain skills. The injected router owns the work: it decides loop vs graph, does the edits itself by default, delegates to specialist nodes when the work fans out or a reviewer is required, and stops only where a machine gate or a human confirm can prove the work. The generic method layer is vendored from the external `mattpocock/skills` plugin.
 
 ## Architecture — three layers
 
-- **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Owns loop-or-graph, dispatch, gates, and the verdict. Dispatch mechanics live in `skills/using-neo/GRAPH.md`. All neo behavior changes land here first.
+- **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Owns loop-or-graph, the edits it does not delegate, gates, and the verdict. Dispatch mechanics live in `skills/using-neo/GRAPH.md`. All neo behavior changes land here first.
 - **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
 - **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
 
@@ -20,7 +20,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 
 ```text
 skills/            using-neo router + method layer (synced) + 14 domain skills
-agents/            graph nodes (`neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes`) — not user-level copies
+agents/            nodes to delegate to (`neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes`) — not user-level copies
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
 .claude-plugin/    Claude Code plugin + marketplace manifests
@@ -47,15 +47,15 @@ Do not fork skill content per harness. A new channel gets a thin injection adapt
 
 ## Execution Model
 
-Every request routes through `using-neo`. The router is an orchestrator: it decides whether the work is a **loop** (default) or a **graph** (only when specialties hand off, work fans out, or a reviewer is required), dispatches node agents to make the edits, and owns every gate and the completeness verdict. It never edits production, tests, knowledge entries, contracts, or e2e specs — those go through `neo-builder` / `neo-author` / `neo-e2e`. Dispatch mechanics live in `skills/using-neo/GRAPH.md`.
+Every request routes through `using-neo`. The router owns the work: it decides whether the work is a **loop** (default) or a **graph** (only when specialties hand off, work fans out, or a reviewer is required), makes the edits itself by default, and owns every gate and the completeness verdict. Delegation to `neo-builder` / `neo-author` / `neo-e2e` is a tool it reaches for when the work fans out into disjoint surfaces, when a step must fail in isolation, or when `fresh-eyes` must review — not a rule that removes the main agent from the keyboard. Dispatch mechanics live in `skills/using-neo/GRAPH.md`.
 
 Machine gates are **conditional** on the touched surface: unit coverage via the repo coverage command ≥ 80% when production code changed; AC coverage via `e2echeck` when HTTP-observable ACs or e2e specs are in play; API contract via `apispeccheck` + drift = 0 when `docs/api/` or the HTTP wire changed. An MR is a human confirm through `gitlab` only when the user asks. There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching belongs to the user.
 
-A card key gets a **work record** under `docs/tasks/<card>/`, so a card outlives the session that started it. `spec.md` (objective, numbered `AC-NNN`, non-goals, dated decisions) is written by a `neo-author` node and is the AC source that `e2echeck` / `neocheck.py`, `api-spec`, `e2e-playwright`, `code-review`, and `bug-hunter` already resolve — a card with no ACs still gets one, saying so. `plan.md` is the shape (one row per node: surface, seam, `depends`) and `todo.md` is the run (wave, status, evidence line, gate ledger, and a session stamp that tells a resumed session which verdicts are its own); the orchestrator writes both before the first dispatch and is sole writer of each. They stay separate because the shape barely moves while the run changes every wave, and because status living in two files is how the 3.x plan and todo drifted. None of the three is an approval gate: the router writes plan and todo and dispatches in the same turn. Without a card key the same two files are session-scoped — `local://plan.md` + `local://todo.md` — and nothing survives the session.
+A card key gets a **work record** under `docs/tasks/<card>/`, so a card outlives the session that started it. `spec.md` (objective, numbered `AC-NNN`, non-goals, dated decisions) is written by the router or a `neo-author` node and is the AC source that `e2echeck` / `neocheck.py`, `api-spec`, `e2e-playwright`, `code-review`, and `bug-hunter` already resolve — a card with no ACs still gets one, saying so. `plan.md` is the shape (one row per surface: who writes it, seam, `depends`) and `todo.md` is the run (wave, status, evidence line, gate ledger, and a session stamp that tells a resumed session which verdicts are its own); the router writes both before the first edit and is sole writer of each. They stay separate because the shape barely moves while the run changes every wave, and because status living in two files is how the 3.x plan and todo drifted. None of the three is an approval gate: the router writes plan and todo and starts work in the same turn. Without a card key the same two files are session-scoped — `local://plan.md` + `local://todo.md` — and nothing survives the session.
 
-`using-neo` always runs its **high-hallucination profile** (no model detection): single-surface nodes, package tests after every wave that wrote production code, hard evidence paths for external API fields, and a `fresh-eyes` pass only when the wave diff touches production, `docs/api/`, or e2e specs — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
+`using-neo` always runs its **high-hallucination profile** (no model detection): one edit surface at a time, package tests after every wave that wrote production code, hard evidence paths for external API fields, and a `fresh-eyes` pass only when the wave diff touches production, `docs/api/`, or e2e specs — plus grounding rules (evidence-before-assert, contracts-from-docs-only) for every model.
 
-`CONTEXT.md` at a target service root holds **business vocabulary only**. A `neo-author` node appends a term when the work surfaces one with evidence. The orchestrator does not bootstrap or edit it. `.kiro/steering/` remains the code-convention layer.
+`CONTEXT.md` at a target service root holds **business vocabulary only**. A term is appended when the work surfaces one with evidence — by the router or a `neo-author` node. Nobody bootstraps the file. `.kiro/steering/` remains the code-convention layer.
 
 ## Skill Authoring Conventions
 

@@ -15,13 +15,13 @@ For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi
 
 Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task.
 
-The router is an **orchestrator**. Default is a **loop** (one node, or a direct answer). A **graph** is earned when specialties hand off, work fans out, or a reviewer is required. The main agent does not edit production, tests, contracts, or e2e specs — `neo-builder` / `neo-author` / `neo-e2e` do.
+The router owns the work. Default is a **loop** — it edits inline, or answers you directly. A **graph** is earned when specialties hand off, work fans out, or a reviewer is required; then `neo-builder` / `neo-author` / `neo-e2e` take a surface each. Delegating is a choice the router makes, not a rule that keeps it off the keyboard.
 
 ```
 แก้ GET /accounts/{id} ให้คืน 404 ตอนหาไม่เจอ
 ```
 
-That is one job: one `neo-builder` node, `tdd`, then the orchestrator runs the package tests. No ingest → align → spec pipeline.
+That is one job: the router edits it inline under `tdd`, then runs the package tests. No ingest → align → spec pipeline, no node dispatch to watch.
 
 ## Gates (conditional)
 
@@ -37,9 +37,9 @@ There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. G
 ## Other entry points
 
 - Question / research: answered in one loop — no graph.
-- Bug: paste the failure — `diagnosing-bugs`, then one `build` node.
-- Refactor: `codebase-design`, then `build` node(s) if you asked for the edit.
-- Direct ops: `docs/api` work, Bruno collections, Confluence publishing, JIRA/GitLab operations, and Go service scaffolding route to the matching domain skill (an `author` node writes the file).
+- Bug: paste the failure — `diagnosing-bugs`, then the fix inline (a `build` node only if it fans out).
+- Refactor: `codebase-design`, then the edit(s) if you asked for them.
+- Direct ops: `docs/api` work, Bruno collections, Confluence publishing, JIRA/GitLab operations, and Go service scaffolding route to the matching domain skill (an `author` node writes the file when the work fans out across several).
 
 ## Updating the method layer (maintainers)
 
