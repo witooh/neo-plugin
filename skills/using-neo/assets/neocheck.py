@@ -19,7 +19,8 @@ Runs, against <repo>:
 Judgment items (api-spec drift, code-review, fresh-eyes, MR if the user asked to ship) are NOT
 run here and are listed as outstanding, so the table never reads as more than it is.
 
-Exit 0 = every machine gate passed; 1 = at least one failed; 2 = usage/setup error.
+Exit 0 = at least one machine gate ran and every one that ran passed; 1 = at least one
+failed; 2 = usage/setup error; 3 = no machine gate applied, so nothing was verified.
 Stdlib only.
 """
 import os
@@ -207,9 +208,9 @@ def main():
         print(f"FAIL — {', '.join(failed)}")
         sys.exit(1)
     if len(skipped) == len(rows):
-        # Never let "nothing ran" read as green.
+        # A caller reads exit 0 as "verified". Zero gates verified nothing, so it is not 0.
         print("NO MACHINE GATE APPLIED — nothing was verified: " + ", ".join(skipped))
-        return
+        sys.exit(3)
     print(f"PASS — {len(rows) - len(skipped)} machine gate(s) green"
           + (f"; {', '.join(skipped)} skipped (not applicable here)" if skipped else ""))
 

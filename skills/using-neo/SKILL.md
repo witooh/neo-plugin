@@ -43,7 +43,7 @@ Method skills ship inside this plugin. If `tdd` / `grilling` / `diagnosing-bugs`
 
 1. **Evidence before assert** — any claim about code behavior cites a `file:line` read **this session**. No cite → do not claim.
 2. **Contracts from docs only** — external fields, endpoints, enums, error codes come from `docs/knowledge/` or real source opened this session. Missing → ingest first (an `author` node), never invent.
-3. **Hard evidence before write (external surface)** — before a node authors an api-spec field, handler DTO, mockoon stub, or client call to another system, name the evidence path. No path → stop and ingest. Invented field names are a hard violation.
+3. **Hard evidence before write (external surface)** — before a node authors an api-spec field, handler DTO, mockoon stub, or client call to another system, name the evidence path. No path → stop and ingest. Invented field names are a hard violation. When the HTTP wire is new or changed, the `docs/api/` contract is written **before** the handler that serves it — the contract is that handler's evidence path, so a code node dispatched first has nothing to cite.
 4. **Read back after edit** — the node re-reads the changed region; you re-read only on `blocked` or missing test output.
 5. **One wave, one verify** — after every loop or wave, run GRAPH.md fan-in. Module build + package tests only when that wave wrote production code. Never batch unverified edits.
 6. **Unknown means say so and go look** — never fill a gap by guessing.
@@ -132,7 +132,7 @@ These five are the ledger rows in `todo.md`. Every one of them appears there whe
 
 No spec+plan approval gate. No RECONCILE/CAPTURE flow. A new contract decision with no evidence is a stop-and-ask, not a flow.
 
-`assets/neocheck.py <repo> <card>` runs the three machine gates and prints one table. Its AC gate reads `docs/tasks/<card>/spec.md`; an `author` node produces that file, so a repo with an e2e suite and no AC source now **fails** that gate instead of skipping it green. A legacy `docs/design/<usecase>/` layout is named with `--ac-source PATH`. Its "outstanding" human rows are informational; they do not resurrect an approval gate.
+`assets/neocheck.py <repo> <card>` runs the three machine gates and prints one table. Its AC gate reads `docs/tasks/<card>/spec.md`; an `author` node produces that file, so a repo with an e2e suite and no AC source now **fails** that gate instead of skipping it green. A legacy `docs/design/<usecase>/` layout is named with `--ac-source PATH`. Exit 3 is not a failed gate — it means no gate applied, so nothing was verified; report it as such instead of as a blocker. Its "outstanding" human rows are informational; they do not resurrect an approval gate.
 
 Before marking work done:
 

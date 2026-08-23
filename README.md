@@ -198,51 +198,6 @@ documented upstream.
 | `init-project`    | Scaffolds a Go hexagonal / DDD service from a frozen template             |
 | `migrate-project` | Restructures an existing Go service to the same blueprint, slice by slice |
 
-## Testing
-
-The validators below are static — frontmatter and wiring. The runtime harness is the other layer:
-it drives a **real agent** against a throwaway fixture project and asserts what the agent actually
-did — which skills it loaded, in what order it wrote files, which CLI commands it fired, and whether
-it stopped at the gates.
-
-```bash
-node tests/runtime/run.mjs                          # every case
-node tests/runtime/run.mjs --list                   # cases + skill coverage, no model calls
-node tests/runtime/run.mjs --group flow             # one group (flow | skill)
-node tests/runtime/run.mjs --skill tdd              # every case that exercises one skill
-node tests/runtime/run.mjs --case bug-404 --repeat 3
-node tests/runtime/run.mjs --case api-spec --keep   # keep the workdir for inspection
-```
-
-Each run copies `tests/runtime/fixtures/<fixture>/` to a temp dir, commits it, then drives
-`pi -p --mode json` with **only this plugin** loaded (`-ne`, an explicit `-e` for the provider,
-`--skill ./skills`) so nothing else in your `pi` install can colour the result. Needs `pi` with the
-`grok-cli` provider, plus `go` and `python3` for the fixtures' own checks. Verdict, full tool trace,
-and raw transcript land in `tests/runtime/reports/<case>/run-N.{json,jsonl}`.
-
-**A case** is one JSON file under `cases/flow/` or `cases/skill/`:
-
-| Field            | Meaning                                                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| `skills`         | which skills the case covers — drives `--skill` and the coverage line                                       |
-| `fixture`        | directory under `fixtures/` to copy                                                                         |
-| `setup`          | bash run in the workdir before the agent — stage a conflict, a diff, a branch                               |
-| `stubs`          | recording stubs from `stubs/` placed first on `PATH` (`glab`, `acli`, `curl`); every call logged, none reach the network |
-| `prompt`         | what the user says                                                                                          |
-| `expect`         | the assertions                                                                                              |
-
-Assertions: `skillsLoaded`, `redBeforeGreen`, `fixApplied`, `filesWritten`, `filesNotWritten`,
-`writeOrder`, `ranCommand`, `outputContains`, `cliCalled`, `cliNotCalled`, `sandbox`,
-`noGitWrites`, `postCommand`.
-
-File assertions read the **working tree** (`git status` plus a diff against the base commit), not
-the tool trace — an agent can write through `cat >` as easily as through the edit tool, and it may
-commit its own work.
-
-Two things to expect. The harness is **non-deterministic**: read a failure as a pass-rate, not a
-verdict, and re-run with `--repeat` before believing it. And it **costs money**: ~$0.12 per case,
-~$1.8 for the full suite of 15.
-
 ## Maintaining
 
 Update the vendored method layer:
