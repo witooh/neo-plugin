@@ -2,12 +2,12 @@
 
 **A thin engineering router for AI coding agents.** The injected main agent owns the work:
 it decides loop vs graph, makes the edits itself by default, hands a surface to a specialist
-node when the work fans out or a reviewer is required, and stops only where a machine can
+node when the work fans out or must fail in isolation, and stops only where a machine can
 prove the work or a human confirms.
 
 Most agent setups hand you a pile of skills and hope the model picks the right one. neo picks for
 you: every request enters through a single router. The default is a **loop**. A **graph** is earned
-when specialties hand off, work fans out, or a reviewer is required.
+when specialties hand off, work fans out, or a node must fail in isolation.
 
 - **Loop first.** One job stays one job, done inline. Do not draw an org chart to summarize a PDF.
 - **Conditional machine gates.** Unit coverage, AC coverage, and the API contract fire from the
@@ -18,7 +18,7 @@ when specialties hand off, work fans out, or a reviewer is required.
   when you ask, through `gitlab`.
 - **One owner, optional nodes.** The main agent does the work and owns the verdict. `neo-builder`,
   `neo-author`, and `neo-e2e` take a surface when the work fans out or must fail in isolation.
-  `fresh-eyes` reviews only a production / contract / e2e diff.
+  `fresh-eyes` reviews a production / contract / e2e diff only when a work record is in play.
 
 ## How a request runs
 
@@ -56,8 +56,9 @@ and a session stamp. The router writes the last two itself, in full, **before** 
 edit, which is what lets a later session resume instead of restart — a row flipped to
 `dispatched` the moment work starts is how it tells a surface that was started from one
 that was only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them
-waits for approval. Slices are rows, not `docs/tasks/<slice>/` folders. No work key and no
-existing folder → ask; do not write `local://plan.md`; do not mint a slug.
+waits for approval. Slices are rows, not `docs/tasks/<slice>/` folders. A graph always gets
+the record (ask only for the key if missing). A loop without a key is asked once: do the work
+with no record (default), or name a key. Do not write `local://plan.md`; do not mint a slug.
 
 | You say | neo runs |
 |---|---|

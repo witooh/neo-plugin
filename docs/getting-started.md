@@ -15,7 +15,7 @@ For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi
 
 Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task.
 
-The router owns the work. Default is a **loop** — it edits inline, or answers you directly. A **graph** is earned when specialties hand off, work fans out, or a reviewer is required; then `neo-builder` / `neo-author` / `neo-e2e` take a surface each. Delegating is a choice the router makes, not a rule that keeps it off the keyboard.
+The router owns the work. Default is a **loop** — it edits inline, or answers you directly. A **graph** is earned when specialties hand off, work fans out, or a node must fail in isolation; then `neo-builder` / `neo-author` / `neo-e2e` take a surface each. Delegating is a choice the router makes, not a rule that keeps it off the keyboard. A loop with no work key is asked once: do it with no record (default), or name a key. `fresh-eyes` runs only when a record is in play.
 
 ```
 แก้ GET /accounts/{id} ให้คืน 404 ตอนหาไม่เจอ

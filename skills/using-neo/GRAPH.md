@@ -1,6 +1,6 @@
 # Graph mechanics
 
-Read before the first dispatch — this file is the mechanics of delegating. Work you do yourself needs only the record and the fan-in checks below. A node gets what its prompt pastes — never this file.
+Read before the first dispatch — this file is the mechanics of delegating. Work you do yourself still runs the fan-in checks you can run alone; the record only when one is in play (using-neo). A node gets what its prompt pastes — never this file.
 
 ## When not to use a graph
 
@@ -27,9 +27,8 @@ Reach for a graph only when at least one trigger is real:
 | Tools / skills | different skill or toolset per step |
 | Routing | you need an explicit, auditable path between roles |
 | Failure isolation | one node must be able to fail without poisoning the rest |
-| Reviewer | the wave diff touches production, contract (`docs/api/`), or e2e specs |
 
-The reviewer node is **not** automatic. No production / contract / e2e diff → no `fresh-eyes` node. You still run the fan-in checks you can run alone.
+A `fresh-eyes` node is a fan-in check, not an opening graph trigger — do not graph a loop to obtain a reviewer. It fires only when a work record is in play **and** the wave diff touches production, `docs/api/`, or e2e specs. No record → no reviewer; say so. You still run the fan-in checks you can run alone.
 
 If you drew a graph and every node is "a step I could inline", delete the graph and do the work.
 
@@ -101,13 +100,13 @@ Batch-level context (one per wave): the user ask, closed decisions, contract pat
 
 ## Fan-in checklist
 
-Every wave, in this order. A surface you wrote yourself runs the same list, with your own edit in place of the node report:
+Every wave, in this order. A surface you wrote yourself runs the same list, with your own edit in place of the node report. When no record is in play (a just-do-it loop): skip row flips, the reviewer, findings-as-rows, and `todo.md` (steps 1, 5, 6, 8). Still run the surface check, file-exists, production tests, and read-back (steps 2–4 and 7). Say "no record" once.
 
 1. Every returning node flips its row to `returned` — back, not yet verified — before you check anything; a surface you wrote yourself goes straight from `dispatched` into the checks below. `blocked` → that row is `blocked` with its reason, and every row that depends on it becomes `blocked — upstream <id>`; siblings still land. A dependent left `pending` is a row completeness can never settle.
 2. Surface check: `git status --porcelain` lists only files inside the declared SURFACEs. Anything else is a finding, not a merge.
 3. Every path in `files_written` exists.
 4. If this wave wrote production code: you run the module build + the touched packages' tests (or the repo equivalent) and keep the output. Docs-only / e2e-spec-only waves skip this and say so.
-5. Reviewer node — **only** if this wave's diff touches production, `docs/api/`, or e2e specs. Brief: "list incorrect claims, invented APIs, missing tests, convention breaks — evidence required". If the diff touches untrusted input, auth, secrets, money, or PII, also load `code-review`'s Security axis into that brief. A reviewer is dispatched from here, so it was never in the pre-dispatch plan: append its node row to `plan.md` with a dated re-plan line **and** write its `dispatched` row in `todo.md` before it runs, exactly as for a planned node. A reviewer that found nothing still gets a row — otherwise a resumed session cannot tell a clean review from a review that never ran.
+5. Reviewer node — **only** if a work record is in play **and** this wave's diff touches production, `docs/api/`, or e2e specs. No record → skip; say so. Brief: "list incorrect claims, invented APIs, missing tests, convention breaks — evidence required". If the diff touches untrusted input, auth, secrets, money, or PII, also load `code-review`'s Security axis into that brief. A reviewer is dispatched from here, so it was never in the pre-dispatch plan: append its node row to `plan.md` with a dated re-plan line **and** write its `dispatched` row in `todo.md` before it runs, exactly as for a planned node. A reviewer that found nothing still gets a row — otherwise a resumed session cannot tell a clean review from a review that never ran. This does not convert a loop into a graph.
 6. Findings become rows in the next wave — yours to fix or a node's, never a silent fix folded into the reviewed diff. Each one is a `plan.md` row plus a dated re-plan line.
 7. Read back every region you changed yourself (grounding rule 4). A node's region you re-read only when it reported `blocked` or returned no test output.
 8. Update `docs/tasks/<key>/todo.md`: each row's status and its evidence line, plus any gate row this wave settled. No evidence line, no `done`. `plan.md` changes only when the shape did — a reviewer, a finding, or a `blocked` that forces a different cut — and every such change carries a dated re-plan line.
@@ -132,11 +131,15 @@ Every supported harness runs the same graph. The table is how to dispatch, not a
 
 ## Work record
 
-The work is written down before it is done. The durable id is a **work key**, not a JIRA card key. Resolve it in this order:
+When a record is in play (using-neo: a graph always; a loop when a work key is already resolved, or when the user named one at the ask), it is written down before the work it describes. The durable id is a **work key**, not a JIRA card key. Resolve it in this order:
 
 1. An explicit work key the user named for this body of work (`bingo`, `docs/tasks/bingo`, or a JIRA key presented as the card/work id — "ทำ GI-123", not an incidental mention). Folder name only. Do not invent a path.
 2. An existing `docs/tasks/<key>/` folder the ask continues → that key. If `plan.md` is already there, resume. If the folder exists without `plan.md`, write the record there. If several folders could match and the ask does not pick one → ask. Never create a child folder for a slice or step.
-3. File-changing work with none of the above → stop and ask for a work key. Do not invent a slug. Do not create `docs/tasks/<slice>/`. Do not write `local://plan.md` as the record.
+3. File-changing work with none of the above:
+   - Graph → ask only for a work key, then write the record. Do not ask whether to skip it. Do not invent a slug. Do not create `docs/tasks/<slice>/`. Do not write `local://plan.md`.
+   - Loop → ask once (same body of work, this session): do the work with no record (default), or name a work key and write the record. Same slug rules.
+   - Just-do-it already chosen for this body of work → no record.
+   - Just-do-it that now earns a graph trigger (fan-out, specialties, isolation — not a reviewer) → promote: ask for a work key if still missing, write the record around the work already done, continue. Do not restart.
 4. Changing nothing → no record.
 
 Never take the first `TOKEN-N` in the sentence. `AC-NNN` is a criterion id, never a work key. Never mint a work key from a slice name, a sentence, or a session id. One body of work, one folder: slices and steps are rows in `plan.md` (S0, A1, T1), not `docs/tasks/<slice>/`.
@@ -150,7 +153,7 @@ Never take the first `TOKEN-N` in the sentence. `AC-NNN` is a criterion id, neve
 
 Shape and run are separate files because they move on different clocks. The shape is decided once and re-decided only when a finding or a `blocked` forces a node; the run changes every wave. Fold them together and every wave rewrites the plan, so no diff separates "the shape changed" from "a node finished" — which is exactly the question a resume asks. 3.x split them too and let both carry progress, which is how they drifted apart; here **status and evidence live only in `todo.md`, surface and seam only in `plan.md`**. One fact, one home.
 
-File-changing work with a resolved work key gets the whole record: `plan.md` and `todo.md` before the first edit, and `spec.md` as that plan's first row — written even when the work carries no acceptance criteria, in which case the file says so in one line, which is what keeps `e2echeck`'s no-AC mode an honest verdict instead of a silent one. A request you answer directly — changing nothing — creates no files; say so instead. The harness todo tool mirrors `todo.md` inside the session and is not the record.
+When the record is in play, file-changing work gets the whole record: `plan.md` and `todo.md` before the first edit, and `spec.md` as that plan's first row — written even when the work carries no acceptance criteria, in which case the file says so in one line, which is what keeps `e2echeck`'s no-AC mode an honest verdict instead of a silent one. No record means no `spec.md` — do not write one that says "no ACs" as a substitute. A request you answer directly — changing nothing — creates no files; say so instead. The harness todo tool mirrors `todo.md` inside the session and is not the record.
 
 ### `plan.md` — the shape
 
@@ -227,14 +230,14 @@ A work key whose `plan.md` already exists is a resume, never a restart. Work thr
 
 ## Conditional gates
 
-Run only when the touched surface matches. Unstated = skipped. If not triggered, say so in one line.
+Run only when the touched surface matches. Unstated = skipped. If not triggered, say so in one line. No record → skip `neocheck` and any gate whose input is `spec.md`; still run package tests / drift from the touched surface. Say `not triggered — no work record`.
 
 | Touched | You run | Verdict |
 |---|---|---|
 | production code | package tests for touched packages, then the repo coverage command | tests green; coverage ≥ 80% before you call the work done |
 | `docs/api/` or HTTP-observable wire | `openapi-doc` + `apispeccheck` | drift = 0; apispeccheck green |
 | HTTP-observable ACs / e2e specs | e2e stack + `e2echeck` | every HTTP-observable AC covered |
-| a work key, and you are claiming that work done | `neocheck.py <repo> <key>` — `<key>` is the work-key folder name. Add `--ac-source PATH` when the ACs live in a legacy `docs/design/<usecase>/` layout instead of `spec.md`, or the AC gate hard-fails on a file that was never meant to exist | its table, pasted |
+| a work record is in play, and you are claiming that work done | `neocheck.py <repo> <key>` — `<key>` is the work-key folder name. Add `--ac-source PATH` when the ACs live in a legacy `docs/design/<usecase>/` layout instead of `spec.md`, or the AC gate hard-fails on a file that was never meant to exist | its table, pasted |
 | user asked to ship / open an MR | `gitlab` — wait for confirm first | no push before that confirm |
 
 Shared commands are yours: module build, vet, fmt, coverage, `neocheck.py`, `e2echeck`, `apispeccheck`, docker/mockoon, `openapi-doc`, every `git` read (`status`, `diff`). A node may run read-only checks scoped to its own surface.

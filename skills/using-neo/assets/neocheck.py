@@ -35,7 +35,7 @@ APISPECCHECK = os.path.join(SKILL_ROOT, "api-spec", "assets", "apispeccheck.py")
 MANUAL_GATES = [
     ("API drift", "openapi-doc — Go source vs docs/api — when HTTP/contract touched"),
     ("Code review", "fresh-eyes + Security axis when the diff earns it"),
-    ("Fresh eyes", "only when the wave diff touches production / docs/api / e2e"),
+    ("Fresh eyes", "only when a work record is in play and the wave diff touches production / docs/api / e2e"),
     ("MR", "human confirm — only if the user asked to ship"),
 ]
 
