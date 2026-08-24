@@ -10,7 +10,7 @@ neo is a thin engineering router plus a set of org-specific domain skills. The i
 
 - **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Owns loop-or-graph, the edits it does not delegate, gates, and the verdict. Dispatch mechanics live in `skills/using-neo/GRAPH.md`. All neo behavior changes land here first.
 - **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
-- **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
+- **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
 
 `falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/`, since a spec file is an interpretation and a misread card produces code that passes every gate — and `attack-test` fires abuse paths over live HTTP against a running stack (skip-step, forge-proof, IDOR, idempotency). All three stop at a confirmed symptom and hand off to the orchestrator; none fixes in place.
 
@@ -19,7 +19,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 ## Project Structure
 
 ```text
-skills/            using-neo router + method layer (synced) + 14 domain skills
+skills/            using-neo router + method layer (synced) + 16 domain skills
 agents/            nodes to delegate to (`neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes`) — not user-level copies
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only
@@ -49,7 +49,7 @@ Do not fork skill content per harness. A new channel gets a thin injection adapt
 
 Every request routes through `using-neo`. The router owns the work: it decides whether the work is a **loop** (default) or a **graph** (only when specialties hand off, work fans out, or a node must fail in isolation), makes the edits itself by default, and owns every gate and the completeness verdict. Delegation to `neo-builder` / `neo-author` / `neo-e2e` is a tool it reaches for when the work fans out into disjoint surfaces or a step must fail in isolation, or when `fresh-eyes` must review a recorded production / contract / e2e diff — not a rule that removes the main agent from the keyboard. Dispatch mechanics live in `skills/using-neo/GRAPH.md`.
 
-Machine gates are **conditional** on the touched surface: unit coverage via the repo coverage command ≥ 80% when production code changed; AC coverage via `e2echeck` when HTTP-observable ACs or e2e specs are in play; API contract via `apispeccheck` + drift = 0 when `docs/api/` or the HTTP wire changed. An MR is a human confirm through `gitlab` only when the user asks. There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching belongs to the user.
+Machine gates are **conditional** on the touched surface: unit coverage via the repo coverage command ≥ 80% when production code changed; API contract via `apispeccheck` + drift = 0 when `docs/api/` or the HTTP wire changed — both with or without a record. AC coverage via `e2echeck` and `neocheck.py` fire only when a work record is in play (`spec.md` is the input). An MR is a human confirm through `gitlab` only when the user asks. There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching belongs to the user.
 
 A **work key** (a JIRA token in the ask, a name the user set, or an existing `docs/tasks/<key>/` folder) gets a **work record** under `docs/tasks/<key>/`, so the work outlives the session. A JIRA card key is one kind of work key, not the only one. The record is not the default of every edit: a **graph** always gets one (ask only for the key if missing); a **loop** gets one when a key is already resolved, otherwise the router asks once — do the work with no record (default), or name a key. It does not write `local://plan.md`, and it does not mint a slug. When the record is in play, `spec.md` (objective, numbered `AC-NNN`, non-goals, dated decisions) is written by the router or a `neo-author` node and is the AC source that `e2echeck` / `neocheck.py`, `api-spec`, `e2e-playwright`, `code-review`, and `bug-hunter` already resolve — work with no ACs still gets one, saying so. `plan.md` is the shape (one row per surface: who writes it, seam, `depends`) and `todo.md` is the run (wave, status, evidence line, gate ledger, and a session stamp that tells a resumed session which verdicts are its own); the router writes both before the first edit and is sole writer of each. They stay separate because the shape barely moves while the run changes every wave, and because status living in two files is how the 3.x plan and todo drifted. None of the three is an approval gate. Slices are rows in `plan.md`, never `docs/tasks/<slice>/`. Full rule: `skills/using-neo/SKILL.md`.
 
@@ -73,6 +73,7 @@ A **work key** (a JIRA token in the ask, a name the user set, or an existing `do
 - Claude hook: `bash hooks/session-start-test.sh`
 - Claude plugin structure: `claude plugin validate .`
 - Grok plugin structure: `grok plugin validate .`
+- neocheck fixtures: `python3 skills/using-neo/assets/neocheck_test.py`
 
 ## Versioning and Releases
 

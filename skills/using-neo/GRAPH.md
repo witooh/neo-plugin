@@ -28,7 +28,7 @@ Reach for a graph only when at least one trigger is real:
 | Routing | you need an explicit, auditable path between roles |
 | Failure isolation | one node must be able to fail without poisoning the rest |
 
-A `fresh-eyes` node is a fan-in check, not an opening graph trigger — do not graph a loop to obtain a reviewer. It fires only when a work record is in play **and** the wave diff touches production, `docs/api/`, or e2e specs. No record → no reviewer; say so. You still run the fan-in checks you can run alone.
+A `fresh-eyes` node is a fan-in check, not an opening graph trigger — do not graph a loop to obtain a reviewer. It fires only when a work record is in play **and** the wave diff touches production, `docs/api/`, or e2e specs. No record → no reviewer; say so. If that no-record diff touches untrusted input, auth, secrets, money, or PII: one question (name a work key so a reviewer runs, or confirm skip); no answer → stop. You still run the fan-in checks you can run alone.
 
 If you drew a graph and every node is "a step I could inline", delete the graph and do the work.
 
@@ -106,7 +106,7 @@ Every wave, in this order. A surface you wrote yourself runs the same list, with
 2. Surface check: `git status --porcelain` lists only files inside the declared SURFACEs. Anything else is a finding, not a merge.
 3. Every path in `files_written` exists.
 4. If this wave wrote production code: you run the module build + the touched packages' tests (or the repo equivalent) and keep the output. Docs-only / e2e-spec-only waves skip this and say so.
-5. Reviewer node — **only** if a work record is in play **and** this wave's diff touches production, `docs/api/`, or e2e specs. No record → skip; say so. Brief: "list incorrect claims, invented APIs, missing tests, convention breaks — evidence required". If the diff touches untrusted input, auth, secrets, money, or PII, also load `code-review`'s Security axis into that brief. A reviewer is dispatched from here, so it was never in the pre-dispatch plan: append its node row to `plan.md` with a dated re-plan line **and** write its `dispatched` row in `todo.md` before it runs, exactly as for a planned node. A reviewer that found nothing still gets a row — otherwise a resumed session cannot tell a clean review from a review that never ran. This does not convert a loop into a graph.
+5. Reviewer node — **only** if a work record is in play **and** this wave's diff touches production, `docs/api/`, or e2e specs. No record → skip; say so. If that no-record diff touches untrusted input, auth, secrets, money, or PII: one question (name a work key so a reviewer runs, or confirm skip); no answer → stop. Do not dispatch a reviewer without a record. Brief, when it does run: "list incorrect claims, invented APIs, missing tests, convention breaks — evidence required". If the diff touches untrusted input, auth, secrets, money, or PII, also load `code-review`'s Security axis into that brief. A reviewer is dispatched from here, so it was never in the pre-dispatch plan: append its node row to `plan.md` with a dated re-plan line **and** write its `dispatched` row in `todo.md` before it runs, exactly as for a planned node. A reviewer that found nothing still gets a row — otherwise a resumed session cannot tell a clean review from a review that never ran. This does not convert a loop to a graph.
 6. Findings become rows in the next wave — yours to fix or a node's, never a silent fix folded into the reviewed diff. Each one is a `plan.md` row plus a dated re-plan line.
 7. Read back every region you changed yourself (grounding rule 4). A node's region you re-read only when it reported `blocked` or returned no test output.
 8. Update `docs/tasks/<key>/todo.md`: each row's status and its evidence line, plus any gate row this wave settled. No evidence line, no `done`. `plan.md` changes only when the shape did — a reviewer, a finding, or a `blocked` that forces a different cut — and every such change carries a dated re-plan line.
@@ -114,6 +114,8 @@ Every wave, in this order. A surface you wrote yourself runs the same list, with
 ## Retry and escalation
 
 A failed node is re-dispatched **once**, with its own failure output pasted into the new prompt. Second failure, or the same error twice, stops with one precise question. Never a third attempt, never a different node retrying the same task — and never a hand-fix by you that skips the record, though taking the surface over yourself with its own row and evidence is a re-plan, not a retry. The budget is spent at re-dispatch, not at the retry's fan-in: you write `retry 1/1 spent` into the row's evidence cell in the same breath as you flip it back to `dispatched`. Record it later and a session that dies mid-retry hands the row a second one.
+
+A surface you wrote yourself whose verify went red has the same ceiling: one more attempt, then stop and ask. Inline work does not inherit a fresh retry by being "not a node".
 
 ## Harness mapping
 
@@ -153,7 +155,7 @@ Never take the first `TOKEN-N` in the sentence. `AC-NNN` is a criterion id, neve
 
 Shape and run are separate files because they move on different clocks. The shape is decided once and re-decided only when a finding or a `blocked` forces a node; the run changes every wave. Fold them together and every wave rewrites the plan, so no diff separates "the shape changed" from "a node finished" — which is exactly the question a resume asks. 3.x split them too and let both carry progress, which is how they drifted apart; here **status and evidence live only in `todo.md`, surface and seam only in `plan.md`**. One fact, one home.
 
-When the record is in play, file-changing work gets the whole record: `plan.md` and `todo.md` before the first edit, and `spec.md` as that plan's first row — written even when the work carries no acceptance criteria, in which case the file says so in one line, which is what keeps `e2echeck`'s no-AC mode an honest verdict instead of a silent one. No record means no `spec.md` — do not write one that says "no ACs" as a substitute. A request you answer directly — changing nothing — creates no files; say so instead. The harness todo tool mirrors `todo.md` inside the session and is not the record.
+When the record is in play, file-changing work gets the whole record: `plan.md` and `todo.md` before the first edit, and `spec.md` as that plan's first row — written even when the work carries no acceptance criteria, in which case the file says so in one line, which is what keeps `e2echeck`'s no-AC mode an honest verdict instead of a silent one. Before writing `spec.md`, name its evidence path. A JIRA-shaped work key, or an ask that presents a key as the card: a `docs/knowledge/` entry already ingested, or fetch the card this loop (`atlassian` / `markitdown`) and cite that path. A user-set name with no external source: the ask is the source — write that as a dated decision. Do not invent ACs from memory. No record means no `spec.md` — do not write one that says "no ACs" as a substitute. A request you answer directly — changing nothing — creates no files; say so instead. The harness todo tool mirrors `todo.md` inside the session and is not the record.
 
 ### `plan.md` — the shape
 
@@ -230,13 +232,13 @@ A work key whose `plan.md` already exists is a resume, never a restart. Work thr
 
 ## Conditional gates
 
-Run only when the touched surface matches. Unstated = skipped. If not triggered, say so in one line. No record → skip `neocheck` and any gate whose input is `spec.md`; still run package tests / drift from the touched surface. Say `not triggered — no work record`.
+Run only when the touched surface matches. Unstated = skipped. If not triggered, say so in one line. Same formula as using-neo's Gates table: surface gates (package tests, coverage, drift, `apispeccheck`) fire from the touched surface with or without a record. Gates whose input is `spec.md` (`e2echeck`, `neocheck`) fire only when a record is in play. No record → `not triggered — no work record`. No-AC coverage N/A is not a product-correctness verdict — using-neo Gates.
 
 | Touched | You run | Verdict |
 |---|---|---|
 | production code | package tests for touched packages, then the repo coverage command | tests green; coverage ≥ 80% before you call the work done |
 | `docs/api/` or HTTP-observable wire | `openapi-doc` + `apispeccheck` | drift = 0; apispeccheck green |
-| HTTP-observable ACs / e2e specs | e2e stack + `e2echeck` | every HTTP-observable AC covered |
+| HTTP-observable ACs | e2e stack + `e2echeck` when a record is in play (`spec.md` is the input) | every HTTP-observable AC covered; no record → `not triggered — no work record` |
 | a work record is in play, and you are claiming that work done | `neocheck.py <repo> <key>` — `<key>` is the work-key folder name. Add `--ac-source PATH` when the ACs live in a legacy `docs/design/<usecase>/` layout instead of `spec.md`, or the AC gate hard-fails on a file that was never meant to exist | its table, pasted |
 | user asked to ship / open an MR | `gitlab` — wait for confirm first | no push before that confirm |
 
@@ -246,4 +248,4 @@ Direction on contract drift:
 
 - spec still correct, code drifted → fix the code (you, or a **build** node)
 - structural code matches already-agreed intent with an evidence path → update the spec surface only (you, or an **author** node)
-- code encodes a new or superseded decision with no evidence → **stop and ask**. Do not invent the field. Do not promote code to requirement SOT.
+- code encodes a new or superseded decision with no evidence → **stop and ask** who + why + scope. On the answer: `markitdown` one knowledge entry, then structural spec update only as far as that evidence covers. Do not Update-from-code before the answer. Do not invent the field. Do not promote code to requirement SOT. Do not sweep every card.

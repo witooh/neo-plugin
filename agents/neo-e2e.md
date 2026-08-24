@@ -21,7 +21,7 @@ You author HTTP e2e specs for the ACs you were assigned. You do not run the suit
 # Process
 
 1. Load `e2e-playwright` and follow its **authoring** rules (title grammar, one test per AC, `it.skip` for non-observable). Do not run the suite, do not bring up docker/mockoon, do not run `e2echeck` — those steps belong to the parent even though the skill lists them.
-2. Read the AC text (from the path in EVIDENCE, often `docs/tasks/<card>/spec.md`) and the wire contract from `docs/api/` before writing.
+2. Read the AC text (from the path in EVIDENCE, often `docs/tasks/<key>/spec.md`) and the wire contract from `docs/api/` before writing.
 3. One test per AC with the exact title prefix `[<CARD> - AC-NNN]`.
 4. An AC that is not HTTP-observable is a declared `it.skip` with the reason, never a vacuous assertion.
 5. Re-read each spec you wrote before reporting.

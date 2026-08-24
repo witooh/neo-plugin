@@ -32,9 +32,10 @@ ask → loop or graph?
 
 | Gate | Kind | When |
 |---|---|---|
-| Package tests + unit coverage ≥ 80% | machine | production code touched |
-| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs or e2e specs |
-| API contract (`apispeccheck.py` + drift = 0) | machine | `docs/api/` or HTTP wire touched |
+| Package tests + unit coverage ≥ 80% | machine | production code touched — with or without a record |
+| API contract (`apispeccheck.py` + drift = 0) | machine | `docs/api/` or HTTP wire touched — with or without a record |
+| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs, and a work record is in play |
+| `neocheck.py` | machine | a work record is in play, and you are claiming that work done |
 | MR / ship | human | you asked to ship |
 
 ```bash
@@ -156,6 +157,7 @@ Copies `skills/`, `agents/*.md` (graph nodes), and the SessionStart hook that in
 │ api-spec · e2e-playwright · openapi-doc              │
 │ open-collection · confluence-api-doc · markitdown    │
 │ init-project · migrate-project · atlassian · gitlab  │
+│ neo-core-sit · neo-aux-sit                           │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -224,6 +226,7 @@ node scripts/validate-pi-package.js   # pi package wiring
 node scripts/validate-omp-package.js  # omp package wiring
 node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
 bash hooks/session-start-test.sh      # Claude Code hook
+python3 skills/using-neo/assets/neocheck_test.py  # neocheck exit-code contract
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```

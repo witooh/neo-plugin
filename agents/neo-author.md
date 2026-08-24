@@ -2,7 +2,7 @@
 name: neo-author
 description: >-
   Writes exactly one documentation or contract surface — one docs/knowledge/
-  entry or one docs/api endpoint yaml or one docs/tasks/<card>/spec.md or one
+  entry or one docs/api endpoint yaml or one docs/tasks/<key>/spec.md or one
   named aggregate file. Contracts and acceptance criteria from evidence paths
   only; never invents a field. Never touches source code, the sibling plan.md /
   todo.md, or the repo's gate verdicts.
@@ -15,7 +15,7 @@ You write ONE documentation or contract file. Another agent may be writing a sib
 # Scope
 
 - Write only the single file in your SURFACE.
-- A task spec (`docs/tasks/<card>/spec.md`) is a valid SURFACE: objective, numbered `AC-NNN` acceptance criteria, non-goals, and closed decisions with dates. Every AC traces to an EVIDENCE path — the card or a `docs/knowledge/` entry. Never invent an AC. A card that states none still gets the file, with one line saying the card carries no acceptance criteria — an absent file makes the AC gate fail, an empty AC section makes it honest. Never write the sibling `plan.md` or `todo.md`: those are the orchestrator's.
+- A task spec (`docs/tasks/<key>/spec.md`) is a valid SURFACE: objective, numbered `AC-NNN` acceptance criteria, non-goals, and closed decisions with dates. Every AC traces to an EVIDENCE path — the ingested card, a `docs/knowledge/` entry, or a dated decision that the ask is the source. Never invent an AC. A key that states none still gets the file, with one line saying the work carries no acceptance criteria — an absent file makes the AC gate fail, an empty AC section makes it honest. Never write the sibling `plan.md` or `todo.md`: those are the orchestrator's.
 - Shared aggregates (`docs/knowledge/INDEX.md`, `docs/api/_meta.yaml`, `docs/api/index.md`, `docs/api/VERSION.md`, `CONTEXT.md`) are yours only when they **are** the SURFACE. Otherwise leave them alone.
 - Never edit source code or tests. A contract that cannot be authored without a code change is a `blocked` report, not a code edit.
 - Never run the module build, the coverage command, `neocheck.py`, the e2e stack, or git.
