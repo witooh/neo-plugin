@@ -38,26 +38,31 @@ ask → loop or graph?
 | MR / ship | human | you asked to ship |
 
 ```bash
-# three machine gates, one table — AC gate reads docs/tasks/<card>/spec.md (or --ac-source PATH)
-python3 skills/using-neo/assets/neocheck.py <repo> <card>
+# three machine gates, one table — AC gate reads docs/tasks/<key>/spec.md (or --ac-source PATH)
+python3 skills/using-neo/assets/neocheck.py <repo> <key>
 ```
 
 There is no FEATURE / BUG / RECONCILE pipeline. Domain skills (`tdd`, `api-spec`, `e2e-playwright`, …)
 are what the router — or the node it hands the surface to — loads, not a step list it walks.
 
-A card key does get a **work record** under `docs/tasks/<card>/`, three files answering three different
-questions plus a transcript. `spec.md` — what was asked: objective, `AC-NNN`, non-goals, dated decisions,
-and the file every AC-aware gate and skill reads. `plan.md` — how the work was cut: one row per surface
-with who writes it, its seam, and `depends`, carrying no status. `todo.md` — what happened: wave, status,
-and an evidence line per row, plus the gate ledger and a session stamp. The router writes the last two
-itself, in full, **before** the first edit, which is what lets a later session resume instead of restart —
-a row flipped to `dispatched` the moment work starts is how it tells a surface that was started from one
-that was only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them waits for approval.
+A **work key** (a JIRA token in the ask, a name the user set, or an existing
+`docs/tasks/<key>/` folder) gets a **work record** under `docs/tasks/<key>/`, three files
+answering three different questions plus a transcript. A JIRA card key is one kind of work
+key, not the only one. `spec.md` — what was asked: objective, `AC-NNN`, non-goals, dated
+decisions, and the file every AC-aware gate and skill reads. `plan.md` — how the work was
+cut: one row per surface with who writes it, its seam, and `depends`, carrying no status.
+`todo.md` — what happened: wave, status, and an evidence line per row, plus the gate ledger
+and a session stamp. The router writes the last two itself, in full, **before** the first
+edit, which is what lets a later session resume instead of restart — a row flipped to
+`dispatched` the moment work starts is how it tells a surface that was started from one
+that was only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them
+waits for approval. Slices are rows, not `docs/tasks/<slice>/` folders. No work key and no
+existing folder → ask; do not write `local://plan.md`; do not mint a slug.
 
 | You say | neo runs |
 |---|---|
 | a question | answers — one loop, no graph |
-| "แก้ X", a card key, a behavior change | loop or graph; the router edits, or writer node(s) when it fans out |
+| "แก้ X", a work key, a behavior change | loop or graph; the router edits, or writer node(s) when it fans out |
 | a bug, a failing test | `diagnosing-bugs` → the fix, inline or one `build` node |
 | a refactor | `codebase-design` → the edit(s) if you asked for them |
 | "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP) |
@@ -180,7 +185,7 @@ documented upstream.
 | Skill            | Purpose                                                                                                                                 |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `e2e-playwright` | AC-driven HTTP e2e tests (Jest + Playwright request) behind the `e2echeck` gate                                                         |
-| `code-review`    | Two-axis review of a diff — Standards (`.kiro/steering/`) and Spec (`docs/tasks/<card>/spec.md`) — plus Security when the diff earns it |
+| `code-review`    | Two-axis review of a diff — Standards (`.kiro/steering/`) and Spec (`docs/tasks/<key>/spec.md`) — plus Security when the diff earns it |
 | `falsifying`     | Attacks a green signal: can this gate go red at all? Audits the apparatus, not the product                                              |
 | `bug-hunter`     | Hunts defects no gate covers, starting from the ingested originals in `docs/knowledge/`                                                 |
 | `attack-test`    | Fires abuse/hack paths over live HTTP after happy path — money-move, authz bypass, proof forge, idempotency                             |

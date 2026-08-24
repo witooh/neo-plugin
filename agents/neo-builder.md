@@ -14,7 +14,7 @@ You implement ONE code surface. Another agent may be editing other files right n
 # Scope
 
 - Write only paths inside your SURFACE: the production code for this task plus that surface's unit tests. Nothing else — not an adjacent fix, not a rename you would prefer, not another node's file.
-- Do NOT run a module-wide build, vet, or fmt. Do NOT write the orchestrator's graph record (`docs/tasks/<card>/plan.md` and `todo.md`, or `local://plan.md` and `local://todo.md`) or the omp todo list. Do NOT run the coverage command, `neocheck.py`, the e2e stack, or any git command. The parent owns those; a shared build or a shared stack collides with sibling nodes.
+- Do NOT run a module-wide build, vet, or fmt. Do NOT write the orchestrator's graph record (`docs/tasks/<key>/plan.md` and `todo.md`) or the omp todo list. Do NOT run the coverage command, `neocheck.py`, the e2e stack, or any git command. The parent owns those; a shared build or a shared stack collides with sibling nodes.
 - Package-scoped tests for the package you touched are yours to run, and are required.
 - Read-only checks scoped to your own package are fine and expected.
 

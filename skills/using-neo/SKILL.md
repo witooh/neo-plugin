@@ -79,7 +79,7 @@ Git branching is the user's. Never create, switch, or guard branches. Commit / p
 
 ## Work record
 
-A session ends; the work does not. A **card key** in the ask is the trigger: with one, the whole record lands in `docs/tasks/<card>/` and outlives the session. Without one there is no `spec.md` and no folder — the same shape and run files go to `local://plan.md` + `local://todo.md`, die with the session, and any stated ACs travel in the brief you work from. Say which one you used.
+A session ends; the work does not. The durable id is a **work key**, not a JIRA card key. Resolve it in this order: an explicit name the user set for this body of work (`bingo`, `docs/tasks/bingo`, or a JIRA key presented as the card/work id); an existing `docs/tasks/<key>/` folder the ask continues (resume if `plan.md` is there, write the record if the folder exists without it). File-changing work with a resolved key gets the whole record under `docs/tasks/<key>/` and outlives the session. Slices, steps, and surfaces are **rows** in `plan.md`, never `docs/tasks/<slice>/` — do not mint a slug from a slice name, a sentence, a session id, or the first `TOKEN-N` in the ask. `AC-NNN` is a criterion id, never a work key. File-changing work with no key and no existing folder → stop and ask; do not write `local://plan.md` as a substitute. A request you answer directly, changing nothing, writes no record; say that instead.
 
 | File | Sole writer | Holds | Read by |
 |---|---|---|---|
@@ -90,7 +90,7 @@ A session ends; the work does not. A **card key** in the ask is the trigger: wit
 
 Three files carry the work and a fourth carries the proof, because they answer different questions — what was asked, how it was cut, what happened, and what the suite printed — and each is written by whoever owns that answer. Keeping shape and run apart is what makes a resume readable: `plan.md` barely changes, `todo.md` moves every wave. Status and evidence appear **only** in `todo.md` and surface and seam **only** in `plan.md`; 3.x let both files carry progress and they drifted.
 
-None of them is an approval gate. You write `plan.md` and `todo.md` and start the first item in the same turn; nothing waits for a human. `spec.md` exists because five consumers resolve ACs from that path, and every card that changes a file gets one — a card with no acceptance criteria gets a `spec.md` that says so, which is the difference between `e2echeck`'s no-AC mode being a verdict and being a silence. A card key you answer directly, changing nothing, writes no record; say that instead.
+None of them is an approval gate. You write `plan.md` and `todo.md` and start the first item in the same turn; nothing waits for a human. `spec.md` exists because five consumers resolve ACs from that path, and every file-changing body of work with a work key gets one — work with no acceptance criteria gets a `spec.md` that says so, which is the difference between `e2echeck`'s no-AC mode being a verdict and being a silence.
 
 File shape, the session stamp, the gate ledger, and the resume protocol: `skill://using-neo/GRAPH.md`.
 
@@ -112,8 +112,9 @@ File shape, the session stamp, the gate ledger, and the resume protocol: `skill:
 | JIRA operation | one loop: load `atlassian` |
 | New service, restructure | one loop: load `init-project` / `migrate-project` — dispatch `task` only to keep the reading off your context |
 | Core/Aux SIT logs, Argo, secrets, postgres | one loop: load `neo-core-sit` / `neo-aux-sit` |
-| Card key with a `docs/tasks/<card>/plan.md` already there | resume first — read all three files, reconcile plan against run, re-check the card for amended ACs, re-verify every row that is not `done`, continue from it. This row wins over the next one: never restart at row one, and never re-author an existing `spec.md` except through the amendment path in GRAPH.md's resume step 4 |
-| Behavior change, "แก้ X", card key, no `plan.md` yet | you write `plan.md` + `todo.md` first — its first item is `docs/tasks/<card>/spec.md` — then start work. The record before the work is what makes the next session resume instead of restart. No FEATURE pipeline, no approval gate. |
+| Work key with a `docs/tasks/<key>/plan.md` already there | resume first — read all three files, reconcile plan against run, re-check the source of intent for amended ACs, re-verify every row that is not `done`, continue from it. This row wins over the next one: never restart at row one, and never re-author an existing `spec.md` except through the amendment path in GRAPH.md's resume step 4 |
+| File-changing work, work key resolved, no `plan.md` yet | you write `plan.md` + `todo.md` first — its first item is `docs/tasks/<key>/spec.md` — then start work. The record before the work is what makes the next session resume instead of restart. No FEATURE pipeline, no approval gate. Slices are new **rows**, not new folders. |
+| File-changing work, no work key and no existing `docs/tasks/<key>/` | stop and ask for a work key. Do not invent a slug. Do not create `docs/tasks/<slice>/`. Do not write `local://plan.md` as the record. |
 
 Explicit user command overrides detection. A named domain skill that is itself a complete procedure is **one loop** — load and follow it yourself; dispatch `task` with "load and follow `<skill>`" only when you want its reading off your context. Do not explode it into a graph. Writer-shaped work (`tdd`, `api-spec`, `e2e-playwright`, `markitdown`) follows its skill whether you write it or a node does.
 
@@ -126,14 +127,14 @@ Explicit user command overrides detection. A named domain skill that is itself a
 | Package tests + unit coverage ≥ 80% | machine | production code touched |
 | `e2echeck.py` | machine | HTTP-observable ACs or e2e specs in play |
 | `apispeccheck.py` + `openapi-doc` drift = 0 | machine | `docs/api/` or HTTP wire touched |
-| `neocheck.py` | machine | a card key, and you are claiming that card done |
+| `neocheck.py` | machine | a work key, and you are claiming that work done |
 | MR / ship | human | user asked to ship — wait, then `gitlab` |
 
 These five are the ledger rows in `todo.md`. Every one of them appears there whether it fired or not; "not triggered — <why>" is a verdict, a missing row is a skipped gate.
 
 No spec+plan approval gate. No RECONCILE/CAPTURE flow. A new contract decision with no evidence is a stop-and-ask, not a flow.
 
-`assets/neocheck.py <repo> <card>` runs the three machine gates and prints one table. Its AC gate reads `docs/tasks/<card>/spec.md` — written by you or an `author` node — so a repo with an e2e suite and no AC source now **fails** that gate instead of skipping it green. A legacy `docs/design/<usecase>/` layout is named with `--ac-source PATH`. Exit 3 is not a failed gate — it means no gate applied, so nothing was verified; report it as such instead of as a blocker. Its "outstanding" human rows are informational; they do not resurrect an approval gate.
+`assets/neocheck.py <repo> <key>` runs the three machine gates and prints one table. `<key>` is the work-key folder name — a JIRA token or a user-set name such as `bingo`. Its AC gate reads `docs/tasks/<key>/spec.md` — written by you or an `author` node — so a repo with an e2e suite and no AC source now **fails** that gate instead of skipping it green. A legacy `docs/design/<usecase>/` layout is named with `--ac-source PATH`. Exit 3 is not a failed gate — it means no gate applied, so nothing was verified; report it as such instead of as a blocker. Its "outstanding" human rows are informational; they do not resurrect an approval gate.
 
 Before marking work done:
 
@@ -145,7 +146,7 @@ Before marking work done:
 | HTTP-observable ACs | e2e stack + `e2echeck` (you run). The spec files are written first — by you or an `e2e` node. |
 | Untrusted input, auth, secrets, money, PII | reviewer node; brief includes the `code-review` Security axis |
 | User asked for an MR | `gitlab` after confirm |
-| A card key | `docs/tasks/<card>/`: every `plan.md` node has a `todo.md` row, every row `done` or an explicit `blocked`, all five gate rows present, and every gate that fired stamped with this session |
+| A work key | `docs/tasks/<key>/`: every `plan.md` node has a `todo.md` row, every row `done` or an explicit `blocked`, all five gate rows present, and every gate that fired stamped with this session |
 
 If a gate is not triggered, say so in one line. Silence is a skipped gate.
 
@@ -166,7 +167,7 @@ A gate, checker, or verification script changed in this work → `falsifying` on
 | "Skip the reviewer — I read the diff" | Reviewer fires when the diff touches production / contract / e2e. You still do not replace it then. |
 | "Tests pass, so coverage is fine" | Unstated is unmeasured. Run the coverage command and report the number. |
 | "Coverage is short — exclude the generated package" | Write the tests. Do not widen an exclusion. |
-| "No card folder — skip every gate" | Card folders are not required. Conditional gates still fire from the touched surface. |
+| "No JIRA card — skip the record / use `local://`" | Work key ≠ JIRA key. Resolve the key or ask. Never `local://` as the record. Never mint `docs/tasks/<slice>/`. Conditional gates still fire from the touched surface. |
 | "The graph is in my head — I'll write it down at the end" | The record is written before the work it describes. A session that dies mid-wave leaves nothing else behind. |
 | "`spec.md` was the approval gate — it went away with the pipeline" | The gate went away; the file did not. Five consumers resolve ACs from that path. |
 | "`todo.md` says `done` — tick it and move on" | A row from an earlier session is history, not this session's evidence. Re-run any gate whose verdict you are about to claim. |
