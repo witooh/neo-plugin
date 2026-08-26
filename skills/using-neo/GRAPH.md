@@ -136,7 +136,10 @@ Every supported harness runs the same graph. The table is how to dispatch, not a
 When a record is in play (using-neo: a graph always; a loop when a work key is already resolved, or when the user named one at the ask), it is written down before the work it describes. The durable id is a **work key**, not a JIRA card key. Resolve it in this order:
 
 1. An explicit work key the user named for this body of work (`bingo`, `docs/tasks/bingo`, or a JIRA key presented as the card/work id — "ทำ GI-123", not an incidental mention). Folder name only. Do not invent a path.
-2. An existing `docs/tasks/<key>/` folder the ask continues → that key. If `plan.md` is already there, resume. If the folder exists without `plan.md`, write the record there. If several folders could match and the ask does not pick one → ask. Never create a child folder for a slice or step.
+2. An existing `docs/tasks/<key>/` folder that **this** body of work continues → that key. It continues only when the ask advances that record's objective: the ask names the key, or asks for the next increment of that same objective, or fixes / finishes a row that record left unfinished. If `plan.md` is already there, resume. If the folder exists without `plan.md`, write the record there. Several folders could match and the ask does not pick one → ask. Never create a child folder for a slice or step.
+   - A **new objective is not a continuation** — however recently the old key was resolved, and however few folders exist. One folder in `docs/tasks/` is not a default, and the key you resolved for the last ask is not sticky: it is scoped to the body of work it was resolved for, not to the session. Fall through to step 3 and let the new work get its own key: a sibling folder, never a child of the old one, and never extra rows bolted onto a record whose objective it does not share.
+   - Same objective, next increment — a follow-up, a review finding, a second slice — → same key, new **rows** in `plan.md`. That is what "one body of work, one folder" means. It does not mean one folder per repo.
+   - Cannot tell whether the ask continues the record or opens new work → ask, naming the candidate key. Reuse is a decision, not a fallback; a wrong reuse buries the new work's ACs inside a `spec.md` that was written for something else.
 3. File-changing work with none of the above:
    - Graph → ask only for a work key, then write the record. Do not ask whether to skip it. Do not invent a slug. Do not create `docs/tasks/<slice>/`. Do not write `local://plan.md`.
    - Loop → ask once (same body of work, this session): do the work with no record (default), or name a work key and write the record. Same slug rules.
@@ -144,7 +147,7 @@ When a record is in play (using-neo: a graph always; a loop when a work key is a
    - Just-do-it that now earns a graph trigger (fan-out, specialties, isolation — not a reviewer) → promote: ask for a work key if still missing, write the record around the work already done, continue. Do not restart.
 4. Changing nothing → no record.
 
-Never take the first `TOKEN-N` in the sentence. `AC-NNN` is a criterion id, never a work key. Never mint a work key from a slice name, a sentence, or a session id. One body of work, one folder: slices and steps are rows in `plan.md` (S0, A1, T1), not `docs/tasks/<slice>/`.
+Never take the first `TOKEN-N` in the sentence. `AC-NNN` is a criterion id, never a work key. Never mint a work key from a slice name, a sentence, or a session id — new work still takes its key from step 1 or step 3, which means from the user, never from you. One body of work, one folder: slices and steps are rows in `plan.md` (S0, A1, T1), not `docs/tasks/<slice>/`.
 
 | Part | Path | Writer |
 |---|---|---|
