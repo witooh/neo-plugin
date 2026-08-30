@@ -136,10 +136,16 @@ Every supported harness runs the same graph. The table is how to dispatch, not a
 When a record is in play (using-neo: a graph always; a loop when a work key is already resolved, or when the user named one at the ask), it is written down before the work it describes. The durable id is a **work key**, not a JIRA card key. Resolve it in this order:
 
 1. An explicit work key the user named for this body of work (`bingo`, `docs/tasks/bingo`, or a JIRA key presented as the card/work id — "ทำ GI-123", not an incidental mention). Folder name only. Do not invent a path.
-2. An existing `docs/tasks/<key>/` folder that **this** body of work continues → that key. It continues only when the ask advances that record's objective: the ask names the key, or asks for the next increment of that same objective, or fixes / finishes a row that record left unfinished. If `plan.md` is already there, resume. If the folder exists without `plan.md`, write the record there. Several folders could match and the ask does not pick one → ask. Never create a child folder for a slice or step.
+2. An existing `docs/tasks/<key>/` folder that **this** body of work continues → that key. It continues only when the ask advances that record's **open** objective: the ask names the key, or asks for the next increment of that same open objective, or fixes / finishes a row that record left unfinished. If `plan.md` is already there, resume. If the folder exists without `plan.md`, write the record there. Several folders could match and the ask does not pick one → ask. Never create a child folder for a slice or step.
+   - **Open vs closed.** A record is **open** while any `plan.md` row is not `done` or explicit `blocked` in `todo.md`. It is **closed** when every row is `done` or explicit `blocked`, or when resume step 8 already declared the work finished.
+   - **Record-boundary ask.** Name the candidate key and whether it is open or closed. Exactly three options; no answer → stop; do not resume, do not bolt rows on, do not invent a slug, do not pick for them:
+     1. Continue `<key>` — same folder; amend `spec.md` via resume step 4 if ACs changed; add `plan.md` rows with a dated re-plan line; new `todo.md` rows. Append those rows **before** walking Resume, so step 8 does not fire on the old completeness. Do not restart at row one. Do not rewrite `spec.md` from scratch.
+     2. New work record — user names a key; sibling folder; write a fresh record. Never bolt the new work onto the other `spec.md`.
+     3. No work record — just-do-it loop only. When the additional work is already a graph, omit (3); a graph still needs a key (option 2).
+   - A **closed** record is not a continuation by default. File-changing work that does not name a work key (step 1) **must** use the record-boundary ask, even when the ask looks like the same objective, the same session, or a "next increment".
    - A **new objective is not a continuation** — however recently the old key was resolved, and however few folders exist. One folder in `docs/tasks/` is not a default, and the key you resolved for the last ask is not sticky: it is scoped to the body of work it was resolved for, not to the session. Fall through to step 3 and let the new work get its own key: a sibling folder, never a child of the old one, and never extra rows bolted onto a record whose objective it does not share.
-   - Same objective, next increment — a follow-up, a review finding, a second slice — → same key, new **rows** in `plan.md`. That is what "one body of work, one folder" means. It does not mean one folder per repo.
-   - Cannot tell whether the ask continues the record or opens new work → ask, naming the candidate key. Reuse is a decision, not a fallback; a wrong reuse buries the new work's ACs inside a `spec.md` that was written for something else.
+   - Same **open** objective, next increment — a follow-up, a review finding, a second slice — → same key, new **rows** in `plan.md`. That is what "one body of work, one folder" means. It does not mean one folder per repo. It does not mean a closed record stays open because more work arrived.
+   - Cannot tell whether the ask continues an **open** record or opens new work → the record-boundary ask. Reuse is a decision, not a fallback; a wrong reuse buries the new work's ACs inside a `spec.md` that was written for something else.
 3. File-changing work with none of the above:
    - Graph → ask only for a work key, then write the record. Do not ask whether to skip it. Do not invent a slug. Do not create `docs/tasks/<slice>/`. Do not write `local://plan.md`.
    - Loop → ask once (same body of work, this session): do the work with no record (default), or name a work key and write the record. Same slug rules.
@@ -222,7 +228,7 @@ The ledger carries a row for **every** gate in the conditional-gate table below,
 
 ## Resume
 
-A work key whose `plan.md` already exists is a resume, never a restart. Work through this before you start.
+A work key whose `plan.md` already exists is a resume, never a restart — **if** work-key resolution already chose this key for this ask (step 1, or continue on the record-boundary ask, or an open record this ask continues). A closed record does not get here until the user chose continue or named the key. If this ask reopened a closed record, append the new `plan.md` / `todo.md` rows with a dated re-plan line first, then walk the steps below.
 
 1. Read all three: `spec.md`, `plan.md`, `todo.md`. Report the row tally and the row you continue from. Never rewrite an existing `spec.md` from scratch — yourself or through an author node; the one amendment path is step 4.
 2. Reconcile shape against run: every `plan.md` row needs a `todo.md` row. A planned row with no run row is a lost write, not proof it never ran — the realistic cause is a mid-wave append whose row write was lost — so treat it as `returned` and put it through step 6, never as `pending`.
@@ -231,7 +237,7 @@ A work key whose `plan.md` already exists is a resume, never a restart. Work thr
 5. `done` rows — keep the row, distrust the verdict. Grounding rule 1 binds: re-run any gate whose verdict you are about to claim, and stamp it with this session.
 6. `dispatched` / `returned` rows are the dangerous ones: a session ended between the edit and its fan-in, whoever made it. Run that row's fan-in now. Never promote it because the files exist. A row already carrying `retry 1/1 spent` has no retry left.
 7. Continue from the first row that is not `done`. Never redo the work behind a `done` row. The shape in `plan.md` still holds — changing it is a dated re-plan line, never a silent edit.
-8. Every row `done` or explicitly `blocked`, and every gate that fired carrying a verdict stamped with this session → the work is finished. Say so and stop.
+8. Every row `done` or explicitly `blocked`, and every gate that fired carrying a verdict stamped with this session → the work is finished. Say so and stop. A later ask that adds work is not a silent resume: unless that later ask names a work key (step 1), it is the record-boundary ask.
 
 ## Conditional gates
 
