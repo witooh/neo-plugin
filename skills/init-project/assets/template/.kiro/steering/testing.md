@@ -12,7 +12,9 @@ upstreams.
 
 ## Unit tests — Go
 
-- **Table-driven**, `t.Run(name, ...)` per case. Cover the rejection paths (typed errors), not just the happy path.
+- **Table-driven**, `t.Run(name, ...)` per case. Cover the rejection paths (`stderr` typed
+  errors — `errors.As` onto `stderr.StandardError` / `errors.Is` through `Unwrap`), not just
+  the happy path.
 - **Mock every driven port with its mockery-generated mock** (`mockPKG.NewMockXxx(t)`; see
   `tooling.md` for regen). `NewMockXxx(t)` registers `AssertExpectations` via `t.Cleanup`, so the
   expectations *are* the assertions:

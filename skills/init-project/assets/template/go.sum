@@ -242,8 +242,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/gopher-lua v1.1.1 h1:kYKnWBjvbNP4XLT3+bPEwAXJx262OhaHDWDVOPjL46M=
 github.com/yuin/gopher-lua v1.1.1/go.mod h1:GBR0iDaNXjAgGg9zfCvksxSRnQx76gclCIb7kdAd1Pw=
-gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.0-beta002 h1:XKjF0DesitOFjSNRndUpcy/nyPc+BTES8p71QUP7vCA=
-gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.0-beta002/go.mod h1:ansGFM87SKS9WVtJnaw5DFeEZT6oo7g7aU9CjKOarUs=
+gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4 h1:3moIcuZ+4rypQNvhXGBDR/GcFSP1BLjR+vOSLshitWg=
+gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4/go.mod h1:ansGFM87SKS9WVtJnaw5DFeEZT6oo7g7aU9CjKOarUs=
 go.mongodb.org/mongo-driver/v2 v2.5.0 h1:yXUhImUjjAInNcpTcAlPHiT7bIXhshCTL3jVBkF3xaE=
 go.mongodb.org/mongo-driver/v2 v2.5.0/go.mod h1:yOI9kBsufol30iFsl1slpdq1I0eHPzybRWdyYUs8K/0=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=

@@ -25,21 +25,21 @@ func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.H
 
 	addr := svcCfg.Host + ":" + svcCfg.Port
 	srv := &http.Server{Addr: addr, Handler: engine.Handler()}
-	logger.Info("server started", logger.String("url", addr))
+	logger.Info("server.started", logger.String("url", addr))
 
 	go func() {
 		<-ctx.Done()
-		logger.Info("server is terminating...")
+		logger.Info("server.terminating")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), svcCfg.ShutdownTimeout)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			logger.Error("server shutdown error", logger.Err(err))
+			logger.Error("server.shutdown.failed", logger.Err(err, logger.CategoryNetwork))
 		}
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	logger.Info("server is closed")
+	logger.Info("server.closed")
 	return nil
 }

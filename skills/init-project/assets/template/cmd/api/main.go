@@ -16,12 +16,12 @@ func main() {
 	cfg := config.MustLoad()
 	logger.InitLogger(cfg.LoggerConfig)
 	defer logger.Sync()
-	defer logger.Info("server is gracefully terminated.")
+	defer logger.Info("server.terminated")
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	if err := Run(ctx, cfg); err != nil {
-		logger.Panic("service exited with error", logger.Err(err))
+		logger.Fatal("service.exited", logger.Err(err, logger.CategoryConfiguration))
 	}
 }

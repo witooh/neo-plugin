@@ -56,7 +56,7 @@ real domain it tightens this as needed.
 
 - **Go ≥ 1.26** on PATH.
 - **Private module access** for the org `common-lib` the template imports
-  (`gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2`): `GOPRIVATE` set for the
+  (`gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` **v2.2.4**): `GOPRIVATE` set for the
   host + git credentials. A warm module cache (having built `account-service` once) lets the build
   succeed offline. Without access, run `scaffold.py --no-build` and build later.
 

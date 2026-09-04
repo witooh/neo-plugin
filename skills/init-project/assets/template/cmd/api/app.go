@@ -34,13 +34,13 @@ func Run(ctx context.Context, cfg *config.Config) error {
 func tryOpenDB(ctx context.Context, pg config.PostgresConfig) *sql.DB {
 	db, err := sql.Open("pgx", pg.ConnectionString())
 	if err != nil {
-		logger.Warn("postgres not configured; serving without it", logger.Err(err))
+		logger.Warn("postgres not configured; serving without it", logger.Err(err, logger.CategoryDatabase))
 		return nil
 	}
 	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if err := db.PingContext(pingCtx); err != nil {
-		logger.Warn("postgres unreachable; serving without it", logger.Err(err))
+		logger.Warn("postgres unreachable; serving without it", logger.Err(err, logger.CategoryDatabase))
 		_ = db.Close()
 		return nil
 	}

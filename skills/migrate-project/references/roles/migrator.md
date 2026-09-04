@@ -40,6 +40,32 @@ the slice and hand it to the Verifier.
   **substitute** the sentinel module `example.com/neo/service` → the target's real module path (read
   from its `go.mod`) everywhere in the depguard rules. This is the one substitution; the steering
   placeholders (`{{MODULE_PATH}}`, `<context>`, …) stay intact.
+- **common-lib v2.2.4** — when `target-map.md` flags a pin below `v2.2.4` or any removed
+  symbol (`ServiceIdMiddleware`, `ErrorLoggingMiddleware`, `GetServiceId`,
+  `ContextKey_ServiceId`), bump
+  `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` to **`v2.2.4`**
+  (`go get …@v2.2.4 && go mod tidy`) and rewrite in the same slice. The new chain lives in
+  `INIT_TEMPLATE/.kiro/steering/handler.md`; logging + stderr→HTTP live in
+  `structure.md` § *Logging and errors*; `logger.Config` in `app.md`. Do not keep a
+  parallel copy. Mapping:
+
+  | Removed (≤ v2.2.0-beta002) | v2.2.4 |
+  |---|---|
+  | `ServiceIdMiddleware(id)` | gone. Pass `id` to `stdresp.GinErrorHandler(id)` only. |
+  | `ctxutils.GetServiceId` / `ContextKey_ServiceId` | `logger.ServiceName()` (reads `Config.ServiceName`) |
+  | `ErrorLoggingMiddleware(l)` | `LoggingMiddleware(l)` — one `http.server.request.completed` line per request |
+  | `logger.Config{Environment, Level string}` | typed `Environment` / `Level`; **`ServiceName string` required** (empty panics); optional `ServiceVersion`, `DisableBodyCapture` |
+  | free-text `logger.Info("… start")` / no `logger.Context` | `logger.Context(ctx)` + dot-separated event name + `logger.Err(err, category)` (`structure.md`) |
+  | custom HTTP-status domain errors / a local error→status mapper | `stderr` constructors; `GinErrorHandler` maps `GetErrorType()` (`structure.md`, `domain.md`) |
+  | (none) | `RequestIdMiddleware()`; `ctxutils.GetRequestId`; `httpclient.WrapTransport` / `NewClient` on outbound HTTP |
+
+  Middleware order (handler.md): CorrelationId → RequestId → LoggingMiddleware →
+  GinErrorHandler → Recovery. `LoggingMiddleware` and `GinErrorHandler` wrap Recovery so a
+  recovered panic is still logged and still rendered as JSON. Pin `logger.service_name` in
+  config to the same id as `service.service_id`. Outbound HTTP uses
+  `httpclient.WrapTransport` and `http.NewRequestWithContext` (`integration.md`). This is
+  compile-breaking, not silent: a bump without the rewrite fails `go build`. Already on
+  v2.2.4 with the new chain → skip.
 - Copy `INIT_TEMPLATE/.kiro/steering/` verbatim (generic, placeholders kept), including
   `.kiro/steering/INDEX.md`, and copy `INIT_TEMPLATE/CLAUDE.md`. Fill `repo-instance.md` with the
   target's real bounded contexts + driven ports (from `target-map.md`). Before handing off S1,

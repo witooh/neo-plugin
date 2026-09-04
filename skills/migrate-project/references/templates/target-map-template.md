@@ -10,7 +10,7 @@ slices. Markdown.
 # Target Map — <service-name>
 
 Module: <go.mod module path>
-Go: <version>   Stack: <gin? pgx? sqlc? common-lib?>
+Go: <version>   Stack: <gin? pgx? sqlc? common-lib v?>
 Analyzed: <YYYY-MM-DD or session marker>
 
 ## Current layout
@@ -37,6 +37,7 @@ Analyzed: <YYYY-MM-DD or session marker>
 - [ ] ports: <feature-local internal/<feat>/ports/ or scattered> → centralize in internal/core/domain/repository/ + event/ (gateways stay integration/<sys>/) — domain.md
 - [ ] deterministic-by-injection: time.Now()/uuid.New() in core at <file:line> → clock/idgen — structure.md
 - [ ] DTO mapping: <returns aggregate raw?> → map at the edge — handler.md
+- [ ] common-lib: <pin + residue, or "v2.2.4, new chain"> → v2.2.4 + handler.md chain (no ServiceIdMiddleware / ErrorLoggingMiddleware / GetServiceId; logger.Config.ServiceName required; httpclient on outbound HTTP) — migrator.md S1
 - [ ] <other gaps>
 
 ## Cross-cutting

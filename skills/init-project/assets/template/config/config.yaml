@@ -1,6 +1,7 @@
 logger:
   environment: development
   level: info
+  service_name: NEOSVC
 
 service:
   host: 0.0.0.0

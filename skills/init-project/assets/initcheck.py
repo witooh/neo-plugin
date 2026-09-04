@@ -177,6 +177,27 @@ def main() -> None:
     check('r.GET("/health"' in rtext and re.search(r"type Handlers struct\s*{\s*}", rtext) is not None,
           "/health route wired + empty Handlers", "")
 
+    gomod = t / "go.mod"
+    gtext = gomod.read_text(encoding="utf-8") if gomod.is_file() else ""
+    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4" in gtext,
+          "common-lib v2.2.4", "")
+
+    mw = t / "internal/delivery/http/middleware/middleware.go"
+    mwtext = mw.read_text(encoding="utf-8") if mw.is_file() else ""
+    old_mw = [s for s in ("ServiceIdMiddleware", "ErrorLoggingMiddleware", "GetServiceId") if s in mwtext]
+    has_new = all(s in mwtext for s in (
+        "CorrelationIdMiddleware", "RequestIdMiddleware", "LoggingMiddleware",
+        "GinErrorHandler", "Recovery",
+    ))
+    check(not old_mw and has_new, "common-lib v2.2.4 middleware chain",
+          (f"removed symbols: {old_mw}; " if old_mw else "") +
+          ("" if has_new else "missing RequestIdMiddleware/LoggingMiddleware"))
+
+    cfg_yaml = t / "config/config.yaml"
+    ytext = cfg_yaml.read_text(encoding="utf-8") if cfg_yaml.is_file() else ""
+    check(f"service_name: {args.service_id}" in ytext,
+          "logger.service_name matches service id", "")
+
     # Standard compose images (tooling.md — Docker Compose — standard images).
     compose = t / "docker-compose.yaml"
     ctext = compose.read_text(encoding="utf-8") if compose.is_file() else ""

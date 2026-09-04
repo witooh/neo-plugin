@@ -28,8 +28,9 @@ The canonical slice shape for a service that is already clean-but-different-dial
 1. **S1 — cross-cutting + install** — install `.golangci.yaml` (with the **target's** module path
    substituted into its depguard rules) + `.kiro/steering/` (including `INDEX.md`) + `CLAUDE.md`;
    relocate shared/edge code (error mapping, response envelope, middleware, config) into the
-   blueprint layout; create the `internal/core/` skeleton. After S1 the contract is in place even
-   though most features still fail it.
+   blueprint layout; when `target-map.md` flags it, bump common-lib to v2.2.4 and rewrite
+   removed APIs (migrator.md); create the `internal/core/` skeleton. After S1 the contract is
+   in place even though most features still fail it.
 2. **S2..Sn — one feature per slice** — relocate each bounded context into the per-layer domain
    (`internal/core/domain/{entity,service,repository,event}`) + `internal/core/usecase/<context>/<operation>/`
    + the adapter (`internal/adapters/{repository,gateway}`) + delivery

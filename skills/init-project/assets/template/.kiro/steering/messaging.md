@@ -52,11 +52,19 @@ type processor struct {
 func New(u <Thing>Upserter) *processor { return &processor{<Thing>s: u} }
 
 func (p *processor) Process(ctx context.Context, msg *kafka.KafkaMessage[models.<Event>]) error {
+	l := logger.Context(ctx)
 	switch eventid.ProcessingTopic(msg.Data.EventID) {
 	case eventid.ProcessingTopic_<Case>:
-		return p.handle<Case>(ctx, msg.Data.Data)
+		if err := p.handle<Case>(ctx, msg.Data.Data); err != nil {
+			l.Error("kafka.event.process.failed",
+				logger.Err(err, logger.CategoryMessage),
+				logger.String("eventId", msg.Data.EventID),
+			)
+			return err
+		}
+		return nil
 	default:
-		logger.Debug("ignoring event", logger.String("eventId", msg.Data.EventID))
+		l.Debug("kafka.event.ignored", logger.String("eventId", msg.Data.EventID))
 		return nil
 	}
 }
@@ -101,6 +109,9 @@ an API.
   twice. Dedupe by a natural key or an idempotency check in the usecase.
 - Returning an error from `Process` triggers redelivery; returning `nil` commits the
   offset. Skip-and-commit (`return nil`) for events this service does not handle.
+- Log with `logger.Context(ctx)`, event-name messages, and `logger.Err(err, logger.CategoryMessage)`
+  — add `logger.KafkaFields(topic, partition, offset, elapsed)` when those values are in
+  hand (`structure.md` § *Logging and errors*). Never `Fatal`/`Panic` in `Process`.
 - `eventid` enums are the single source of routing truth — add a case there + in `Process`.
 
 ## Don'ts

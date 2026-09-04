@@ -17,7 +17,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.11.1
-	gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.0-beta002
+	gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4
 )
 
 require (

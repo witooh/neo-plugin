@@ -19,7 +19,7 @@ internal/delivery/http/
         <resource>.go     # request + response DTOs (resource-prefixed) + their mappers (To*/New<Resource>Response)
         shared.go         # response-mapper helpers (e.g. decimalToFloat)
     middleware/
-        middleware.go     # Setup(r, serviceID): the standard chain, wrapping common-lib
+        middleware.go     # Setup(r, serviceID): CorrelationId → RequestId → Logging → GinErrorHandler → Recovery
     router/
         router.go         # Handlers struct + New(h, serviceID) *gin.Engine — gin + middleware + health + groups
         <resource>.go     # register<Resource>(r gin.IRoutes, h *<resource>.Handler)
@@ -85,9 +85,8 @@ func (h *Handler) <Op>(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	serviceID, _ := ctxutils.GetServiceId(c)
 	c.JSON(http.StatusOK, stdresp.StandardResponse[dto.<Resource>Response]{
-		Status: stdresp.SUCCESS_STATUS, ServiceID: serviceID,
+		Status: stdresp.SUCCESS_STATUS, ServiceID: logger.ServiceName(),
 		Message: "<op> successfully", Data: dto.New<Resource>Response(result),
 	})
 }
@@ -135,17 +134,23 @@ DTOs are the wire shape; they never leak into `usecase`/`domain`. Map at the edg
 (A handler that echoes a read-model directly returns the `integration/<sys>` type — an aliased
 `*dm<upstream>.<ReadModel>` — and needs no `dto` mapper.)
 
-## `middleware/` — the standard chain (wraps common-lib)
+## `middleware/` — the standard chain (wraps common-lib v2.2.4)
 
-`Setup(r, serviceID)` applies the chain (service-id, correlation-id, error rendering, error
-logging, recovery) by **calling common-lib** — it does not reimplement it.
+`Setup(r, serviceID)` applies the chain by **calling common-lib** — it does not reimplement
+it. `serviceID` is only an argument to `stdresp.GinErrorHandler` (the error envelope).
+Request-scoped service identity in logs is `logger.Config.ServiceName` (required, a free-form
+string) via `logger.ServiceName()` — there is no `ServiceIdMiddleware` / `GetServiceId`.
+
+Order: CorrelationId → RequestId → LoggingMiddleware → GinErrorHandler → Recovery.
+`LoggingMiddleware` and `GinErrorHandler` wrap `Recovery` so a recovered panic is still
+logged (`http.server.request.completed`) and still rendered as JSON.
 
 ```go
 func Setup(r *gin.Engine, serviceID string) {
-	r.Use(commonmw.ServiceIdMiddleware(serviceID))
 	r.Use(commonmw.CorrelationIdMiddleware())
+	r.Use(commonmw.RequestIdMiddleware())
+	r.Use(commonmw.LoggingMiddleware(logger.GetLogger()))
 	r.Use(stdresp.GinErrorHandler(serviceID))
-	r.Use(commonmw.ErrorLoggingMiddleware(logger.GetLogger()))
 	r.Use(commonmw.Recovery())
 }
 ```
@@ -186,10 +191,20 @@ Handlers still must never import each other.
 
 ## Error handling
 
-Handlers **do not choose status codes**. They push errors with `c.Error(err)`; the single
-`stdresp.GinErrorHandler` middleware (registered via `middleware.Setup`) maps each typed
-domain error's category to its HTTP status and renders the standard envelope. Validation/bind
-failures go through `shared.HandleValidationError` to become a typed 400 first.
+Handlers **do not choose status codes** and **do not log the HTTP request**
+(`LoggingMiddleware` emits `http.server.request.completed`). They push errors with
+`c.Error(err)`; `stdresp.GinErrorHandler` maps `stderr.StandardError.GetErrorType()` to
+HTTP status (table in `structure.md` § *Logging and errors*) and renders the envelope.
+Validation/bind failures go through `shared.HandleValidationError` first:
+
+```go
+func HandleValidationError(err error) error {
+	return stderr.NewValidationError(err.Error()).Wrap(err)
+}
+```
+
+If a handler must log a business event (rare — prefer the usecase), use
+`logger.Context(c)` and an event-name message; never `Fatal`/`Panic`.
 
 ## Don'ts
 
@@ -199,3 +214,4 @@ failures go through `shared.HandleValidationError` to become a typed 400 first.
 - ✗ DTOs inline in the operation file — request and response DTOs both live in `dto/<resource>.go`, resource-prefixed.
 - ✗ Domain/custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum) in a DTO field — use a primitive and convert in the mapper.
 - ✗ A handler importing another handler, the router, or a concrete adapter.
+- ✗ Picking an HTTP status or logging method/path/body — `GinErrorHandler` / `LoggingMiddleware`.

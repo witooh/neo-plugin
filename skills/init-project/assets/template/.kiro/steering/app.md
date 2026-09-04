@@ -57,10 +57,12 @@ func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>A
 ```go
 func main() {
 	cfg := config.MustLoad()
+	logger.InitLogger(cfg.LoggerConfig) // ServiceName required — empty panics
+	defer logger.Sync()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := Run(ctx, cfg); err != nil {
-		logger.Fatal("service exited", logger.Err(err))
+		logger.Fatal("service.exited", logger.Err(err, logger.CategoryConfiguration))
 	}
 }
 ```
@@ -135,8 +137,17 @@ the full config this way. Secrets come from the environment / secret store — n
 commit them. `cmd/api` calls `MustLoad`, then hands each adapter its slice via the
 adapter's own `Config` struct; adapters/usecases never read config globally.
 
+`logger` is `logger.Config` from common-lib v2.2.4: `environment` (`development` /
+`production`), `level` (`debug`/`info`/`warn`/`error`), **`service_name` (required
+string — `InitLogger` panics if empty)**, optional `service_version`, optional
+`disable_body_capture`. Pin `service_name` to the same id as `service.service_id`
+(the `NEOSVC` sentinel) so `logger.ServiceName()` matches `GinErrorHandler`.
+Levels, event names, `logger.Err(err, category)`, and `Fatal`/`Panic` (startup only)
+are in `structure.md` § *Logging and errors*.
+
 ## Don'ts
 
 - ✗ Business logic or HTTP/DTO shaping here — wiring only.
 - ✗ Passing concrete adapter types into `buildHandlers` — pass interfaces.
 - ✗ Reading config globally from inside a usecase/adapter — inject the needed values.
+- ✗ `logger.Fatal` / `logger.Panic` outside unrecoverable startup (`structure.md` § *Logging and errors*).

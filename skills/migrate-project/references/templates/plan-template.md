@@ -32,8 +32,9 @@ Moves:
 - install `INIT_TEMPLATE/.kiro/steering/` → `<target>/.kiro/steering/`  (including INDEX.md; fill repo-instance.md with real contexts)
 - install `INIT_TEMPLATE/CLAUDE.md` → `<target>/CLAUDE.md`
 - <current edge path> → <blueprint path>     (error mapping / response envelope / middleware / config)
+- bump common-lib to v2.2.4 + rewrite removed APIs (when target-map flags the gap; handler.md chain)
 - create `internal/core/{domain,usecase}/` skeleton
-Steering: structure.md · app.md · handler.md (middleware + router)
+Steering: structure.md · app.md · handler.md (middleware + router) · integration.md (httpclient)
 Verify: `go build ./... && go test ./... && golangci-lint run ./internal/... ./cmd/... ./config/...`
 
 ## S2 — <context> → blueprint                  (coarse until it becomes the next unbuilt slice)

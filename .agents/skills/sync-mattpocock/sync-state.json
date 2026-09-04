@@ -3,8 +3,8 @@
   "upstream_url": "https://github.com/mattpocock/skills.git",
   "upstream_path": "",
   "default_ref": "origin/main",
-  "last_synced_commit": "5b15a47f2d7150f545fbcacbfe381787fc0230dc",
-  "last_synced_date": "2026-08-23",
+  "last_synced_commit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "last_synced_date": "2026-09-04",
   "synced_skills": {
     "tdd": "skills/engineering/tdd",
     "diagnosing-bugs": "skills/engineering/diagnosing-bugs",

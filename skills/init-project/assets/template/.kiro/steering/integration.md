@@ -54,7 +54,12 @@ adapters/gateway/<sys>/
 // Package http implements the <Upstream> port against the live <Upstream> REST API.
 package http
 
-import <sys> "{{MODULE_PATH}}/internal/core/domain/integration/<sys>"   // the port it implements
+import (
+	stdhttp "net/http"
+
+	<sys> "{{MODULE_PATH}}/internal/core/domain/integration/<sys>" // the port it implements
+	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/httpclient"
+)
 
 type Config struct {
 	BaseURL   string
@@ -69,23 +74,36 @@ type httpAdapter struct {        // unexported — only the port interface escap
 }
 
 // NewHTTPAdapter returns the port interface, not the concrete adapter.
+// WrapTransport forwards x-correlation-id and x-request-id from context on every
+// outbound call — build requests with http.NewRequestWithContext(ctx, ...).
 func NewHTTPAdapter(cfg Config) <sys>.<Upstream> {
 	timeout := cfg.Timeout
 	if timeout <= 0 {
 		timeout = defaultTimeout
 	}
-	return &httpAdapter{client: &stdhttp.Client{Timeout: timeout}, baseURL: cfg.BaseURL, authToken: cfg.AuthToken}
+	return &httpAdapter{
+		client: &stdhttp.Client{
+			Timeout:   timeout,
+			Transport: httpclient.WrapTransport(nil),
+		},
+		baseURL:   cfg.BaseURL,
+		authToken: cfg.AuthToken,
+	}
 }
 ```
 
 Method bodies (in `<operation>.go`):
-1. Build the upstream request from the port input.
+1. Build the upstream request from the port input with `http.NewRequestWithContext(ctx, …)`
+   so `httpclient` can forward correlation/request ids.
 2. Call; cap the response body (`io.LimitReader`, e.g. `1<<20`).
 3. Decode the upstream DTO, **map it to the `integration/<sys>` type** — never leak the wire DTO outward.
-4. Translate failures into **typed errors** (the adapter's own `domain` package,
-   `adapters/gateway/<sys>/domain`): not-found → a swallow-able "no data" the caller maps to
-   empty; transport / 5xx / malformed → unavailable; timeout → timeout. The edge mapper turns
-   these into 503/504/etc.
+4. Translate failures into **`stderr` types** (the adapter's own `domain` package,
+   `adapters/gateway/<sys>/domain` — constructors that return `stderr.StandardError`):
+   not-found the caller treats as empty → `(nil, nil)` (or a swallow-able sentinel, not
+   stderr); transport / 5xx / malformed → `stderr.NewServiceError` (503) or
+   `stderr.NewThirdPartyError` (504); timeout → `stderr.NewThirdPartyError`. Log at the
+   usecase with `logger.Err(err, logger.CategoryExternal|Timeout|Network)`, not here.
+   Status table: `structure.md` § *Logging and errors*.
 
 ## Cache adapter — `internal/adapters/repository/cache`
 

@@ -89,12 +89,14 @@ per type rather than inlining.
 
 ## Errors
 
-`dberror.go` exposes `NewDBError(err)` which wraps any driver error into a typed service
-error (a generic "database" error the edge mapper renders as 5xx). Repositories return
-`NewDBError(...)`; they never return a raw `pgconn`/`pq` error upward. A separate helper
-(`IsDuplicateEntryError`, checking pg code `23505`) classifies a specific constraint
-violation where a caller must branch on it. `sql.ErrNoRows` for an **optional** read
-becomes `(nil, nil)`; for a **required** read it becomes a typed not-found.
+`dberror.go` exposes `NewDBError(err)` which wraps a driver error as
+`stderr.NewServiceError` (GinErrorHandler → 503). Repositories return `NewDBError(...)`;
+they never return a raw `pgconn`/`pq` error upward and they do **not** log — the usecase
+logs with `logger.Err(err, logger.CategoryDatabase)` and, when it has the timing, `logger.DBFields`.
+A separate helper (`IsDuplicateEntryError`, checking pg code `23505`) classifies a specific
+constraint violation where a caller must branch on it. `sql.ErrNoRows` for an **optional**
+read becomes `(nil, nil)`; for a **required** read it becomes
+`stderr.NewResourceNotFoundError` (404). Status table: `structure.md` § *Logging and errors*.
 
 ## Transactions
 

@@ -31,6 +31,7 @@ You are given: the **target dir** and the intended **module path / service name 
 
 4. **Config is minimal.** `config/config.go`'s `Config` has only `logger`, `service`, `postgres`,
    `redis`, `kafka` — no business upstream sub-structs. `config/config.yaml` matches.
+   `logger.service_name` is set (same id as `service.service_id`) — `InitLogger` panics if empty.
 
 5. **Steering intact + generic.** `.kiro/steering/` carries the generic guides; the per-layer guides
    still use placeholders (`{{MODULE_PATH}}`, `<context>`). `.kiro/steering/repo-instance.md` reads as an
@@ -53,6 +54,12 @@ You are given: the **target dir** and the intended **module path / service name 
    coverage script, and `build` on **`ec2-shell`** with ECR credential helper. Fail if `build` is
    still `linux` + DinD + manual `docker login` / `create-repository`. Absence of `e2e-test` is
    expected (no `tests/e2e` in the skeleton).
+
+9. **common-lib v2.2.4.** `go.mod` pins
+   `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4`.
+   `internal/delivery/http/middleware/middleware.go` uses CorrelationId → RequestId →
+   LoggingMiddleware → GinErrorHandler → Recovery. Fail on `ServiceIdMiddleware`,
+   `ErrorLoggingMiddleware`, or `GetServiceId`.
 
 ## Output
 

@@ -77,20 +77,30 @@ type Params struct { Adapter <X>Reader }
 package <operation>
 
 func (u *usecase) Exec(ctx context.Context, rawId string /* ... */) (/* ... */ error) {
-	logger.Info("<op> start", logger.String("id", rawId))
+	l := logger.Context(ctx) // correlationId + requestId from ctx (structure.md)
+
+	l.Debug("<context>.<operation>.started", logger.String("id", rawId))
 
 	id, err := shared.ParseId(rawId)
 	if err != nil {
+		l.Error("<context>.<operation>.failed", logger.Err(err, logger.CategoryValidation))
 		return err
 	}
 	acc, err := u.Repo.GetById(ctx, id)
 	if err != nil {
+		l.Error("<context>.<operation>.failed", logger.Err(err, logger.CategoryDatabase))
 		return err
 	}
 	if err := acc.SomeCommand(/* ... */); err != nil {
+		l.Error("<context>.<operation>.failed", logger.Err(err, logger.CategoryBusiness))
 		return err
 	}
-	return u.Repo.Save(ctx, acc)
+	if err := u.Repo.Save(ctx, acc); err != nil {
+		l.Error("<context>.<operation>.failed", logger.Err(err, logger.CategoryDatabase))
+		return err
+	}
+	l.Info("<context>.<operation>.succeeded", logger.String("id", rawId))
+	return nil
 }
 ```
 
@@ -105,11 +115,13 @@ Rules:
   field. The aggregate carries persistent state only (`domain.md`); a transient field forces a setter and
   a re-attach after the repo round-trip.
 - **Private helpers** for this operation live here too.
-- **Logging happens at the usecase boundary**, not in `domain`. Log the decision /
-  rejection reason; let typed domain errors carry the rest.
-- **Error wrapping:** pass domain/port errors through unchanged so the edge mapper can
-  categorize them; wrap with `fmt.Errorf("...: %w", err)` only to add context, never to
-  flatten a typed error into a string.
+- **Logging happens at the usecase boundary**, not in `domain`. Use `logger.Context(ctx)`,
+  dot-separated event names, and `logger.Err(err, category)` — levels and the category
+  list live in `structure.md` § *Logging and errors*. Do not log HTTP method/path/body
+  here (`LoggingMiddleware` does). `Fatal` / `Panic` are forbidden in `Exec`.
+- **Error wrapping:** pass `stderr.StandardError` values through unchanged so
+  `GinErrorHandler` can map `GetErrorType()`. Wrap with `fmt.Errorf("...: %w", err)` only
+  to add context, never to flatten a typed error into a string.
 
 ## Multi-port operations
 
@@ -181,3 +193,4 @@ Rules:
 - ✗ Exposing the `usecase` struct, or returning it from `New`.
 - ✗ Importing another usecase package, a handler, or a concrete adapter.
 - ✗ HTTP status codes, gin types, or SQL here — those belong to the adapters.
+- ✗ `logger.Fatal` / `logger.Panic` in `Exec` — unrecoverable startup only (`structure.md`).
