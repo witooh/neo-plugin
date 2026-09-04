@@ -1,9 +1,10 @@
 ---
-name: "neo-aux-sit"
+name: neo-aux-sit
 description: "Connect to Auxiliary SIT (kubectl + self-hosted ArgoCD) to inspect logs (kubectl + OpenSearch), deploy status, and locate Postgres connection settings inside service K8s secrets for debugging."
-version: 3
-created: "2026-07-24"
-updated: "2026-08-06"
+metadata:
+  version: "3"
+  created: "2026-07-24"
+  updated: "2026-08-06"
 ---
 ## Permission: READ by default
 

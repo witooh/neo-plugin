@@ -12,9 +12,6 @@ description: >
   "จัดโครงสร้างใหม่ตาม account-service", "migrate service เดิมให้เข้าโครง", "ปรับโครงสร้าง service
   ให้เหมือน account-service". NOTE: refactors EXISTING code — a brand-new empty service is
   `init-project`; adding a domain / AC / endpoint / tests is `using-neo`.
-compatibility:
-  environment: claude-code
-  tools: [Agent, Read, AskUserQuestion]
 metadata:
   version: "1.0"
 ---

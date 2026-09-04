@@ -1,17 +1,6 @@
 ---
 name: e2e-playwright
 description: "Author, update, and run HTTP end-to-end tests — one per acceptance criterion — for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the neo spec (docs/tasks/<card>/spec.md) or a legacy docs/design/ layout, authors specs from those + the api-spec contract, runs the suite, maps pass/fail to each AC; a task with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e ('write e2e', 'run e2e', 'เขียน e2e', 'รัน e2e', 'e2e ตาม AC'), or when neo's Verify phase delegates e2e. NOT here: unit/logic → tdd; browser-UI testing is out of scope; api-spec → api-spec."
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Glob
-    - Grep
-    - Edit
-    - Write
-    - Bash
-    - Agent
-    - AskUserQuestion
 ---
 
 # E2E Playwright (AC-driven HTTP e2e)

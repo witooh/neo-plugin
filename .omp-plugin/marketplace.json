@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "neo",
+  "description": "Production-grade engineering skills for AI coding agents — covering the full software development lifecycle from spec to ship.",
+  "owner": {
+    "name": "Witoo Harianto",
+    "url": "https://github.com/witooh"
+  },
+  "plugins": [
+    {
+      "name": "neo",
+      "source": "./",
+      "description": "Production-grade engineering skills covering every phase of software development: ingest, spec, plan, build, verify, review, and ship.",
+      "homepage": "https://github.com/witooh/neo-plugin",
+      "license": "MIT",
+      "keywords": ["skills", "agents", "engineering", "spec", "tdd", "review", "ship"]
+    }
+  ]
+}

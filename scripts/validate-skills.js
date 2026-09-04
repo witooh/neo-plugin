@@ -2,7 +2,9 @@
 /**
  * Lean validator for neo skills and agents.
  *   1. Every skills/<dir>/SKILL.md has YAML frontmatter with name (matching the
- *      directory) and a non-empty description ≤ 1024 characters.
+ *      directory), a non-empty description ≤ 1024 characters, and only Agent
+ *      Skills closed fields (name, description, license, allowed-tools,
+ *      metadata, compatibility-as-string).
  *   2. Every agents/<name>.md has frontmatter name equal to the basename and a
  *      non-empty description.
  *   3. No file in skills/, agents/, hooks/, extensions/, AGENTS.md, or README.md
@@ -14,6 +16,15 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const skillsDir = path.join(root, "skills");
 const errors = [];
+const SKILL_FIELDS = new Set([
+	"name",
+	"description",
+	"license",
+	"allowed-tools",
+	"metadata",
+	"compatibility",
+]);
+
 
 const DEAD_SKILLS = [
 	"api-and-interface-design",
@@ -110,6 +121,29 @@ for (const dir of fs.readdirSync(skillsDir)) {
 		errors.push(
 			`${dir}: description ${fm.description.length} chars (max 1024)`,
 		);
+	const fmBlock = raw.match(/^---\n([\s\S]*?)\n---/);
+	if (fmBlock) {
+		const topKeys = fmBlock[1]
+			.split("\n")
+			.filter((line) => /^[A-Za-z0-9_-]+:/.test(line))
+			.map((line) => line.split(":", 1)[0]);
+		for (const key of topKeys) {
+			if (!SKILL_FIELDS.has(key))
+				errors.push(
+					`${dir}: unexpected frontmatter field "${key}" (Agent Skills closed schema)`,
+				);
+		}
+		const lines = fmBlock[1].split("\n");
+		for (let i = 0; i < lines.length; i++) {
+			if (!/^compatibility:\s*$/.test(lines[i])) continue;
+			const next = lines[i + 1];
+			if (next && /^\s+\S/.test(next)) {
+				errors.push(
+					`${dir}: compatibility must be a string, not a mapping`,
+				);
+			}
+		}
+	}
 }
 
 const agentsDir = path.join(root, "agents");

@@ -12,12 +12,6 @@ description: >
   reviewing an MR ("review MR", "ตรวจ MR"), fixing issues/CI, or addressing review
   feedback now route through the using-neo skill (which calls this skill for the glab I/O) —
   do NOT trigger this skill directly for those; let using-neo orchestrate.
-effort: low
-compatibility:
-  environment: claude-code
-  tools:
-    - Bash
-    - Read
 metadata:
   version: "1.2"
 ---

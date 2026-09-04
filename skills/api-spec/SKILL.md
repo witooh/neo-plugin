@@ -1,17 +1,6 @@
 ---
 name: api-spec
 description: "Author the custom-YAML API spec at docs/api/ — the spec-first source of truth for every HTTP endpoint; producer at the head of the api-doc chain. Create, update, or validate _meta.yaml plus one <domain>/<endpoint>.yaml per endpoint (method/path/auth, request/response fields with M/O + Remark, multi-flow business_logic, errors, covers_ac); three-layer verify (apispeccheck.py + fresh-eyes + completeness sweep) + generated index.md. Not OpenAPI. Use when designing an API contract spec-first before code exists (Draft, API step), authoring or adding endpoints, updating the spec from built code (structural sync-back, DOC step), or validating it. Triggers: author/create/write/gen/update api spec, update api spec from code, add an endpoint, validate api spec, ออกแบบ/อัปเดต api spec จาก code. Route elsewhere (read-only consumers): Go-vs-spec drift → openapi-doc; Bruno collection → open-collection; Confluence → confluence-api-doc. Authoring never scans Go — only the from-code sync-back reads it."
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Glob
-    - Grep
-    - Bash
-    - Edit
-    - Write
-    - Agent
-    - AskUserQuestion
 ---
 
 # API Spec (producer)

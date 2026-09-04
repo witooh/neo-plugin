@@ -13,12 +13,6 @@ description: >
   acli operation. Route elsewhere: verifying AC/test-cases/design against a JIRA card, or
   any read-only card workflow → the `using-neo` skill (runs read-only acli inline); publishing
   generated API docs to Confluence → `confluence-api-doc` (acli cannot write pages).
-compatibility:
-  environment: claude-code
-  tools:
-    - Bash
-    - Read
-effort: low
 metadata:
   version: "2.0"
 ---

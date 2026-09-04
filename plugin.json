@@ -1,5 +1,22 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "neo",
-  "version": "4.10.0",
-  "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills."
+  "version": "4.10.1",
+  "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills.",
+  "author": {
+    "name": "Witoo Harianto"
+  },
+  "homepage": "https://github.com/witooh/neo-plugin",
+  "repository": "https://github.com/witooh/neo-plugin",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "agents",
+    "engineering",
+    "spec",
+    "tdd",
+    "review",
+    "ship",
+    "omp"
+  ]
 }

@@ -12,15 +12,6 @@ description: >
   sync-back check. NOTE: reads `docs/api/*.yaml` (authored by `api-spec` via `/spec`) + Go, writes
   nothing — a runnable Bruno collection is `open-collection`; Confluence publishing is
   `confluence-api-doc`. Not a spec generator, OpenAPI converter, or editor.
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Glob
-    - Grep
-    - Bash
-    - Agent
-    - AskUserQuestion
 ---
 
 # API-Spec Drift Checker (openapi-doc)

@@ -14,13 +14,6 @@ description: >
   skeleton". Needs Go >= 1.26 and GOPRIVATE access to the org `common-lib` the template needs.
   NOTE: only CREATES the empty skeleton — adding domains / AC / endpoints / tests is the `using-neo`
   skill.
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Bash
-    - AskUserQuestion
-    - Agent
 ---
 
 # init-project

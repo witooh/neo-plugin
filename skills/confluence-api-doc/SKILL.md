@@ -14,16 +14,6 @@ description: >
   OpenCollection is the `open-collection` skill. Input is the
   `docs/api/*.yaml` api-spec — if it does not exist, author it with
   `api-spec` first. Not a general Confluence editor.
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Glob
-    - Grep
-    - Bash
-    - Write
-    - Agent
-    - AskUserQuestion
 ---
 
 # Confluence API Doc

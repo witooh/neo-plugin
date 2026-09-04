@@ -12,17 +12,6 @@ description: >
   api-spec is authored by the **`api-spec`** skill and drift-checked against Go by
   `openapi-doc`; this skill only reads it — if missing, author it with `api-spec` first. Publishing to Confluence
   is `confluence-api-doc`. Not a curl/Postman/OpenAPI converter or an editor.
-compatibility:
-  environment: claude-code
-  tools:
-    - Read
-    - Glob
-    - Grep
-    - Bash
-    - Edit
-    - Write
-    - Agent
-    - AskUserQuestion
 ---
 
 # Open Collection

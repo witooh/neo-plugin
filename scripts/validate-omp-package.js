@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Validate omp package discovery and using-neo-only system-prompt injection. */
+/** Validate omp package discovery, Agent Plugins 1.0 manifest, and using-neo-only system-prompt injection. */
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -18,6 +18,53 @@ assert.deepEqual(
 	packageManifest.omp?.extensions,
 	[extensionRelativePath],
 	"package.json must load the omp session-start extension",
+);
+
+const AGENT_PLUGIN_SCHEMA =
+	"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
+const AGENT_PLUGIN_FIELDS = new Set([
+	"$schema",
+	"name",
+	"version",
+	"description",
+	"author",
+	"homepage",
+	"repository",
+	"license",
+	"keywords",
+	"extensions",
+]);
+const agentPluginManifest = JSON.parse(
+	fs.readFileSync(path.join(root, "plugin.json"), "utf8"),
+);
+assert.equal(
+	agentPluginManifest.$schema,
+	AGENT_PLUGIN_SCHEMA,
+	"root plugin.json must target Agent Plugins 1.0.0",
+);
+assert.equal(
+	agentPluginManifest.name,
+	"neo",
+	"root plugin.json name must be neo",
+);
+assert.equal(
+	agentPluginManifest.version,
+	packageManifest.version,
+	"root plugin.json version must match package.json",
+);
+for (const key of Object.keys(agentPluginManifest)) {
+	assert.ok(
+		AGENT_PLUGIN_FIELDS.has(key),
+		`root plugin.json has unknown Agent Plugins field "${key}"`,
+	);
+}
+assert.ok(
+	fs.existsSync(path.join(root, ".omp-plugin", "marketplace.json")),
+	".omp-plugin/marketplace.json must ship as the preferred omp catalog",
+);
+assert.ok(
+	packageManifest.keywords?.includes("omp-package"),
+	"package.json keywords must include omp-package",
 );
 
 for (const agentName of ["fresh-eyes", "neo-builder", "neo-author", "neo-e2e"]) {
