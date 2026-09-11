@@ -27,7 +27,7 @@ Mechanics (catalog, dispatch template, report schema, waves, fan-in, harness map
 
 - **Router** (this skill): loop-or-graph, the edits you keep, dispatch, gates, verdict.
 - **Method layer** (vendored from [mattpocock/skills](https://github.com/mattpocock/skills) via `sync-mattpocock`): `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Live under `skills/<name>/`.
-- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`.
+- **Domain layer** (neo-owned): `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `audit-log`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`.
 - **Node layer** (`agents/`): `neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes` — plus harness `scout`. You dispatch them.
 
 ## Method-layer availability
@@ -116,6 +116,7 @@ None of them is an approval gate. When the record is in play, you write `plan.md
 | MR or GitLab operation | one loop: load `gitlab` |
 | JIRA operation | one loop: load `atlassian` |
 | New service, restructure | one loop: load `init-project` / `migrate-project` — dispatch `task` only to keep the reading off your context |
+| Add HTTP per-request audit log | one loop: load `audit-log` |
 | Core/Aux SIT logs, Argo, secrets, postgres | one loop: load `neo-core-sit` / `neo-aux-sit` |
 | File-changing ask, candidate `docs/tasks/<key>/` is **closed**, and the ask does not name a work key | record-boundary ask (GRAPH.md work-key step 2): continue `<key>` / new work record / no record (loop only). No answer → stop. Do not resume. Do not bolt rows on. |
 | Cannot tell whether this ask continues an **open** `docs/tasks/<key>/` or is new work | same record-boundary ask, naming the candidate key and that it is still open |

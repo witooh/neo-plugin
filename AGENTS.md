@@ -10,7 +10,7 @@ neo is a thin engineering router plus a set of org-specific domain skills. The i
 
 - **Router** — `skills/using-neo/SKILL.md`. The single entry point, injected at session start. Owns loop-or-graph, the edits it does not delegate, gates, and the verdict. Dispatch mechanics live in `skills/using-neo/GRAPH.md`. All neo behavior changes land here first.
 - **Method layer** — vendored from [mattpocock/skills](https://github.com/mattpocock/skills) into `skills/` via the repo-local `sync-mattpocock` skill: `grilling`, `domain-modeling`, `tdd`, `diagnosing-bugs`, `research`, `prototype`, `codebase-design`, `resolving-merge-conflicts`. Allowlist + 3-way compare; never overwrites neo-owned skills. `using-neo` carries inline minimums as a degraded fallback if a method skill is missing on disk.
-- **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
+- **Domain layer** — neo-owned skills in `skills/`: `code-review`, `falsifying`, `bug-hunter`, `attack-test`, `api-spec`, `e2e-playwright`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `markitdown`, `init-project`, `migrate-project`, `audit-log`, `atlassian`, `gitlab`, `neo-core-sit`, `neo-aux-sit`. `code-review` began as a synced method skill and was taken over because upstream discovers standards from files this org's services do not have; see `sync-mattpocock`.
 
 `falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/`, since a spec file is an interpretation and a misread card produces code that passes every gate — and `attack-test` fires abuse paths over live HTTP against a running stack (skip-step, forge-proof, IDOR, idempotency). All three stop at a confirmed symptom and hand off to the orchestrator; none fixes in place.
 
@@ -19,7 +19,7 @@ Machine gates live in the domain layer (`apispeccheck.py`, `e2echeck.py`, per-sk
 ## Project Structure
 
 ```text
-skills/            using-neo router + method layer (synced) + 16 domain skills
+skills/            using-neo router + method layer (synced) + 17 domain skills
 agents/            nodes to delegate to (`neo-builder`, `neo-author`, `neo-e2e`, `fresh-eyes`) — not user-level copies
 hooks/             Claude Code session-start hook (injects using-neo)
 extensions/        session-start extensions: `.js` (pi, CJS) and `.mjs` (omp, ESM) — both inject using-neo only

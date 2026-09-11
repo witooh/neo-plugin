@@ -1,6 +1,6 @@
 {
   "name": "neo",
-  "version": "4.10.1",
+  "version": "4.11.0",
   "description": "Thin engineering router + domain skills; method layer vendored from mattpocock/skills.",
   "author": {
     "name": "Witoo Harianto"

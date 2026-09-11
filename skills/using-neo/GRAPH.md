@@ -32,7 +32,7 @@ A `fresh-eyes` node is a fan-in check, not an opening graph trigger — do not g
 
 If you drew a graph and every node is "a step I could inline", delete the graph and do the work.
 
-A named domain skill that is itself a complete procedure (`init-project`, `migrate-project`, `open-collection`, `confluence-api-doc`, `gitlab`, `atlassian`, `falsifying`, `bug-hunter`, `attack-test`, `neo-core-sit`, `neo-aux-sit`) is **one loop**. Load and follow it yourself; dispatch `task` with "load and follow `<skill>`" only to keep its reading off your context. Do not fan it out into catalog nodes.
+A named domain skill that is itself a complete procedure (`init-project`, `migrate-project`, `audit-log`, `open-collection`, `confluence-api-doc`, `gitlab`, `atlassian`, `falsifying`, `bug-hunter`, `attack-test`, `neo-core-sit`, `neo-aux-sit`) is **one loop**. Load and follow it yourself; dispatch `task` with "load and follow `<skill>`" only to keep its reading off your context. Do not fan it out into catalog nodes.
 
 ## Node catalog
 

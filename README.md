@@ -156,8 +156,8 @@ Copies `skills/`, `agents/*.md` (graph nodes), and the SessionStart hook that in
 │ code-review · falsifying · bug-hunter · attack-test  │
 │ api-spec · e2e-playwright · openapi-doc              │
 │ open-collection · confluence-api-doc · markitdown    │
-│ init-project · migrate-project · atlassian · gitlab  │
-│ neo-core-sit · neo-aux-sit                           │
+│ init-project · migrate-project · audit-log           │
+│ atlassian · gitlab · neo-core-sit · neo-aux-sit      │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -208,6 +208,7 @@ documented upstream.
 | ----------------- | ------------------------------------------------------------------------- |
 | `init-project`    | Scaffolds a Go hexagonal / DDD service from a frozen template             |
 | `migrate-project` | Restructures an existing Go service to the same blueprint, slice by slice |
+| `audit-log`       | Adds per-request HTTP audit logging (table + gin middleware + sqlc)       |
 
 ## Maintaining
 
