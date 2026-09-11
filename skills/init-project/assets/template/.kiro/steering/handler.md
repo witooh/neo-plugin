@@ -134,7 +134,7 @@ DTOs are the wire shape; they never leak into `usecase`/`domain`. Map at the edg
 (A handler that echoes a read-model directly returns the `integration/<sys>` type — an aliased
 `*dm<upstream>.<ReadModel>` — and needs no `dto` mapper.)
 
-## `middleware/` — the standard chain (wraps common-lib v2.2.4)
+## `middleware/` — the standard chain (wraps common-lib v2.2.5)
 
 `Setup(r, serviceID)` applies the chain by **calling common-lib** — it does not reimplement
 it. `serviceID` is only an argument to `stdresp.GinErrorHandler` (the error envelope).

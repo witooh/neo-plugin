@@ -12,7 +12,7 @@ import (
 	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stdresp"
 )
 
-// Setup applies the standard middleware chain (common-lib v2.2.4).
+// Setup applies the standard middleware chain (common-lib v2.2.5).
 //
 // Order: CorrelationId → RequestId → LoggingMiddleware → GinErrorHandler → Recovery.
 // LoggingMiddleware and GinErrorHandler wrap Recovery so a recovered panic is

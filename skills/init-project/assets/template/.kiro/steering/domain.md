@@ -187,7 +187,7 @@ It holds the driven port (`gateway.go`, see `integration.md`) and the **read-mod
 consumes (`readmodels.go` — read-models the core needs from the upstream). These are plain
 data the adapter maps the upstream wire DTO into; no behavior.
 
-## Typed errors (stderr — common-lib v2.2.4)
+## Typed errors (stderr — common-lib v2.2.5)
 
 Typed errors live in a root `errors.go` (`package domain`, beside `enums.go`). They are
 **`stderr.StandardError` constructors** (or thin wrappers that return one). `stdresp.GinErrorHandler`

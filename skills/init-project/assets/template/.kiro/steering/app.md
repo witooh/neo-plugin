@@ -137,7 +137,7 @@ the full config this way. Secrets come from the environment / secret store — n
 commit them. `cmd/api` calls `MustLoad`, then hands each adapter its slice via the
 adapter's own `Config` struct; adapters/usecases never read config globally.
 
-`logger` is `logger.Config` from common-lib v2.2.4: `environment` (`development` /
+`logger` is `logger.Config` from common-lib v2.2.5: `environment` (`development` /
 `production`), `level` (`debug`/`info`/`warn`/`error`), **`service_name` (required
 string — `InitLogger` panics if empty)**, optional `service_version`, optional
 `disable_body_capture`. Pin `service_name` to the same id as `service.service_id`

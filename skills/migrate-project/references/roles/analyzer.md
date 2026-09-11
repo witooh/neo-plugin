@@ -16,7 +16,7 @@ rule. That is the shape the target must reach; you measure the gap against it. (
 1. **Module + stack** — `go.mod` module path, Go version, key deps (gin / pgx / sqlc /
    **common-lib version**). Pin
    `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` **exactly**
-   (`v2.2.4` is the blueprint). If the pin is missing or below `v2.2.4`, grep for residue:
+   (`v2.2.5` is the blueprint). If the pin is missing or below `v2.2.5`, grep for residue:
    `ServiceIdMiddleware`, `ErrorLoggingMiddleware`, `GetServiceId`, `ContextKey_ServiceId`.
    Record version + each hit as a convention gap (Migrator rewrites in S1).
    `go list ./...` for the package tree.

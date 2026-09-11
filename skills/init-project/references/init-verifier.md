@@ -55,8 +55,8 @@ You are given: the **target dir** and the intended **module path / service name 
    still `linux` + DinD + manual `docker login` / `create-repository`. Absence of `e2e-test` is
    expected (no `tests/e2e` in the skeleton).
 
-9. **common-lib v2.2.4.** `go.mod` pins
-   `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4`.
+9. **common-lib v2.2.5.** `go.mod` pins
+   `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.5`.
    `internal/delivery/http/middleware/middleware.go` uses CorrelationId → RequestId →
    LoggingMiddleware → GinErrorHandler → Recovery. Fail on `ServiceIdMiddleware`,
    `ErrorLoggingMiddleware`, or `GetServiceId`.

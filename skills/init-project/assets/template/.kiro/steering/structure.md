@@ -61,7 +61,7 @@ names. **To reuse this steering in another service: copy all guides unchanged an
 `repo-instance.md`** — the one exception is the literal stub-directory glob in `e2e.md`'s
 `fileMatchPattern` and the index below, which tracks your stub tool's directory.
 
-Shared org infrastructure (`common-lib` v2.2.4: `logger`, `stderr`, `stdresp`, `ctxutils`,
+Shared org infrastructure (`common-lib` v2.2.5: `logger`, `stderr`, `stdresp`, `ctxutils`,
 `middleware`, `httpclient`) is assumed present; its import paths are kept verbatim in examples.
 
 ## Layout
@@ -192,7 +192,7 @@ not a license to guess.
 | Composition root | `cmd/api/**` | Build + wire everything | everything (the only place) |
 | Configuration | `config/**` | Typed `Config` + env/file loader via `Load`/`MustLoad`; read once at startup, injected as values | (its own leaf config types only) |
 
-## Logging and errors (common-lib v2.2.4)
+## Logging and errors (common-lib v2.2.5)
 
 Two taxonomies — do not mix them up:
 

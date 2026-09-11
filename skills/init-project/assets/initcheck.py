@@ -179,8 +179,8 @@ def main() -> None:
 
     gomod = t / "go.mod"
     gtext = gomod.read_text(encoding="utf-8") if gomod.is_file() else ""
-    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4" in gtext,
-          "common-lib v2.2.4", "")
+    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.5" in gtext,
+          "common-lib v2.2.5", "")
 
     mw = t / "internal/delivery/http/middleware/middleware.go"
     mwtext = mw.read_text(encoding="utf-8") if mw.is_file() else ""
@@ -189,7 +189,7 @@ def main() -> None:
         "CorrelationIdMiddleware", "RequestIdMiddleware", "LoggingMiddleware",
         "GinErrorHandler", "Recovery",
     ))
-    check(not old_mw and has_new, "common-lib v2.2.4 middleware chain",
+    check(not old_mw and has_new, "common-lib v2.2.5 middleware chain",
           (f"removed symbols: {old_mw}; " if old_mw else "") +
           ("" if has_new else "missing RequestIdMiddleware/LoggingMiddleware"))
 
