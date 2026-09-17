@@ -1,0 +1,3 @@
+interface:
+  display_name: "GitLab"
+  short_description: "GitLab MRs and CI via glab"

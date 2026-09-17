@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-yaml2md.py — render a custom-YAML api-spec endpoint (docs/api/<domain>/<endpoint>.yaml)
+yaml2md.py: render a custom-YAML api-spec endpoint (docs/api/<domain>/<endpoint>.yaml)
 into create.md-style Markdown, for the OpenCollection `docs:` field (Spec mode).
 
 open-collection owns this renderer: the runnable Bruno collection embeds the human-readable
@@ -13,7 +13,7 @@ renderer applies the Audience filter (same Keep/Drop spirit as confluence-api-do
 framing, evidence paths, ALIGN logs, internal renames, and pure-dev notes never land in the
 collection. Wire fields / examples / error codes stay verbatim.
 
-Navigation (the markdown-hub breadcrumb + relative endpoint-table links) is **off by default** —
+Navigation (the markdown-hub breadcrumb + relative endpoint-table links) is **off by default** , 
 those links don't resolve inside Bruno's docs panel. Pass `nav=True` (CLI `--nav`) for the
 faithful markdown-hub form (the frozen Phase-0 prototype at docs/api-spec-redesign/samples/
 remains the byte-identical reference for that form).
@@ -40,7 +40,7 @@ def lit(v):
 
 
 def row(cells):
-    """A markdown table row — empty cells collapse to a single space (` | |`)."""
+    """A markdown table row: empty cells collapse to a single space (` | |`)."""
     return "|" + "|".join(f" {c} " if str(c) != "" else " " for c in cells) + "|"
 
 
@@ -102,25 +102,25 @@ def error_table(errors):
 def code_block(s):
     return "```json\n" + s.rstrip("\n") + "\n```"
 
-# ── Audience filter (consumer docs — not a neo dump) ──────────────
+# ── Audience filter (consumer docs: not a neo dump) ──────────────
 # Keep wire + caller-visible behaviour. Drop ticket framing, evidence paths,
 # ALIGN decision-log lines, internal renames, implementer changelog notes.
-# Patterns are intentionally narrow — false positives hide caller-needed prose.
+# Patterns are intentionally narrow: false positives hide caller-needed prose.
 
-# Ticket keys / card refs only (case-sensitive — do not use re.I on [A-Z] classes).
+# Ticket keys / card refs only (case-sensitive: do not use re.I on [A-Z] classes).
 _RE_TICKET = re.compile(
     r"\bGI-\d+(?:-AC\d+)?\b"       # GI-2226, GI-2226-AC01
     r"|\bAC-\d{2,4}\b"              # AC-001
     r"|\[[A-Z][A-Z0-9]*-(?:[A-Z0-9]+-)*[A-Z0-9]+\]"  # [PAY-BFID-02-A], not [transfer-confirm]
 )
-# Evidence / provenance — path tokens and "Evidence: …" clauses that cite them.
+# Evidence / provenance: path tokens and "Evidence: …" clauses that cite them.
 _RE_EVIDENCE = re.compile(
     r"(?i:\bEvidence\s*:\s*(?:`?docs/(?:knowledge|tasks|api)/[^\s`)\],;]+`?"
     r"(?:\s*[,;]\s*`?docs/(?:knowledge|tasks|api)/[^\s`)\],;]+`?)*))"
     r"|`?docs/(?:knowledge|tasks)/[^\s`)\],;]+`?"  # bare repo paths (not docs/api endpoint refs)
     r"|(?i:\bcommit\s+`?[0-9a-f]{7,40}`?)"
 )
-# Decision-log ALIGN is always uppercase in our api-specs — do NOT match English "align".
+# Decision-log ALIGN is always uppercase in our api-specs: do NOT match English "align".
 _RE_ALIGN = re.compile(
     r"\bALIGN\b(?:\s+\d{4}-\d{2}-\d{2})?[^.;\n]*[.;]?"
     r"|(?i:\buser-confirmed\b[^.;\n]*[.;]?)"
@@ -135,10 +135,10 @@ _RE_INTERNAL = re.compile(
     r"|(?i:\bDraft\s+proposal\b[^.;\n]*[.;]?)"
 )
 _RE_EMPTY_PARENS = re.compile(r"\(\s*\)")
-# Collapse runs of spaces/tabs only between non-space chars — never eat list indent.
+# Collapse runs of spaces/tabs only between non-space chars: never eat list indent.
 _RE_WS = re.compile(r"(?<=\S)[ \t]{2,}")
 _RE_SPACE_PUNCT = re.compile(r" +([,.;:])")
-# Whole-note drop — ALIGN is uppercase-only so English "align" notes survive.
+# Whole-note drop: ALIGN is uppercase-only so English "align" notes survive.
 _RE_NOTE_DROP = re.compile(
     r"(?i:^\s*Amended\b)"
     r"|\bdocs/(?:knowledge|tasks)/"
@@ -152,7 +152,7 @@ _RE_NOTE_DROP = re.compile(
 def audience_text(s: str) -> str:
     """Strip Drop-column prose from a free-text field. Empty if nothing consumer-facing remains.
 
-    Clean strings (no Drop-column hit) return **byte-identical** — no whitespace/list
+    Clean strings (no Drop-column hit) return **byte-identical**: no whitespace/list
     tidy, so nested business_logic bullets and remarks like ``-1 = unlimited`` survive.
     """
     if not s:
@@ -170,15 +170,15 @@ def audience_text(s: str) -> str:
     t = _RE_SPACE_PUNCT.sub(r"\1", t)
     t = _RE_WS.sub(" ", t)
     # tidy leftover punctuation/spacing after cuts only
-    t = re.sub(r"\s*[—–-]\s*$", "", t)
-    t = re.sub(r"^\s*[—–-]\s*", "", t)
+    t = re.sub(r"\s*[, –-]\s*$", "", t)
+    t = re.sub(r"^\s*[, –-]\s*", "", t)
     t = re.sub(r"\(\s*;\s*", "(", t)
     t = re.sub(r"\s*;\s*\)", ")", t)
     t = re.sub(r"\s*,\s*,+", ", ", t)
     t = re.sub(r"[ \t]+\n", "\n", t)
     t = re.sub(r"\n{3,}", "\n\n", t)
     t = re.sub(r" +\n", "\n", t)
-    return t.strip(" \t\n;,-—–")
+    return t.strip(" \t\n;,-, –")
 
 
 def audience_notes(notes) -> list:

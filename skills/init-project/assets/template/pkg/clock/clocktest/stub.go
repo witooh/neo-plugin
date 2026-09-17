@@ -17,5 +17,5 @@ func NewStub(t time.Time) *Stub { return &Stub{t: t} }
 // Now returns the fixed instant.
 func (s *Stub) Now() time.Time { return s.t }
 
-// Compile-time interface check — fails compilation if Stub drifts from Clock.
+// Compile-time interface check: fails compilation if Stub drifts from Clock.
 var _ clock.Clock = (*Stub)(nil)

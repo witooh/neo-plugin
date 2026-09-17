@@ -1,10 +1,10 @@
 # acli Workflows
 
 Multi-command recipes. Single-issue actions are safe to run directly; **bulk and
-destructive steps follow the safety gates in `SKILL.md` — preview, confirm, then mutate.**
+destructive steps follow the safety gates in `SKILL.md`: preview, confirm, then mutate.**
 Run `acli <path> --help` if any flag is unfamiliar.
 
-## Daily standup — what am I working on?
+## Daily standup: what am I working on?
 
 ```bash
 acli jira workitem search \
@@ -12,7 +12,7 @@ acli jira workitem search \
   --fields "key,summary,status"
 ```
 
-Read-only — just present the result.
+Read-only. Just present the result.
 
 ## Start working on an issue
 
@@ -31,12 +31,12 @@ acli jira workitem transition --key "KEY-123" --status "Done" --yes
 acli jira workitem comment create --key "KEY-123" --body "Completed. PR: #456"
 ```
 
-## Bulk-close sprint items (destructive — gate it)
+## Bulk-close sprint items (destructive: gate it)
 
 Closing many items at once is irreversible-ish (re-opening is manual). **Preview first:**
 
 ```bash
-# 1. PREVIEW — how many, and exactly which?
+# 1. PREVIEW: how many, and exactly which?
 acli jira workitem search \
   --jql "sprint in openSprints() AND status = 'In Review' AND assignee = currentUser()" \
   --count
@@ -65,5 +65,5 @@ acli jira workitem search \
   --fields "key,summary,priority,status"
 ```
 
-Read-only. To then claim them, treat the assign as a bulk mutation — preview, confirm,
+Read-only. To then claim them, treat the assign as a bulk mutation: preview, confirm,
 then `acli jira workitem assign --jql "<same JQL>" --assignee "@me" --yes`.

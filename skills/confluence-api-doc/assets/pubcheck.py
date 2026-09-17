@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-pubcheck.py — TRIPWIRE for `confluence-api-doc`: Confluence storage-XHTML validation.
-Zero install: pure Python 3 (stdlib only). Companion to the confluence-api-doc skill —
+pubcheck.py: TRIPWIRE for `confluence-api-doc`: Confluence storage-XHTML validation.
+Zero install: pure Python 3 (stdlib only). Companion to the confluence-api-doc skill , 
 Layer 1a (pre-flight, before any push) + the `--roundtrip` comparator (Layer 1b).
 
 WHY THIS EXISTS
@@ -26,7 +26,7 @@ TWO MODES
        • `*.xml` / `*.html` raw storage → C1-C6 only (no title / no source for C8).
   2. Round-trip:  python3 pubcheck.py --roundtrip <expected-file> <actual-file>
      Canonicalizes both storage strings (drops volatile attrs Confluence injects on
-     store — ac:macro-id / ac:schema-version / ac:local-id — sorts attrs, collapses
+     store: ac:macro-id / ac:schema-version / ac:local-id: sorts attrs, collapses
      inter-tag whitespace) and reports real drift. CDATA payloads are compared EXACTLY
      (code content must survive verbatim). Confluence rewrites storage on store, so a
      naive byte compare is useless; canonicalization is what makes the diff meaningful.
@@ -103,7 +103,7 @@ def _canon(node, out):
             _canon(ch, out)
         out.append('</' + node.tagName + '>')
     elif nt == node.CDATA_SECTION_NODE:
-        out.append('<![CDATA[' + node.data + ']]>')          # exact — code must survive
+        out.append('<![CDATA[' + node.data + ']]>')          # exact: code must survive
     elif nt == node.TEXT_NODE:
         t = re.sub(r'\s+', ' ', node.data.strip())
         if t:
@@ -128,23 +128,23 @@ def _count(tag, s):
 
 def check_page(label, title, source, storage, errors, notes):
     """Validate one converted page's storage XHTML. title/source may be None (raw mode)."""
-    # C2 — CDATA balance
+    # C2: CDATA balance
     opens, closes = storage.count('<![CDATA['), storage.count(']]>')
     if opens != closes:
         errors.append((label, 'ERROR', f'CDATA unbalanced: {opens} "<![CDATA[" vs {closes} "]]>"'))
 
-    # C3 — code-macro integrity
+    # C3: code-macro integrity
     n_macros = len(re.findall(r'<ac:structured-macro\s+ac:name="code"', storage))
     n_bodies = len(re.findall(r'<ac:plain-text-body>', storage))
     if n_macros > n_bodies:
         errors.append((label, 'ERROR', f'{n_macros} code macro(s) but only {n_bodies} '
-                                       f'<ac:plain-text-body> — a body is missing'))
+                                       f'<ac:plain-text-body>: a body is missing'))
     n_body_cdata = len(re.findall(r'<ac:plain-text-body>\s*<!\[CDATA\[', storage))
     if n_bodies > n_body_cdata:
         notes.append((label, f'{n_bodies - n_body_cdata} code body/ies not wrapped in CDATA '
-                             f'— verify the code content is intact; needs fresh-eyes'))
+                             f',  verify the code content is intact; needs fresh-eyes'))
 
-    # C4 — table balance
+    # C4: table balance
     for tag in ('table', 'tr'):
         o, c = _count(tag, storage)
         if o != c:
@@ -155,16 +155,16 @@ def check_page(label, title, source, storage, errors, notes):
         if '<td' not in tr and '<th' not in tr:
             errors.append((label, 'ERROR', 'a <tr> has no <td>/<th> cell (empty row)'))
     if rows and cells < rows:
-        notes.append((label, f'{rows} <tr> but only {cells} cells — possible dropped cell; '
+        notes.append((label, f'{rows} <tr> but only {cells} cells: possible dropped cell; '
                              f'needs fresh-eyes'))
 
-    # C5 — list balance
+    # C5: list balance
     for tag in ('ul', 'ol', 'li'):
         o, c = _count(tag, storage)
         if o != c:
             errors.append((label, 'ERROR', f'<{tag}> unbalanced: {o} open vs {c} close'))
 
-    # C6 — unescaped & / < outside CDATA
+    # C6: unescaped & / < outside CDATA
     bare = strip_cdata(storage)
     if RE_BAD_AMP.search(bare):
         n = len(RE_BAD_AMP.findall(bare))
@@ -173,31 +173,31 @@ def check_page(label, title, source, storage, errors, notes):
         n = len(RE_BAD_LT.findall(bare))
         errors.append((label, 'ERROR', f'{n} bare "<" not starting a tag (escape as &lt;)'))
 
-    # C7 — title
+    # C7: title
     if title is not None and not str(title).strip():
         errors.append((label, 'ERROR', 'page title is empty'))
 
-    # C1 — well-formedness (last: C2/C6 issues explain a parse failure)
+    # C1: well-formedness (last: C2/C6 issues explain a parse failure)
     try:
         parse_storage(storage)
     except Exception as e:
         msg = re.sub(r'\s+', ' ', str(e))[:120]
         errors.append((label, 'ERROR', f'storage is not well-formed XML ({msg})'))
 
-    # C8 — source↔storage element-count cross-check (manifest mode only)
+    # C8: source↔storage element-count cross-check (manifest mode only)
     if source is not None:
         md_tables = _count_md_tables(source)
         st_tables = len(re.findall(r'<table\b', storage))
         if md_tables > st_tables:
             errors.append((label, 'ERROR', f'source has {md_tables} markdown table(s) but storage '
-                                           f'has {st_tables} <table> — a table was dropped/garbled'))
+                                           f'has {st_tables} <table>: a table was dropped/garbled'))
         md_code = source.count('```') // 2
         st_code = len(re.findall(r'<ac:structured-macro\s+ac:name="code"', storage))
         if md_code > st_code:
             errors.append((label, 'ERROR', f'source has {md_code} code block(s) but storage has '
-                                           f'{st_code} code macro(s) — a code block was dropped'))
+                                           f'{st_code} code macro(s): a code block was dropped'))
     elif title is not None:
-        notes.append((label, 'no source markdown in manifest — element-count cross-check (C8) '
+        notes.append((label, 'no source markdown in manifest: element-count cross-check (C8) '
                              'skipped; needs fresh-eyes'))
 
 
@@ -238,10 +238,10 @@ def roundtrip(expected_path, actual_path, errors, notes):
     if ce is None or ca is None:
         return
 
-    # CDATA payloads — exact (code content)
+    # CDATA payloads: exact (code content)
     if extract_cdata(exp) != extract_cdata(act):
         errors.append((label, 'ERROR', 'CDATA (code-block) content differs after round-trip '
-                                       '— a code example was altered on store'))
+                                       ',  a code example was altered on store'))
 
     if ce == ca:
         return  # clean
@@ -251,7 +251,7 @@ def roundtrip(expected_path, actual_path, errors, notes):
     while i < min(len(ce), len(ca)) and ce[i] == ca[i]:
         i += 1
     lo = max(0, i - 30)
-    errors.append((label, 'ERROR', 'structural drift after round-trip (review — Confluence may '
+    errors.append((label, 'ERROR', 'structural drift after round-trip (review, Confluence may '
                                    'rewrite benignly):'))
     notes.append((label, f'  expected …{ce[lo:i + 50]!r}'))
     notes.append((label, f'  actual   …{ca[lo:i + 50]!r}'))
@@ -298,7 +298,7 @@ def report_and_exit(errors, notes, n_items, unit):
         for n in nts:
             print(f"    NOTE   {n}")
     total = len(errors)
-    print(f"\n{'FAILED' if total else 'PASS'} — {total} error(s) / {len(notes)} note(s) "
+    print(f"\n{'FAILED' if total else 'PASS'}: {total} error(s) / {len(notes)} note(s) "
           f"across {n_items} {unit}")
     sys.exit(1 if total else 0)
 
@@ -323,12 +323,12 @@ def main():
     positional = [a for a in argv if not a.startswith('--')]
     target = pathlib.Path(positional[0]) if positional else pathlib.Path('.api-doc-publish')
     if not target.exists():
-        print(f"pubcheck: {target} not found — nothing to check")
+        print(f"pubcheck: {target} not found: nothing to check")
         sys.exit(0)
 
     pages = collect(target)
     if not pages:
-        print("pubcheck: no .json/.xml/.html page artifacts — nothing to check")
+        print("pubcheck: no .json/.xml/.html page artifacts: nothing to check")
         sys.exit(0)
 
     for p in pages:

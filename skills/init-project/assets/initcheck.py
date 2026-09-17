@@ -66,7 +66,7 @@ def walk_texts(root: Path):
 
 def probe_health(t: Path) -> tuple[bool, str]:
     """Build cmd/api, boot it on an ephemeral port with no infrastructure, and
-    confirm GET /health returns 200 with no panic — the runnable promise asserted
+    confirm GET /health returns 200 with no panic: the runnable promise asserted
     behaviorally (best-effort boot), not by grepping the source for "panic"."""
     workdir = Path(tempfile.mkdtemp(prefix="initcheck-"))
     try:
@@ -145,7 +145,7 @@ def main() -> None:
     leftover = []
     for key, sent in SENTINELS.items():
         if user[key] == sent:
-            continue  # the user chose the sentinel value itself — not a leftover
+            continue  # the user chose the sentinel value itself: not a leftover
         hits = [str(p.relative_to(t)) for p, txt in texts if sent in txt]
         if hits:
             leftover.append(f"{sent} in {hits[:3]}")
@@ -179,8 +179,8 @@ def main() -> None:
 
     gomod = t / "go.mod"
     gtext = gomod.read_text(encoding="utf-8") if gomod.is_file() else ""
-    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.5" in gtext,
-          "common-lib v2.2.5", "")
+    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4" in gtext,
+          "common-lib v2.2.4", "")
 
     mw = t / "internal/delivery/http/middleware/middleware.go"
     mwtext = mw.read_text(encoding="utf-8") if mw.is_file() else ""
@@ -189,7 +189,7 @@ def main() -> None:
         "CorrelationIdMiddleware", "RequestIdMiddleware", "LoggingMiddleware",
         "GinErrorHandler", "Recovery",
     ))
-    check(not old_mw and has_new, "common-lib v2.2.5 middleware chain",
+    check(not old_mw and has_new, "common-lib v2.2.4 middleware chain",
           (f"removed symbols: {old_mw}; " if old_mw else "") +
           ("" if has_new else "missing RequestIdMiddleware/LoggingMiddleware"))
 
@@ -198,7 +198,7 @@ def main() -> None:
     check(f"service_name: {args.service_id}" in ytext,
           "logger.service_name matches service id", "")
 
-    # Standard compose images (tooling.md — Docker Compose — standard images).
+    # Standard images (tooling.md: Standard images).
     compose = t / "docker-compose.yaml"
     ctext = compose.read_text(encoding="utf-8") if compose.is_file() else ""
     required_images = (
@@ -219,6 +219,21 @@ def main() -> None:
     check(not missing_img and not banned, "compose standard images",
           (f"missing {missing_img}; " if missing_img else "") + ("; ".join(banned) if banned else ""))
 
+    df = t / "Dockerfile"
+    dtext = df.read_text(encoding="utf-8") if df.is_file() else ""
+    df_ok = (
+        "public.ecr.aws/docker/library/golang:1.26-alpine" in dtext
+        and "public.ecr.aws/docker/library/alpine:3.21" in dtext
+        and "alpine:latest" not in dtext
+    )
+    check(df_ok, "Dockerfile standard images",
+          "" if df_ok else "need golang:1.26-alpine builder + alpine:3.21 final, no alpine:latest")
+
+    ci = t / ".gitlab-ci.yml"
+    citext = ci.read_text(encoding="utf-8") if ci.is_file() else ""
+    check("public.ecr.aws/docker/library/golang:1.26" in citext,
+          "CI golang image", "need public.ecr.aws/docker/library/golang:1.26")
+
     ok, detail = probe_health(t)
     check(ok, "boots + serves /health without infra (no panic)", detail)
 
@@ -226,7 +241,7 @@ def main() -> None:
     for ok, label, detail in RESULTS:
         line = f"  [{'PASS' if ok else 'FAIL'}] {label}"
         if detail and not ok:
-            line += f"  — {detail}"
+            line += f" : {detail}"
         print(line)
     print(f"\ninitcheck: {passed}/{len(RESULTS)} checks passed")
     sys.exit(0 if passed == len(RESULTS) else 1)

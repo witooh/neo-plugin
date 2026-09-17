@@ -1,24 +1,23 @@
 ---
 name: confluence-api-doc
 description: >
-  Publish API docs to Confluence — from the `docs/api/*.yaml` custom-YAML api-spec — one endpoint
+  Publish API docs to Confluence: from the `docs/api/*.yaml` custom-YAML api-spec, one endpoint
   = one page under domain-group parent pages, with the service overview on the parent page.
   Assembles each page directly from the api-spec's doc-table shape, converts to Confluence storage, and syncs
   via acli (auth/reads) + REST (writes), with a
   built-in **three-layer verify**: a deterministic pre-flight + round-trip check, an
   independent fresh-eyes pass, and a completeness sweep. Trigger on: "publish api doc",
   "sync api doc", "push doc to confluence", "publish api spec to confluence",
-  "อัปเดต api doc ไป confluence", "sync api spec to confluence". Also
-  trigger when using-neo requests API-doc publishing (DOC step). NOTE: the api-spec is authored by the
+  "อัปเดต api doc ไป confluence", "sync api spec to confluence". NOTE: the api-spec is authored by the
   `api-spec` skill; `openapi-doc` drift-checks Go against it; a runnable Bruno
   OpenCollection is the `open-collection` skill. Input is the
-  `docs/api/*.yaml` api-spec — if it does not exist, author it with
+  `docs/api/*.yaml` api-spec: if it does not exist, author it with
   `api-spec` first. Not a general Confluence editor.
 ---
 
 # Confluence API Doc
 
-Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML api-spec — one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md) — follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
+Publish API docs to **Confluence**: from the `docs/api/*.yaml` custom-YAML api-spec, one endpoint = one page, grouped under domain parents, with the service overview on the parent page. The full procedure (auth, source-select, page-tree mapping, the source→storage conversion rules, REST calls, round-trip normalization) is the single source in [`references/publish-reference.md`](references/publish-reference.md), follow it; the steps below are the spine. Every push is gated on **deterministic checks (pre-flight + round-trip) + an independent fresh-eyes pass + a completeness sweep**, never on an HTTP 200.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message gives the "Base directory for this skill"). Input is the `docs/api/*.yaml` custom-YAML api-spec (authored by the `api-spec` skill).
 
@@ -27,22 +26,22 @@ Publish API docs to **Confluence** — from the `docs/api/*.yaml` custom-YAML ap
 Confluence is for **other teams that call this API** (BFF, mobile, partner). It is **not** a dump of the api-spec for the owning service's developers.
 
 - Publish the **wire contract** and **caller-visible behaviour** only.
-- **Strip internal/dev prose** at assemble time (P3) — do not push ticket framing, evidence paths, ALIGN logs, internal renames, changelog notes, or implementer-only cross-refs. Full strip list: `publish-reference.md` § Audience filter.
-- The api-spec may keep those for neo/traceability; Confluence must not.
+- **Strip internal/dev prose** at assemble time (P3): do not push ticket framing, evidence paths, ALIGN logs, internal renames, changelog notes, or implementer-only cross-refs. Full strip list: `publish-reference.md` § Audience filter.
+- The api-spec may keep those for repo traceability; Confluence must not.
 
 
 ## The spine
 
-1. **Gather** — the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/spec` to author it). Then take the Confluence parent-page URL → page ID.
-2. **Auth** — `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
-3. **Scan + sanitize** — endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML (P3) **through the Audience filter** — `description` → intro, field tables from params/body/responses, examples, `business_logic`, `errors[]`; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Drop pure-dev `notes[]`; never publish `covers_ac`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3 + Audience filter.)
-4. **Map** — fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
-5. **Versions** — `acli confluence page view --id <id> --include-version --json`.
-6. **Convert** — markdown → Confluence storage per `publish-reference.md` § P6 (code blocks → code macro/CDATA **first**, then inline rules; mind the nested-list rule). Stage each page in the **gitignored** `.api-doc-publish/` as both a `<page>.json` manifest and a raw `storage/<page>.xml` (the latter feeds the round-trip).
+1. **Gather**: the source is the **api-spec** at `docs/api/*.yaml` (`_meta.yaml` + `<domain>/<endpoint>.yaml`); if it does not exist → STOP (run `/spec` to author it). Then take the Confluence parent-page URL → page ID.
+2. **Auth**: `acli auth status` → `CONFLUENCE_URL` + `EMAIL`; resolve the write token (`$CONFLUENCE_API_TOKEN` or ask once) at push time.
+3. **Scan + sanitize**: endpoint pages titled `<METHOD>: <path>`, one per group; parent page = the service overview. Title from the endpoint's `method` + `path`; **assemble** the page body from the endpoint YAML (P3) **through the Audience filter**: `description` → intro, field tables from params/body/responses, examples, `business_logic`, `errors[]`; parent body = `_meta.overview` + `_meta.field_info` + `_meta.common_errors`. Drop pure-dev `notes[]`; never publish `covers_ac`. Skip `health/`. (Full rules: `publish-reference.md` § Step P3 + Audience filter.)
+4. **Map**: fetch existing children (`curl GET …?expand=space,children.page`), match by exact title, plan create/update; create groups before endpoints.
+5. **Versions**: `acli confluence page view --id <id> --include-version --json`.
+6. **Convert**: markdown → Confluence storage per `publish-reference.md` § P6 (code blocks → code macro/CDATA **first**, then inline rules; mind the nested-list rule). Stage each page in the **gitignored** `.api-doc-publish/` as both a `<page>.json` manifest and a raw `storage/<page>.xml` (the latter feeds the round-trip).
 
 ### verify-L1 · Deterministic (pre-flight + round-trip)
 
-**L1a — pre-flight (before any push):**
+**L1a: pre-flight (before any push):**
 
 ```
 python3 <ASSET_DIR>/pubcheck.py .api-doc-publish/
@@ -52,7 +51,7 @@ Well-formedness · CDATA/table/list balance · bare `&`/`<` · **source↔storag
 
 Then **Sync** (REST create/update: domain-group pages → endpoint pages → parent page; version+1 on update; skip unchanged).
 
-**L1b — round-trip (after push):** re-fetch each page (`acli … --body-format storage --json`) and compare to the staged storage:
+**L1b: round-trip (after push):** re-fetch each page (`acli … --body-format storage --json`) and compare to the staged storage:
 
 ```
 python3 <ASSET_DIR>/pubcheck.py --roundtrip .api-doc-publish/storage/<page>.xml .api-doc-publish/refetched/<page>.xml
@@ -62,21 +61,20 @@ Canonical compare (ignores Confluence's benign rewrites; CDATA must match exactl
 
 ### verify-L1.5 · Offer fresh-eyes (default yes)
 
-Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the published pages? (default: yes)"* — **no** → skip L2 (mark "skipped by user"); **yes** → L2.
+Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the published pages? (default: yes)"*, **no** → skip L2 (mark "skipped by user"); **yes** → L2.
 
-### verify-L2 · Fresh-eyes verifier (independent agent)
+### verify-L2 · Independent verifier
 
-The pre-flight + round-trip prove the storage is well-formed and survived Confluence verbatim; they cannot judge whether the **conversion preserved meaning**. Dispatch a verifier that reads a sample of (source markdown ↔ converted storage) pairs:
+The pre-flight + round-trip prove the storage is well-formed and survived Confluence verbatim; they cannot judge whether the **conversion preserved meaning**. Spawn a read-only sub-agent that reads a sample of (source markdown ↔ converted storage) pairs:
 
 ```
-Agent(subagent_type: "fresh-eyes", description: "verify confluence publish", prompt: """
 # Role: Publish Verifier
 Read first: <SKILL_DIR>/references/pub-verifier.md
 SKILL_DIR = <skill base dir>
 
 ## Task
 Independently judge (1) conversion fidelity and (2) audience fitness for a sample of
-pages — semantic preservation the pre-flight counts and round-trip cannot see, plus
+pages: semantic preservation the pre-flight counts and round-trip cannot see, plus
 no leftover internal/dev prose. Read the source yaml + the staged storage in
 .api-doc-publish/ yourself. Apply the Audience filter in publish-reference.md /
 pub-verifier.md.
@@ -85,10 +83,10 @@ pub-verifier.md.
 <list a representative sample: the most table-heavy, code-heavy, and nested-list pages>
 
 End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
-""")
 ```
 
-`SKILL_DIR` is mandatory. The verifier is read-only by tool grant — `fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by instruction only) → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
+`SKILL_DIR` is mandatory. The verifier is read-only (no write, edit, or commit) → **you** fix the conversion → re-stage → re-run L1a (and re-push + L1b if already pushed).
+
 
 ### verify-L3 · Completeness sweep (omission critic)
 
@@ -97,14 +95,14 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 ### Output
 
 ```
-## Confluence API Doc — publish
+## Confluence API Doc: publish
 **Source:** docs/api api-spec   **Parent page:** <id>
 | Page | Type | Page ID | Status |
 | --- | --- | --- | --- |
 | (Service) Overview | Parent | … | Updated (v3→v4) |
 | Consent | Domain group | … | Created |
 | POST: /api/v1/consents | API page | … | Created |
-**Totals:** N groups, M API pages — created K / updated U / skipped S / failed F
+**Totals:** N groups, M API pages: created K / updated U / skipped S / failed F
 **Verification (three-layer):**
 - L1 pre-flight ✅/❌ · round-trip: N/M clean, D drift (CDATA drift: …)
 - L2 fresh-eyes: ✅ Clean / ⚠️ N findings fixed / ⏭ Skipped / ⏸ Not run
@@ -115,8 +113,8 @@ L1/L2 inspect the pages that *were* converted; L3 catches a whole page **missing
 
 ## What this skill is NOT
 
-- **Not** a source generator — the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill; **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
-- **Not** a Bruno OpenCollection generator — that is the **`open-collection`** skill.
-- **Not** a general Confluence page editor — it publishes the API-doc tree, nothing else.
-- **Not** a mirror of every api-spec remark/note — internal/dev text stays in the repo; Confluence is consumer-facing only (Audience filter).
-- An HTTP 200 is **not** proof the content is right — that is the round-trip + fresh-eyes job.
+- **Not** a source generator: the `docs/api/*.yaml` api-spec is authored by the **`api-spec`** skill; **`openapi-doc`** only drift-checks Go against it. This skill reads the api-spec.
+- **Not** a Bruno OpenCollection generator: that is the **`open-collection`** skill.
+- **Not** a general Confluence page editor: it publishes the API-doc tree, nothing else.
+- **Not** a mirror of every api-spec remark/note: internal/dev text stays in the repo; Confluence is consumer-facing only (Audience filter).
+- An HTTP 200 is **not** proof the content is right: that is the round-trip + fresh-eyes job.

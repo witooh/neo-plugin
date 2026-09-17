@@ -1,4 +1,4 @@
-# init-project — guide & maintainer reference
+# init-project: guide & maintainer reference
 
 ## What the template is
 
@@ -15,28 +15,28 @@ it is CI-verifiable as-is:
 
 Generation (`scaffold.py`) is a **single-pass string substitution** of those four sentinels, then
 `go mod tidy` + `git init` + `go build`. Generic steering placeholders (`{{MODULE_PATH}}`,
-`{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels — they are left intact for `using-neo` to fill
-per-domain.
+`{{SERVICE_NAME}}`, `<context>`, …) are **not** sentinels: they are left intact as placeholders for later
+domain work.
 
 ## What's in the template (KEEP)
 
-- **Layers** — `cmd/api` (gutted composition root), `config` (loader + `logger/service/postgres/redis/kafka`),
+- **Layers**: `cmd/api` (gutted composition root), `config` (loader + `logger/service/postgres/redis/kafka`),
   `internal/delivery/http/{router,middleware}` (the `/health` probe + middleware chain),
   `internal/adapters/repository/{postgres,redis,cache}` (low-level clients + `sqlc/db.go` +
   `transactor`/`utilities`/`dberror`), `pkg/{clock,idgen,cache/valkey,lib/kafka}` (ambient + generic kafka).
-- **Tooling** — `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres+valkey+kafka), `.gitlab-ci.yml`
+- **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres+valkey+kafka), `.gitlab-ci.yml`
   (workflow auto-cancel + Go module cache; stages `prepare-mod` / `test` / `build` on `ec2-shell` for
-  image push — no DinD build, no `e2e-test` until the service has `tests/e2e`), `.golangci.yaml`,
+  image push: no DinD build, no `e2e-test` until the service has `tests/e2e`), `.golangci.yaml`,
   `.mockery.yaml`, `sqlc.yaml`, `.pre-commit-config.yaml`, `.gitignore`, the five pinned `tools/*` modules.
-- **Agentic context** — `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
-  `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template —
+- **Agentic context**: `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
+  `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template , 
   those install from the neo plugin / `kiro.sh`, not per service.
   `bruno/` + `mockoon/` shells (READMEs + env; collections/stubs regenerate per-domain).
   - **`CLAUDE.md` is gitignored by design** (`template/.gitignore`): this is a **Kiro-first**
-    layout — `.kiro/` steering is the source of truth. The scaffold *creates* `CLAUDE.md` (so Claude
+    layout: `.kiro/` steering is the source of truth. The scaffold *creates* `CLAUDE.md` (so Claude
     Code users have it locally), but the generated project keeps it **untracked**, so teammates who
     use Kiro don't carry it. In the plugin repo the template's `CLAUDE.md` is committed with
-    `git add -f` so it ships in the bundle. Do not "fix" the gitignore rule — it is intentional.
+    `git add -f` so it ships in the bundle. Do not "fix" the gitignore rule, it is intentional.
 
 ## What was removed (STRIP)
 
@@ -47,23 +47,23 @@ handlers/DTOs/routes, business sqlc queries/migrations/seed (kept generic `sqlc/
 
 ## Boot model (why it runs with no Docker)
 
-`cmd/api/app.go` starts the HTTP server first and dials Postgres **best-effort** — on a missing or
+`cmd/api/app.go` starts the HTTP server first and dials Postgres **best-effort**: on a missing or
 unreachable DB it logs a warning (within a 2s timeout) and continues, so `go run ./cmd/api` serves
-`/health` standalone. A failed HTTP **bind** still panics (a genuine fatal error). When `using-neo` adds a
-real domain it tightens this as needed.
+`/health` standalone. A failed HTTP **bind** still panics (a genuine fatal error). When a real domain
+is added later it tightens this as needed.
 
 ## Preconditions for generation
 
 - **Go ≥ 1.26** on PATH.
 - **Private module access** for the org `common-lib` the template imports
-  (`gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` **v2.2.5**): `GOPRIVATE` set for the
+  (`gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` **v2.2.4**): `GOPRIVATE` set for the
   host + git credentials. A warm module cache (having built `account-service` once) lets the build
   succeed offline. Without access, run `scaffold.py --no-build` and build later.
 
 ## Refreshing the snapshot (maintainer procedure)
 
 When `account-service`'s conventions change, rebuild `assets/template/` in a scratch dir, then
-`rsync` it back. Verify at every step — the frozen template MUST build and serve `/health` before it
+`rsync` it back. Verify at every step: the frozen template MUST build and serve `/health` before it
 is committed.
 
 1. **Copy** a clean `account-service` into a scratch dir, excluding `.git/ vendor/ node_modules/

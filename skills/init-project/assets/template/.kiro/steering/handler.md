@@ -12,7 +12,7 @@ map to/from DTOs, delegate to `Exec`, shape the response. **No business logic.**
 ```
 internal/delivery/http/
     handler/<resource>/
-        handler.go        # Handler struct + New() ONLY — no methods
+        handler.go        # Handler struct + New() ONLY: no methods
         <operation>.go    # ONE file per operation: the gin method only (DTOs + mappers live in dto/)
         shared/error.go   # cross-handler edge helpers (validation-error translation)
     dto/
@@ -21,7 +21,7 @@ internal/delivery/http/
     middleware/
         middleware.go     # Setup(r, serviceID): CorrelationId → RequestId → Logging → GinErrorHandler → Recovery
     router/
-        router.go         # Handlers struct + New(h, serviceID) *gin.Engine — gin + middleware + health + groups
+        router.go         # Handlers struct + New(h, serviceID) *gin.Engine: gin + middleware + health + groups
         <resource>.go     # register<Resource>(r gin.IRoutes, h *<resource>.Handler)
 ```
 
@@ -30,7 +30,7 @@ per op), so two people adding different endpoints never touch the same file. The
 file holds only the gin method; its request/response DTOs and its request→domain mapper live
 together in `dto/<resource>.go`.
 
-## `handler.go` — struct + constructor only
+## `handler.go`: struct + constructor only
 
 ```go
 // Package <resource> contains the HTTP handlers for the <Resource> endpoints.
@@ -55,14 +55,14 @@ is `<Op>` (`Get`, `List`), so the usecase field takes a **`UC` suffix** (`GetUC`
 `BatchReserveUC`). A single-usecase handler whose method name differs from the field may
 keep `Usecase`.
 
-## `<operation>.go` — one endpoint per file
+## `<operation>.go`: one endpoint per file
 
 Holds the gin method. The request DTO (`dto.<Resource><Op>Request`, with `binding` tags) and
 its request→domain mapper both live in `dto/`; the method binds the request, delegates, then
 shapes the response via `dto.New<Resource>Response`.
 
 > **Domain imports.** The per-layer domain packages (`entity`, `repository`, `event`, `service`,
-> root `domain`) have distinct names, so a handler/dto package imports them plain — no alias
+> root `domain`) have distinct names, so a handler/dto package imports them plain, no alias
 > needed. Only integration packages (`integration/<sys>`, `package <sys>`) can still collide with a
 > handler name; alias those (e.g. `dm<sys>`) where the clash is real. (This repo's actual
 > aliases: `repo-instance.md`.)
@@ -92,14 +92,14 @@ func (h *Handler) <Op>(c *gin.Context) {
 }
 ```
 
-## `dto/` — request + response DTOs (centralised, resource-prefixed)
+## `dto/`: request + response DTOs (centralised, resource-prefixed)
 
 Both request and response DTOs live in the `dto` package, one file per resource, with the
 request and response for the same operation kept together. Because the package is shared,
 **type names are resource-prefixed** to avoid collisions (`AccountCreateRequest`,
 `AccountResponse`, `AccountListResponse`).
 
-**DTO fields are primitive/wire types only** (`string`, `bool`, numbers) — never domain or
+**DTO fields are primitive/wire types only** (`string`, `bool`, numbers), never domain or
 third-party custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum). Plain types keep
 `binding:"required"` working (the validator can't detect a zero `decimal.Decimal`) and keep
 the wire contract independent of domain types. Convert at the edge in mapper funcs/methods:
@@ -110,7 +110,7 @@ values (`.String()`). A handler that returns a port read-model directly needs no
 ```go
 package dto
 
-import "{{MODULE_PATH}}/internal/core/domain/entity"   // domain data types (plain import — distinct name)
+import "{{MODULE_PATH}}/internal/core/domain/entity"   // domain data types (plain import, distinct name)
 
 type <Resource><Op>Request struct {
 	Amount string `json:"amount" binding:"required"` // wire type, not decimal.Decimal
@@ -131,15 +131,15 @@ func New<Resource>Response(a *entity.<Aggregate>) <Resource>Response {
 ```
 
 DTOs are the wire shape; they never leak into `usecase`/`domain`. Map at the edge via getters.
-(A handler that echoes a read-model directly returns the `integration/<sys>` type — an aliased
-`*dm<upstream>.<ReadModel>` — and needs no `dto` mapper.)
+(A handler that echoes a read-model directly returns the `integration/<sys>` type, an aliased
+`*dm<upstream>.<ReadModel>`: and needs no `dto` mapper.)
 
-## `middleware/` — the standard chain (wraps common-lib v2.2.5)
+## `middleware/`: the standard chain (wraps common-lib v2.2.4)
 
-`Setup(r, serviceID)` applies the chain by **calling common-lib** — it does not reimplement
+`Setup(r, serviceID)` applies the chain by **calling common-lib**: it does not reimplement
 it. `serviceID` is only an argument to `stdresp.GinErrorHandler` (the error envelope).
 Request-scoped service identity in logs is `logger.Config.ServiceName` (required, a free-form
-string) via `logger.ServiceName()` — there is no `ServiceIdMiddleware` / `GetServiceId`.
+string) via `logger.ServiceName()`: there is no `ServiceIdMiddleware` / `GetServiceId`.
 
 Order: CorrelationId → RequestId → LoggingMiddleware → GinErrorHandler → Recovery.
 `LoggingMiddleware` and `GinErrorHandler` wrap `Recovery` so a recovered panic is still
@@ -155,13 +155,13 @@ func Setup(r *gin.Engine, serviceID string) {
 }
 ```
 
-## `router/` — routes split by resource + a main file
+## `router/`: routes split by resource + a main file
 
 `router.New(h Handlers, serviceID)` builds the gin engine, applies `middleware.Setup`,
 registers `/health`, creates the route groups, and calls each `register<Resource>`. Each
 resource's routes live in their own file so adding/changing one resource's routes touches a
 single file. The composition root (`app.md`) builds the concrete handlers, fills
-`router.Handlers`, and passes it in — explicit wiring, no DI container.
+`router.Handlers`, and passes it in: explicit wiring, no DI container.
 
 ```go
 // router.go
@@ -178,15 +178,15 @@ func New(h Handlers, serviceID string) *gin.Engine {
 	return r
 }
 
-// order.go — paths relative to the group
+// order.go: paths relative to the group
 func registerOrder(r gin.IRoutes, h *order.Handler) {
 	r.POST("", h.Create)
 	r.GET("/:id", h.Get)
 }
 ```
 
-`router` is the **HTTP-composition sub-layer** — analogous to `cmd/api` but scoped to
-routing — so it is the one inbound package permitted to import the handler packages.
+`router` is the **HTTP-composition sub-layer**: analogous to `cmd/api` but scoped to
+routing: so it is the one inbound package permitted to import the handler packages.
 Handlers still must never import each other.
 
 ## Error handling
@@ -203,15 +203,15 @@ func HandleValidationError(err error) error {
 }
 ```
 
-If a handler must log a business event (rare — prefer the usecase), use
+If a handler must log a business event (rare: prefer the usecase), use
 `logger.Context(c)` and an event-name message; never `Fatal`/`Panic`.
 
 ## Don'ts
 
-- ✗ Business rules, repository calls, or external calls in a handler — delegate to a usecase.
-- ✗ Methods on the handler in `handler.go` — each endpoint goes in its own operation file.
-- ✗ Returning the aggregate directly — always map to a response DTO via getters.
-- ✗ DTOs inline in the operation file — request and response DTOs both live in `dto/<resource>.go`, resource-prefixed.
-- ✗ Domain/custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum) in a DTO field — use a primitive and convert in the mapper.
+- ✗ Business rules, repository calls, or external calls in a handler: delegate to a usecase.
+- ✗ Methods on the handler in `handler.go`: each endpoint goes in its own operation file.
+- ✗ Returning the aggregate directly: always map to a response DTO via getters.
+- ✗ DTOs inline in the operation file: request and response DTOs both live in `dto/<resource>.go`, resource-prefixed.
+- ✗ Domain/custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum) in a DTO field, use a primitive and convert in the mapper.
 - ✗ A handler importing another handler, the router, or a concrete adapter.
-- ✗ Picking an HTTP status or logging method/path/body — `GinErrorHandler` / `LoggingMiddleware`.
+- ✗ Picking an HTTP status or logging method/path/body: `GinErrorHandler` / `LoggingMiddleware`.

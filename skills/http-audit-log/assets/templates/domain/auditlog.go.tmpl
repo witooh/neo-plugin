@@ -1,0 +1,90 @@
+// Package audit holds the audit-log bounded context: the AuditLog aggregate
+// written once per inbound HTTP API call and the driven port that persists it.
+// It owns the AuditStatus enum it uses; the implementation lives in
+// internal/adapters/repository/postgres.
+package audit
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// AuditStatus is the terminal outcome of an audited HTTP call recorded on the
+// audit_log row. Only SUCCESS and FAILED are persisted (the DB CHECK enforces
+// this): a 2xx/3xx response is SUCCESS, anything >= 400 is FAILED.
+type AuditStatus string
+
+const (
+	// AuditStatus_SUCCESS marks a call that returned a < 400 HTTP status.
+	AuditStatus_SUCCESS AuditStatus = "SUCCESS"
+	// AuditStatus_FAILED marks a call that returned a >= 400 HTTP status.
+	AuditStatus_FAILED AuditStatus = "FAILED"
+)
+
+// AuditLog is the audit-log aggregate: one HTTP API audit record written to
+// audit_log. It captures the full request/response lifecycle for observability
+// and compliance. All fields are private: construct with NewAuditLog, read
+// through getters.
+type AuditLog struct {
+	requestId     uuid.UUID
+	httpMethod    string
+	route         string
+	status        AuditStatus
+	httpStatus    int16
+	responseCode  string
+	failureReason string
+	metadata      json.RawMessage
+	rawRequest    string
+	rawResponse   string
+	durationMs    int64
+	createdAt     time.Time
+}
+
+// NewAuditLogParam holds all fields required to create an AuditLog.
+type NewAuditLogParam struct {
+	RequestId     uuid.UUID
+	HttpMethod    string
+	Route         string
+	Status        AuditStatus
+	HttpStatus    int16
+	ResponseCode  string
+	FailureReason string
+	Metadata      json.RawMessage
+	RawRequest    string
+	RawResponse   string
+	DurationMs    int64
+	CreatedAt     time.Time
+}
+
+// NewAuditLog creates a new AuditLog from the provided parameters.
+func NewAuditLog(p NewAuditLogParam) *AuditLog {
+	return &AuditLog{
+		requestId:     p.RequestId,
+		httpMethod:    p.HttpMethod,
+		route:         p.Route,
+		status:        p.Status,
+		httpStatus:    p.HttpStatus,
+		responseCode:  p.ResponseCode,
+		failureReason: p.FailureReason,
+		metadata:      p.Metadata,
+		rawRequest:    p.RawRequest,
+		rawResponse:   p.RawResponse,
+		durationMs:    p.DurationMs,
+		createdAt:     p.CreatedAt,
+	}
+}
+
+func (a *AuditLog) RequestId() uuid.UUID      { return a.requestId }
+func (a *AuditLog) HttpMethod() string        { return a.httpMethod }
+func (a *AuditLog) Route() string             { return a.route }
+func (a *AuditLog) Status() AuditStatus       { return a.status }
+func (a *AuditLog) HttpStatus() int16         { return a.httpStatus }
+func (a *AuditLog) ResponseCode() string      { return a.responseCode }
+func (a *AuditLog) FailureReason() string     { return a.failureReason }
+func (a *AuditLog) Metadata() json.RawMessage { return a.metadata }
+func (a *AuditLog) RawRequest() string        { return a.rawRequest }
+func (a *AuditLog) RawResponse() string       { return a.rawResponse }
+func (a *AuditLog) DurationMs() int64         { return a.durationMs }
+func (a *AuditLog) CreatedAt() time.Time      { return a.createdAt }

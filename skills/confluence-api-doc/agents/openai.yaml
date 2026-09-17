@@ -1,0 +1,3 @@
+interface:
+  display_name: "Confluence API Doc"
+  short_description: "Publish api-spec to Confluence"

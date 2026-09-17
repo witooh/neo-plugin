@@ -1,20 +1,13 @@
 {
   "name": "neo",
-  "version": "4.11.1",
-  "description": "Production-grade engineering skills for AI coding agents.",
+  "version": "5.0.0",
+  "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
   "keywords": [
     "pi-package",
     "omp-package"
   ],
-  "omp": {
-    "extensions": [
-      "./extensions/using-neo-session-start.mjs"
-    ]
-  },
+  "omp": {},
   "pi": {
-    "extensions": [
-      "./extensions/using-neo-session-start.js"
-    ],
     "skills": [
       "./skills"
     ]

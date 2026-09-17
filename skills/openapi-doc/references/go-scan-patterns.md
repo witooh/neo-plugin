@@ -1,6 +1,6 @@
 # Go Framework Scan Patterns
 
-How to discover routes and extract endpoint details from Go web frameworks. Start by detecting which framework is used — check `go.mod` for the import path.
+How to discover routes and extract endpoint details from Go web frameworks. Start by detecting which framework is used, check `go.mod` for the import path.
 
 ## Framework Detection
 
@@ -166,7 +166,7 @@ type CreateUserRequest struct {
 
 ### Query Parameters from Handler Code
 
-Not all query params live in a request struct — some are extracted directly in the handler:
+Not all query params live in a request struct: some are extracted directly in the handler:
 
 ```go
 func (h *Handler) ListConsents(c *fiber.Ctx) error {
@@ -184,8 +184,8 @@ func (h *Handler) ListConsents(c *fiber.Ctx) error {
 ```
 
 **You must scan for BOTH sources:**
-1. **Struct-based** — query params in a request struct (found via `QueryParser`, `BindQuery`, `ShouldBindQuery`)
-2. **Inline extraction** — query params extracted directly via `c.Query("name")`, `c.QueryInt("name")`, `c.QueryParam("name")`, `c.DefaultQuery("name", "default")`, `r.URL.Query().Get("name")`
+1. **Struct-based**: query params in a request struct (found via `QueryParser`, `BindQuery`, `ShouldBindQuery`)
+2. **Inline extraction**: query params extracted directly via `c.Query("name")`, `c.QueryInt("name")`, `c.QueryParam("name")`, `c.DefaultQuery("name", "default")`, `r.URL.Query().Get("name")`
 
 For inline query params, document:
 - Field Name: the string argument (e.g., `"page"`)
@@ -211,17 +211,17 @@ type UserResponse struct {
 Many APIs wrap responses in a standard envelope. Before documenting the response, check how the handler returns data:
 
 ```go
-// Pattern 1: Direct struct return — document the struct fields directly
+// Pattern 1: Direct struct return: document the struct fields directly
 return c.JSON(200, consentResponse)
 
-// Pattern 2: Wrapper struct — document BOTH the wrapper AND inner data
+// Pattern 2: Wrapper struct: document BOTH the wrapper AND inner data
 return c.JSON(200, Response{
     Success: true,
     Data:    consentResponse,
     Message: "consent created",
 })
 
-// Pattern 3: Helper function — read the helper to find the wrapper
+// Pattern 3: Helper function: read the helper to find the wrapper
 return response.Success(c, 201, consentResponse)
 ```
 
@@ -253,7 +253,7 @@ Then add a sub-table for the inner data object.
 
 **If no wrapper** (direct struct return), document the struct fields as the top-level response.
 
-**List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields — `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
+**List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields, `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
 
 **Error envelope:** the per-endpoint Error Responses table documents status + message only. If the API returns a structured error body (e.g. `{success:false, error:{code,message}}`), show that shape once as a shared schema referenced from the root `components.responses`, not in every endpoint.
 
@@ -285,7 +285,7 @@ return c.JSON(200, map[string]interface{}{
     "purpose":    consent.Purpose.Name,
 })
 ```
-→ Same as Fallback 2 — document the map keys and trace value types.
+→ Same as Fallback 2: document the map keys and trace value types.
 
 In all fallback cases, check whether the result is wrapped in a response envelope (see Response Wrapper Detection above).
 
@@ -294,18 +294,18 @@ In all fallback cases, check whether the result is wrapped in a response envelop
 Determine the auth type from middleware applied to the route or route group:
 
 ```go
-// Fiber — JWT middleware on group
+// Fiber: JWT middleware on group
 api := app.Group("/api/v1", jwtMiddleware)      // → all routes in group: "Bearer token"
 public := app.Group("/api/v1/public")            // → no auth middleware: "None"
 
-// Gin — auth middleware on group
+// Gin: auth middleware on group
 authorized := r.Group("/api/v1")
 authorized.Use(middleware.JWTAuth())             // → "Bearer token"
 
-// Chi — middleware on route
+// Chi: middleware on route
 r.With(middleware.APIKeyAuth).Get("/webhook", handler.Webhook)  // → "API Key"
 
-// Echo — middleware on group
+// Echo: middleware on group
 api := e.Group("/api/v1", middleware.JWT())       // → "Bearer token"
 ```
 
@@ -324,29 +324,29 @@ api := e.Group("/api/v1", middleware.JWT())       // → "Bearer token"
 
 ### Success Status Code
 
-Check the handler's success return to determine the actual HTTP status — do not assume 200:
+Check the handler's success return to determine the actual HTTP status, do not assume 200:
 
 ```go
-// 200 OK — typical for GET, PUT, PATCH
+// 200 OK: typical for GET, PUT, PATCH
 return c.JSON(200, response)
 return c.Status(fiber.StatusOK).JSON(response)
 
-// 201 Created — typical for POST that creates a resource
+// 201 Created: typical for POST that creates a resource
 return c.Status(201).JSON(response)
 return c.Status(fiber.StatusCreated).JSON(response)
 
-// 204 No Content — typical for DELETE, or actions with no response body
+// 204 No Content: typical for DELETE, or actions with no response body
 return c.SendStatus(204)
 return c.Status(fiber.StatusNoContent).Send(nil)
 
-// Helper function — read the helper to find the status code
+// Helper function: read the helper to find the status code
 return response.Created(c, result)   // might be 201
 return response.Success(c, result)   // might be 200
 ```
 
 **Search:** look for `c.JSON(`, `c.Status(`, `c.SendStatus(` in the handler's success path (the non-error return). The first argument or the status method argument is the HTTP status code.
 
-If 204 No Content, the endpoint has no response body — omit the Response section in the doc.
+If 204 No Content, the endpoint has no response body: omit the Response section in the doc.
 
 ### Error Mapping
 
@@ -374,7 +374,7 @@ When extracting request/response structs, every field must appear in the doc. Th
 
 ```go
 type CreateConsentResponse struct {
-    entity.BaseResponse              // ← embedded — expand ALL its fields into the doc
+    entity.BaseResponse              // ← embedded: expand ALL its fields into the doc
     ConsentID string `json:"consent_id"`
     Status    string `json:"status"`
 }
@@ -386,7 +386,7 @@ type BaseResponse struct {
 }
 ```
 
-The doc table must include `id`, `created_at`, `updated_at`, `consent_id`, and `status` — 5 fields total, not 3.
+The doc table must include `id`, `created_at`, `updated_at`, `consent_id`, and `status`: 5 fields total, not 3.
 
 **How to find:** search for struct definitions without a field name (just the type). Then read that embedded struct and add its fields.
 
@@ -452,23 +452,23 @@ type MetadataResponse struct {
 
 - Document as Type: `Object`, Remark: `"key-value pairs, dynamic structure"`
 
-### Excluded Fields — Do NOT Document
+### Excluded Fields: Do NOT Document
 
 These fields exist in the Go struct but are NOT part of the JSON API:
 
 ```go
 type Consent struct {
-    ID        string     `json:"id"`           // ✅ document — normal json field
-    Status    string     `json:"status"`       // ✅ document — normal json field
-    DeletedAt *time.Time                       // ✅ document — exported, no json tag → serialized as "DeletedAt"
-    Internal  string     `json:"-"`            // ❌ SKIP — explicitly excluded from JSON
-    secret    string     `json:"secret"`       // ❌ SKIP — unexported (lowercase), never serialized
+    ID        string     `json:"id"`           // ✅ document: normal json field
+    Status    string     `json:"status"`       // ✅ document: normal json field
+    DeletedAt *time.Time                       // ✅ document: exported, no json tag → serialized as "DeletedAt"
+    Internal  string     `json:"-"`            // ❌ SKIP: explicitly excluded from JSON
+    secret    string     `json:"secret"`       // ❌ SKIP: unexported (lowercase), never serialized
 }
 ```
 
 **Rules:**
-- `json:"-"` → field is excluded from JSON serialization — do NOT include in doc
-- Unexported fields (lowercase first letter) → never serialized by `encoding/json` — do NOT include
+- `json:"-"` → field is excluded from JSON serialization: do NOT include in doc
+- Unexported fields (lowercase first letter) → never serialized by `encoding/json`: do NOT include
 - Exported fields with no `json` tag → serialized using the Go field name as-is (e.g., `DeletedAt` → `"DeletedAt"` in JSON). Include in doc with the Go field name.
 
 When counting "json tags in struct vs rows in doc", exclude `json:"-"` and unexported fields from the count.
@@ -477,57 +477,57 @@ When counting "json tags in struct vs rows in doc", exclude `json:"-"` and unexp
 
 After writing a field table:
 1. Re-read the source struct file
-2. Count serializable fields: `json:"<name>"` tags where name is NOT `-`, plus exported fields without json tags — exclude `json:"-"` and unexported fields
+2. Count serializable fields: `json:"<name>"` tags where name is NOT `-`, plus exported fields without json tags, exclude `json:"-"` and unexported fields
 3. Count rows in table → must match the serializable field count
 4. Check for embedded structs → verify their fields are included
 5. Check for custom types → verify underlying type and enum values are documented
 
 ## Error Tracing Patterns
 
-Use a **usecase-first** approach: start by reading ALL usecase methods to enumerate all business errors, then supplement with handler-level errors. The usecase layer is the source of truth for what can go wrong — the handler just maps those errors to HTTP status codes.
+Use a **usecase-first** approach: start by reading ALL usecase methods to enumerate all business errors, then supplement with handler-level errors. The usecase layer is the source of truth for what can go wrong, the handler just maps those errors to HTTP status codes.
 
 ### Step 1: Read ALL Usecase Methods (start here)
 
-This is the most important step. Some handlers call multiple usecase methods — you must read ALL of them.
+This is the most important step. Some handlers call multiple usecase methods, you must read ALL of them.
 
 **How to find the usecase methods:**
-1. In the handler, find every usecase/service call: `h.usecase.Create(...)`, `h.purposeUsecase.GetByID(...)`, `h.notifier.Send(...)`, etc. — there may be more than one
-2. For each call, find the implementation — `Grep` for the method name in `usecase/`, `service/`, or `internal/` directories
+1. In the handler, find every usecase/service call: `h.usecase.Create(...)`, `h.purposeUsecase.GetByID(...)`, `h.notifier.Send(...)`, etc., there may be more than one
+2. For each call, find the implementation: `Grep` for the method name in `usecase/`, `service/`, or `internal/` directories
 3. Open each implementation file and read the full method body
 
-**What to extract — read every line and list ALL error returns:**
+**What to extract: read every line and list ALL error returns:**
 
 ```go
 func (u *ConsentUsecase) Create(ctx context.Context, req CreateConsentInput) (*Consent, error) {
-    // ERROR 1: Business rule — duplicate check
+    // ERROR 1: Business rule: duplicate check
     existing, err := u.repo.FindByCitizenAndPurpose(ctx, req.CitizenID, req.PurposeID)
     if existing != nil {
         return nil, ErrConsentAlreadyExists       // ← collect this
     }
 
-    // ERROR 2: Dependency check — purpose must exist
+    // ERROR 2: Dependency check: purpose must exist
     purpose, err := u.purposeRepo.FindByID(ctx, req.PurposeID)
     if err != nil {
         return nil, ErrPurposeNotFound             // ← collect this
     }
 
-    // ERROR 3: Status validation — purpose must be active
+    // ERROR 3: Status validation: purpose must be active
     if purpose.Status != PurposeStatusActive {
         return nil, ErrPurposeInactive             // ← collect this
     }
 
-    // ERROR 4: Expiry check — purpose must not be expired
+    // ERROR 4: Expiry check: purpose must not be expired
     if purpose.ExpiredAt != nil && purpose.ExpiredAt.Before(time.Now()) {
         return nil, ErrPurposeExpired              // ← collect this
     }
 
-    // ERROR 5: Repository error — create failed
+    // ERROR 5: Repository error: create failed
     consent, err := u.repo.Create(ctx, ...)
     if err != nil {
         return nil, fmt.Errorf("create consent: %w", err)  // ← collect this (wrapped → 500)
     }
 
-    // ERROR 6: Side-effect error — notification failed
+    // ERROR 6: Side-effect error: notification failed
     if err := u.notifier.Send(ctx, consent); err != nil {
         return nil, fmt.Errorf("send notification: %w", err) // ← collect this (wrapped → 500)
     }
@@ -549,7 +549,7 @@ func (u *ConsentUsecase) Create(ctx context.Context, req CreateConsentInput) (*C
 
 Every `return ..., err` or `return ..., ErrXxx` line = one row in this inventory. Do not skip any.
 
-**If the usecase calls its own private/helper methods** (e.g., `u.validatePurpose(...)`), read those too — they may return additional sentinel errors that bubble up. However, do NOT follow calls into repository or external service implementations (see Step 4: Error Tracing Boundary).
+**If the usecase calls its own private/helper methods** (e.g., `u.validatePurpose(...)`), read those too, they may return additional sentinel errors that bubble up. However, do NOT follow calls into repository or external service implementations (see Step 4: Error Tracing Boundary).
 
 ### Step 2: Map Usecase Errors to HTTP Status
 
@@ -558,7 +558,7 @@ Take the error inventory from Step 1 and find how the handler maps each one to a
 Go back to the handler and read its error handling block:
 
 ```go
-// In handler — after calling usecase
+// In handler: after calling usecase
 result, err := h.usecase.Create(ctx, input)
 if err != nil {
     switch {
@@ -576,7 +576,7 @@ if err != nil {
 }
 ```
 
-**Important:** if a usecase error does NOT have an explicit handler case, it falls through to the `default` → 500. Still document it — note the error message will be the generic 500 message.
+**Important:** if a usecase error does NOT have an explicit handler case, it falls through to the `default` → 500. Still document it, note the error message will be the generic 500 message.
 
 ### Step 3: Handler-Level Errors (supplement)
 
@@ -615,8 +615,8 @@ func (h *Handler) CreateConsent(c *fiber.Ctx) error {
 The boundary is **usecase + domain service**. Trace INTO domain services but NOT into repositories or external services.
 
 **What to trace into (business logic layers):**
-- Domain services called by the usecase (e.g., `scopeValidator.ValidateX(...)`, `service.DoY(...)`) — these contain business rules and return typed errors (not just 500). Open the service method and collect all its typed error returns.
-- Private/helper methods within the usecase package — same reason.
+- Domain services called by the usecase (e.g., `scopeValidator.ValidateX(...)`, `service.DoY(...)`), these contain business rules and return typed errors (not just 500). Open the service method and collect all its typed error returns.
+- Private/helper methods within the usecase package: same reason.
 
 **What NOT to trace into (infrastructure layers):**
 - Repository implementations (`u.repo.Create(...)`, `u.repo.FindByID(...)`)
@@ -630,13 +630,13 @@ The boundary is **usecase + domain service**. Trace INTO domain services but NOT
 - `return nil, err` propagating a **repo/external** error → catch-all 500
 - `fmt.Errorf("...: %w", err)` or `errs.WithStack(err)` wrapping repo/external → catch-all 500
 
-**How to distinguish domain service from repo:** check the variable name and package. `u.repo.*`, `u.*Repo.*`, `u.store.*` → repository. `u.*Service.*`, `u.*Validator.*`, `service.New*` → domain service. When in doubt, check the import path — `domain/service/` or `domain/` = trace, `infrastructure/` or `repository/` = don't trace.
+**How to distinguish domain service from repo:** check the variable name and package. `u.repo.*`, `u.*Repo.*`, `u.store.*` → repository. `u.*Service.*`, `u.*Validator.*`, `service.New*` → domain service. When in doubt, check the import path, `domain/service/` or `domain/` = trace, `infrastructure/` or `repository/` = don't trace.
 
 **Why this boundary matters:** tracing into repos produces inconsistent results because different runs may follow different call depths. Domain services are part of the business logic and return meaningful typed errors that consumers need to know about. Keeping repository as the hard boundary ensures consistent error enumeration.
 
 ### Sentinel Error Discovery
 
-Find all domain-level sentinel errors — the complete set of business errors:
+Find all domain-level sentinel errors: the complete set of business errors:
 
 ```go
 // Search for: var Err
@@ -700,17 +700,17 @@ app.Use(func(c *fiber.Ctx) error {
 ### Cross-check Procedure
 
 After writing the error table for an endpoint:
-1. Re-read ALL usecase methods — count every **sentinel** error return across all of them
-2. Re-read the handler — count handler-level errors (Step 3) + verify mapping for each sentinel (Step 2)
+1. Re-read ALL usecase methods: count every **sentinel** error return across all of them
+2. Re-read the handler: count handler-level errors (Step 3) + verify mapping for each sentinel (Step 2)
 3. Apply Consolidation Rules (below) to get the expected row count
-4. Compare expected rows vs actual rows in the doc table — must match exactly
+4. Compare expected rows vs actual rows in the doc table: must match exactly
 5. Verify the catch-all 500 row is present as the last row
 
 ### Consolidation Rules
 
 These rules eliminate ambiguity and ensure the same error table is produced every run.
 
-**Rule 1 — One sentinel = one row (never consolidate by status code)**
+**Rule 1: One sentinel = one row (never consolidate by status code)**
 
 ```go
 // Usecase returns 2 different sentinels, both mapped to 422 in handler:
@@ -721,7 +721,7 @@ case errors.Is(err, domain.ErrPurposeExpired):
 ```
 → **2 rows** in the error table, NOT 1 combined "422 | business rule violation" row.
 
-**Rule 2 — Wrapped errors = catch-all 500 (do not trace into repo)**
+**Rule 2: Wrapped errors = catch-all 500 (do not trace into repo)**
 
 ```go
 // Usecase has 3 wrapped error returns:
@@ -731,7 +731,7 @@ return nil, fmt.Errorf("update cache: %w", err)
 ```
 → **1 row** total: `500 | internal server error`. Do NOT create 3 separate 500 rows.
 
-**Rule 3 — Dedup by sentinel variable name**
+**Rule 3: Dedup by sentinel variable name**
 
 ```go
 // Handler calls 2 usecase methods that can both return ErrNotFound:
@@ -744,9 +744,9 @@ case errors.Is(err, domain.ErrNotFound):
 ```
 → **1 row**: `404 | not found`. NOT 2 rows for "purpose not found" and "consent not found".
 
-**Rule 4 — Handler errors are an exhaustive checklist**
+**Rule 4: Handler errors are an exhaustive checklist**
 
-Always check for ALL of these patterns in the handler. If present, include the row — never skip:
+Always check for ALL of these patterns in the handler. If present, include the row, never skip:
 
 ```go
 // Check 1: bind/parse → always 400
@@ -759,13 +759,13 @@ if err := h.validator.Struct(req); err != nil { ... } // → row: 422 | validati
 id, err := uuid.Parse(c.Params("id")); ...            // → row: 400 | invalid id format
 ```
 
-**Rule 5 — Row ordering (fixed)**
+**Rule 5: Row ordering (fixed)**
 
-List error rows in this order — no deviation:
-1. Handler-level errors (400, 422) — ascending by status code
-2. Usecase sentinel errors — if the handler has an `errors.Is`/error-map switch, in switch order; otherwise usecase code order (top to bottom)
-3. Domain-service typed errors — immediately after the usecase error that triggers the service call
-4. Catch-all `500 | internal server error` — always last row
+List error rows in this order: no deviation:
+1. Handler-level errors (400, 422): ascending by status code
+2. Usecase sentinel errors: if the handler has an `errors.Is`/error-map switch, in switch order; otherwise usecase code order (top to bottom)
+3. Domain-service typed errors: immediately after the usecase error that triggers the service call
+4. Catch-all `500 | internal server error`: always last row
 
 ## Scan Strategy
 
@@ -813,11 +813,11 @@ handler/
 
 ### Excluded Files
 
-Skip these — they are not endpoint handlers:
-- `handler.go` — constructor, `NewHandler()`, route registration
-- `request.go`, `response.go`, `dto.go` — shared struct definitions
-- `*_test.go` — test files
-- `middleware.go` — middleware definitions
+Skip these: they are not endpoint handlers:
+- `handler.go`: constructor, `NewHandler()`, route registration
+- `request.go`, `response.go`, `dto.go`: shared struct definitions
+- `*_test.go`: test files
+- `middleware.go`: middleware definitions
 
 ### Function Name to Filename
 
@@ -838,7 +838,7 @@ func (h *ConsentHandler) AcceptConsent(c *gin.Context) { ... }
 
 ### Single-File Handler Edge Case
 
-If a group directory contains only `handler.go` (no separate action files), extract all exported receiver methods from `handler.go` itself — each method becomes a separate endpoint doc file.
+If a group directory contains only `handler.go` (no separate action files), extract all exported receiver methods from `handler.go` itself, each method becomes a separate endpoint doc file.
 
 ### Flat Structure Fallback
 

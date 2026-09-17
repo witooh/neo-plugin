@@ -6,7 +6,7 @@ fileMatchPattern: "**/internal/core/usecase/**"
 # Usecase Layer
 
 Application services that orchestrate **one operation**. They depend on `core/domain` and on
-the **port interfaces** it needs — the centralized `repository` / `event` packages
+the **port interfaces** it needs: the centralized `repository` / `event` packages
 (`repository.<Aggregate>Repository`, `repository.Cache`, `event.EventPublisher`) plus each external
 `<upstream>.<Upstream>` from `integration/<sys>`. Never on a concrete adapter, never on another
 usecase.
@@ -20,11 +20,11 @@ internal/core/usecase/<context>/<operation>/  # <operation> = snake_case of the 
 ```
 
 - Folder name = `snake_case(<Op>)`. The package clause is the folder name verbatim
-  (underscores are fine — the lint set enables no naming rule).
+  (underscores are fine: the lint set enables no naming rule).
 - The interface is `<Op>Usecase`; the method is always `Exec`.
 - Shared helpers used by several operations of one domain go in `<context>/shared/`.
 
-## `usecase.go` — the contract (always this shape)
+## `usecase.go`: the contract (always this shape)
 
 ```go
 // Package <operation> implements the <Op> use case of the <Aggregate>.
@@ -61,7 +61,7 @@ the contract, not the struct.
 
 When the operation needs only a slice of a wide port, declare a **local** narrow
 interface in `usecase.go` and accept that in `Params`. The full adapter satisfies it
-structurally — no wiring change.
+structurally: no wiring change.
 
 ```go
 // <X>Reader is the slice of <sys>.<Upstream> this operation needs.
@@ -71,7 +71,7 @@ type <X>Reader interface {
 type Params struct { Adapter <X>Reader }
 ```
 
-## `exec.go` — the implementation
+## `exec.go`: the implementation
 
 ```go
 package <operation>
@@ -110,13 +110,13 @@ Rules:
   `exec.go` (or a sibling file in the package), not in a shared models package.
 - **Return resolved-at-op values; don't smuggle them through the aggregate.** When an operation
   produces an aggregate **plus** a response-only value resolved during the flow (from an upstream or a
-  computation) that is **not persisted**, return it alongside the aggregate —
-  `Exec(...) (*<Aggregate>, <value>, error)` — rather than stashing it on the aggregate as a transient
+  computation) that is **not persisted**, return it alongside the aggregate , 
+  `Exec(...) (*<Aggregate>, <value>, error)`: rather than stashing it on the aggregate as a transient
   field. The aggregate carries persistent state only (`domain.md`); a transient field forces a setter and
   a re-attach after the repo round-trip.
 - **Private helpers** for this operation live here too.
 - **Logging happens at the usecase boundary**, not in `domain`. Use `logger.Context(ctx)`,
-  dot-separated event names, and `logger.Err(err, category)` — levels and the category
+  dot-separated event names, and `logger.Err(err, category)`: levels and the category
   list live in `structure.md` § *Logging and errors*. Do not log HTTP method/path/body
   here (`LoggingMiddleware` does). `Fatal` / `Panic` are forbidden in `Exec`.
 - **Error wrapping:** pass `stderr.StandardError` values through unchanged so
@@ -127,28 +127,28 @@ Rules:
 
 A complex operation (e.g. placing an order) lists every dependency as a `Params`
 field and orchestrates them in `Exec`, delegating business decisions to `domain` /
-`domain/service` and side effects to ports. The package shape is unchanged — still
+`domain/service` and side effects to ports. The package shape is unchanged, still
 `usecase.go` (contract) + `exec.go` (+ extra impl files split by step).
 
-## Splitting impl files — earn the split
+## Splitting impl files: earn the split
 
-A complex operation may split `exec.go` into step files — but each split must **earn
+A complex operation may split `exec.go` into step files: but each split must **earn
 its place** as a distinct step of the flow, and folds back when it stops:
 
 - A file holding a **single helper with a single caller** folds into that caller's file.
-- Co-locate a concern's pieces — the function that orchestrates a concern lives with
+- Co-locate a concern's pieces: the function that orchestrates a concern lives with
   the helpers it drives (e.g. background-document assembly sits with its task builders).
 - Pull a self-contained mechanism (idempotency, cache plumbing, retry) out of
   `exec.go` into its own concern file (e.g. `idempotency.go`) when inlining it would
-  bury the `Exec` orchestration — `exec.go` should read as the flow, not the plumbing.
+  bury the `Exec` orchestration: `exec.go` should read as the flow, not the plumbing.
 - Keep a split only when it isolates a genuine step a reader would look for by name
   (the validation gate, a dispatch branch, …).
 
 ## Decompose a large operation into sub-packages
 
-When file-splitting is no longer enough — a `usecase` struct with **many ports** that every
+When file-splitting is no longer enough: a `usecase` struct with **many ports** that every
 method can reach (no boundary), a flow that **dispatches to branches** (one per variant),
-tests that must mock a dozen deps to exercise one concern — promote the step files
+tests that must mock a dozen deps to exercise one concern: promote the step files
 to **sub-packages by concern**. The operation package becomes a thin orchestrator over
 cohesive components.
 
@@ -157,11 +157,11 @@ internal/core/usecase/<context>/<operation>/
     usecase.go        # contract: interface + Params (raw ports) + slim struct (components only) + New (wires)
     exec.go           # orchestrator: gate → validator checklist → dispatch (reads as the flow)
     shared/           # tiny stateless helpers reused across sub-packages (no sibling deps)
-    validation/       # Validator{ports}        — RequireX gate checks
-    idempotency/      # Guard{cache, repo}      — FindExisting / CacheOpened / HandleDuplicate
-    documents/        # Service{port}           — fire-and-forget side effect
-    <branchA>/        # Opener{Deps}            — one branch (open.go / campaign.go / gateway.go)
-    <branchB>/        # Opener{Deps}            — the other branch
+    validation/       # Validator{ports}       : RequireX gate checks
+    idempotency/      # Guard{cache, repo}     : FindExisting / CacheOpened / HandleDuplicate
+    documents/        # Service{port}          : fire-and-forget side effect
+    <branchA>/        # Opener{Deps}           : one branch (open.go / campaign.go / gateway.go)
+    <branchB>/        # Opener{Deps}           : the other branch
 ```
 
 The decomposed operation for this service (its sub-packages + branch openers) is in
@@ -176,15 +176,15 @@ Rules:
   validator) and injects the **same instance** into each branch opener's `Deps`; `Exec` reads
   as a checklist (`u.idempotency.FindExisting` → `u.validator.RequireX…` → `u.<branch>.Open`).
 - **External surface is unchanged.** The inbound interface and `New(Params)` keep their
-  signatures — `Params` still lists the raw ports the caller injects; `cmd/api` wiring and
-  mocks don't change. (`New` is no longer `(*usecase)(&p)` — it constructs components.)
+  signatures: `Params` still lists the raw ports the caller injects; `cmd/api` wiring and
+  mocks don't change. (`New` is no longer `(*usecase)(&p)`: it constructs components.)
 - **Imports point inward only; a child never imports the parent.** parent → every sub-package;
   branch/opener → `shared`/`validation`/`idempotency`/`documents`. A side effect used by the
   branch openers (documents, idempotency) **must be its own sub-package**, not a flat file in
-  the parent — a flat file forces `branch → parent` and cycles.
+  the parent: a flat file forces `branch → parent` and cycles.
 - **Constructors guarantee non-nil components** → no nil-receiver guards (`if g == nil`), they
   are dead code; guard the *configured-absent* case via the field the constructor stored (`if g.cache == nil`).
-- **Cut dead deps** while here — a port in `Params` used by no flow is removed from `Params` +
+- **Cut dead deps** while here: a port in `Params` used by no flow is removed from `Params` +
   the struct + the `cmd/api` field (verify no other consumer first).
 
 ## Don'ts
@@ -192,5 +192,5 @@ Rules:
 - ✗ A second exported method besides `Exec`. New behavior = new package.
 - ✗ Exposing the `usecase` struct, or returning it from `New`.
 - ✗ Importing another usecase package, a handler, or a concrete adapter.
-- ✗ HTTP status codes, gin types, or SQL here — those belong to the adapters.
-- ✗ `logger.Fatal` / `logger.Panic` in `Exec` — unrecoverable startup only (`structure.md`).
+- ✗ HTTP status codes, gin types, or SQL here: those belong to the adapters.
+- ✗ `logger.Fatal` / `logger.Panic` in `Exec`: unrecoverable startup only (`structure.md`).

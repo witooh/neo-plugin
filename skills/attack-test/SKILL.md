@@ -7,21 +7,21 @@ description: >-
   names the file/check to enforce. Use when the user says try hack, attack-test,
   probe the flow, security probe HTTP, or asks whether skipping step X still
   transfers or completes a protected action. Not for static latent hunts
-  (`bug-hunter`), gate audits (`falsifying`), diff review (`code-review`), or
+  (`bug-hunter`), gate audits (`falsifying`), diff review, or
   AC-driven e2e (`e2e-playwright`).
 ---
 
 # Attack Test
 
 Hit a **running** system over HTTP as an attacker. Do not read ACs to make them
-pass — ask whether **skipping a step / forging proof / swapping identity /
+pass: ask whether **skipping a step / forging proof / swapping identity /
 abusing idempotency** still moves money or mutates protected state.
 
 Every finding **must** carry:
 
-1. **reproduce** — request sequence another session can replay cold
-2. **impact** — money-move / authz bypass / info disclosure / DoS state
-3. **fix** — where to change + the invariant to enforce (not "add validation")
+1. **reproduce**: request sequence another session can replay cold
+2. **impact**: money-move / authz bypass / info disclosure / DoS state
+3. **fix**: where to change + the invariant to enforce (not "add validation")
 
 Confirmed findings hand off to the **BUG flow**. Do not patch production code
 inside this skill unless the user explicitly asks to fix after the report.
@@ -38,19 +38,19 @@ inside this skill unless the user explicitly asks to fix after the report.
 |---|---|
 | Latent defects in green code without firing HTTP | `bug-hunter` |
 | Audit whether a gate/coverage number can go red | `falsifying` |
-| Diff-only review | `code-review` |
+| Diff-only review | out of scope (not this skill) |
 | Write e2e that prove ACs | `e2e-playwright` |
 | No running stack / no contract yet | stand the stack up + read knowledge/api first |
 
 ## Ground rules
 
-1. **Live HTTP only** — never mark HACKED from a static code read. Need status + body.
-2. **Happy path first** — if the root flow is broken, do not conclude the attack was blocked.
-3. **No exploit kits / malware** — only the target system's APIs the user pointed at (local/SIT/this project).
-4. **Stay in scope** — sentinel/test customers only; never thrash production data.
-5. **Evidence = request/response** — every finding cites status + app error code or settle field.
-6. **Fix must point somewhere** — file/function/missing check, or mark `[INFERENCE]` if source was not opened.
-7. **Never invent wire fields** — pull names from compose / bruno / e2e / api-spec / knowledge.
+1. **Live HTTP only**: never mark HACKED from a static code read. Need status + body.
+2. **Happy path first**: if the root flow is broken, do not conclude the attack was blocked.
+3. **No exploit kits / malware**: only the target system's APIs the user pointed at (local/SIT/this project).
+4. **Stay in scope**: sentinel/test customers only; never thrash production data.
+5. **Evidence = request/response**: every finding cites status + app error code or settle field.
+6. **Fix must point somewhere**: file/function/missing check, or mark `[INFERENCE]` if source was not opened.
+7. **Never invent wire fields**: pull names from compose / bruno / e2e / api-spec / knowledge.
 
 ## Inputs (collect before firing)
 
@@ -81,8 +81,8 @@ Cut against the real flow. Cover at least these six groups:
 
 | Group | Question |
 |---|---|
-| **Skip-step** | Skip challenge/OTP/approve — does the final action still succeed? |
-| **Forge-proof** | Fake proof (random UUID, forged success status, empty signature) — accepted? |
+| **Skip-step** | Skip challenge/OTP/approve: does the final action still succeed? |
+| **Forge-proof** | Fake proof (random UUID, forged success status, empty signature), accepted? |
 | **Replay** | Reuse token/session/idem key after success or after fail |
 | **Confused deputy / IDOR** | Identity B uses A's ids (tx, session, order) |
 | **Tamper body** | Change amount/destination/customer on a late step |
@@ -102,7 +102,7 @@ expect_blocked: true|false
 http_status:
 app_code:
 side_effect: none|settled|leaked_fields|state_changed
-evidence: (trim body — never dump long secrets)
+evidence: (trim body: never dump long secrets)
 ```
 
 ### 4) Classify results
@@ -112,15 +112,15 @@ evidence: (trim body — never dump long secrets)
 | **HACKED** | Valuable outcome without meeting the protection conditions (money moved, excess privilege, wrong unlock) |
 | **INFO_LEAK** | No replayed action, but read another party's or settle data |
 | **BLOCKED** | Rejected and no bad side effect |
-| **TRUST_BOUNDARY** | Passed because design trusts an upstream (e.g. BFF) — name it; do not fake a product bug |
+| **TRUST_BOUNDARY** | Passed because design trusts an upstream (e.g. BFF), name it; do not fake a product bug |
 | **BASELINE_FAIL** | Happy path never succeeded |
 
 ### 5) Report format (mandatory)
 
-Emit the report in this shape (outer fence is documentation only — do not nest live fences when writing the real report):
+Emit the report in this shape (outer fence is documentation only: do not nest live fences when writing the real report):
 
 ````markdown
-# Attack Test — <flow> @ <env>
+# Attack Test: <flow> @ <env>
 
 ## Baseline
 - happy path: PASS|FAIL
@@ -128,7 +128,7 @@ Emit the report in this shape (outer fence is documentation only — do not nest
 
 ## Findings
 
-### F1 — <short title> [<HACKED|INFO_LEAK|...>]
+### F1: <short title> [<HACKED|INFO_LEAK|...>]
 **Impact:** ...
 **Reproduce:**
 1. ...
@@ -183,9 +183,9 @@ Never propose bare "add validation" without naming the **invariant**.
 - Match the user's language (default Thai if the user wrote Thai).
 - Short tables; the report alone must be enough to replay requests.
 - Never label HACKED from static reading without an HTTP fire.
-- Untested cases go under **not tested** — never guess.
+- Untested cases go under **not tested**: never guess.
 - Post to MR/Jira only when asked; finding body still needs reproduce + fix.
-- Hand HACKED / INFO_LEAK to BUG flow (`diagnosing-bugs` → `tdd` repro) unless the user asked to fix now.
+- Hand HACKED / INFO_LEAK to a separate fix session unless the user asked to fix now.
 
 ## Red flags (skill is broken)
 
@@ -212,5 +212,5 @@ Never propose bare "add validation" without naming the **invariant**.
 | "403 on one call means the flow is safe" | Try the final action directly; middle-step 403 is not the prize. |
 | "I'll mark HACKED from the missing if" | Static read → candidate. Live settle/leak → finding. |
 | "Fix: add validation" | Name the invariant and the gate that must enforce it. |
-| "No second identity handy — skip IDOR" | Then list IDOR under not tested. Do not imply it passed. |
+| "No second identity handy: skip IDOR" | Then list IDOR under not tested. Do not imply it passed. |
 | "Production data is fine, I'm careful" | Sentinel only. Full stop. |

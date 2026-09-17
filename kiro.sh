@@ -1,7 +1,6 @@
 #!/bin/bash
-# neo → Kiro installer. Copies neo's skills, agents, and hooks into a Kiro
-# config directory; shared reference checklists are bundled into the skills
-# that cite them. Run with --help for the layout.
+# neo → Kiro installer. Copies neo's skills into a Kiro config directory.
+# Run with --help for the layout.
 
 set -euo pipefail
 shopt -s nullglob
@@ -12,15 +11,10 @@ usage() {
   cat <<'EOF'
 neo → Kiro installer
 
-Copies neo's skills, agents, and hooks into a Kiro configuration directory
-so Kiro can auto-discover them.
+Copies neo's skills into a Kiro configuration directory.
 
 Kiro layout (https://kiro.dev/docs/skills/):
   .kiro/skills/      skills — each is a /<name> slash command
-                     (shared reference checklists ride inside the skills that cite them)
-  .kiro/agents/      custom agent personas (markdown + YAML frontmatter)
-  .kiro/hooks/       SessionStart hook — loads using-neo and optional steering/INDEX.md
-                     (Kiro IDE 1.0 / CLI v3)
 
 Usage:
   ./kiro.sh                  install to global   ~/.kiro
@@ -29,7 +23,8 @@ Usage:
   ./kiro.sh --project DIR    install to project  DIR/.kiro
   ./kiro.sh -h | --help      show this help
 
-Re-running overwrites only neo-owned entries; other Kiro content is left intact.
+Re-running overwrites only neo-owned skill directories; other Kiro content
+is left intact.
 EOF
 }
 
@@ -77,40 +72,5 @@ for dir in "$SCRIPT_DIR"/skills/*/; do
 done
 printf '  %-11s %d → %s/  %s\n' "skills:" "$skills" "$kiro_root/skills" "(as /<skill-name>)"
 
-# references: bundle each shared references/<file>.md into every skill whose SKILL.md
-# cites it, so the relative `references/<file>.md` pointer resolves inside the skill's
-# own dir (Kiro's self-contained skill model — no top-level references dir needed).
-shared=0
-copies=0
-for ref in "$SCRIPT_DIR"/references/*.md; do
-  rname="$(basename "$ref")"
-  used=0
-  for skdir in "$kiro_root"/skills/*/; do
-    if grep -qF "references/$rname" "$skdir/SKILL.md" 2>/dev/null; then
-      mkdir -p "$skdir/references"
-      cp "$ref" "$skdir/references/"
-      copies=$((copies + 1))
-      used=1
-    fi
-  done
-  shared=$((shared + used))
-done
-printf '  %-11s %d → %d copies inside consumer skills\n' "references:" "$shared" "$copies"
-
-# agents: agents/*.md -> .kiro/agents/  (flat dir shared with the user's own agents,
-# so overwrite same-named files only, never prune)
-mkdir -p "$kiro_root/agents"
-agents=0
-for file in "$SCRIPT_DIR"/agents/*.md; do
-  cp "$file" "$kiro_root/agents/"
-  agents=$((agents + 1))
-done
-printf '  %-11s %d → %s/\n' "agents:" "$agents" "$kiro_root/agents"
-
-# hooks: overwrite only neo's named hook; preserve every other user hook.
-mkdir -p "$kiro_root/hooks"
-cp "$SCRIPT_DIR/hooks/kiro/neo-session-context.json" "$kiro_root/hooks/"
-printf '  %-11s %d → %s/\n' "hooks:" 1 "$kiro_root/hooks"
-
 echo
-echo "Done. In Kiro, skills appear as /<name> slash commands; using-neo and optional steering load at session start."
+echo "Done. In Kiro, skills appear as /<name> slash commands."

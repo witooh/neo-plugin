@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 """
-e2echeck.py — L1 tripwire for AC-driven HTTP e2e specs (Jest + Playwright request).
+e2echeck.py: L1 tripwire for AC-driven HTTP e2e specs (Jest + Playwright request).
 
 Checks that every acceptance criterion in the source-of-intent is traced by an e2e
-test whose title carries the stable prefix  [<CARD> - AC-NNN]  — and distinguishes:
+test whose title carries the stable prefix  [<CARD> - AC-NNN] : and distinguishes:
   - it("[CARD - AC-NNN] ...")        → COVERED (an active, runnable test)
   - it.skip("[CARD - AC-NNN] ...")   → DECLARED non-HTTP-observable (must carry a reason;
                                         whether the reason is VALID is L2's judgment, not this)
-  - an AC in the source but in neither → UNCOVERED  (an ERROR — a silent gap)
+  - an AC in the source but in neither → UNCOVERED  (an ERROR: a silent gap)
 
 This is a TRIPWIRE, not ground truth: it parses test-title strings with regex (not a TS
-AST) and counts AC coverage. Semantic fidelity — does the test actually assert the AC's
-expected status/error-code — is the L2 fresh-eyes verifier's job.
+AST) and counts AC coverage. Semantic fidelity: does the test actually assert the AC's
+expected status/error-code: is the L2 fresh-eyes verifier's job.
 
-  python3 e2echeck.py <spec-dir-or-file> <ac-source-file-or-dir> [--card GI-74]
+  python3 e2echeck.py <spec-dir-or-file> <ac-source-file-or-dir> [--card TICKET]
 
 <spec-dir-or-file> : a tests/e2e/specs dir (scanned for *.e2e.ts/.spec.ts) or one spec file.
-<ac-source>        : the design doc(s) the ACs live in (a file or a dir — .md/.html/.txt are
-                     all read as text); AC ids are extracted as the tokens  AC-<n>.
---card             : the expected JIRA card (e.g. GI-74). Optional — inferred from the spec
-                     titles when omitted.
+<ac-source>        : the ticket/spec the ACs live in (a file or a dir, .md/.html/.txt/.yaml
+                     are all read as text); AC ids are the tokens AC-<n>, or unlabeled
+                     `- [ ]` items under Acceptance criteria numbered AC-001… in order.
+--card             : the expected ticket id (issue number, local slug, or tracker key).
+                     Optional: inferred from the spec titles when omitted.
 
 Exit 0 = PASS (0 errors); exit 1 = at least one ERROR; exit 2 = usage/IO error.
-NOTE lines never fail. Stdlib only — no third-party dependency.
+NOTE lines never fail. Stdlib only: no third-party dependency.
 """
 import sys
 import os
@@ -69,7 +70,7 @@ CARD_TOKEN_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9]*-\d+\b")
 
 
 def card_of(label):
-    """The card id inside a prefix label — the last JIRA-style key, else the whole label."""
+    """The card id inside a prefix label: the last JIRA-style key, else the whole label."""
     keys = CARD_TOKEN_RE.findall(label)
     return (keys[-1] if keys else label.strip()).upper()
 
@@ -82,24 +83,52 @@ TEST_RE = re.compile(
 
 AC_TOKEN_RE = re.compile(r"\bAC-\d+\b", re.I)
 
-# "GI-445 AC-008" — or "the GI-445 verify-session (AC-008)" — in GI-446's spec references
+# "GI-445 AC-008": or "the GI-445 verify-session (AC-008)": in GI-446's spec references
 # ANOTHER card's criterion, not one of this card's own. Harvesting it invents an AC that can
 # never be covered: a phantom UNCOVERED that sends people hunting for a test that should not
 # exist. An AC id counts as foreign when a DIFFERENT card id appears just before it on the
 # same line; a mention of this card's own id is left alone.
 FOREIGN_LOOKBEHIND = 40
 
-# No-AC mode: a task with no acceptance criteria titles its tests `[<CARD>] <desc>` — a card
+# No-AC mode: a task with no acceptance criteria titles its tests `[<CARD>] <desc>`: a card
 # prefix with no AC segment. Only honoured at the START of a title, so an incidental `[x]`
 # mid-sentence is not mistaken for a card.
 CARD_ONLY_RE = re.compile(r"^\s*\[([^\]]+)\]")
 
 # An AC deliberately left unbuilt must be declared once, machine-readably, in the AC
-# source:   Deferred-ACs: AC-011, AC-012 — biometric challenge protocol (D10)
+# source:   Deferred-ACs: AC-011, AC-012: biometric challenge protocol (D10)
 # Prose is not scanned for the word "deferred": a real spec line reads "Was: defer
 # AC-007/008/013 … AC-007 + AC-008 un-deferred … AC-013 remains deferred", where
 # line-level matching gets every one of the three wrong.
 DEFERRED_RE = re.compile(r"^[^\S\n]*Deferred-ACs?[^\S\n]*:(.*)$", re.I | re.M)
+
+CHECKBOX_ITEM_RE = re.compile(r"^[^\S\n]*[-*]\s+\[[ xX]\]\s+(\S.*)$")
+AC_HEADING_RE = re.compile(r"^#{1,6}\s+Acceptance criteria\s*$", re.I | re.M)
+
+
+def checkbox_section(text):
+    """Body of an 'Acceptance criteria' heading, or the whole file if none."""
+    m = AC_HEADING_RE.search(text)
+    if not m:
+        return text
+    rest = text[m.end():]
+    nxt = re.search(r"^#{1,6}\s+", rest, re.M)
+    return rest[: nxt.start()] if nxt else rest
+
+
+def harvest_checkbox_acs(text):
+    """Unlabeled ticket checkboxes, in listed order. Skip rows that already carry AC-NNN."""
+    items = []
+    for line in checkbox_section(text).splitlines():
+        cm = CHECKBOX_ITEM_RE.match(line)
+        if not cm:
+            continue
+        rest = cm.group(1).strip()
+        if AC_TOKEN_RE.search(rest):
+            continue
+        items.append(rest)
+    return items
+
 
 
 def resolve_dynamic_acs(src, it_pos, expr):
@@ -151,7 +180,7 @@ def read_text(path):
         with open(path, encoding="utf-8") as fh:
             return fh.read()
     except Exception as e:  # noqa: BLE001
-        err(f"{os.path.relpath(path)}: cannot read — {e}")
+        err(f"{os.path.relpath(path)}: cannot read: {e}")
         return ""
 
 
@@ -167,17 +196,17 @@ def collect_specs(spec_path, expected_card=None):
 
     Each credit carries the card that claimed it, because AC ids are numbered PER CARD: two
     cards both own an AC-001. Matching by bare id across the suite reports a card with no tests
-    at all as fully covered, off another card's AC-001 — a false PASS, the worst kind. `--card`
+    at all as fully covered, off another card's AC-001: a false PASS, the worst kind. `--card`
     filtering happens in main(); this function only records who claimed what.
 
-    Primary coverage = the [<CARD> - AC-NNN] title prefix (strict — validates grammar + card).
+    Primary coverage = the [<CARD> - AC-NNN] title prefix (strict: validates grammar + card).
     Secondary coverage = any extra AC-<n> token on the SAME physical line as the it() (e.g. a
-    `// (also AC-008)` comment) — credited leniently with the same active/skipped status, because
+    `// (also AC-008)` comment): credited leniently with the same active/skipped status, because
     a single test often co-covers ACs; the L2 fresh-eyes verifier confirms each claim is real.
 
     Title-grammar problems are attributed to the card that OWNS the file: with `--card X`, a
     malformed title in a file holding no test for X is reported as a NOTE, not an ERROR. One
-    card's gate must not be held hostage by another card's spec file — a gate that fails for
+    card's gate must not be held hostage by another card's spec file: a gate that fails for
     someone else's mistake is a gate people learn to ignore. Coverage errors for X stay ERRORs.
     """
     cov = {}
@@ -205,14 +234,14 @@ def collect_specs(spec_path, expected_card=None):
 
             pm = PREFIX_RE.search(title)
             if not pm:
-                # A table-driven title interpolates its AC id — resolve it from the table.
+                # A table-driven title interpolates its AC id: resolve it from the table.
                 dm = DYN_PREFIX_RE.search(title)
                 if dm:
                     dyn = resolve_dynamic_acs(src, m.start(), dm.group(2))
                     if not dyn:
                         grammar.append(
                             f"{rel}: table-driven title interpolates ${{{dm.group(2)}}} but its AC ids "
-                            f"could not be resolved — the loop must read `for (const X of TABLE)` with "
+                            f"could not be resolved: the loop must read `for (const X of TABLE)` with "
                             f"TABLE holding literal `{dm.group(2).partition('.')[2] or 'ac'}: \"AC-NNN\"` entries"
                         )
                         continue
@@ -220,7 +249,7 @@ def collect_specs(spec_path, expected_card=None):
                     file_cards.add(dyn_card)
                     credit({norm_ac(a) for a in dyn}, title[dm.end():].strip(), dyn_card)
                     continue
-                # a test with no valid prefix — flag only if it looks like it meant to have one
+                # a test with no valid prefix: flag only if it looks like it meant to have one
                 if AC_TOKEN_RE.search(title):
                     grammar.append(f"{rel}: test title references an AC but is not in [<CARD> - AC-NNN] form: {title!r}")
                     continue
@@ -243,7 +272,7 @@ def collect_specs(spec_path, expected_card=None):
         foreign = bool(expected_card) and expected_card not in file_cards
         for msg in grammar:
             if foreign:
-                note(f"{msg}  [another card's file — not counted against {expected_card}]")
+                note(f"{msg}  [another card's file: not counted against {expected_card}]")
             else:
                 err(msg)
     return cov, cards, files
@@ -264,7 +293,7 @@ def foreign_ac_spans(text, expected_card):
 
 
 def collect_acs(ac_path, expected_card=None):
-    """AC ids (normalized → original-form) and declared deferrals from the design source(s).
+    """AC ids (normalized → original-form) and declared deferrals from the ticket/spec source(s).
 
     Returns (found, deferred) where deferred maps a normalized AC id to the reason given
     on its `Deferred-ACs:` line.
@@ -292,7 +321,7 @@ def collect_acs(ac_path, expected_card=None):
             # ids come only from the list BEFORE the reason separator: the reason itself often
             # names other ACs ("AC-010 is not listed because …") and must not defer them.
             decl = dm.group(1)
-            sep = re.search(r"—|--|;", decl)
+            sep = re.search(r", |--|;", decl)
             head = decl[:sep.start()] if sep else decl
             reason = decl[sep.end():].strip() if sep else ""
             ids = AC_TOKEN_RE.findall(head)
@@ -300,9 +329,16 @@ def collect_acs(ac_path, expected_card=None):
                 err(f"{os.path.relpath(fp)}: a Deferred-ACs line names no AC id")
                 continue
             if not reason:
-                err(f"{os.path.relpath(fp)}: Deferred-ACs {', '.join(ids)} states no reason — a deferral without a reason is a silently dropped AC")
+                err(f"{os.path.relpath(fp)}: Deferred-ACs {', '.join(ids)} states no reason, a deferral without a reason is a silently dropped AC")
             for tok in ids:
                 deferred[norm_ac(tok)] = reason
+    if not found:
+        n = 1
+        for fp in files:
+            for _item in harvest_checkbox_acs(read_text(fp)):
+                tok = f"AC-{n:03d}"
+                found[norm_ac(tok)] = tok
+                n += 1
     return found, deferred
 
 
@@ -320,7 +356,7 @@ def main():
             pos = [a for a in pos if a != card_arg]
 
     if len(pos) < 2:
-        sys.stderr.write("usage: e2echeck.py <spec-dir-or-file> <ac-source> [--card GI-74]\n")
+        sys.stderr.write("usage: e2echeck.py <spec-dir-or-file> <ac-source> [--card TICKET]\n")
         sys.exit(2)
     spec_path, ac_path = pos[0], pos[1]
     if not os.path.exists(spec_path):
@@ -334,12 +370,12 @@ def main():
     cov, cards, files = collect_specs(spec_path, expected_card)
     acs, deferred = collect_acs(ac_path, expected_card)
 
-    # No-AC mode (SKILL.md): a task with no ACs has no coverage gate — title grammar and card
+    # No-AC mode (SKILL.md): a ticket with no ACs has no coverage gate: title grammar and card
     # consistency are still checked, but there is nothing to cover, so this is not a failure.
     no_ac_mode = not acs
     if no_ac_mode:
-        note(f"no AC ids (AC-<n>) in {ac_path} — No-AC mode: coverage gate is N/A, "
-             f"title grammar still checked. If this task DOES have ACs, number them AC-001… first.")
+        note(f"no AC ids (AC-<n>) in {ac_path}: No-AC mode: coverage gate is N/A, "
+             f"title grammar still checked. If this ticket DOES have ACs, number them AC-001… first.")
 
     # card consistency
     if expected_card and cards and expected_card not in cards:
@@ -359,32 +395,32 @@ def main():
         if active:
             covered.append(orig)
             if nac in deferred:
-                note(f"{orig}: declared deferred but an active test covers it — un-defer it in the spec or drop the test")
+                note(f"{orig}: declared deferred but an active test covers it: un-defer it in the spec or drop the test")
         elif nac in deferred:
             deferred_only.append(orig)
         elif skips:
             skipped_only.append(orig)
             for _title, has_reason, _card in skips:
                 if not has_reason:
-                    err(f"{orig}: only an it.skip() with no reason — a non-HTTP-observable AC must state why in its title")
+                    err(f"{orig}: only an it.skip() with no reason: a non-HTTP-observable AC must state why in its title")
         else:
             uncovered.append(orig)
-            err(f"{orig}: no e2e test — add an it(\"[<CARD> - {orig} ...]\") or, if not HTTP-observable, an it.skip() with a reason")
+            err(f"{orig}: no e2e test: add an it(\"[<CARD> - {orig} ...]\") or, if not HTTP-observable, an it.skip() with a reason")
 
     # orphans: AC referenced by a spec but absent from the AC source. Meaningless in No-AC
-    # mode — with no source, every AC in the suite would be "orphaned".
+    # mode: with no source, every AC in the suite would be "orphaned".
     for nac in sorted(cov) if not no_ac_mode else []:
         if nac not in acs:
-            note(f"{cov.get(nac) and nac}: a spec references {nac} but it is not in the AC source — stale test or incomplete source?")
+            note(f"{cov.get(nac) and nac}: a spec references {nac} but it is not in the AC source, stale test or incomplete source?")
 
     # ---- report -----------------------------------------------------------
     if no_ac_mode:
-        print(f"No-AC mode — coverage gate N/A.  specs scanned: {len(files)}")
+        print(f"No-AC mode: coverage gate N/A.  specs scanned: {len(files)}")
     else:
         print("AC coverage:")
         print(f"  covered (active it):        {len(covered)}  {', '.join(covered)}")
-        print(f"  declared non-observable:    {len(skipped_only)}  {', '.join(skipped_only)}  (it.skip — L2 validates the reason)")
-        print(f"  declared deferred:          {len(deferred_only)}  {', '.join(deferred_only)}  (Deferred-ACs in the spec — L2 validates the reason)")
+        print(f"  declared non-observable:    {len(skipped_only)}  {', '.join(skipped_only)}  (it.skip, L2 validates the reason)")
+        print(f"  declared deferred:          {len(deferred_only)}  {', '.join(deferred_only)}  (Deferred-ACs in the spec, L2 validates the reason)")
         print(f"  UNCOVERED:                  {len(uncovered)}  {', '.join(uncovered)}")
         print(f"  specs scanned: {len(files)}   AC ids in source: {len(acs)}")
     print()
@@ -393,12 +429,12 @@ def main():
     for e in errors:
         print("ERROR:", e)
     if errors:
-        print(f"FAIL — {len(errors)} error(s)")
+        print(f"FAIL: {len(errors)} error(s)")
         sys.exit(1)
     if no_ac_mode:
-        print("PASS — 0 error(s) (No-AC mode: title grammar clean, no coverage to gate)")
+        print("PASS: 0 error(s) (No-AC mode: title grammar clean, no coverage to gate)")
         return
-    print(f"PASS — 0 error(s) ({len(covered)} AC covered, {len(skipped_only)} declared non-observable, {len(deferred_only)} deferred)")
+    print(f"PASS: 0 error(s) ({len(covered)} AC covered, {len(skipped_only)} declared non-observable, {len(deferred_only)} deferred)")
 
 
 if __name__ == "__main__":

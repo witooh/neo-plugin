@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-colcheck.py — TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ the docs/api/ api-spec).
+colcheck.py: TRIPWIRE cross-checker for `open-collection` output (Bruno OpenCollection ↔ the docs/api/ api-spec).
 Zero install: pure Python 3 (stdlib only; uses PyYAML to read the spec, and imports the sibling
 yaml2md.py to verify the embedded docs:). Layer-1 of the open-collection skill's three-layer verify.
 
 WHY THIS EXISTS
   open-collection derives a *runnable*, self-documenting collection from the custom-YAML api-spec
-  at docs/api/ (the single source of truth — the api-spec skill authors it, openapi-doc drift-checks
-  it against Go). So this script verifies the collection against the API-SPEC — never against Go.
+  at docs/api/ (the single source of truth: the api-spec skill authors it, openapi-doc drift-checks
+  it against Go). So this script verifies the collection against the API-SPEC, never against Go.
   What can silently drift is the transform: a request whose URL, method, path-params, runnable
   body, or embedded docs: no longer matches the endpoint it came from. This is the DETERMINISTIC,
   independent measure of that, so "verify passed" rests on evidence, not the writer's confidence
   (the same evidence-over-confidence principle the api-doc chain's other check scripts follow).
 
 PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
-  A flag RAISES A SIGNAL for a human/agent to inspect — it does not "prove" wrong:
+  A flag RAISES A SIGNAL for a human/agent to inspect: it does not "prove" wrong:
     • ERROR = a mismatch the script is confident about (a spec operation with no request
               file, a method/path/body that diverges from the spec, a url path-param not
               declared, a {{var}} with no environment entry). The agent confirms each
@@ -38,7 +38,7 @@ WHAT IT CHECKS  (collection ↔ api-spec; ordered high→low confidence)
   K5 Env        every {{var}} a request references (excluding {{process.env.*}}) is
                 defined in some environments/*.yml.
   K7 Docs       (Spec mode) each request's docs: equals yaml2md.render_endpoint(endpoint,
-                nav=False) — the self-documenting collection stays faithful to the api-spec.
+                nav=False): the self-documenting collection stays faithful to the api-spec.
                 Missing / divergent = ERROR; yaml2md unimportable → NOTE.
 
   NOTE sources: auth mapping (endpoint auth → folder/request auth) is judgment;
@@ -47,7 +47,7 @@ WHAT IT CHECKS  (collection ↔ api-spec; ordered high→low confidence)
 SOURCE
   open-collection derives the collection from the custom-YAML api-spec at docs/api/ (one
   <domain>/<endpoint>.yaml per endpoint; the api-spec skill's output). The collection is matched
-  to the api-spec by (method, path) — hand-mapped request files are named by endpoint — so
+  to the api-spec by (method, path): hand-mapped request files are named by endpoint, so
   coverage + body fidelity compare endpoints, while the per-request structural (K4) and env (K5)
   checks are reused unchanged. K7 re-renders the endpoint via yaml2md.py. Needs PyYAML.
 
@@ -61,12 +61,12 @@ import re, sys, json, pathlib
 from collections import defaultdict
 
 try:
-    import yaml                      # PyYAML — full YAML structural checks when present
+    import yaml                      # PyYAML: full YAML structural checks when present
     HAVE_YAML = True
 except Exception:
     HAVE_YAML = False                # without it the api-spec cannot be read
 
-try:                                 # sibling asset — renders the api-spec endpoint for K7 docs: fidelity
+try:                                 # sibling asset: renders the api-spec endpoint for K7 docs: fidelity
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
     import yaml2md
     HAVE_YAML2MD = True
@@ -81,8 +81,8 @@ RE_VAR = re.compile(r'\{\{\s*([^}]+?)\s*\}\}')           # any {{var}} reference
 # ───────────────────────── api-spec source reading ─────────────────────────
 # open-collection derives the collection from the custom-YAML api-spec at docs/api/ (one
 # <domain>/<endpoint>.yaml per endpoint; the api-spec skill authors it, openapi-doc drift-checks
-# it against Go). The collection is matched to the spec by (method, path) — hand-mapped request
-# files are named by endpoint — so coverage + body fidelity compare endpoints, while the
+# it against Go). The collection is matched to the spec by (method, path): hand-mapped request
+# files are named by endpoint: so coverage + body fidelity compare endpoints, while the
 # per-request structural (K4) and env (K5) checks are reused unchanged. Needs PyYAML; without it
 # the spec cannot be read.
 
@@ -168,7 +168,7 @@ def _op_matches(op, method, req_norm):
 
 def match_spec_op(spec_ops, method, req_norm):
     """The unique spec op matching this request, shaped like an endpoint dict
-       (path=None so the path-string compare is skipped — matching already proved it).
+       (path=None so the path-string compare is skipped: matching already proved it).
        `_doc` is the full parsed endpoint, passed through for K7 (yaml2md render)."""
     if not spec_ops:
         return None
@@ -215,7 +215,7 @@ def read_request_yaml(path):
 
 
 def collect_requests(target):
-    """[request .yml files] under a collection root — excludes opencollection.yml,
+    """[request .yml files] under a collection root: excludes opencollection.yml,
        folder.yml, and anything under environments/. Recursive so nested groups count
        (the api-spec source lives under docs/api/, outside the collection root)."""
     if target.is_file():
@@ -306,7 +306,7 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
         if seq is not None:
             seq_seen[path.parent.as_posix()].setdefault(seq, []).append(rel)
 
-        # K4 — url path params (:name) ⇔ params(type: path)
+        # K4: url path params (:name) ⇔ params(type: path)
         url_params = set(re.findall(r':([A-Za-z_]\w*)', url))
         decl_path = {p.get('name') for p in r['params'] if p.get('type') == 'path' and p.get('name')}
         for up in sorted(url_params - decl_path):
@@ -314,14 +314,14 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
         for dp in sorted(decl_path - url_params):
             errors.append((rel, 'ERROR', f'params declares path param "{dp}" absent from http.url'))
 
-        # K4 — runnable body JSON validity
+        # K4: runnable body JSON validity
         if r['body_type'] == 'json' and r['body_data']:
             try:
                 json.loads(r['body_data'])
             except json.JSONDecodeError as e:
                 errors.append((rel, 'ERROR', f'http.body.data invalid JSON ({e.msg} line {e.lineno})'))
 
-        # K2/K3 — compare against the api-spec endpoint
+        # K2/K3: compare against the api-spec endpoint
         ep = resolve_source(key, method, norm_template(norm_yaml_path(url)))
         if ep is not None:
             if ep['method'] and method and ep['method'] != method:
@@ -331,7 +331,7 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
             md_has = ep['body_json'] is not None
             yml_has = r['body_type'] == 'json' and bool(r['body_data'])
             if ep['body_json'] == '__INVALID__':
-                notes.append((rel, 'source request example is not valid JSON — '
+                notes.append((rel, 'source request example is not valid JSON: '
                                    'body fidelity unchecked; needs fresh-eyes'))
             elif md_has and not yml_has:
                 errors.append((rel, 'ERROR',
@@ -346,10 +346,10 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
                                        'http.body.data differs from the source request example'))
                 except json.JSONDecodeError:
                     pass                                 # already reported above
-            # K7 — docs: fidelity: the request's docs: must equal the yaml2md render
+            # K7: docs: fidelity: the request's docs: must equal the yaml2md render
             # of the api-spec endpoint (the self-documenting collection stays faithful).
             if not HAVE_YAML2MD:
-                notes.append((rel, 'yaml2md unavailable — docs: fidelity (K7) unchecked; '
+                notes.append((rel, 'yaml2md unavailable: docs: fidelity (K7) unchecked; '
                                    'needs fresh-eyes'))
             elif ep.get('_doc'):
                 try:
@@ -357,7 +357,7 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
                 except Exception:
                     expected = None
                 if expected is None:
-                    notes.append((rel, 'yaml2md could not render this endpoint — docs: '
+                    notes.append((rel, 'yaml2md could not render this endpoint: docs: '
                                        'fidelity (K7) unchecked; needs fresh-eyes'))
                 elif not r.get('docs'):
                     errors.append((rel, 'ERROR', 'Spec-mode request has no docs: block '
@@ -368,10 +368,10 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
 
             # auth mapping is judgment → fresh-eyes
             if ep['auth']:
-                notes.append((rel, f'source auth = "{ep["auth"]}" — confirm the request/'
+                notes.append((rel, f'source auth = "{ep["auth"]}": confirm the request/'
                                    'folder auth matches; needs fresh-eyes'))
 
-        # K5 — every {{var}} (non process.env) is defined in some environment
+        # K5: every {{var}} (non process.env) is defined in some environment
         if env_vars is not None:
             for v in sorted({m.strip() for m in RE_VAR.findall(r['text'])}):
                 if v.startswith('process.env.'):
@@ -380,7 +380,7 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
                     errors.append((rel, 'ERROR',
                                    f'references {{{{{v}}}}} but no environments/*.yml defines it'))
     else:
-        notes.append((rel, 'no YAML parser (PyYAML/yq absent) — http-block, path-param, body, '
+        notes.append((rel, 'no YAML parser (PyYAML/yq absent): http-block, path-param, body, '
                            'seq and env checks skipped for this file; needs fresh-eyes'))
 
 
@@ -388,7 +388,7 @@ def check_request(path, col_root, resolve_source, env_vars, errors, notes, seq_s
 
 def parse_args(argv):
     """(collection-target, spec-arg). --spec consumes a value (space or =); the first bare token
-       is the collection target. --spec may be omitted — main defaults to the docs/api api-spec tree."""
+       is the collection target. --spec may be omitted: main defaults to the docs/api api-spec tree."""
     positional, spec_arg = [], None
     it = iter(argv)
     for a in it:
@@ -412,7 +412,7 @@ def main():
     target, spec_arg = parse_args(sys.argv[1:])
 
     if not target.exists():
-        print(f"colcheck: {target} not found — nothing to check")
+        print(f"colcheck: {target} not found: nothing to check")
         sys.exit(0)
 
     # collection root: the file's parent-most dir holding opencollection.yml, else target
@@ -429,7 +429,7 @@ def main():
 
     request_files = collect_requests(target)
     if not request_files and not (col_root / 'opencollection.yml').exists():
-        print("colcheck: no request .yml files or opencollection.yml — nothing to check")
+        print("colcheck: no request .yml files or opencollection.yml: nothing to check")
         sys.exit(0)
 
     # ---- source: the api-spec at docs/api/ ----
@@ -440,9 +440,9 @@ def main():
     spec_ops = collect_spec_ops(spec_root)
     if spec_ops is None:
         if not HAVE_YAML:
-            print("colcheck: reading the api-spec needs PyYAML — install pyyaml (or yq).")
+            print("colcheck: reading the api-spec needs PyYAML: install pyyaml (or yq).")
         else:
-            print(f"colcheck: api-spec {spec_root} not found or unreadable — run the api-spec skill "
+            print(f"colcheck: api-spec {spec_root} not found or unreadable: run the api-spec skill "
                   f"first (it authors docs/api/), or pass --spec <path>.")
         sys.exit(1)
     resolve_source = lambda key, method, npath: match_spec_op(spec_ops, method, npath)
@@ -453,7 +453,7 @@ def main():
     env_vars = collect_env_vars(col_root)
 
     if env_vars is None:
-        notes.append(('(global)', 'no environments/ directory — {{var}} reference checks (K5) '
+        notes.append(('(global)', 'no environments/ directory: {{var}} reference checks (K5) '
                                   'skipped; needs fresh-eyes'))
 
     for f in request_files:
@@ -490,7 +490,7 @@ def main():
             print(f"    NOTE   {n}")
 
     total_err = len(errors)
-    print(f"\n{'FAILED' if total_err else 'PASS'} — {total_err} error(s) / {len(notes)} note(s) "
+    print(f"\n{'FAILED' if total_err else 'PASS'}: {total_err} error(s) / {len(notes)} note(s) "
           f"across {len(request_files)} request file(s)")
     sys.exit(1 if total_err else 0)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-apispeccheck.py — L1 tripwire for the custom-YAML API spec under docs/api/.
+apispeccheck.py: L1 tripwire for the custom-YAML API spec under docs/api/.
 
 Validates every endpoint file + _meta.yaml against the api-spec schema
 (references/api-spec-template.md), and (re)generates the navigation index.md
@@ -28,7 +28,7 @@ ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
 ALLOWED_MANDATORY = {"M", "O"}
 KNOWN_TYPES = {"String", "Number", "Boolean", "Object", "Array", "Integer"}
 
-# An evidence citation inside a field's remark:  "… — evidence: docs/knowledge/contracts/pcc.md"
+# An evidence citation inside a field's remark:  "…: evidence: docs/knowledge/contracts/pcc.md"
 EVIDENCE_RE = re.compile(r"evidence\s*:\s*([^\s,;)\"']+)", re.I)
 
 REPO_ROOT = None
@@ -63,17 +63,17 @@ def check_evidence(remark, ctx, name):
     """An evidence citation must resolve to a file in this repo.
 
     A citation that points nowhere is worse than none at all: it reads as proof and is not.
-    Branch names and bare URLs are rejected by design — neither can be re-read later, which is
+    Branch names and bare URLs are rejected by design: neither can be re-read later, which is
     the whole purpose of citing evidence (grounding rule 2: ingest into docs/knowledge/ first).
     """
     for m in EVIDENCE_RE.finditer(str(remark)):
         cited = m.group(1).rstrip(".,;")
         if re.match(r"https?://", cited, re.I):
-            err(f"{ctx}: field '{name}' cites a bare URL as evidence ({cited}) — ingest it into "
+            err(f"{ctx}: field '{name}' cites a bare URL as evidence ({cited}): ingest it into "
                 f"docs/knowledge/ and cite that path instead")
             continue
         if REPO_ROOT and not os.path.exists(os.path.join(REPO_ROOT, cited)):
-            err(f"{ctx}: field '{name}' cites evidence '{cited}' which does not exist in the repo — "
+            err(f"{ctx}: field '{name}' cites evidence '{cited}' which does not exist in the repo, "
                 f"cite an ingested path under docs/knowledge/, not a branch or ticket name")
 
 
@@ -81,7 +81,7 @@ def load_yaml(path):
     try:
         return yaml.safe_load(open(path, encoding="utf-8")) or {}
     except Exception as e:  # noqa: BLE001
-        err(f"{os.path.basename(path)}: YAML parse error — {e}")
+        err(f"{os.path.basename(path)}: YAML parse error: {e}")
         return None
 
 
@@ -102,7 +102,7 @@ def check_fields(fields, ctx, objects_defined):
         if "mandatory" in f and f["mandatory"] not in ALLOWED_MANDATORY:
             err(f"{ctx}: field '{name}' mandatory must be M|O, got {f['mandatory']!r}")
         if f.get("type") and f["type"] not in KNOWN_TYPES:
-            note(f"{ctx}: field '{name}' has unusual type {f['type']!r} — needs fresh-eyes")
+            note(f"{ctx}: field '{name}' has unusual type {f['type']!r}: needs fresh-eyes")
         if "object" in f and f["object"] not in objects_defined:
             err(f"{ctx}: field '{name}' references object '{f['object']}' not defined in objects:")
         if f.get("remark"):
@@ -127,7 +127,7 @@ def check_json(s, ctx):
     try:
         json.loads(s)
     except Exception as e:  # noqa: BLE001
-        err(f"{ctx}: example is not valid JSON — {e}")
+        err(f"{ctx}: example is not valid JSON: {e}")
 
 
 def check_endpoint(path, doc):
@@ -223,7 +223,7 @@ def render_index(meta, endpoints):
             rows.append(f"| `{ep.get('method','')}` | `{ep.get('path','')}` | {ep.get('endpoint','')} | [{stem}]({rel}) |")
         for x in extra:
             if x.get("domain") == d:
-                rows.append(f"| `{x.get('method','')}` | `{x.get('path','')}` | {x.get('description','')} | — |")
+                rows.append(f"| `{x.get('method','')}` | `{x.get('path','')}` | {x.get('description','')} |, |")
         P.append("\n".join(rows))
     if meta.get("common_errors"):
         P.append("## Common Error Responses")
@@ -269,13 +269,13 @@ def main():
     if not endpoints:
         note("no endpoint YAML files found under " + api_dir)
 
-    # index.md — regenerate or check-sync
+    # index.md: regenerate or check-sync
     index_path = os.path.join(api_dir, "index.md")
     new_index = render_index(meta or {}, endpoints)
     if check_only:
         old = open(index_path, encoding="utf-8").read() if os.path.exists(index_path) else ""
         if old != new_index:
-            err("index.md is out of sync with the spec — re-run without --check to regenerate")
+            err("index.md is out of sync with the spec: re-run without --check to regenerate")
     elif not errors:
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_index)
@@ -285,10 +285,10 @@ def main():
     for e in errors:
         print("ERROR:", e)
     if errors:
-        print(f"FAIL — {len(errors)} error(s)")
+        print(f"FAIL: {len(errors)} error(s)")
         sys.exit(1)
     action = "checked" if check_only else "validated + index.md regenerated"
-    print(f"PASS — 0 error(s) ({len(endpoints)} endpoint(s) {action})")
+    print(f"PASS: 0 error(s) ({len(endpoints)} endpoint(s) {action})")
 
 
 if __name__ == "__main__":

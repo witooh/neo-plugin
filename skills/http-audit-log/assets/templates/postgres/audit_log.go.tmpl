@@ -1,0 +1,45 @@
+package postgres
+
+import (
+	"context"
+	"time"
+
+	"__MODULE__/internal/adapters/repository/postgres/sqlc"
+	"__MODULE__/internal/core/domain/audit"
+)
+
+// auditLogRepository persists the audit_log record via sqlc.
+type auditLogRepository struct {
+	Queries *sqlc.Queries
+}
+
+// NewAuditLogRepository returns the AuditLogRepository port backed by sqlc.
+func NewAuditLogRepository(q *sqlc.Queries) audit.AuditLogRepository {
+	return &auditLogRepository{Queries: q}
+}
+
+// Insert writes a new audit log record (both SUCCESS and FAILED outcomes).
+func (r *auditLogRepository) Insert(ctx context.Context, log *audit.AuditLog) error {
+	if err := r.Queries.InsertAuditLog(ctx, auditLogParamsFromDomain(log)); err != nil {
+		return NewDBError(err)
+	}
+	return nil
+}
+
+// auditLogParamsFromDomain maps the domain aggregate to the sqlc insert params.
+func auditLogParamsFromDomain(log *audit.AuditLog) sqlc.InsertAuditLogParams {
+	return sqlc.InsertAuditLogParams{
+		RequestId:     log.RequestId(),
+		HttpMethod:    log.HttpMethod(),
+		Route:         log.Route(),
+		Status:        string(log.Status()),
+		HttpStatus:    log.HttpStatus(),
+		ResponseCode:  log.ResponseCode(),
+		FailureReason: log.FailureReason(),
+		Metadata:      log.Metadata(),
+		RawRequest:    log.RawRequest(),
+		RawResponse:   log.RawResponse(),
+		DurationMs:    log.DurationMs(),
+		CreatedAt:     time.Now(),
+	}
+}

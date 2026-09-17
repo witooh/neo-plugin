@@ -1,13 +1,13 @@
 ---
 name: e2e-playwright
-description: "Author, update, and run HTTP end-to-end tests — one per acceptance criterion — for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the neo spec (docs/tasks/<card>/spec.md) or a legacy docs/design/ layout, authors specs from those + the api-spec contract, runs the suite, maps pass/fail to each AC; a task with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e ('write e2e', 'run e2e', 'เขียน e2e', 'รัน e2e', 'e2e ตาม AC'), or when neo's Verify phase delegates e2e. NOT here: unit/logic → tdd; browser-UI testing is out of scope; api-spec → api-spec."
+description: "Author, update, and run HTTP end-to-end tests: one per acceptance criterion, for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the originating issue/ticket (issue tracker, a user-passed path, or a spec file under docs/, specs/, or .scratch/), authors specs from those + the api-spec contract, runs the suite, maps pass/fail to each AC; a ticket with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e."
 ---
 
 # E2E Playwright (AC-driven HTTP e2e)
 
 Author + **run** HTTP end-to-end tests, **one per acceptance criterion**, against a running service.
 Each test is titled `[<CARD> - AC-NNN] <desc> → <expected>` so every AC is traceable from the
-card to a green test. The suite is the project's **real** acceptance gate — a passing Go/unit test
+ticket to a green test. The suite is the project's **real** acceptance gate, a passing Go/unit test
 can never stand in for it. Every run rests on **evidence (a deterministic coverage script) + an
 independent fresh-eyes pass + a completeness sweep**, never on the running agent's confidence.
 
@@ -15,27 +15,27 @@ independent fresh-eyes pass + a completeness sweep**, never on the running agent
 **Playwright's HTTP `request` API** as the client (`globalThis.apiContext = await
 request.newContext()` from `@playwright/test`; specs use Jest `describe/it/expect` + a thin
 `ApiClient` helper). Generate **Jest `it()`**, never `@playwright/test` `test()`. This skill does
-not open a browser — it asserts on HTTP responses.
+not open a browser: it asserts on HTTP responses.
 
 `ASSET_DIR` = `<skill base dir>/assets`, `SKILL_DIR` = `<skill base dir>` (the skill-load message
-gives the "Base directory for this skill"). `e2echeck.py` is **stdlib-only** — no dependency to
+gives the "Base directory for this skill"). `e2echeck.py` is **stdlib-only**: no dependency to
 install.
 
 ## Discover the project's e2e layout (the per-project contract values)
 
 The structure (Jest + Playwright-`request` + pg) is fixed; the *values* are per-project. Before
-anything, read them from the target repo — never assume paths:
+anything, read them from the target repo: never assume paths:
 
-- **e2e root** — the dir holding the harness (default `tests/e2e/`; confirm via a `jest.config.ts`
+- **e2e root**: the dir holding the harness (default `tests/e2e/`; confirm via a `jest.config.ts`
   whose `testMatch` ends in `*.e2e.ts`). In a monorepo, scope to the chosen service.
-- **runner + scripts** — `tests/e2e/package.json` `scripts.test` (the run command, e.g.
+- **runner + scripts**: `tests/e2e/package.json` `scripts.test` (the run command, e.g.
   `jest --runInBand --forceExit`); `jest.config.ts`; `jest.global-setup.ts` (health-wait + DB
   seed) and `jest.setup.ts` (the `apiContext`).
-- **helpers** — `tests/e2e/helpers/` (`api-client.ts` → `ApiClient`, `db-helper.ts` → `DbHelper`).
+- **helpers**: `tests/e2e/helpers/` (`api-client.ts` → `ApiClient`, `db-helper.ts` → `DbHelper`).
   Reuse these; never introduce a second HTTP client.
-- **fixtures** — `tests/e2e/fixtures/{seed,cleanup}.sql`.
-- **config** — `tests/e2e/.env.test` (`API_BASE_URL`, `DB_*`).
-- **infra targets** — grep the repo `Makefile` for the compose / migration targets (e.g.
+- **fixtures**: `tests/e2e/fixtures/{seed,cleanup}.sql`.
+- **config**: `tests/e2e/.env.test` (`API_BASE_URL`, `DB_*`).
+- **infra targets**: grep the repo `Makefile` for the compose / migration targets (e.g.
   `compose-up`, `migration-up`); these bring the service + DB up.
 
 **No e2e harness present** → report what is missing and **STOP**. Scaffolding a brand-new harness
@@ -48,22 +48,26 @@ and the request says run/validate ("run e2e", "รัน e2e") → **Run**; othe
 
 ## Step 1 · Locate the source-of-intent
 
-What the specs must reflect — read it yourself, never from a summary:
+What the specs must reflect: read it yourself, never from a summary. Look for acceptance criteria in this order:
 
-- **Acceptance criteria (dual-source, in this order):**
-  1. **neo spec** — the numbered **Acceptance Criteria section** of `docs/tasks/<card>/spec.md`
-     (`<card>` = the task folder). Its `AC-NNN` ids are the test targets.
-  2. **legacy Kiro layout** — the card's Ready ACs in `docs/design/<usecase>/`
-     (`acceptance-criteria.*` + `test-cases.*`; often HTML — read them as text).
-  3. **no AC section anywhere → no-AC mode** — the task has no acceptance criteria. Do **not** stop:
+- **Acceptance criteria, in this order:**
+  1. A path the user passed as an argument.
+  2. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), or the originating ticket fetched via `docs/agents/issue-tracker.md`. Local tracker: `.scratch/<feature>/issues/<NN>-<slug>.md`.
+  3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
+  4. **no AC section anywhere → no-AC mode**: the ticket has no acceptance criteria. Do **not** stop:
      author + run e2e from the api-spec contract + the endpoints under test, without the AC gate (see
-     the no-AC notes in Steps 2-4). e2e does **not** invent or number ACs — numbered ACs are the
-     spec's responsibility.
-- **Wire contract** — the api-spec at `docs/api/<domain>/<endpoint>.yaml` (authored by the
+     the no-AC notes in Steps 2-4). e2e does **not** invent or number ACs: numbered ACs are the
+     ticket/spec's responsibility.
+- **AC ids:** if the source already numbers criteria `AC-NNN`, those are the test targets. If the
+  source is a ticket whose Acceptance criteria are unlabeled checkboxes (`- [ ] …`), number them
+  `AC-001…` in listed order and use those ids in titles. A `Deferred-ACs:` line in the source is
+  honoured either way.
+- **Wire contract**: the api-spec at `docs/api/<domain>/<endpoint>.yaml` (authored by the
   `api-spec` skill): the method/path, request/response field shape, status codes, and the stable
   **error codes** the AC expects. Assert against this, not a guess.
-- **Card** — `<card>` is the task-folder / JIRA id; it appears as `<CARD>` in the title prefix. Pull
-  it from the task folder name / the spec / `docs/knowledge/`.
+- **Card**: `<CARD>` in the title prefix is the ticket identifier: the issue number (`#123`), the
+  local ticket slug (`01-add-endpoint`), or the tracker key (`GI-74`) if that is what the
+  configured tracker uses. Pull it from the ticket.
 
 Never invent endpoints or acceptance criteria.
 
@@ -73,25 +77,25 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
 
 - **One `it()` per testable AC case**, titled `[<CARD> - AC-NNN] <desc> → <expected>` (spaces
   around the dash). One AC may have **several** `it()`s; a single test may **co-cover** ACs by
-  listing the extra ids on the same line (`// also AC-008`). `<CARD>` may be a task-folder slug
-  when there is no JIRA key, and a table-driven test may interpolate the id
-  (`` `[GI-74 - ${tc.ac}] …` ``) — see `references/e2e-template.md` for both.
-- **Reuse the project helpers** — `new ApiClient(globalThis.apiContext)`, `DbHelper` for
+  listing the extra ids on the same line (`// also AC-008`). `<CARD>` is the ticket identifier
+  from Step 1, and a table-driven test may interpolate the id
+  (`` `[#123 - ${tc.ac}] …` ``): see `references/e2e-template.md` for both.
+- **Reuse the project helpers**: `new ApiClient(globalThis.apiContext)`, `DbHelper` for
   seed/assert; follow the existing spec's per-spec **created-data teardown** in `afterAll`. Reach
-  error paths through the project's fault **sentinels** when they exist (e.g. a `NODEFAIL` id) — do
+  error paths through the project's fault **sentinels** when they exist (e.g. a `NODEFAIL` id), do
   not fake a 500.
-- **Assert the contract** — status code + the StandardResponse envelope + the api-spec's stable
+- **Assert the contract**: status code + the StandardResponse envelope + the api-spec's stable
   **error `code`** (not just the HTTP status), per the AC's expected outcome.
-- **Non-HTTP-observable ACs** — an AC whose effect cannot be seen in an HTTP response (log/PII
+- **Non-HTTP-observable ACs**: an AC whose effect cannot be seen in an HTTP response (log/PII
   masking, an internal side effect) is recorded as an `it.skip("[<CARD> - AC-NNN] … (why it is not
-  HTTP-observable)")` **with the reason in the title** — a visible, declared classification, never a
+  HTTP-observable)")` **with the reason in the title**: a visible, declared classification, never a
   silent omission. (Whether the reason is *legitimate* is the L2 verifier's call.)
-- **Deferred ACs** — an AC whose feature is deliberately not built this round is **not** an
-  `it.skip` (there is nothing to skip). Declare it in the spec on one line —
-  `Deferred-ACs: AC-011, AC-012 — <why>` — and the gate reports it as declared deferred instead of
+- **Deferred ACs**: an AC whose feature is deliberately not built this round is **not** an
+  `it.skip` (there is nothing to skip). Declare it in the spec on one line , 
+  `Deferred-ACs: AC-011, AC-012: <why>`: and the gate reports it as declared deferred instead of
   uncovered. The reason is required.
-- **Update** — touch the minimum; preserve hand-authored assertions; re-run L1 after.
-- **No-AC mode** — with no ACs, title tests `[<CARD>] <desc> → <expected>` (card prefix, no AC
+- **Update**: touch the minimum; preserve hand-authored assertions; re-run L1 after.
+- **No-AC mode**: with no ACs, title tests `[<CARD>] <desc> → <expected>` (card prefix, no AC
   segment) and group by endpoint; the Step-4 coverage gate is then N/A.
 
 ## Step 3 · Run + map to AC
@@ -99,16 +103,16 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
 1. **Ensure the service is up.** Check `GET $API_BASE_URL/health`. If it is not healthy, bring the
    stack up with the **discovered** make targets (e.g. `make compose-up && make migration-up`),
    then wait for `/health` (the harness's `global-setup` also polls it and seeds the DB).
-2. **Run the suite** with the discovered script, capturing output as the **evidence artifact**:
+2. **Run the suite** with the discovered script. Keep the `npm test` transcript as the **evidence artifact** (the conversation, or a working file you choose).
 
    ```
-   ( cd <e2e-root> && npm test ) 2>&1 | tee docs/tasks/<card>/e2e-run.txt
+   ( cd <e2e-root> && npm test )
    ```
 
 3. **Map results → AC.** Cross the run's pass/fail (from the Jest output) with the coverage from L1
    to emit an **AC → status** table: `pass` · `fail` · `uncovered` · `non-observable (skip)` ·
    `deferred`. This
-   table is the evidence for neo's **Verify-phase HTTP acceptance gate** — a real green run, not a
+   table is the evidence for the **HTTP acceptance gate**: a real green run, not a
    claim, is what closes it. **No-AC mode:** emit a plain pass/fail table (no AC column).
 
 ## Step 4 · Three-layer verify
@@ -119,8 +123,7 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
 python3 <ASSET_DIR>/e2echeck.py <e2e-root>/specs <ac-source> --card <CARD>
 ```
 
-`<ac-source>` is the resolved Step-1 source — `docs/tasks/<card>/spec.md` (neo) or the legacy
-`docs/design/<usecase>/` dir. It confirms every AC in the source is traced by an `it()` (active) or
+`<ac-source>` is the resolved Step-1 source: the ticket/spec file or directory. It confirms every AC in the source is traced by an `it()` (active) or
 an `it.skip()` with a reason (declared non-observable) or a `Deferred-ACs:` line in the spec
 (declared deferred), validates the `[<CARD> - AC-NNN]` title
 grammar, and prints a coverage table. **Tripwire, not ground truth.**
@@ -128,22 +131,21 @@ grammar, and prints a coverage table. **Tripwire, not ground truth.**
 - **exit 0** → `PASS` → go to L1.5.
 - **exit 1** → for each `ERROR`, add the missing test (or a justified `it.skip`), then re-run.
   **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate.** Never fake coverage.
-- **No-AC mode:** skip L1 — there are no ACs to cover (coverage N/A). Go straight to L1.5.
+- **No-AC mode:** skip L1: there are no ACs to cover (coverage N/A). Go straight to L1.5.
 
 ### verify-L1.5 · Offer fresh-eyes (default yes)
 
 Ask once via `AskUserQuestion`: *"Run an independent fresh-eyes verify of the e2e specs? (default:
-yes)"* — **no** → skip L2 (mark "skipped by user"); **yes** → L2.
+yes)"*: **no** → skip L2 (mark "skipped by user"); **yes** → L2.
 
-### verify-L2 · Fresh-eyes semantic verifier (independent agent)
+### verify-L2 · Independent semantic verifier
 
-Dispatch a verifier that did **not** author the specs — it re-reads the AC source + the specs
+Dispatch a verifier that did **not** author the specs: it re-reads the AC source + the specs
 independently and judges what the script cannot: does each test actually **assert the AC's expected
 status + error code** (not a vacuous test), and is each `it.skip` reason a *real* HTTP-unobservable
-case (not a lazy excuse for a testable AC)?
+case (not a lazy excuse for a testable AC)? Spawn a read-only sub-agent with this prompt:
 
 ```
-Agent(subagent_type: "fresh-eyes", description: "verify e2e specs", prompt: """
 # Role: E2E Semantic Verifier
 Read first: <SKILL_DIR>/references/e2e-verifier.md
 SKILL_DIR = <skill base dir>
@@ -157,16 +159,13 @@ yourself.
 <e2e-root>/specs/*.e2e.ts
 
 ## Source-of-intent
-<paste: docs/design/<usecase>/ (acceptance-criteria + test-cases) + the api-spec endpoint YAML>
+<paste: the ticket/spec path + the api-spec endpoint YAML>
 
 End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
-""")
 ```
 
-`SKILL_DIR` is mandatory — without it the verifier cannot read its role file. The verifier is read-only by tool grant —
-`fresh-eyes` holds no write/edit (harness without that type → `general-purpose`, read-only by
-instruction only) → **you** reconcile the specs → re-run `e2echeck.py`. Offer a second round (default yes),
-then escalate.
+`SKILL_DIR` is mandatory: without it the verifier cannot read its role file. The verifier is read-only (no write, edit, or commit) → **you** reconcile the specs → re-run `e2echeck.py`. Offer a second round (default yes), then escalate.
+
 
 ### verify-L3 · Completeness sweep (omission critic)
 
@@ -174,16 +173,16 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 Ready-AC inventory** from the source-of-intent and confirm: every Ready AC has either a passing
 `it()` or a justified `it.skip`; every endpoint the ACs touch has at least one test; no whole AC was
 silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC inventory, sweep the
-**endpoint inventory** instead — every endpoint the api-spec under test defines has at least one `it()`.
+**endpoint inventory** instead: every endpoint the api-spec under test defines has at least one `it()`.
 
 ### Output
 
 ```
-## E2E Playwright — <Generate / Update / Run>
+## E2E Playwright: <Generate / Update / Run>
 **Suite:** <e2e-root> (N specs)   **Card:** <CARD>   **Source-of-intent:** <what it was authored from>
-**Changes:** Created … / Updated … / —
-**Run:** <npm test result: N passed / M failed / K skipped>   **Evidence:** docs/tasks/<card>/e2e-run.txt
-**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable · <deferred> deferred   (N/A in no-AC mode — report plain pass/fail)
+**Changes:** Created … / Updated …
+**Run:** <npm test result: N passed / M failed / K skipped>   **Evidence:** the `npm test` transcript
+**AC → status:** <pass count> pass · <fail> fail · <uncovered> uncovered · <skip> non-observable · <deferred> deferred   (N/A in no-AC mode, report plain pass/fail)
 **Verification (three-layer):**
 - L1 e2echeck.py: ✅ PASS (0 error) / ❌ ESCALATED (N error after ~3 rounds) · loop rounds: 0-3
 - L2 fresh-eyes: ✅ Faithful / ⚠️ N gaps fixed / ⏭ Skipped / ⏸ Not run
@@ -196,11 +195,11 @@ silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC 
 
 ## What this skill is NOT
 
-- **Not** a unit / business-logic test writer — that is **`tdd`** (the Go/unit
-  suite). This skill is the HTTP acceptance gate; the two are complementary, not substitutes.
-- **Not** a browser / DOM / UI tester — browser testing is out of scope here; Playwright is
+- **Not** a unit / business-logic test writer: that is the unit / Go test
+  suite. This skill is the HTTP acceptance gate; the two are complementary, not substitutes.
+- **Not** a browser / DOM / UI tester: browser testing is out of scope here; Playwright is
   only an HTTP client in this harness.
-- **Not** an api-spec author — the wire contract is authored by **`api-spec`** (`docs/api/*.yaml`);
+- **Not** an api-spec author: the wire contract is authored by **`api-spec`** (`docs/api/*.yaml`);
   this skill *reads* it to know the status codes + error codes to assert.
-- **Not** a harness scaffolder — if no `tests/e2e` Jest+Playwright harness exists, it reports and
+- **Not** a harness scaffolder: if no `tests/e2e` Jest+Playwright harness exists, it reports and
   stops rather than inventing one.

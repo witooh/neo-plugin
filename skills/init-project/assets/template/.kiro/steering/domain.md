@@ -6,47 +6,47 @@ fileMatchPattern: "**/internal/core/domain/**"
 # Domain Layer
 
 `internal/core/domain` is the model. It imports **nothing** from `usecase` or `adapters`.
-No HTTP, no SQL, no logging, no framework types — pure business rules. **depguard enforces this**:
+No HTTP, no SQL, no logging, no framework types: pure business rules. **depguard enforces this**:
 transport/persistence/infra packages (`gin`, `net/http`, `database/sql`, `pgx`, `go-redis`, `kafka-go`)
-are denied in `domain` (and `usecase`) — the build fails on a regression.
+are denied in `domain` (and `usecase`): the build fails on a regression.
 
 ## Split per technical layer
 
 The model is split into one package per **technical layer** (stereotype), shared across every
-bounded context — **not** one package per context. Driven ports are **centralized** in
+bounded context: **not** one package per context. Driven ports are **centralized** in
 `repository/` (plus `event/` for event-bus ports); external-system gateways are the one
 exception and stay under `integration/<sys>/`.
 
 ```
 core/domain/
-  enums.go                  package domain — ALL typed string/enum constants (one flat root file)
-  errors.go                 package domain — typed stderr constructors (HTTP status via GinErrorHandler)
-  entity/                   package entity — ALL domain data types: aggregates + their component
+  enums.go                  package domain: ALL typed string/enum constants (one flat root file)
+  errors.go                 package domain: typed stderr constructors (HTTP status via GinErrorHandler)
+  entity/                   package entity: ALL domain data types: aggregates + their component
                             value objects + computed results + read-models (private fields, factories, commands)
-  service/                  package service — stateless domain services (package functions), one file per service
-  repository/               package repository — ALL driven persistence ports (one interface per file);
+  service/                  package service: stateless domain services (package functions), one file per service
+  repository/               package repository: ALL driven persistence ports (one interface per file);
                             prefix names to keep them distinct (<contextA>_dailyamount.go, <contextB>_dailyamount.go)
-  event/                    package event — EventPublisher & other event-bus ports + domain event definitions
-  integration/<sys>/        EXTERNAL read-only domains — one package per upstream (UNCHANGED)
+  event/                    package event: EventPublisher & other event-bus ports + domain event definitions
+  integration/<sys>/        EXTERNAL read-only domains: one package per upstream (UNCHANGED)
     gateway.go              driven PORT interface + its param/result types (see integration.md)
     readmodels.go           read-models the core consumes (plain data, no behavior)
 ```
 
 > The package clause is the **layer folder name** (`package entity` / `service` / `repository` /
 > `event`; the root `enums.go` / `errors.go` are `package domain`). Cross-layer refs inside the
-> domain are qualified — `entity` imports `domain` for enums; `repository` / `event` / `service`
+> domain are qualified: `entity` imports `domain` for enums; `repository` / `event` / `service`
 > import `entity` for the aggregates & value objects they speak in. `integration/<sys>` keeps one
 > package per upstream. Dependency order is acyclic: `domain` ← `entity` ← {`repository`, `event`, `service`}.
 
 The concrete aggregates, services, and ports for this service are in `repo-instance.md`.
 
-## Aggregates — fully encapsulated
+## Aggregates: fully encapsulated
 
 Fields are **private**. Read through getters; never expose or mutate a field directly.
 Construct only through factories; change state only through command methods.
 
 ```go
-package entity — aggregates, value objects & read-models all live in the entity package
+package entity: aggregates, value objects & read-models all live in the entity package
 
 // <Aggregate> ... All fields are private: create with New<Aggregate>, reconstitute
 // from storage with Restore<Aggregate>, read through getters, mutate through commands.
@@ -57,11 +57,11 @@ type <Aggregate> struct {
 	// ...
 }
 
-// Getters — pointer receiver for entities (mutable identity).
+// Getters: pointer receiver for entities (mutable identity).
 func (a *<Aggregate>) Id() uuid.UUID     { return a.id }
 func (a *<Aggregate>) Status() Status     { return a.status }
 
-// New<Aggregate> — creation factory. Sets only the fields the caller supplies; DB-generated
+// New<Aggregate>: creation factory. Sets only the fields the caller supplies; DB-generated
 // fields (id, timestamps) stay zero so the DB fills them. Invariants that can fail are
 // validated by domain services (RequireX, see below) before construction, so New returns
 // just the aggregate. (If a creation invariant must be enforced here, New may return
@@ -70,27 +70,27 @@ func New<Aggregate>(p New<Aggregate>Param) *<Aggregate> {
 	return &<Aggregate>{status: StatusActive /* ... */}
 }
 
-// Restore<Aggregate> — reconstitution factory, REPOSITORY ONLY. Bypasses invariant
+// Restore<Aggregate>: reconstitution factory, REPOSITORY ONLY. Bypasses invariant
 // checks (the row was already valid when written). Mirrors every persisted column.
 func Restore<Aggregate>(p Restore<Aggregate>Param) *<Aggregate> {
 	return &<Aggregate>{id: p.Id, status: p.Status, createdAt: p.CreatedAt /* ... */}
 }
 
-// Command methods — the only way to change state. No Set<Field>; name by intent.
+// Command methods: the only way to change state. No Set<Field>; name by intent.
 func (a *<Aggregate>) Activate(/* ... */) error { /* guard, then mutate */ }
 ```
 
 Rules:
 - **No setters.** Mutation = an intent-named command method that protects invariants
-  (`Activate`, `ApplyFinalRate`, `ReplaceStatusFlags` — never `SetX`), even for a one-field replace.
-- **Persistent state only — no transient field.** An aggregate holds the state that is persisted
-  (its identity + invariants), nothing else. A value *resolved during an operation* — from an upstream
-  or a computation — that is **not persisted** (response-only, excluded from the cache projection) does
+  (`Activate`, `ApplyFinalRate`, `ReplaceStatusFlags`: never `SetX`), even for a one-field replace.
+- **Persistent state only: no transient field.** An aggregate holds the state that is persisted
+  (its identity + invariants), nothing else. A value *resolved during an operation*, from an upstream
+  or a computation: that is **not persisted** (response-only, excluded from the cache projection) does
   **not** belong as a field: holding it there forces a setter, and a re-attach hack after the repository
   returns a fresh instance. Return it from the usecase instead (see `usecase.md`; this
   service's worked example is in `repo-instance.md`).
 - `New<Aggregate>Param` / `Restore<Aggregate>Param` are exported plain structs (the only exported writable surface).
-- A getter that forgets `()` is a method value — it **compiles** but assertions fail at runtime. Always call getters.
+- A getter that forgets `()` is a method value: it **compiles** but assertions fail at runtime. Always call getters.
 
 ### ⚠️ JSON gotcha
 
@@ -115,13 +115,13 @@ independently, no command methods).
 func (v <ValueObject>) Amount() decimal.Decimal { return v.amount }
 ```
 
-## Domain services — package functions
+## Domain services: package functions
 
-Logic spanning entities / not owned by one aggregate. **Stateless package functions** —
+Logic spanning entities / not owned by one aggregate. **Stateless package functions** , 
 no `struct{}` receiver, no globals (precompute package-level `var` for constants only).
 
 ```go
-// Domain services are package functions in the `service` package (one <service>.go per service) —
+// Domain services are package functions in the `service` package (one <service>.go per service) , 
 // pure business logic spanning aggregates. Depends only on entity types + driven ports. Never HTTP/log/IO.
 package service
 
@@ -133,15 +133,15 @@ func RequireUnderAggregateLimit(ctx context.Context, repo repository.<Aggregate>
 
 ## Driven ports (centralized in `repository/` + `event/`)
 
-All driven ports the core consumes live in the central `repository/` package — persistence
-repositories, caches, number generators — one interface per file, referencing `entity` types.
+All driven ports the core consumes live in the central `repository/` package, persistence
+repositories, caches, number generators: one interface per file, referencing `entity` types.
 Event-bus ports live in `event/`. External-system gateways are the exception: they stay in
 `integration/<sys>/gateway.go` (see `integration.md`). Usecases & domain services consume these
 ports; implementations live in `internal/adapters/...` (see `repository.md` / `integration.md`).
 Methods speak in aggregates, not rows.
 
 ```go
-// repository/<aggregate>.go — a driven persistence port, in the central repository package.
+// repository/<aggregate>.go: a driven persistence port, in the central repository package.
 // Implemented in internal/adapters/repository/postgres.
 package repository
 
@@ -161,11 +161,11 @@ contexts drive a similarly-named port, prefix the file (`repository/<contextA>_d
 `integration/<sys>/gateway.go`.
 
 **Not every injected interface is a domain port.** A *context-free ambient capability* with no
-business meaning that every layer consumes identically — the wall-clock, a fresh id — is **not**
+business meaning that every layer consumes identically: the wall-clock, a fresh id, is **not**
 co-located here; it is a generic `pkg/` utility (`pkg/clock.Clock`, `pkg/idgen.Generator`, beside
 any pure-function domain helper there), injected from `cmd/api` and faked in a `*test` sub-package.
 Keep the domain **pure**: a service takes the resolved value (`calculateAge(birthDate string, now
-time.Time)` — like `decimal.Decimal`, never a clock service); the **usecase** holds the injected
+time.Time)`: like `decimal.Decimal`, never a clock service); the **usecase** holds the injected
 `clock.Clock` and passes `o.clock.Now()` down. Discriminator: a signature that carries a context's
 language → port here; a technical primitive every layer needs the same way → `pkg/` (see
 `structure.md`).
@@ -173,25 +173,25 @@ language → port here; a technical primitive every layer needs the same way →
 ## Domain events
 
 Domain event definitions live in the `event` package (`event/events.go`), alongside the
-event-bus ports — exported fields, the published contract.
+event-bus ports: exported fields, the published contract.
 
 ```go
 package event
-type <Aggregate>Opened struct { /* exported fields — the published contract */ }
+type <Aggregate>Opened struct { /* exported fields: the published contract */ }
 ```
 
 ## Integration read-models (`integration/<sys>`)
 
 An external system is its own read-only context under `integration/<sys>` (package `<sys>`).
 It holds the driven port (`gateway.go`, see `integration.md`) and the **read-models** the core
-consumes (`readmodels.go` — read-models the core needs from the upstream). These are plain
+consumes (`readmodels.go`: read-models the core needs from the upstream). These are plain
 data the adapter maps the upstream wire DTO into; no behavior.
 
-## Typed errors (stderr — common-lib v2.2.5)
+## Typed errors (stderr: common-lib v2.2.4)
 
 Typed errors live in a root `errors.go` (`package domain`, beside `enums.go`). They are
 **`stderr.StandardError` constructors** (or thin wrappers that return one). `stdresp.GinErrorHandler`
-maps `GetErrorType()` to HTTP status — domain never sets a status, and there is no local
+maps `GetErrorType()` to HTTP status: domain never sets a status, and there is no local
 error-to-HTTP mapper. Status table: `structure.md` § *Logging and errors*.
 
 ```go
@@ -208,5 +208,5 @@ func New<Rule>Error(cause error, msg string) error {
 }
 ```
 
-Keep wire/validation-framework concerns out of `domain` — only business meaning lives here.
+Keep wire/validation-framework concerns out of `domain`: only business meaning lives here.
 Do not import `logger` or `stdresp` in domain.

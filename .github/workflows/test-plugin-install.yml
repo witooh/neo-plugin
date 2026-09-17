@@ -20,11 +20,8 @@ jobs:
       - name: Validate all skills
         run: node scripts/validate-skills.js
 
-      - name: Validate Pi package session hook
+      - name: Validate Pi package
         run: node scripts/validate-pi-package.js
-
-      - name: Validate Claude session-start hook
-        run: bash hooks/session-start-test.sh
 
   validate:
     name: Validate plugin structure

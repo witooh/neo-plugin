@@ -1,0 +1,3 @@
+interface:
+  display_name: "Migrate Project"
+  short_description: "Restructure a Go service slice by slice"

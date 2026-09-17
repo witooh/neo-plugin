@@ -1,0 +1,56 @@
+package audit_test
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
+	"__MODULE__/internal/core/domain/audit"
+)
+
+// TestNewAuditLog_ExposesEveryFieldThroughGetters proves the aggregate is
+// constructed from NewAuditLogParam and every persisted field is readable through
+// its getter, the projection the postgres adapter maps into InsertAuditLogParams.
+func TestNewAuditLog_ExposesEveryFieldThroughGetters(t *testing.T) {
+	requestId := uuid.New()
+	createdAt := time.Date(2026, 9, 11, 10, 30, 0, 0, time.UTC)
+	metadata := json.RawMessage(`{"key":"value"}`)
+
+	log := audit.NewAuditLog(audit.NewAuditLogParam{
+		RequestId:     requestId,
+		HttpMethod:    "POST",
+		Route:         "/v1/accounts",
+		Status:        audit.AuditStatus_SUCCESS,
+		HttpStatus:    200,
+		ResponseCode:  "0000",
+		FailureReason: "",
+		Metadata:      metadata,
+		RawRequest:    `{"customerId":"c-1"}`,
+		RawResponse:   `{"status":"SUCCESS"}`,
+		DurationMs:    42,
+		CreatedAt:     createdAt,
+	})
+
+	assert.Equal(t, requestId, log.RequestId())
+	assert.Equal(t, "POST", log.HttpMethod())
+	assert.Equal(t, "/v1/accounts", log.Route())
+	assert.Equal(t, audit.AuditStatus_SUCCESS, log.Status())
+	assert.Equal(t, int16(200), log.HttpStatus())
+	assert.Equal(t, "0000", log.ResponseCode())
+	assert.Equal(t, "", log.FailureReason())
+	assert.Equal(t, metadata, log.Metadata())
+	assert.Equal(t, `{"customerId":"c-1"}`, log.RawRequest())
+	assert.Equal(t, `{"status":"SUCCESS"}`, log.RawResponse())
+	assert.Equal(t, int64(42), log.DurationMs())
+	assert.Equal(t, createdAt, log.CreatedAt())
+}
+
+// TestAuditStatus_PersistedValues locks the two DB-persisted enum strings, which
+// the audit_log CHECK constraint (status IN ('SUCCESS','FAILED')) enforces.
+func TestAuditStatus_PersistedValues(t *testing.T) {
+	assert.Equal(t, "SUCCESS", string(audit.AuditStatus_SUCCESS))
+	assert.Equal(t, "FAILED", string(audit.AuditStatus_FAILED))
+}

@@ -1,0 +1,46 @@
+/**
+ * E2E: Audit middleware writes ONE audit_log row per inbound HTTP request.
+ *
+ * Adapt:
+ *   - SUCCESS: GET /health (every skeleton has it)
+ *   - FAILED: a known 4xx on this service; drop this it() if none exists
+ *   - __SCHEMA__: service postgres schema (search_path)
+ *
+ * Hit /health the same way other specs in this repo do (ApiClient, request, …).
+ */
+import { ApiClient, DbHelper } from "@helpers/index";
+
+describe("Audit log", () => {
+  let api: ApiClient;
+  let db: DbHelper;
+
+  beforeAll(async () => {
+    api = new ApiClient(globalThis.apiContext);
+    db = new DbHelper();
+    await db.connect();
+  });
+
+  afterAll(async () => {
+    await db.disconnect();
+  });
+
+  it("[audit] GET /health writes an audit_log row with status SUCCESS", async () => {
+    const since = new Date();
+
+    const { status } = await api.get("/health");
+    expect(status).toBe(200);
+
+    const audit = await db.query(
+      `SELECT http_method, route, status, http_status, duration_ms
+         FROM __SCHEMA__.audit_log
+        WHERE route = $1 AND status = $2 AND created_at >= $3
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      ["/health", "SUCCESS", since.toISOString()],
+    );
+    expect(audit.rowCount).toBe(1);
+    expect(audit.rows[0].http_method).toBe("GET");
+    expect(audit.rows[0].http_status).toBe(200);
+    expect(Number(audit.rows[0].duration_ms)).toBeGreaterThanOrEqual(0);
+  });
+});

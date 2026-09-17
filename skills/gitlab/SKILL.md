@@ -1,26 +1,25 @@
 ---
 name: gitlab
 description: >
-  Low-level GitLab execution via the glab CLI — the "execution arm" that the neo
-  skill invokes (through the Skill tool) to run glab for MR creation and review-comment
-  posting. Also usable directly for lightweight, side-effect-free MR operations: Read
-  (summarize an MR), Update (อัพเดท MR description), list MRs, view MR/CI status, fetch
-  CI job logs, and approve MRs. Trigger when the user pastes a bare GitLab MR URL or says
-  "อ่าน MR", "ดู MR", "check MR", "สรุป MR", "อัพเดท MR", "update description",
-  "แก้ description", "list MRs", "list open MRs", "check pipeline", "pipeline status",
-  "approve MR", or asks for a raw glab operation. NOTE: creating an MR ("สร้าง MR"),
-  reviewing an MR ("review MR", "ตรวจ MR"), fixing issues/CI, or addressing review
-  feedback now route through the using-neo skill (which calls this skill for the glab I/O) —
-  do NOT trigger this skill directly for those; let using-neo orchestrate.
+  GitLab execution via the glab CLI: create and update MRs, read (summarize an
+  MR), list MRs, view MR/CI status, fetch CI job logs, approve MRs, and post
+  comments. Use when the user pastes a bare GitLab MR URL or says "อ่าน MR",
+  "ดู MR", "check MR", "สรุป MR", "สร้าง MR", "create MR", "อัพเดท MR",
+  "update description", "list MRs", "check pipeline", "approve MR", or asks
+  for a raw glab operation. Reviewing an MR for standards/spec is out of scope
+  for this skill. This skill does not diagnose or fix CI; inspect logs only;
+  product fix is out of scope. Do not spawn review or fix agents in this skill.
 metadata:
   version: "1.2"
 ---
 
-# GitLab Skill (Claude Code)
+# GitLab (glab)
 
-Use the `glab` CLI to interact with GitLab. This skill is the **glab execution arm**: the `using-neo` skill invokes it (via the `Skill` tool) to run glab for MR creation and review-comment posting, and you can also use it directly for lightweight, side-effect-free MR operations.
-
-It provides **mechanics only** — **Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations. MR **review / fix / CI-fix / feedback orchestration now lives in the `using-neo` skill**; this skill no longer spawns review agents or hands off to other skills.
+Use the `glab` CLI to interact with GitLab. This skill is **glab mechanics**:
+**Create, Update, Read, Post Comment, CI Inspection**, plus general glab operations.
+It does not spawn review or fix agents. Do not spawn a review; this skill only
+does glab ops. This skill does not diagnose or fix CI; inspect logs only;
+product fix is out of scope.
 
 ## URL Parsing
 
@@ -33,26 +32,26 @@ These two values power most glab commands: `glab mr <cmd> <mr_id> --repo <repo_r
 
 ## Intent Detection
 
-This skill provides **glab mechanics only**. Determine which operation the user (or the calling `using-neo` skill) wants:
+This skill provides **glab mechanics only**. Determine which operation the user wants:
 
-| Signal                                                           | Operation                                                        |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary"            | **MR Read** — fetch MR info + diff (+ notes) and summarize       |
-| "สร้าง MR", "create MR", "open MR" — or invoked by using-neo to create | **MR Create** — create a new MR from the current branch    |
-| "อัพเดท MR", "update description", "แก้ description"             | **MR Update** — rewrite the MR description                       |
-| "check pipeline", "pipeline status", failed-job logs             | **CI Inspection** — fetch pipeline status + job logs (no fixing) |
-| "list MRs", "approve MR", or a raw glab command                  | **Common glab Operations**                                       |
-| post a composed review comment (invoked by using-neo)            | **Post a Comment**                                               |
+| Signal | Operation |
+| --- | --- |
+| bare MR URL, "อ่าน", "ดู", "check", "สรุป", "summary" | **MR Read**: fetch MR info + diff (+ notes) and summarize |
+| "สร้าง MR", "create MR", "open MR" | **MR Create**: create a new MR from the current branch |
+| "อัพเดท MR", "update description", "แก้ description" | **MR Update**: rewrite the MR description |
+| "check pipeline", "pipeline status", failed-job logs | **CI Inspection**: fetch pipeline status + job logs (no fixing) |
+| "list MRs", "approve MR", or a raw glab command | **Common glab Operations** |
+| post a composed review comment | **Post a Comment** |
 
-**Routes to using-neo, NOT here:** reviewing an MR ("review MR", "ตรวจ MR"), fixing review findings or CI failures, and addressing review feedback are orchestrated by the `using-neo` skill. using-neo calls THIS skill only for the glab I/O (fetch, create, post comment). Do not spawn review/fix agents in this skill.
+**Not this skill:** reviewing an MR ("review MR", "ตรวจ MR") for standards/spec is out of scope. This skill does not diagnose or fix CI; inspect logs only; product fix is out of scope. Do not spawn review/fix agents here.
 
-**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects). When using-neo invokes this skill, it states the operation explicitly — follow it.
+**Decision rule:** default a bare MR URL with no action verb to **MR Read** (lightest, no side effects).
 
 ---
 
 ## MR Create Workflow
 
-Create a new MR from the current branch. No MR URL is needed — this workflow detects the current branch and creates a MR targeting the default branch.
+Create a new MR from the current branch. No MR URL is needed. This workflow detects the current branch and creates a MR targeting the default branch.
 
 ```
 1. Verify current branch and uncommitted changes
@@ -69,7 +68,7 @@ git branch --show-current
 git status --short
 ```
 
-If there are uncommitted changes, warn the user and ask whether to proceed or commit first. If the current branch is `main` or `master`, warn the user — they likely need to create a feature branch first.
+If there are uncommitted changes, warn the user and ask whether to proceed or commit first. If the current branch is `main` or `master`, warn the user: they likely need to create a feature branch first.
 
 ### Step 2: Push Branch
 
@@ -81,7 +80,7 @@ If the branch is already pushed and up to date, skip this step.
 
 ### Step 3: Analyze Changes & Generate Description
 
-Before creating the MR, analyze all changes on the branch to write a comprehensive description. This is the key step — the description must fully capture what was done so reviewers understand the MR without reading every line of diff.
+Before creating the MR, analyze all changes on the branch to write a comprehensive description. This is the key step: the description must fully capture what was done so reviewers understand the MR without reading every line of diff.
 
 ```bash
 # Detect target branch
@@ -101,40 +100,40 @@ From the commits and diff, generate a structured MR description:
 
 ```
 ## Summary
-<1-2 sentences: overall purpose of this MR — what problem it solves or what feature it adds>
+<1-2 sentences: overall purpose of this MR: what problem it solves or what feature it adds>
 
 ## Changes
-<grouped by area — e.g., Features, Refactoring, Bug Fixes, Config, Tests, Docs>
+<grouped by area, e.g. Features, Refactoring, Bug Fixes, Config, Tests, Docs>
 - <concise description of each change>
 
 ## Files Changed
-<key files and what changed in each — render as a `| File | Change |` table when several files are touched; focus on the important files, not every one>
+<key files and what changed in each; render as a `| File | Change |` table when several files are touched; focus on the important files, not every one>
 
 ## Verification
-<test outcomes per suite — unit / e2e / lint — concrete: what ran + what it proves, never a bare pass-count>
-<AC-coverage table when the work is tied to an AC/spec — see legend below>
+<test outcomes per suite (unit / e2e / lint), concrete: what ran + what it proves, never a bare pass-count>
+<AC-coverage table when the work is tied to an AC/spec; see legend below>
 ```
 
-**Table-first rule:** when content is a set of comparable items — test/AC coverage, error codes, file-by-file changes, before/after — render it as a **markdown table**, not a bullet list. Tables make row-wise data scannable; keep bullets for prose-like points that don't share columns.
+**Table-first rule:** when content is a set of comparable items (test/AC coverage, error codes, file-by-file changes, before/after), render it as a **markdown table**, not a bullet list. Tables make row-wise data scannable; keep bullets for prose-like points that don't share columns.
 
 **`## Verification` rules:**
 
-- Report each suite **concretely** — name what ran and what it proves, not just "X passed / Y failed". E.g. `unit: 42/42 — token refresh + expiry edges` · `e2e: 3/3 — login → refresh → logout` · `lint: clean`.
-- When the work is tied to an **AC / spec**, add an **AC-coverage table** — one row per AC: `| AC | check | status |`, where `check` is how that AC is verified (which test or manual step) and `status` is one value from the legend.
+- Report each suite **concretely**: name what ran and what it proves, not just "X passed / Y failed". E.g. `unit: 42/42, token refresh + expiry edges` · `e2e: 3/3, login → refresh → logout` · `lint: clean`.
+- When the work is tied to an **AC / spec**, add an **AC-coverage table**, one row per AC: `| AC | check | status |`, where `check` is how that AC is verified (which test or manual step) and `status` is one value from the legend.
 - **Legend:** ✅ e2e-verified · ⚠️ covered-but-weak · ⚪ unit-only · ⏸ todo
-- **Never gloss over gaps.** If an AC is unit-only, weak, or untested, mark it honestly (⚪ / ⚠️ / ⏸) — do not inflate partial coverage into "all pass". Surfacing the gap is the point of this section.
+- **Never gloss over gaps.** If an AC is unit-only, weak, or untested, mark it honestly (⚪ / ⚠️ / ⏸). Do not inflate partial coverage into "all pass". Surfacing the gap is the point of this section.
 
-Example — an AC-coverage table for `## Verification`:
+Example, an AC-coverage table for `## Verification`:
 
 | AC                         | check                         | status          |
 | -------------------------- | ----------------------------- | --------------- |
 | AC-1 login returns JWT     | `auth_e2e_test.go::TestLogin` | ✅ e2e-verified |
 | AC-2 refresh rotates token | `token_test.go::TestRefresh`  | ⚪ unit-only    |
-| AC-3 lockout after 5 fails | —                             | ⏸ todo         |
+| AC-3 lockout after 5 fails | -                             | ⏸ todo         |
 
-The description must accurately reflect what the commits and diff show. Read the actual code changes — do not just paraphrase commit messages. If commits are messy or unclear, the description should still be clear and well-organized based on what the diff reveals.
+The description must accurately reflect what the commits and diff show. Read the actual code changes. Do not just paraphrase commit messages. If commits are messy or unclear, the description should still be clear and well-organized based on what the diff reveals.
 
-If a JIRA card ID is provided (e.g., by the using-neo skill or the user), add a `JIRA: <ID>` line near the top of the description.
+If a JIRA card ID is provided, add a `JIRA: <ID>` line near the top of the description.
 
 ### Step 4: Create MR
 
@@ -155,7 +154,7 @@ After creation, show the user the MR URL and key details:
 
 ```
 ✅ สร้าง MR สำเร็จ
-- MR: !<mr_id> — <title>
+- MR: !<mr_id>  <title>
 - Branch: <source> → <target>
 - URL: <mr_url>
 - Delete source branch: ✅
@@ -194,7 +193,7 @@ Extract the current description and target branch.
 
 ### Step 3: Analyze All Changes
 
-Analyze the full set of changes on the branch — not just the new commits, but everything since diverging from the target branch:
+Analyze the full set of changes on the branch, not just the new commits, but everything since diverging from the target branch:
 
 ```bash
 # All commits on the branch
@@ -211,7 +210,7 @@ Compare with the existing MR description to understand what's new or changed sin
 
 ### Step 4: Generate Updated Description
 
-Write a new description covering ALL changes (original + new), using the same structure as MR Create Step 3 — including the **table-first rule**, the `## Verification` section, and the AC-coverage legend defined there:
+Write a new description covering ALL changes (original + new), using the same structure as MR Create Step 3, including the **table-first rule**, the `## Verification` section, and the AC-coverage legend defined there:
 
 ```
 ## Summary
@@ -221,14 +220,14 @@ Write a new description covering ALL changes (original + new), using the same st
 <complete grouped list of all changes>
 
 ## Files Changed
-<updated file list — `| File | Change |` table when several files are touched>
+<updated file list; `| File | Change |` table when several files are touched>
 
 ## Verification
-<test outcomes per suite — unit / e2e / lint — concrete, never a bare pass-count>
+<test outcomes per suite (unit / e2e / lint), concrete, never a bare pass-count>
 <AC-coverage table (`| AC | check | status |`, same legend as Step 3) when tied to an AC/spec>
 ```
 
-Do NOT just append new changes to the old description — rewrite the entire description to be coherent and comprehensive. The description should read as if it was written fresh for the current state of the branch. Re-verify the `## Verification` results against the current branch state — refresh each AC status from the latest test run and mark any gaps honestly; never carry over stale "all pass" claims from the previous description.
+Do NOT just append new changes to the old description. Rewrite the entire description to be coherent and comprehensive. The description should read as if it was written fresh for the current state of the branch. Re-verify the `## Verification` results against the current branch state. Refresh each AC status from the latest test run and mark any gaps honestly; never carry over stale "all pass" claims from the previous description.
 
 ### Step 5: Update MR and Report
 
@@ -240,7 +239,7 @@ Report:
 
 ```
 ✅ อัพเดท MR description สำเร็จ
-- MR: !<mr_id> — <title>
+- MR: !<mr_id>  <title>
 - สิ่งที่เพิ่มเติม: <brief summary of new changes detected since last description>
 - URL: <mr_url>
 ```
@@ -249,7 +248,7 @@ Report:
 
 ## MR Read Workflow
 
-The lightest workflow — no specialist agents, no comments posted. Just fetch MR data and present a concise summary to the user in the conversation. (neo also calls this to fetch MR data for a review.)
+The lightest workflow: no specialist agents, no comments posted. Just fetch MR data and present a concise summary to the user in the conversation.
 
 ```
 1. Fetch MR info (JSON), diff, and notes
@@ -268,10 +267,10 @@ glab mr note list <mr_id> --repo <repo_ref>
 
 Present a concise Thai summary covering:
 
-- **MR metadata** — title, author, status, source → target branch, pipeline status
-- **What changed** — brief description of the changes (group by area: features, refactoring, CI, docs, tests)
-- **Files changed** — count and key files
-- **Existing comments** — if there are review comments, briefly note them
+- **MR metadata**: title, author, status, source → target branch, pipeline status
+- **What changed**: brief description of the changes (group by area: features, refactoring, CI, docs, tests)
+- **Files changed**: count and key files
+- **Existing comments**: if there are review comments, briefly note them
 
 Keep it terminal-friendly and scannable. Do NOT spawn specialist agents or post any comments on the MR.
 
@@ -279,7 +278,7 @@ Keep it terminal-friendly and scannable. Do NOT spawn specialist agents or post 
 
 ## CI Inspection (fetch only)
 
-Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI — fixing pipeline failures is orchestrated by the `using-neo` skill (Bug Fix flow), which calls this section to gather the logs.
+Fetch pipeline status and failed-job logs for an MR or branch. This skill only **inspects** CI. This skill does not diagnose or fix CI; inspect logs only; product fix is out of scope.
 
 ### Step 1: Pipeline Status
 
@@ -299,13 +298,13 @@ glab ci view <pipeline_id> --repo <repo_ref>
 glab ci trace <job_id> --repo <repo_ref>
 ```
 
-Collect the last ~100 lines of each failed job's log — these hold the actual error messages. Summarize each failure (job name, stage, category — Build / Test / Lint / Config — and an error excerpt) and hand it back to neo for orchestration, or present it to the user. Do NOT spawn fix agents here.
+Collect the last ~100 lines of each failed job's log. These hold the actual error messages. Summarize each failure (job name, stage, category: Build / Test / Lint / Config, and an error excerpt) and present it to the user. Do NOT spawn fix agents here.
 
 ---
 
-## Post a Comment (invoked by using-neo)
+## Post a Comment
 
-When using-neo has composed a review comment (it owns the table-first review template), it calls this skill to post the comment. Post the provided text **verbatim** — do not re-summarize, re-review, or add findings of your own:
+When a review comment has already been composed (this skill does not write the review), post the provided text **verbatim**. Do not re-summarize, re-review, or add findings of your own:
 
 ```bash
 glab mr note <mr_id> --repo <repo_ref> -m "<composed_comment>"
@@ -335,10 +334,10 @@ Use these directly via `Bash` when the user asks for something other than the wo
 
 When creating a MR with `glab mr create`, always include these flags:
 
-- `--remove-source-branch` — delete source branch after merge
-- `--squash-before-merge` — squash commits when MR is accepted
+- `--remove-source-branch`: delete source branch after merge
+- `--squash-before-merge`: squash commits when MR is accepted
 
-These are team defaults and should be applied to every MR creation, whether the user explicitly mentions them or not. The user may add other flags (e.g., `--title`, `--description`, `--assignee`, `--reviewer`) as needed.
+These are team defaults and should be applied to every MR creation, whether the user explicitly mentions them or not. The user may add other flags (e.g. `--title`, `--description`, `--assignee`, `--reviewer`) as needed.
 
 For `--repo`, you can omit it if you're already inside the project directory (glab detects the remote automatically).
 
@@ -346,6 +345,6 @@ For `--repo`, you can omit it if you're already inside the project directory (gl
 
 - **glab not authenticated**: tell the user to run `glab auth login`
 - **glab command fails**: output the result as conversation text instead of posting, explain what failed
-- **Empty diff**: note that the MR has no file changes (tell neo / the user) and stop
+- **Empty diff**: note that the MR has no file changes and stop
 - **Large diff (>500 lines)**: warn the user, proceed but note the summary may miss details
-- **Large single-line files** (minified JS, large JSON): the view tool now shows partial content — note this in the summary if such files are part of the diff
+- **Large single-line files** (minified JS, large JSON): the view tool now shows partial content; note this in the summary if such files are part of the diff

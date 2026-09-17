@@ -34,7 +34,7 @@ type Config struct {
 	Password  string
 	Database  int
 	UseTLS    bool
-	KeyPrefix string // required; the caller's cache namespace, e.g. "user:" — must be non-empty
+	KeyPrefix string // required; the caller's cache namespace, e.g. "user:", must be non-empty
 }
 
 var ErrNotFound = errors.New("valkey: key not found")
@@ -49,7 +49,7 @@ type client struct {
 // never blocks on network I/O.
 //
 // An empty cfg.KeyPrefix is a wiring error (every cache user must declare
-// its namespace) and panics here rather than at first command — this
+// its namespace) and panics here rather than at first command: this
 // surfaces the misconfiguration at startup, not in production traffic.
 func NewClient(cfg Config) Client {
 	if cfg.KeyPrefix == "" {
@@ -66,7 +66,7 @@ func NewClient(cfg Config) Client {
 	}
 	if cfg.UseTLS {
 		// MinVersion 1.2 baseline; default verification uses system roots
-		// and the hostname embedded in cfg.Addr — sufficient for ElastiCache
+		// and the hostname embedded in cfg.Addr: sufficient for ElastiCache
 		// which serves a publicly-rooted certificate.
 		opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}

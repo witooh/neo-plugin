@@ -2,13 +2,13 @@
 """L1 deterministic structure-conformance check for a migrate-project target.
 
 Run against a service that has been migrated to the account-service hexagonal / DDD
-blueprint. Proves — statically, without the Go toolchain — that the layout, the
+blueprint. Proves: statically, without the Go toolchain: that the layout, the
 inward-only dependency rule, and the installed architecture contract (.golangci.yaml)
 match the blueprint, and that no old-dialect layout residue remains.
 
 This is a TRIPWIRE, not the full gate: `go build` / `go test` / `golangci-lint` (run by
 the Verifier role) are the authoritative behavior + lint gates. structurecheck needs no
-Go installed and no build — it reads the file tree + imports, so it works pre-build and
+Go installed and no build: it reads the file tree + imports, so it works pre-build and
 catches structural drift a successful build would still hide.
 
 Usage:
@@ -38,7 +38,7 @@ REQUIRED_DIRS = [
 ]
 
 # Old-dialect residue: (relative path, needs_code, message). Present → DRIFT.
-# The blueprint never has any of these — their presence means a layer was not relocated.
+# The blueprint never has any of these: their presence means a layer was not relocated.
 RESIDUE_DIRS = [
     ("app",              True,  "composition root should be cmd/api/ (structure.md)"),
     ("internal/adapter", True,  "singular internal/adapter/ → internal/delivery/http/ + internal/adapters/"),
@@ -47,7 +47,7 @@ RESIDUE_DIRS = [
     ("internal/domain",  True,  "flat internal/domain/ → internal/core/domain/{entity,service,repository,event}/ (domain.md)"),
 ]
 
-# Framework packages banned inside core (the depguard contract — structure.md / domain.md).
+# Framework packages banned inside core (the depguard contract: structure.md / domain.md).
 CORE_FRAMEWORK_BANS = [
     "github.com/gin-gonic/gin",
     "net/http",
@@ -114,7 +114,7 @@ def check_residue(root: Path) -> None:
         if not d.is_dir():
             continue
         if rel == "internal/domain":
-            # flat domain = .go files DIRECTLY in internal/domain (not a context subdir) — a shallow
+            # flat domain = .go files DIRECTLY in internal/domain (not a context subdir), a shallow
             # check, deliberately not folded into the recursive has_files_with_ext table (only case)
             if any(p.suffix == ".go" for p in d.iterdir() if p.is_file()):
                 drift(f"{rel}/", msg)
@@ -141,7 +141,7 @@ def check_nested_layers(root: Path) -> None:
 
 def check_group_case(root: Path) -> None:
     """Group dirs directly under core/usecase (bounded-context names) and core/domain (the fixed
-    technical-layer names entity/service/repository/event/integration) must be lowercase — never
+    technical-layer names entity/service/repository/event/integration) must be lowercase, never
     Account/Entity. DRIFT (high-confidence structural fact)."""
     for layer in ("internal/core/usecase", "internal/core/domain"):
         base = root / layer
@@ -151,12 +151,12 @@ def check_group_case(root: Path) -> None:
             if p.is_dir() and p.name not in SKIP_DIRS and p.name != p.name.lower():
                 drift(f"{layer}/{p.name}/",
                       f"group dir must be lowercase (a <context> package under usecase / a layer "
-                      f"name under domain) — rename to {p.name.lower()}/ (structure.md)")
+                      f"name under domain): rename to {p.name.lower()}/ (structure.md)")
 
 
 def check_dependency_rule(root: Path, module: str | None) -> None:
     if not module:
-        note("(imports)", "no module path in go.mod — dependency-rule check skipped")
+        note("(imports)", "no module path in go.mod: dependency-rule check skipped")
         return
     def has_import(txt: str, path: str) -> bool:
         return f'"{path}' in txt  # matches "<path>" and "<path>/sub"
@@ -168,10 +168,10 @@ def check_dependency_rule(root: Path, module: str | None) -> None:
     layers = [
         ("internal/core/domain",
          [f"{module}/internal/core/usecase", f"{module}/internal/adapters", f"{module}/internal/delivery"],
-         "domain imports outward ({imp}…) — imports point inward only (structure.md)"),
+         "domain imports outward ({imp}…): imports point inward only (structure.md)"),
         ("internal/core/usecase",
          [f"{module}/internal/adapters", f"{module}/internal/delivery"],
-         "usecase imports outward ({imp}…) — depend on the domain port instead (structure.md)"),
+         "usecase imports outward ({imp}…): depend on the domain port instead (structure.md)"),
     ]
     for layer, outward, tail in layers:
         owner = layer.rsplit("/", 1)[1]
@@ -182,18 +182,18 @@ def check_dependency_rule(root: Path, module: str | None) -> None:
                     drift(rel, tail.format(imp=imp))
             for fw in CORE_FRAMEWORK_BANS:
                 if has_framework(txt, fw):
-                    drift(rel, f"{owner} imports framework {fw} — core stays framework-free (depguard)")
+                    drift(rel, f"{owner} imports framework {fw}: core stays framework-free (depguard)")
 
 
 def check_ambient_calls(root: Path) -> None:
-    """forbidigo contract: no time.Now()/uuid.New() in core — NOTE (golangci is authoritative)."""
+    """forbidigo contract: no time.Now()/uuid.New() in core: NOTE (golangci is authoritative)."""
     pat = re.compile(r"\b(time\.Now|uuid\.New(?:String)?)\s*\(")
     for layer in ("internal/core/domain", "internal/core/usecase"):
         for p, txt in go_files_under(root, layer):
             m = pat.search(txt)
             if m:
                 note(p.relative_to(root).as_posix(),
-                     f"ambient call {m.group(1)}() in core — inject clock.Clock/idgen.Generator "
+                     f"ambient call {m.group(1)}() in core: inject clock.Clock/idgen.Generator "
                      f"(forbidigo; run golangci-lint to confirm)")
 
 
@@ -202,27 +202,27 @@ def check_contract(root: Path, module: str | None) -> None:
     if not gl.is_file():
         gl = root / ".golangci.yml"
     if not gl.is_file():
-        drift("(contract)", ".golangci.yaml not installed — the depguard/forbidigo contract is the "
+        drift("(contract)", ".golangci.yaml not installed: the depguard/forbidigo contract is the "
                             "machine-checkable conformance gate (install per blueprint)")
     else:
         text = gl.read_text(encoding="utf-8", errors="ignore")
         if SENTINEL_MODULE in text:
             drift(gl.name, f"sentinel module {SENTINEL_MODULE} not substituted to the target module path")
         elif module and module not in text:
-            note(gl.name, f"depguard does not reference the target module {module} — confirm the layer rules are wired")
+            note(gl.name, f"depguard does not reference the target module {module}, confirm the layer rules are wired")
     if not (root / ".kiro/steering/INDEX.md").is_file():
-        drift("(contract)", ".kiro/steering/INDEX.md not installed — steering guides are not discoverable")
+        drift("(contract)", ".kiro/steering/INDEX.md not installed: steering guides are not discoverable")
     if not (root / ".kiro/steering/structure.md").is_file():
-        note("(contract)", ".kiro/steering/ not installed — blueprint convention guides (install per blueprint)")
+        note("(contract)", ".kiro/steering/ not installed: blueprint convention guides (install per blueprint)")
     if not (root / "CLAUDE.md").is_file():
-        note("(contract)", "CLAUDE.md not installed — steering index (install per blueprint)")
+        note("(contract)", "CLAUDE.md not installed: steering index (install per blueprint)")
 
 
 def check_compose_images(root: Path) -> None:
-    """Flag non-standard compose image tags (tooling.md) as NOTE.
+    """Flag non-standard compose / Dockerfile / CI image tags (tooling.md) as NOTE.
 
     DRIFT is reserved for high-confidence structural facts (layout/imports/
-    golangci contract) — see migrate-project CLAUDE.md. Compose tags on
+    golangci contract): see migrate-project CLAUDE.md. Image tags on
     brownfield targets (incl. account-service still on kafka 3.7.0) must not
     fail structurecheck's CONFORMS regression guard. Hard fail lives in
     initcheck (greenfield) + migrate-verifier L2 (slice-scoped)."""
@@ -231,8 +231,6 @@ def check_compose_images(root: Path) -> None:
         if p.is_file() and p.name.startswith("docker-compose")
         and p.suffix in {".yaml", ".yml"}
     )
-    if not files:
-        return
     banned = [
         ("valkey/valkey:8-alpine", "use valkey/valkey-bundle:8-alpine (tooling.md)"),
         ("public.ecr.aws/docker/library/postgres", "use postgres:17-alpine Hub path (tooling.md)"),
@@ -241,13 +239,34 @@ def check_compose_images(root: Path) -> None:
     for f in files:
         text = f.read_text(encoding="utf-8", errors="ignore")
         rel = f.name
-        # Independent checks — never gate one ban behind another (multi-bad compose
+        # Independent checks: never gate one ban behind another (multi-bad compose
         # must surface every hit).
         if "apache/kafka:" in text and "apache/kafka:4.1.0" not in text:
             note(rel, "kafka image must be apache/kafka:4.1.0 (tooling.md)")
         for bad, msg in banned:
             if bad in text:
                 note(rel, msg)
+
+    df = root / "Dockerfile"
+    if df.is_file():
+        dtext = df.read_text(encoding="utf-8", errors="ignore")
+        if "alpine:latest" in dtext:
+            note("Dockerfile", "final stage must be public.ecr.aws/docker/library/alpine:3.21 (tooling.md)")
+        elif "FROM" in dtext and "public.ecr.aws/docker/library/alpine:3.21" not in dtext:
+            note("Dockerfile", "final stage must be public.ecr.aws/docker/library/alpine:3.21 (tooling.md)")
+        if "FROM" in dtext and "public.ecr.aws/docker/library/golang:1.26-alpine" not in dtext:
+            note("Dockerfile", "builder must be public.ecr.aws/docker/library/golang:1.26-alpine (tooling.md)")
+
+    ci = root / ".gitlab-ci.yml"
+    if ci.is_file():
+        citext = ci.read_text(encoding="utf-8", errors="ignore")
+        if "image:" in citext and "public.ecr.aws/docker/library/golang:1.26" not in citext:
+            note(".gitlab-ci.yml", "CI golang image must be public.ecr.aws/docker/library/golang:1.26 (tooling.md)")
+        if re.search(r"(?m)^\s+image:\s*.*\bnode:", citext) and "public.ecr.aws/docker/library/node:22-alpine" not in citext:
+            note(".gitlab-ci.yml", "CI node image must be public.ecr.aws/docker/library/node:22-alpine (tooling.md)")
+        uses_docker_image = re.search(r"(?m)^\s+image:\s*.*\bdocker:", citext) or re.search(r"(?m)^\s+- docker:", citext)
+        if uses_docker_image and "public.ecr.aws/docker/library/docker:28.5.1" not in citext:
+            note(".gitlab-ci.yml", "CI docker image must be public.ecr.aws/docker/library/docker:28.5.1 (tooling.md)")
 
 
 def main() -> None:
@@ -260,7 +279,7 @@ def main() -> None:
         print(f"error: target {root} not found", file=sys.stderr)
         sys.exit(2)
     if not (root / "go.mod").is_file():
-        print(f"error: {root} has no go.mod — not a Go module (greenfield? use the init-project skill)", file=sys.stderr)
+        print(f"error: {root} has no go.mod: not a Go module (greenfield? use the init-project skill)", file=sys.stderr)
         sys.exit(2)
 
     module = read_module_path(root)

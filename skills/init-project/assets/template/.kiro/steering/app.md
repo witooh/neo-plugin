@@ -12,13 +12,13 @@ lives in its own top-level **`config`** package (`config/config.go`), beside
 `config/config.yaml`; `cmd/api` imports it, calls `config.MustLoad()`, and threads the result.
 
 ```
-cmd/api/               package main — composition root + entry point
+cmd/api/               package main: composition root + entry point
     main.go            tiny: MustLoad config, build context, call Run(ctx, cfg)
     app.go             Run(ctx, cfg): open infra (DB, cache), build adapters, start HTTP + consumer
     adapters.go        construct the gateway / producer / number-generator adapters (each returns its port)
     http.go            buildHandlers + runHTTPServer (router lives in delivery/http/router)
     consumer.go        startKafkaConsumer (wires the processor)
-config/                package config — runtime configuration (imported by cmd/api)
+config/                package config: runtime configuration (imported by cmd/api)
     config.go          typed Config struct + Load/MustLoad + env/file loader
     config.yaml        runtime config values (mounted into the container)
 ```
@@ -26,8 +26,8 @@ config/                package config — runtime configuration (imported by cmd
 ## ⚠️ Domain-port imports + name-collision aliases
 
 The wiring imports the **centralized domain ports** (the parameter types of
-`buildHandlers`): the `repository` package's port(s) — repositories plus any `NumberGenerator` /
-`Cache` — the `event` package's `EventPublisher`, and the `integration/<sys>` gateway ports — plus the concrete
+`buildHandlers`): the `repository` package's port(s): repositories plus any `NumberGenerator` /
+`Cache`: the `event` package's `EventPublisher`, and the `integration/<sys>` gateway ports, plus the concrete
 adapter types it constructs (e.g. `eventbus.ProducerAdapter`, `cache.Cache`).
 
 The concrete repository / gateway ports for this service are in `repo-instance.md`.
@@ -49,15 +49,15 @@ import (
 func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>Adapter dm<upstream>.<Upstream> /* … */) *router.Handlers
 ```
 
-(The integration-package aliasing convention also applies inside the handler packages — see
+(The integration-package aliasing convention also applies inside the handler packages, see
 `handler.md`.)
 
-## `main.go` — thin
+## `main.go`: thin
 
 ```go
 func main() {
 	cfg := config.MustLoad()
-	logger.InitLogger(cfg.LoggerConfig) // ServiceName required — empty panics
+	logger.InitLogger(cfg.LoggerConfig) // ServiceName required: empty panics
 	defer logger.Sync()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -71,7 +71,7 @@ func main() {
 
 Infra handles (DB, cache) are opened in `app.go`'s `Run`; the gateway / producer /
 number-generator adapters are constructed in `adapters.go`. Each `New...` returns a
-**port interface** owned by its domain context (see `integration.md` / `repository.md`) — the
+**port interface** owned by its domain context (see `integration.md` / `repository.md`), the
 only place concrete adapter types are named.
 
 ```go
@@ -82,13 +82,13 @@ queries := sqlc.New(db)
 appCache := cache.NewCache(redisClient)                                 // → repository.Cache
 ```
 
-## `http.go` — wire usecases into handlers, then serve
+## `http.go`: wire usecases into handlers, then serve
 
-`buildHandlers` takes the **domain-owned port interfaces** as parameters (not concretes — the
+`buildHandlers` takes the **domain-owned port interfaces** as parameters (not concretes, the
 abstraction boundary), constructs each usecase via `New(Params{...})`, injects them into each
 handler's `New`, and returns a filled **`router.Handlers`** (the handler set). Gin engine
 construction, the middleware chain, `/health`, and route groups now live in the delivery layer
-(`internal/delivery/http/router` + `middleware`, see `handler.md`) — `cmd/api` only **fills**
+(`internal/delivery/http/router` + `middleware`, see `handler.md`): `cmd/api` only **fills**
 `router.Handlers` and hands it to `router.New`.
 
 ```go
@@ -116,7 +116,7 @@ The split is fixed: `cmd/api` builds the usecases + handler set; `router.New` (i
 owns middleware → `/health` → groups → `Register`; `runHTTPServer` runs `ListenAndServe` with a
 `ctx`-driven `Shutdown`.
 
-## `consumer.go` — start the Kafka consumer
+## `consumer.go`: start the Kafka consumer
 
 Wire the processor (its inbound port satisfied by a usecase) to the consume loop; run it
 under the same `ctx` so shutdown is coordinated with the HTTP server.
@@ -129,17 +129,17 @@ return startConsumeLoop(ctx, kafkaClient, proc.Process)
 ## The `config` package (`config/config.go`)
 
 A typed `Config` struct loaded once at startup via `config.MustLoad()` (or
-`config.Load()` for the error-returning variant) — its own top-level **`package config`**,
+`config.Load()` for the error-returning variant): its own top-level **`package config`**,
 beside `config/config.yaml`, with no package-level global. Group by concern
 (service, DB, kafka, each upstream). The loader reads the YAML file then overlays
-env-var overrides (upper-snake dotted path, e.g. `VAULT_BASE_URL`) — SIT/prod inject
-the full config this way. Secrets come from the environment / secret store — never
+env-var overrides (upper-snake dotted path, e.g. `VAULT_BASE_URL`): SIT/prod inject
+the full config this way. Secrets come from the environment / secret store, never
 commit them. `cmd/api` calls `MustLoad`, then hands each adapter its slice via the
 adapter's own `Config` struct; adapters/usecases never read config globally.
 
-`logger` is `logger.Config` from common-lib v2.2.5: `environment` (`development` /
+`logger` is `logger.Config` from common-lib v2.2.4: `environment` (`development` /
 `production`), `level` (`debug`/`info`/`warn`/`error`), **`service_name` (required
-string — `InitLogger` panics if empty)**, optional `service_version`, optional
+string: `InitLogger` panics if empty)**, optional `service_version`, optional
 `disable_body_capture`. Pin `service_name` to the same id as `service.service_id`
 (the `NEOSVC` sentinel) so `logger.ServiceName()` matches `GinErrorHandler`.
 Levels, event names, `logger.Err(err, category)`, and `Fatal`/`Panic` (startup only)
@@ -147,7 +147,7 @@ are in `structure.md` § *Logging and errors*.
 
 ## Don'ts
 
-- ✗ Business logic or HTTP/DTO shaping here — wiring only.
-- ✗ Passing concrete adapter types into `buildHandlers` — pass interfaces.
-- ✗ Reading config globally from inside a usecase/adapter — inject the needed values.
+- ✗ Business logic or HTTP/DTO shaping here: wiring only.
+- ✗ Passing concrete adapter types into `buildHandlers`: pass interfaces.
+- ✗ Reading config globally from inside a usecase/adapter: inject the needed values.
 - ✗ `logger.Fatal` / `logger.Panic` outside unrecoverable startup (`structure.md` § *Logging and errors*).

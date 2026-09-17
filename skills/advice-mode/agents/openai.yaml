@@ -1,0 +1,5 @@
+interface:
+  display_name: "Advice Mode"
+  short_description: "Pick plan, vibe, goal, or none"
+policy:
+  allow_implicit_invocation: false

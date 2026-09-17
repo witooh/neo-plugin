@@ -1,13 +1,13 @@
-# Target Map — content spec for `<target>/docs/migration/target-map.md`
+# Target Map: content spec for `<target>/docs/migration/target-map.md`
 
 The **Analyzer** writes this (read-only role). A precise picture of the target's **current**
-structure + the **delta** to the blueprint. Accurate, not exhaustive — the Mapper turns it into
+structure + the **delta** to the blueprint. Accurate, not exhaustive: the Mapper turns it into
 slices. Markdown.
 
 ## Shape
 
 ```
-# Target Map — <service-name>
+# Target Map: <service-name>
 
 Module: <go.mod module path>
 Go: <version>   Stack: <gin? pgx? sqlc? common-lib v?>
@@ -33,11 +33,11 @@ Analyzed: <YYYY-MM-DD or session marker>
 | <name> | <usecase / repo / handler / domain paths> | <e.g. repo used by another feature> |
 
 ## Convention gaps (vs steering)
-- [ ] aggregates: <plain structs / public fields> → encapsulate (private + getters + factories) — domain.md
-- [ ] ports: <feature-local internal/<feat>/ports/ or scattered> → centralize in internal/core/domain/repository/ + event/ (gateways stay integration/<sys>/) — domain.md
-- [ ] deterministic-by-injection: time.Now()/uuid.New() in core at <file:line> → clock/idgen — structure.md
-- [ ] DTO mapping: <returns aggregate raw?> → map at the edge — handler.md
-- [ ] common-lib: <pin + residue, or "v2.2.5, new chain"> → v2.2.5 + handler.md chain (no ServiceIdMiddleware / ErrorLoggingMiddleware / GetServiceId; logger.Config.ServiceName required; httpclient on outbound HTTP) — migrator.md S1
+- [ ] aggregates: <plain structs / public fields> → encapsulate (private + getters + factories), domain.md
+- [ ] ports: <feature-local internal/<feat>/ports/ or scattered> → centralize in internal/core/domain/repository/ + event/ (gateways stay integration/<sys>/), domain.md
+- [ ] deterministic-by-injection: time.Now()/uuid.New() in core at <file:line> → clock/idgen, structure.md
+- [ ] DTO mapping: <returns aggregate raw?> → map at the edge: handler.md
+- [ ] common-lib: <pin + residue, or "v2.2.4, new chain"> → v2.2.4 + handler.md chain (no ServiceIdMiddleware / ErrorLoggingMiddleware / GetServiceId; logger.Config.ServiceName required; httpclient on outbound HTTP), migrator.md S1
 - [ ] <other gaps>
 
 ## Cross-cutting
@@ -52,7 +52,7 @@ Analyzed: <YYYY-MM-DD or session marker>
 ```
 
 ## Rules
-- The **dialect deltas** table and the **convention gaps** checklist are the heart — the Mapper
+- The **dialect deltas** table and the **convention gaps** checklist are the heart, the Mapper
   derives slices and target placements from them. Fill them concretely (real paths, real `file:line`
   for ambient-call gaps), not generically.
 - Every feature row must name where the feature lives **now**, so the Migrator knows what to relocate.

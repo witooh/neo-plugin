@@ -1,0 +1,3 @@
+interface:
+  display_name: "Attack Test"
+  short_description: "Live HTTP abuse paths after happy path"

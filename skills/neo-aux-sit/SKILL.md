@@ -12,10 +12,10 @@ Default is **inspect-only**. Do not mutate cluster / ArgoCD / DB unless the user
 
 **Default allowed:** `kubectl get/describe/logs/top/auth can-i`, read secrets for diagnosis, Application get/history/diff via kubectl, `psql` SELECT / \\d / \\dt / \\di with LIMIT, `aws sts` / `eks update-kubeconfig` / `sso login` for local auth, optional port-forward to view Argo UI/API, OpenSearch Discover **read/search** via browser session (shared SIT recipe).
 
-**Mutating (only if user explicitly asks):** `kubectl apply|create|delete|patch|replace|rollout|scale|exec`, `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL, pod restarts. If not explicitly requested — refuse and stay read-only.
+**Mutating (only if user explicitly asks):** `kubectl apply|create|delete|patch|replace|rollout|scale|exec`, `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL, pod restarts. If not explicitly requested, refuse and stay read-only.
 
 ## When to Use
-Use when the user asks to inspect Auxiliary SIT / aux-eks live state: pod logs, OpenSearch historical logs, restarts, ArgoCD app sync/health/history, deployment image/tag, ExternalSecret status, or Postgres connection settings for an Aux service (sms, email, portal, ekyc, special-list, los-credit-card, consent, datamart). Triggers: ดู log aux sit, aux-neo, aux-eks, argocd-auxiliary, หา postgres บน aux, debug auxiliary, opensearch aux, search log sit. Not for Core cluster — use `neo-core-sit`. Not for mutating cluster state unless the user explicitly asks.
+Use when the user asks to inspect Auxiliary SIT / aux-eks live state: pod logs, OpenSearch historical logs, restarts, ArgoCD app sync/health/history, deployment image/tag, ExternalSecret status, or Postgres connection settings for an Aux service (sms, email, portal, ekyc, special-list, los-credit-card, consent, datamart). Triggers: ดู log aux sit, aux-neo, aux-eks, argocd-auxiliary, หา postgres บน aux, debug auxiliary, opensearch aux, search log sit. Not for Core cluster, use `neo-core-sit`. Not for mutating cluster state unless the user explicitly asks.
 
 ## Local auth (required env)
 
@@ -29,14 +29,14 @@ Use when the user asks to inspect Auxiliary SIT / aux-eks live state: pod logs, 
 3. Resolve region from that profile:  
    `REGION=$(aws configure get region --profile "$NEO_AUX_AWS_PROFILE")`  
    If empty → stop and ask user to set `region` on that profile in `~/.aws/config`.
-4. Optional: `aws configure get sso_role_name --profile "$NEO_AUX_AWS_PROFILE"` — expect org role **AuxiliaryEsignatureAccess**.
+4. Optional: `aws configure get sso_role_name --profile "$NEO_AUX_AWS_PROFILE"`: expect org role **AuxiliaryEsignatureAccess**.
 
 Use `"$NEO_AUX_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand: `$PROFILE` / `$REGION`.
 
 ## Procedure
-1. Identity map (org SIT — shared team defaults):
+1. Identity map (org SIT: shared team defaults):
 - Env: Auxiliary SIT
-- AWS account (expect): 290768402609 — confirm live via sts
+- AWS account (expect): 290768402609: confirm live via sts
 - EKS cluster: `aux-eks-goqmac0w`
 - Preferred kubectl context alias: `aux-neo` (full ARN context may also exist)
 - Argo Application namespace: `argocd-app` (majority); rare apps may sit in `argocd`
@@ -79,10 +79,10 @@ Fuzzy search: `kubectl --context aux-neo get deploy,secrets -A` then use the **g
 - Also useful: `--tail=200`, `--previous` on crash
 - Recent events in NS; optional top pods
 - Running image via deploy jsonpath `containers[0].image`
-- Deploy names can differ from Argo app names — list deploy -n NS first.
+- Deploy names can differ from Argo app names: list deploy -n NS first.
 - **Filter:** use the **grep tool** on command output/temp file. **Never** `kubectl … | rg` or `… | grep` in bash.
 
-**B. OpenSearch (historical)** — shared SIT store; **do not fork the recipe**:
+**B. OpenSearch (historical)**: shared SIT store; **do not fork the recipe**:
 1. Read `skill://neo-core-sit/references/opensearch-sit.md` (canonical measured recipe).
 2. Same host/index as Core: `opensearch.sit.awesome-poc-th.com` / `console-sit-log`.
 3. Filter `kubernetes_container_name` to the **Aux** container/deploy name (not Core’s `payment` unless that is the target).
@@ -91,7 +91,7 @@ Fuzzy search: `kubectl --context aux-neo get deploy,secrets -A` then use the **g
 
 5. ArgoCD status:
 Path A (preferred for agents): kubectl Application CRDs in ns argocd-app. Columns name, destination.namespace, sync, health, revision. One-app jq for sync/rev/health/dest/images/conditions. History via status.history last entries.
-Path B (optional CLI/UI): UI at argocd-auxiliary.sit.awesome-poc-th.com with SSO. argocd-server is ClusterIP — port-forward svc/argocd-server -n argocd if CLI needed. Local admin account disabled.
+Path B (optional CLI/UI): UI at argocd-auxiliary.sit.awesome-poc-th.com with SSO. argocd-server is ClusterIP, port-forward svc/argocd-server -n argocd if CLI needed. Local admin account disabled.
 Default read-only. No sync/prune/delete unless user explicitly requests mutate.
 6. Postgres settings from K8s secrets (principle: fuzzy-find secret by service name, then read connection fields):
 1) `kubectl get secrets -n NS` then grep tool for FRAGMENT. Names may end with -secret or -secrets.
@@ -114,14 +114,14 @@ Default read-only. No sync/prune/delete unless user explicitly requests mutate.
 8. Report in Thai, terminal-friendly: identity (account/role from sts; profile from env only); Argo sync/health + image; pod ready/restarts; log snippets with timestamps (and OpenSearch msg counts when used); DB host/db/user/schema by default. Never write decoded credentials into repo files, skill bodies, or durable memory.
 
 ## Pitfalls
-- Core SIT is a different AWS account/cluster — use `neo-core-sit` + `NEO_CORE_AWS_PROFILE`.
+- Core SIT is a different AWS account/cluster: use `neo-core-sit` + `NEO_CORE_AWS_PROFILE`.
 - Missing `NEO_AUX_AWS_PROFILE` → fail fast; never guess a profile name.
 - Argo apps mainly in argocd-app; argocd namespace is the control plane.
-- Wrong namespace is the top miss — resolve Application destination first.
+- Wrong namespace is the top miss: resolve Application destination first.
 - Secret name suffix is inconsistent (-secret vs -secrets).
-- Three credential layouts (yaml blob / POSTGRES_* / DB_*) — do not assume Core-style config.yaml only.
+- Three credential layouts (yaml blob / POSTGRES_* / DB_*): do not assume Core-style config.yaml only.
 - argocd-server is ClusterIP; CLI needs port-forward or use UI SSO. Local admin disabled.
-- Private RDS — extracted settings do not imply laptop connectivity.
+- Private RDS: extracted settings do not imply laptop connectivity.
 - Read-only by default: no apply/delete/sync/edits unless user asks.
 - Never persist decoded credentials into git, skills, or memory.
 - OpenSearch: shared recipe under `neo-core-sit`; do not pipe kubectl to `rg`; sync XHR only; ask user on SSO cold start.

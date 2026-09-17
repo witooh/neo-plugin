@@ -1,0 +1,3 @@
+interface:
+  display_name: "E2E Playwright"
+  short_description: "AC-driven HTTP e2e tests"

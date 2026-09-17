@@ -12,15 +12,15 @@ containers. Unit tests prove logic in isolation (`testing.md`); e2e proves the w
 routing, serialization, and error→status mapping that fakes can't.
 
 > This guide is the **generic pattern**. The concrete stub tool, ports, per-upstream file map,
-> sentinels, and edit gotchas for a given repo are its **repo instance** — kept in the stub
+> sentinels, and edit gotchas for a given repo are its **repo instance**: kept in the stub
 > directory's own `README.md` (the directory matched by `fileMatchPattern` above). Read that
 > alongside this guide.
 
-## Upstream stubs — one file per upstream
+## Upstream stubs: one file per upstream
 
 Each external HTTP upstream is replaced by canned responses from a **stub server**, with stubs
 **split one mapping/environment file per upstream** (never one monolith): a stub edit then
-loads only that upstream's small file, and different features touch different files — small
+loads only that upstream's small file, and different features touch different files, small
 diffs, no merge conflicts. Point each adapter's `base_url` at its upstream's stub.
 
 - **Determinism via sentinel IDs:** requests use fixed sentinel identifiers, each chosen to
@@ -30,14 +30,14 @@ diffs, no merge conflicts. Point each adapter's `base_url` at its upstream's stu
   call); plain JSON otherwise.
 - **One stub may wrap another:** a derived stub can reuse another upstream's `base_url` rather
   than take its own file/port.
-- **Tool-specific gotchas** — route ordering, how a multi-response route is selected, how a body
-  is stored, any route index the tool keeps — live with the repo instance; read its `README.md`
+- **Tool-specific gotchas**: route ordering, how a multi-response route is selected, how a body
+  is stored, any route index the tool keeps: live with the repo instance; read its `README.md`
   before hand-editing a stub file.
 
 ## Editing a stub
 
 Edit the **one file for the upstream you're changing**, through the stub tool's GUI/editor so
-you work with real JSON — not an escaped string. Keep responses deterministic (sentinel IDs)
+you work with real JSON: not an escaped string. Keep responses deterministic (sentinel IDs)
 and follow the tool's matching rules (exact paths before parameterised ones; a `default`
 fallback for multi-response routes). Per-tool specifics and gotchas: the repo instance
 `README.md`.
@@ -66,7 +66,7 @@ E2e is the contract guard; reaching a real upstream from a test = never (stub it
 
 ## ⚠️ Rebuild before e2e
 
-E2e runs against the **built image** — if the stack is already up, the run target may skip
+E2e runs against the **built image**: if the stack is already up, the run target may skip
 rebuilding and silently test stale code. Always rebuild **then** run e2e. Note the full
 "test everything" target may include integration that needs Docker; use the unit-only /
 `-short` target for fast no-Docker runs, and don't run it against a live stack (they contend

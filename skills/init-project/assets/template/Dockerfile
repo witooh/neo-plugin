@@ -13,7 +13,7 @@ ENV CGO_ENABLED=0 GOOS=linux
 RUN go build -mod=vendor -o main ./cmd/api
 
 # ================= Stage 2: Final Image =================
-FROM public.ecr.aws/docker/library/alpine:latest
+FROM public.ecr.aws/docker/library/alpine:3.21
 WORKDIR /app
 
 # Copy the compiled binary from the builder stage

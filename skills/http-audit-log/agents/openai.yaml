@@ -1,0 +1,3 @@
+interface:
+  display_name: "HTTP Audit Log"
+  short_description: "Port one-row gin audit_log to a hexagonal service"

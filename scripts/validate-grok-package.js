@@ -52,7 +52,7 @@ assert.equal(
 assert.equal(
 	grokPlugin.hooks,
 	undefined,
-	".grok-plugin/plugin.json must not override hooks/ — keep the shared hooks/hooks.json",
+	".grok-plugin/plugin.json must not override hooks",
 );
 
 assert.equal(marketplace.name, "neo", "marketplace name must be neo");
@@ -82,15 +82,6 @@ assert.equal(
 	"marketplace url must be this repo — Grok cannot list the marketplace root as a local plugin path",
 );
 
-const usingNeo = path.join(root, "skills", "using-neo", "SKILL.md");
-assert.equal(fs.existsSync(usingNeo), true, "skills/using-neo/SKILL.md is the canonical router");
-
-const hooks = readJson("hooks/hooks.json");
-assert.ok(
-	hooks.hooks && Array.isArray(hooks.hooks.SessionStart),
-	"hooks/hooks.json must keep SessionStart for the Claude channel",
-);
-
 const setupDoc = path.join(root, "docs", "grok-setup.md");
 assert.equal(fs.existsSync(setupDoc), true, "docs/grok-setup.md must exist");
 const setup = fs.readFileSync(setupDoc, "utf8");
@@ -101,10 +92,6 @@ assert.ok(
 assert.ok(
 	setup.includes("grok plugin install"),
 	"docs/grok-setup.md must document plugin install",
-);
-assert.ok(
-	setup.includes("additionalContext"),
-	"docs/grok-setup.md must record the measured SessionStart injection gap",
 );
 
 const grok = spawnSync("grok", ["plugin", "validate", root], {

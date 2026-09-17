@@ -6,7 +6,7 @@ sentinels with the new service's identity, then (best-effort) tidies, git-inits,
 and builds so the result compiles and serves ``GET /health`` immediately.
 
 The frozen template is a real, compilable service under a sentinel module path
-(``example.com/neo/service``) — it is CI-verifiable as-is. Generation is a single
+(``example.com/neo/service``): it is CI-verifiable as-is. Generation is a single
 deterministic string substitution; generic steering placeholders ({{MODULE_PATH}},
 <context>, …) are NOT sentinels and are left untouched for neo to fill per-domain.
 
@@ -74,7 +74,7 @@ def validate(args: argparse.Namespace) -> None:
 
 def preflight(target: Path, force: bool) -> None:
     if (target / ".git").exists():
-        fail(f"{target} already contains a .git/ — refusing to scaffold over an existing repo")
+        fail(f"{target} already contains a .git/: refusing to scaffold over an existing repo")
     if target.exists() and any(target.iterdir()) and not force:
         fail(f"{target} is not empty (pass --force to scaffold into it anyway)")
 
@@ -93,7 +93,7 @@ def walk_texts(root: Path):
             try:
                 yield path, path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
-                continue  # binary or unreadable — leave as copied
+                continue  # binary or unreadable: leave as copied
 
 
 def substitute(target: Path, mapping: dict[str, str]) -> dict[str, int]:
@@ -151,7 +151,7 @@ def main() -> None:
         if r.returncode == 0:
             log("tidied:   go.mod / go.sum")
         else:
-            log("warning:  go mod tidy failed (continuing — the frozen go.sum is already complete):")
+            log("warning:  go mod tidy failed (continuing: the frozen go.sum is already complete):")
             log(indent((r.stderr or r.stdout).strip()))
             if any(n in r.stderr for n in AUTH_NEEDLES):
                 log("          hint: set GOPRIVATE=<host>/* and configure git credentials for the private module host.")

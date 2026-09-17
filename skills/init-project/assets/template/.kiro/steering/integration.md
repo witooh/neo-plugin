@@ -7,18 +7,18 @@ fileMatchPattern: "**/internal/core/domain/integration/**,**/internal/adapters/g
 
 The two halves of every outbound dependency:
 
-- **Define the port** in the domain context that consumes it — for an external system that
+- **Define the port** in the domain context that consumes it: for an external system that
   is `internal/core/domain/integration/<sys>/gateway.go` (the contract the core requires).
 - **Implement it** in `internal/adapters/gateway/<sys>` (external HTTP services) or
-  `internal/adapters/repository/cache` (cache) — the adapter that speaks to the real system.
+  `internal/adapters/repository/cache` (cache): the adapter that speaks to the real system.
 
 The usecase depends on the port interface; the composition root injects the adapter.
 Adapters never import each other.
 
-## Driven port — `internal/core/domain/integration/<sys>/gateway.go`
+## Driven port: `internal/core/domain/integration/<sys>/gateway.go`
 
 Interface **plus its data contracts** (request/response structs + read-models). No wire
-parsing, no business logic — contracts only. The package is the system name (`package <sys>`).
+parsing, no business logic: contracts only. The package is the system name (`package <sys>`).
 One `gateway.go` per upstream (read-models may move to a sibling
 `readmodels.go`, see `domain.md`).
 
@@ -38,7 +38,7 @@ type <Upstream> interface {
 Keep ports **narrow**. If only one operation needs a method, prefer a narrow interface
 declared at that usecase (see `usecase.md` ISP note) over widening the shared port.
 
-## Gateway adapter — `internal/adapters/gateway/<sys>/http/`
+## Gateway adapter: `internal/adapters/gateway/<sys>/http/`
 
 ```
 adapters/gateway/<sys>/
@@ -67,7 +67,7 @@ type Config struct {
 	Timeout   time.Duration
 }
 
-type httpAdapter struct {        // unexported — only the port interface escapes
+type httpAdapter struct {        // unexported: only the port interface escapes
 	client    *stdhttp.Client
 	baseURL   string
 	authToken string
@@ -75,7 +75,7 @@ type httpAdapter struct {        // unexported — only the port interface escap
 
 // NewHTTPAdapter returns the port interface, not the concrete adapter.
 // WrapTransport forwards x-correlation-id and x-request-id from context on every
-// outbound call — build requests with http.NewRequestWithContext(ctx, ...).
+// outbound call: build requests with http.NewRequestWithContext(ctx, ...).
 func NewHTTPAdapter(cfg Config) <sys>.<Upstream> {
 	timeout := cfg.Timeout
 	if timeout <= 0 {
@@ -96,18 +96,18 @@ Method bodies (in `<operation>.go`):
 1. Build the upstream request from the port input with `http.NewRequestWithContext(ctx, …)`
    so `httpclient` can forward correlation/request ids.
 2. Call; cap the response body (`io.LimitReader`, e.g. `1<<20`).
-3. Decode the upstream DTO, **map it to the `integration/<sys>` type** — never leak the wire DTO outward.
+3. Decode the upstream DTO, **map it to the `integration/<sys>` type**: never leak the wire DTO outward.
 4. Translate failures into **`stderr` types** (the adapter's own `domain` package,
-   `adapters/gateway/<sys>/domain` — constructors that return `stderr.StandardError`):
+   `adapters/gateway/<sys>/domain`: constructors that return `stderr.StandardError`):
    not-found the caller treats as empty → `(nil, nil)` (or a swallow-able sentinel, not
    stderr); transport / 5xx / malformed → `stderr.NewServiceError` (503) or
    `stderr.NewThirdPartyError` (504); timeout → `stderr.NewThirdPartyError`. Log at the
    usecase with `logger.Err(err, logger.CategoryExternal|Timeout|Network)`, not here.
    Status table: `structure.md` § *Logging and errors*.
 
-## Cache adapter — `internal/adapters/repository/cache`
+## Cache adapter: `internal/adapters/repository/cache`
 
-The `Cache` port lives in the centralized `repository` package —
+The `Cache` port lives in the centralized `repository` package , 
 `internal/core/domain/repository/cache.go` (`repository.Cache`). Same adapter shape: the constructor
 returns that port. The cache adapter wraps the low-level Redis client in
 `internal/adapters/repository/redis`.
@@ -126,7 +126,7 @@ into `Params` wherever the real adapter does. See `testing.md`.
 
 ## Don'ts
 
-- ✗ Business logic in an adapter — only protocol + mapping + error translation.
-- ✗ Returning the concrete struct from the constructor — return the port (`<sys>.<Upstream>`).
+- ✗ Business logic in an adapter: only protocol + mapping + error translation.
+- ✗ Returning the concrete struct from the constructor: return the port (`<sys>.<Upstream>`).
 - ✗ Leaking upstream wire DTOs past the adapter boundary.
 - ✗ Importing a usecase, a handler, or another adapter.

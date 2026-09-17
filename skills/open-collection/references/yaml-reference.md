@@ -1,8 +1,8 @@
-# OpenCollection YAML — Schema Reference (v1.0.0)
+# OpenCollection YAML: Schema Reference (v1.0.0)
 
 Authoritative key/section reference for files this skill writes. Distilled from the OpenCollection spec ([docs](https://docs.usebruno.com/opencollection-yaml/structure-reference)) and the steering files used in the `tcrb/bruno-api-documents` workspace.
 
-This skill writes a **subset** of the OpenCollection spec — the sections needed to represent a runnable, self-documenting request derived from the `docs/api/*.yaml` **API spec** (custom YAML). Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the api-spec calls for them.
+This skill writes a **subset** of the OpenCollection spec: the sections needed to represent a runnable, self-documenting request derived from the `docs/api/*.yaml` **API spec** (custom YAML). Optional features the skill never emits (graphql body, oauth2, awsv4, multipart with file streams, etc.) are listed in the Auth Types and Body Types tables for completeness but are not used by the generator unless the api-spec calls for them.
 
 ---
 
@@ -13,7 +13,7 @@ This skill writes a **subset** of the OpenCollection spec — the sections neede
 | `opencollection.yml` | Collection root. One per collection. Holds `info` + bundling/ignore config. |
 | `environments/<NAME>.yml` | One file per environment. Holds variables (including secrets). |
 | `<folder>/folder.yml` | Folder metadata + inherited headers/auth for child requests. |
-| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `docs` + `settings` — `docs:` is the api-spec endpoint rendered by `yaml2md.py`. |
+| `<folder>/<request>.yml` | One **runnable** HTTP request. `info` + `http` + `docs` + `settings`: `docs:` is the api-spec endpoint rendered by `yaml2md.py`. |
 
 ---
 
@@ -41,7 +41,7 @@ extensions:
 |-----|----------|-------|
 | `opencollection` | yes | Schema version. Always `1.0.0` for this skill. |
 | `info.name` | yes | Display name shown in Bruno UI. Use the service name from `CLAUDE.md`. |
-| `docs` | no | The api-spec INDEX rendered by `yaml2md.py --index docs/api/_meta.yaml docs/api` — service overview, Field Information, the by-domain endpoint list, Common Error Responses. |
+| `docs` | no | The api-spec INDEX rendered by `yaml2md.py --index docs/api/_meta.yaml docs/api`: service overview, Field Information, the by-domain endpoint list, Common Error Responses. |
 | `bundled` | no | `false` for multi-file collections (always false for this skill). |
 | `extensions.bruno.ignore` | no | Path globs Bruno's runner skips. Default to `node_modules` + `.git`. The api-spec lives under `docs/api/` (outside the collection root), so it needs no ignore entry. |
 
@@ -65,11 +65,11 @@ variables:
 |-----|----------|-------|
 | `name` | yes | Environment name (local, sit, uat, prod). Lowercase. |
 | `variables[].name` | yes | Variable identifier (used in `{{name}}` interpolation). |
-| `variables[].value` | yes | String. Leave `""` for secrets — never commit real credentials. |
+| `variables[].value` | yes | String. Leave `""` for secrets: never commit real credentials. |
 | `variables[].secret` | no | `true` masks the value in Bruno's UI/logs. Use for tokens, PINs, biometric data. |
 
 **Generator behavior:**
-- Always emit `baseUrl` even if the code uses a different name — the user can rename.
+- Always emit `baseUrl` even if the code uses a different name: the user can rename.
 - Add a variable for each `{{<name>}}` reference seen in route paths, middleware headers, or path/query params.
 - For values that look like secrets (token, pin, otp, password, key, secret, biometric, national_id, citizen_id where it's the *requester's* identity), emit them with `secret: true` and `value: ""`.
 
@@ -77,7 +77,7 @@ variables:
 
 ## `folder.yml`
 
-Two patterns exist in the wild — this skill uses the **full** pattern because the user opted into CoreTeam2-style folders.
+Two patterns exist in the wild: this skill uses the **full** pattern because the user opted into CoreTeam2-style folders.
 
 ```yaml
 info:
@@ -119,7 +119,7 @@ docs: ...       # the rendered api-spec endpoint
 settings: ...
 ```
 
-Each request is runnable **and self-documenting** — it carries a `docs:` block (the api-spec endpoint rendered by `yaml2md.py`; no `runtime`, no `examples`). `examples` is never emitted.
+Each request is runnable **and self-documenting**: it carries a `docs:` block (the api-spec endpoint rendered by `yaml2md.py`; no `runtime`, no `examples`). `examples` is never emitted.
 
 ### `info`
 
@@ -165,12 +165,12 @@ http:
 | Key | Required | Notes |
 |-----|----------|-------|
 | `method` | yes | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`. |
-| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params — convert the operation's path-key `{id}` form to `:id`. |
+| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params, convert the operation's path-key `{id}` form to `:id`. |
 | `params` | no | All path **and** query params declared explicitly. `type: path` or `type: query`. Path params must match the placeholders in the URL string. |
 | `headers` | no | Per-request headers only. Folder-level shared headers belong in `folder.yml`. |
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
 | `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. |
-| `auth` | yes | `inherit` (default — read from `folder.yml`), `none`, or an explicit auth block. |
+| `auth` | yes | `inherit` (default: read from `folder.yml`), `none`, or an explicit auth block. |
 
 ### `docs`
 
@@ -193,14 +193,14 @@ Always emit `encodeUrl: true` at minimum (per steering rule 4). Other settings (
 
 | Type | YAML shape | When the generator emits it |
 |------|-----------|------------------------------|
-| `inherit` | `auth: inherit` | Default — request defers to folder, folder defers to parent. |
+| `inherit` | `auth: inherit` | Default: request defers to folder, folder defers to parent. |
 | `none` | `auth: none` | Route has no auth middleware. |
 | `bearer` | `auth: { type: bearer, token: "{{auth_token}}" }` | JWT/Bearer middleware detected on the route group. |
 | `apikey` | `auth: { type: apikey, key: X-API-Key, value: "{{api_key}}", placement: header }` | API key middleware detected. |
 | `basic` | `auth: { type: basic, username: "{{basic_user}}", password: "{{basic_pass}}" }` | Basic-auth middleware detected. |
-| `digest` | `auth: { type: digest, username: ..., password: ... }` | Rare — emit only if explicitly detected. |
-| `oauth2` | full oauth2 config | Skill does not emit by default — flag for user to configure. |
-| `awsv4` | full awsv4 config | Skill does not emit by default — flag for user to configure. |
+| `digest` | `auth: { type: digest, username: ..., password: ... }` | Rare, emit only if explicitly detected. |
+| `oauth2` | full oauth2 config | Skill does not emit by default: flag for user to configure. |
+| `awsv4` | full awsv4 config | Skill does not emit by default: flag for user to configure. |
 
 When the same auth applies to every folder in the collection, prefer setting it on the folders rather than the root, because real codebases usually have *some* unauthenticated routes (health, version, login) and a root-level auth forces every folder to override.
 
@@ -214,7 +214,7 @@ When the same auth applies to every folder in the collection, prefer setting it 
 | `text` | Raw text. `body.data` is a string. |
 | `xml` | XML string in `body.data`. |
 | `form-urlencoded` | `body.data` is an array of `{ name, value }`. |
-| `multipart-form` | Array of `{ name, value, type }`. `type: file` for file uploads. Skill flags multipart for manual review — file paths are user-specific. |
+| `multipart-form` | Array of `{ name, value, type }`. `type: file` for file uploads. Skill flags multipart for manual review, file paths are user-specific. |
 | `graphql` | `body.data` has `query` and `variables` keys. Skill does not emit by default. |
 
 This skill only emits `json` and `form-urlencoded` automatically. Other types are flagged for the user to confirm.
@@ -237,7 +237,7 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 1. **Always quote URLs containing `{{vars}}` or `:params`.** Unquoted `{` starts a YAML flow mapping and breaks parsing.
 2. **Use `|-` block scalar for JSON `body.data`** so newlines and indentation are preserved literally.
 3. **Two-space indentation throughout.** No tabs.
-4. **List items use `- key: value` form**, one item per block — easier to diff than the flow form `[{...}, {...}]`.
+4. **List items use `- key: value` form**, one item per block: easier to diff than the flow form `[{...}, {...}]`.
 5. **Strings that look like booleans, numbers, dates, or `yes/no/null` must be quoted.** Example: `value: "1"` not `value: 1` when the variable should be a string. The skill always quotes `param.value` strings.
 6. **`seq` is an integer**, not a string. Write `seq: 10`, not `seq: "10"`.
 7. **Comments are allowed (`# ...`)** but the skill avoids them in generated files.
@@ -246,6 +246,6 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 
 ## Reference Files
 
-- [`request-template.md`](request-template.md) — the per-file templates this skill writes + the **api-spec input contract** (§0: which custom-YAML endpoint key maps to which collection field) + the `docs:` render rules.
+- [`request-template.md`](request-template.md): the per-file templates this skill writes + the **api-spec input contract** (§0: which custom-YAML endpoint key maps to which collection field) + the `docs:` render rules.
 
-The shape of the `docs/api/*.yaml` api-spec itself (endpoints, fields, examples) is owned by the **`api-spec`** skill (it authors the spec; `openapi-doc` drift-checks it against Go) — this skill only reads it, it does not redefine it.
+The shape of the `docs/api/*.yaml` api-spec itself (endpoints, fields, examples) is owned by the **`api-spec`** skill (it authors the spec; `openapi-doc` drift-checks it against Go), this skill only reads it, it does not redefine it.

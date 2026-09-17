@@ -7,11 +7,11 @@ fileMatchPattern: "**/internal/delivery/consumer/**,**/internal/adapters/eventbu
 
 Two directions, plus a shared contract:
 
-- **Inbound** — `internal/delivery/consumer`: receive events, route them to usecases.
-- **Outbound** — `internal/adapters/eventbus`: publish domain events (implements the
+- **Inbound**: `internal/delivery/consumer`: receive events, route them to usecases.
+- **Outbound**: `internal/adapters/eventbus`: publish domain events (implements the
   `event.EventPublisher` port in `internal/core/domain/event`).
-- **Infra** — `internal/adapters/eventbus/kafka`: shared client glue (producer/consumer).
-- **Contract** — `pkg/messaging`: the wire contract both directions share — `eventid`
+- **Infra**: `internal/adapters/eventbus/kafka`: shared client glue (producer/consumer).
+- **Contract**: `pkg/messaging`: the wire contract both directions share, `eventid`
   (routing ids), `models` (Avro transport models), `schema` (`.avsc`). It lives in `pkg/`
   so inbound (delivery) and outbound (adapter) both import it without crossing layers.
 
@@ -29,11 +29,11 @@ pkg/messaging/           # wire contract shared by inbound + outbound (imported 
     schema/              # .avsc schema definitions (regen source)
 ```
 
-## Inbound — processor (driving adapter)
+## Inbound: processor (driving adapter)
 
 The processor is a **driving adapter**: it owns a small inbound port (the usecase
 contract it needs), decodes the transport payload into a local DTO, and dispatches by
-event id. It does **not** import the usecase package — it depends on the port
+event id. It does **not** import the usecase package: it depends on the port
 structurally, so any matching `Exec` satisfies it.
 
 ```go
@@ -79,7 +79,7 @@ func (p *processor) handle<Case>(ctx context.Context, data []byte) error {
 ```
 
 > When a usecase method that the processor calls is renamed, the **processor's own port
-> method and the call site must change in the same commit** — the structural match
+> method and the call site must change in the same commit**: the structural match
 > breaks the instant the names diverge.
 
 ### Transport DTOs
@@ -88,9 +88,9 @@ Structs mirroring the upstream event payload (with `json`/Avro tags) live in the
 consumer (or `pkg/messaging/models`). Map them to domain inputs before calling the
 usecase; never pass a transport DTO into `domain`.
 
-## Outbound — publisher
+## Outbound: publisher
 
-Satisfies the `event.EventPublisher` port structurally — the usecase depends on the port
+Satisfies the `event.EventPublisher` port structurally: the usecase depends on the port
 (in `internal/core/domain/event`); the composition root injects this adapter. Unlike the
 gateway/repository constructors that return their port interface, the producer constructor
 returns its concrete adapter type (`ProducerAdapter`) and an error:
@@ -100,7 +100,7 @@ func NewProducerAdapter(ctx context.Context, cfg *producer.Config) (ProducerAdap
 ```
 
 Publish **domain events** (from the `event` package's `events.go`, e.g.
-`event.<Aggregate>Opened`) mapped to the wire model. Keep the published contract stable — it is
+`event.<Aggregate>Opened`) mapped to the wire model. Keep the published contract stable, it is
 an API.
 
 ## Semantics
@@ -110,12 +110,12 @@ an API.
 - Returning an error from `Process` triggers redelivery; returning `nil` commits the
   offset. Skip-and-commit (`return nil`) for events this service does not handle.
 - Log with `logger.Context(ctx)`, event-name messages, and `logger.Err(err, logger.CategoryMessage)`
-  — add `logger.KafkaFields(topic, partition, offset, elapsed)` when those values are in
+ : add `logger.KafkaFields(topic, partition, offset, elapsed)` when those values are in
   hand (`structure.md` § *Logging and errors*). Never `Fatal`/`Panic` in `Process`.
-- `eventid` enums are the single source of routing truth — add a case there + in `Process`.
+- `eventid` enums are the single source of routing truth: add a case there + in `Process`.
 
 ## Don'ts
 
-- ✗ Business logic in the processor — decode, route, delegate.
+- ✗ Business logic in the processor: decode, route, delegate.
 - ✗ Importing the usecase package into the consumer (depend on the inbound port instead).
-- ✗ Failing the whole batch on an unknown event id — skip it.
+- ✗ Failing the whole batch on an unknown event id: skip it.

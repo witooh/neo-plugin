@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-speccheck.py — TRIPWIRE drift checker for the api-doc chain (Go code vs the custom-YAML
+speccheck.py: TRIPWIRE drift checker for the api-doc chain (Go code vs the custom-YAML
 api-spec under docs/api/). Zero install: pure Python 3 (stdlib + PyYAML to parse the spec).
 Layer-1 of the openapi-doc skill's three-layer verify.
 
 WHY THIS EXISTS
   The custom-YAML api-spec at docs/api/ is the SOURCE OF TRUTH, authored spec-first (before
-  code) by the api-spec skill. openapi-doc no longer GENERATES anything — it scans the Go code
+  code) by the api-spec skill. openapi-doc no longer GENERATES anything: it scans the Go code
   and reports where the implementation has DRIFTED from that contract. This is the
   DETERMINISTIC, independent measure a machine CAN count, so the api-spec skill's sync-back rests
   on evidence, not the writer's confidence. (It writes no file; it reads docs/api/*.yaml + Go.)
@@ -15,8 +15,8 @@ PHILOSOPHY: TRIPWIRE, NOT GROUND TRUTH
     • DRIFT = a Go-vs-spec mismatch the script is confident about (a route on one side only,
               a serializable field with no spec row, a spec field absent from the struct, an
               M/O or type that disagree on a confidently-matched field). The api-spec skill
-              confirms each before reconciling the YAML; a genuine false positive — e.g. a
-              spec-first endpoint not built yet, or an intentionally-undocumented route — is
+              confirms each before reconciling the YAML; a genuine false positive: e.g. a
+              spec-first endpoint not built yet, or an intentionally-undocumented route, is
               confirmed + skipped, never blindly "fixed". Loop until DRIFT clears OR ~3 rounds
               stall, then escalate.
     • NOTE  = something the script deliberately CANNOT decide confidently (a field group it
@@ -33,10 +33,10 @@ WHAT IT CHECKS  (ordered high→low confidence)
   D2 Field drift     per matched endpoint, reverse-lookup the Go struct whose json names ⊇ the
                      spec field group (request_body.fields → request struct; each
                      responses[].objects.<Name> → that object's struct), then compare:
-                       • presence — a serializable Go field with no spec row (undocumented) OR
+                       • presence: a serializable Go field with no spec row (undocumented) OR
                          a spec field absent from the struct (stale) = DRIFT;
-                       • M/O      — compute_mo(tags) vs the spec `mandatory` (M|O) = DRIFT;
-                       • type     — go→spec-type mapping vs the spec `type` (confident cases
+                       • M/O     : compute_mo(tags) vs the spec `mandatory` (M|O) = DRIFT;
+                       • type    : go→spec-type mapping vs the spec `type` (confident cases
                          only: bool/[]T/numeric; struct/map/custom/time → skipped) = DRIFT.
                      No confident struct match / envelope wrapper / inline params → NOTE.
 
@@ -50,7 +50,7 @@ import re, sys, json, pathlib
 from collections import defaultdict
 
 try:
-    import yaml                      # PyYAML — required to parse the custom-YAML spec
+    import yaml                      # PyYAML: required to parse the custom-YAML spec
     HAVE_YAML = True
 except Exception:
     HAVE_YAML = False                # no parser → cannot diff; degrade the whole run to a NOTE
@@ -197,9 +197,9 @@ def map_names_to_struct(field_names, name_sets, resolved):
 
 def match_for_drift(field_names, name_sets, resolved):
     """Pair a spec field group with the Go struct it describes, for drift comparison.
-       Tier 1: the strict-subset rule above (want ⊆ struct, tight) — highest confidence.
+       Tier 1: the strict-subset rule above (want ⊆ struct, tight): highest confidence.
        Tier 2 (only when Tier 1 fails): a SAFE best-overlap fallback so a *stale* spec field
-       (the struct lost a field the spec still lists) is still caught — but only when the
+       (the struct lost a field the spec still lists) is still caught: but only when the
        overlap is a strong majority of the group AND the struct is tight around it (no giant
        superset), so two unrelated structs are never mis-paired. Returns (name, fields) when
        confident, else (None, reason) to degrade to NOTE."""
@@ -321,7 +321,7 @@ def _path_match(a, b):
 
 
 def check_route_drift(routes, endpoints, extra_set, drift, notes):
-    """D1 — bidirectional route presence (matched by method + normalised path)."""
+    """D1: bidirectional route presence (matched by method + normalised path)."""
     go_set = sorted({(r['method'], norm_path(r['path'])) for r in routes})
     spec_cover = {(e['method'], e['npath']) for e in endpoints} | extra_set
 
@@ -330,7 +330,7 @@ def check_route_drift(routes, endpoints, extra_set, drift, notes):
         if not any(gm == sm and _path_match(gp, sp) for sm, sp in spec_cover):
             drift.append(('(routes)', 'DRIFT',
                           f'Go route {gm} {gp} has no endpoint in docs/api/ '
-                          f'(undocumented route — add a spec file, or confirm it is '
+                          f'(undocumented route: add a spec file, or confirm it is '
                           f'intentionally undocumented and skip)'))
 
     # spec endpoint (a real file) with no Go route = unimplemented / removed
@@ -339,7 +339,7 @@ def check_route_drift(routes, endpoints, extra_set, drift, notes):
             drift.append(('(routes)', 'DRIFT',
                           f'spec endpoint {e["method"]} {e["npath"]} ({e["file"]}) has no '
                           f'matching Go route (unimplemented [spec-first pending] or a '
-                          f'removed route — confirm)'))
+                          f'removed route: confirm)'))
 
 
 def _compare_group(loc, kind, spec_fields, go_fields, is_request, drift):
@@ -347,13 +347,13 @@ def _compare_group(loc, kind, spec_fields, go_fields, is_request, drift):
     spec_by_name = {f['name']: f for f in spec_fields}
     go_by_json = {f['json']: f for f in go_fields}
 
-    # presence — Go field with no spec row (undocumented)
+    # presence: Go field with no spec row (undocumented)
     for jn in go_by_json:
         if jn not in spec_by_name:
             drift.append((loc, 'DRIFT',
                           f'{kind}: Go field `{jn}` is serializable but has no spec row '
                           f'(undocumented field)'))
-    # presence — spec row with no Go field (stale)
+    # presence: spec row with no Go field (stale)
     for nm in spec_by_name:
         if nm not in go_by_json:
             drift.append((loc, 'DRIFT',
@@ -367,17 +367,17 @@ def _compare_group(loc, kind, spec_fields, go_fields, is_request, drift):
         expect = compute_mo(gf, is_request)
         if sf.get('mandatory') in ('M', 'O') and sf['mandatory'] != expect:
             drift.append((loc, 'DRIFT',
-                          f'{kind}: `{nm}` — Go tags → {expect} but spec says '
+                          f'{kind}: `{nm}`: Go tags → {expect} but spec says '
                           f'{sf["mandatory"]} (M/O drift)'))
         go_t = go_to_spec_type(gf['type'])
         if not type_compatible(go_t, sf.get('type')):
             drift.append((loc, 'DRIFT',
-                          f'{kind}: `{nm}` — Go type {gf["type"]} (→ {go_t}) but spec says '
+                          f'{kind}: `{nm}`: Go type {gf["type"]} (→ {go_t}) but spec says '
                           f'{sf.get("type")} (type drift)'))
 
 
 def check_field_drift(endpoints, routes, name_sets, resolved, drift, notes):
-    """D2 — per matched endpoint, reverse-lookup the Go struct for each spec field group
+    """D2: per matched endpoint, reverse-lookup the Go struct for each spec field group
        and compare presence / M-O / type. Unconfident matches degrade to NOTE."""
     go_set = {(r['method'], norm_path(r['path'])) for r in routes}
     saw_envelope = saw_params = False
@@ -407,10 +407,10 @@ def check_field_drift(endpoints, routes, name_sets, resolved, drift, notes):
                                ofields, info, False, drift)
     if saw_envelope:
         notes.append(('(global)', 'response envelope wrapper fields (status/data/message/…) '
-                                  'are not drift-checked — fresh-eyes confirms the wrapper'))
+                                  'are not drift-checked: fresh-eyes confirms the wrapper'))
     if saw_params:
         notes.append(('(global)', 'query/path params are handler-inline (c.Query/c.Params), '
-                                  'not struct fields — fresh-eyes verifies them'))
+                                  'not struct fields: fresh-eyes verifies them'))
 
 
 # ═════════════════════ main ═════════════════════
@@ -438,16 +438,16 @@ def _bucket():
 def main():
     api_dir, src = parse_args(sys.argv[1:])
     if not api_dir.exists():
-        print(f"speccheck: {api_dir} not found — author the api-spec (run /spec) first")
+        print(f"speccheck: {api_dir} not found: author the api-spec (run /spec) first")
         sys.exit(0)
     if not HAVE_YAML:
-        print("speccheck: PyYAML not installed — cannot parse the api-spec, drift not checked\n"
+        print("speccheck: PyYAML not installed: cannot parse the api-spec, drift not checked\n"
               "    NOTE   install pyyaml to enable the L1 drift check; needs fresh-eyes")
         sys.exit(0)
 
     structs, routes, dup_names = parse_go(src)
     if structs is None:
-        print(f"speccheck: no Go source under --src {src!r} — drift needs the implementation "
+        print(f"speccheck: no Go source under --src {src!r}: drift needs the implementation "
               f"to compare against; nothing to check")
         sys.exit(0)
     resolved = {n: resolve_serializable(n, structs) for n in structs}
@@ -461,11 +461,11 @@ def main():
     check_field_drift(endpoints, routes, name_sets, resolved, drift, notes)
 
     if not endpoints:
-        notes.append(('(global)', f'no endpoint YAML files found under {api_dir} — '
+        notes.append(('(global)', f'no endpoint YAML files found under {api_dir}, '
                                   'nothing to compare; needs fresh-eyes'))
     if dup_names:
         notes.append(('(global)', f'struct name(s) defined differently in >1 file '
-                                  f'({", ".join(sorted(dup_names))}) — excluded; needs fresh-eyes'))
+                                  f'({", ".join(sorted(dup_names))}): excluded; needs fresh-eyes'))
 
     # ---- report (grouped by location, lint.py-style) ----
     by_file = defaultdict(_bucket)
@@ -487,7 +487,7 @@ def main():
             print(f"    NOTE   {n}")
 
     total = len(drift)
-    print(f"\n{'DRIFT FOUND' if total else 'PASS'} — {total} drift / {len(notes)} note(s) "
+    print(f"\n{'DRIFT FOUND' if total else 'PASS'}: {total} drift / {len(notes)} note(s) "
           f"across {len(endpoints)} spec endpoint(s) + {len(routes)} Go route(s)")
     sys.exit(1 if total else 0)
 

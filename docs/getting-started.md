@@ -1,6 +1,6 @@
 # Getting Started
 
-neo = router (`using-neo`) + method skills (vendored from [mattpocock/skills](https://github.com/mattpocock/skills)) + org-specific domain skills. One plugin install covers all three layers.
+neo is a bag of org domain skills in `skills/`. One plugin install. Developers pick a skill themselves — there is no router and no bundled workflow.
 
 ## Install (Claude Code)
 
@@ -13,40 +13,22 @@ For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi
 
 ## First run
 
-Open a session in your service repo. On Claude Code the session-start hook injects `using-neo` (and `.kiro/steering/INDEX.md` when present). On Grok Build, invoke `/using-neo` or state the task and let skill auto-invocation pick the router — hook stdout is not injected. Then state your task.
-
-The router owns the work. Default is a **loop** — it edits inline, or answers you directly. A **graph** is earned when specialties hand off, work fans out, or a node must fail in isolation; then `neo-builder` / `neo-author` / `neo-e2e` take a surface each. Delegating is a choice the router makes, not a rule that keeps it off the keyboard. A loop with no work key is asked once: do it with no record (default), or name a key. `fresh-eyes` runs only when a record is in play. A JIRA-shaped key is ingested before `spec.md` is written.
+Open a session in your service repo. Invoke a skill (slash command or by name), or state the task and let the host auto-load a matching one. There is no session-start hook.
 
 ```
 แก้ GET /accounts/{id} ให้คืน 404 ตอนหาไม่เจอ
 ```
 
-That is one job: the router edits it inline under `tdd`, then runs the package tests. No ingest → align → spec pipeline, no node dispatch to watch.
+Git is yours — neo never touches branches; commit / push only when you ask, through `gitlab`.
 
-## Gates (conditional)
+## Skills
 
-| Gate | Kind | When |
-|---|---|---|
-| Package tests + unit coverage ≥ 80% | machine | production code touched — with or without a record |
-| API contract (`apispeccheck.py` + drift) | machine | `docs/api/` or HTTP wire touched — with or without a record |
-| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs, and a work record is in play |
-| `neocheck.py` | machine | a work record is in play, and you are claiming that work done |
-| MR / ship | human | you asked to ship |
+Seventeen skills under `skills/`. Full list in the [README](../README.md). Brief map:
 
-There is no FEATURE / BUG / RECONCILE pipeline and no spec+plan approval gate. Git branching is yours — neo never touches branches; commit / push only when you ask, through `gitlab`.
-
-## Other entry points
-
-- Question / research: answered in one loop — no graph.
-- Bug: paste the failure — `diagnosing-bugs`, then the fix inline (a `build` node only if it fans out).
-- Refactor: `codebase-design`, then the edit(s) if you asked for them.
-- Direct ops: `docs/api` work, Bruno collections, Confluence publishing, JIRA/GitLab operations, and Go service scaffolding route to the matching domain skill (an `author` node writes the file when the work fans out across several).
-
-## Updating the method layer (maintainers)
-
-```bash
-python3 .agents/skills/sync-mattpocock/assets/sync.py --apply
-node scripts/validate-skills.js
-```
-
-See `.agents/skills/sync-mattpocock/SKILL.md` for the allowlist and conflict rules.
+- **Ingest / tracker / VCS:** `markitdown`, `atlassian`, `gitlab`
+- **API contract chain:** `api-spec`, `openapi-doc`, `open-collection`, `confluence-api-doc`
+- **HTTP e2e / audit:** `e2e-playwright`, `http-audit-log`
+- **QA probes:** `falsifying`, `bug-hunter`, `attack-test`
+- **Go service:** `init-project`, `migrate-project`
+- **SIT:** `neo-core-sit`, `neo-aux-sit`
+- **User-invoked:** `advice-mode`

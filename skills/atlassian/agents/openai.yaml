@@ -1,0 +1,3 @@
+interface:
+  display_name: "Atlassian"
+  short_description: "Jira and Confluence via acli"

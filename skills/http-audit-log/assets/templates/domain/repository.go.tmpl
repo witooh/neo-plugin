@@ -1,0 +1,11 @@
+package audit
+
+import "context"
+
+// AuditLogRepository persists one audit_log row per inbound API call, both
+// SUCCESS and FAILED outcomes. It is the driven port of the audit context;
+// the implementation lives in internal/adapters/repository/postgres.
+type AuditLogRepository interface {
+	// Insert writes a new audit log record.
+	Insert(ctx context.Context, log *AuditLog) error
+}

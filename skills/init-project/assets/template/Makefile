@@ -73,7 +73,7 @@ test-cover:
 # Auto-installs tests/e2e/node_modules on first run.
 test-e2e:
 	@if ! curl -sf http://localhost:8080/health > /dev/null 2>&1; then \
-		echo "⏳ Service not running — starting compose..."; \
+		echo "⏳ Service not running: starting compose..."; \
 		$(MAKE) compose-up; \
 		echo "⏳ Waiting for service to be healthy..."; \
 		for i in $$(seq 1 30); do \
@@ -100,7 +100,7 @@ test-e2e-debug: ## Run E2E tests in debug mode
 test-unit-e2e: test test-e2e
 
 ## ============================================================================
-## Database — migrations & seed
+## Database: migrations & seed
 ## ============================================================================
 
 # Usage: make create-migration NAME=example
@@ -111,7 +111,7 @@ migration-up:
 	@if ls internal/adapters/repository/postgres/migrations/*.sql >/dev/null 2>&1; then \
 		$(MIGRATION_CMD) -path $(MIGRATION_PATH) -database "$(PG_CONNECTION_URL)" up; \
 	else \
-		echo "no migrations yet — skipping (neo adds them under internal/adapters/repository/postgres/migrations)"; \
+		echo "no migrations yet: skipping (neo adds them under internal/adapters/repository/postgres/migrations)"; \
 	fi
 
 migration-down:
@@ -138,7 +138,7 @@ compose-down:
 	@docker compose down --remove-orphans --volumes
 
 ## ============================================================================
-## Quality — vuln + tidy
+## Quality: vuln + tidy
 ## ============================================================================
 
 vulncheck:

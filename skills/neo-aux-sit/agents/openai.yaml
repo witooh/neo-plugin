@@ -1,0 +1,3 @@
+interface:
+  display_name: "Neo Aux SIT"
+  short_description: "Inspect Auxiliary SIT logs, Argo, Postgres"

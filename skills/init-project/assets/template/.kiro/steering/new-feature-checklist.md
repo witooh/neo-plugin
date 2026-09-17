@@ -12,13 +12,13 @@ when you open those files.
 - [ ] Add/extend the **aggregate** (private fields, `New`/`Restore` factories, command methods) or **value object**. No setters.
 - [ ] A value resolved during the op but **not persisted** (response-only) → return it from the **usecase**, not as an aggregate field (no transient field + re-attach).
 - [ ] If logic spans aggregates → a **domain service** package function (no IO/log).
-- [ ] Add **typed errors** (root `errors.go`, package `domain`) for new rejection reasons — `stderr` constructors (or wrappers) so `GinErrorHandler` can map `GetErrorType()` (`structure.md` § *Logging and errors*).
+- [ ] Add **typed errors** (root `errors.go`, package `domain`) for new rejection reasons, `stderr` constructors (or wrappers) so `GinErrorHandler` can map `GetErrorType()` (`structure.md` § *Logging and errors*).
 - [ ] New persistence need → add a method to the **repository interface** in the centralized `repository` package (`internal/core/domain/repository`, speaks in aggregates).
 - [ ] New event → define it in the `event` package (`internal/core/domain/event/events.go`).
 - [ ] ⚠️ If the aggregate is `json.Marshal`-ed anywhere (cache/event), add/update `Marshal/UnmarshalJSON`.
 
 ## 2. Driven port (`integration.md`)
-- [ ] New external dependency → add a narrow interface + its data contracts in its integration context, `internal/core/domain/integration/<sys>/gateway.go`. (A non-gateway driven port — cache / publisher / generator — lives in the centralized `repository` (or `event`) package, e.g. `repository/cache.go`.)
+- [ ] New external dependency → add a narrow interface + its data contracts in its integration context, `internal/core/domain/integration/<sys>/gateway.go`. (A non-gateway driven port, cache / publisher / generator, lives in the centralized `repository` (or `event`) package, e.g. `repository/cache.go`.)
 
 ## 3. Repository (`repository.md`)
 - [ ] Add the query in `queries/*.sql`; `make db-gen` to regenerate.
@@ -28,9 +28,9 @@ when you open those files.
 ## 4. Usecase (`usecase.md`)
 - [ ] Create the package `internal/core/usecase/<context>/<operation>/`.
 - [ ] `usecase.go`: `<Op>Usecase` interface (`Exec`) + `Params` + unexported `usecase` + `New(Params) <Op>Usecase`.
-- [ ] `exec.go`: implement `Exec`; co-locate request/result models + private helpers; log at the boundary with `logger.Context(ctx)` + event names + `logger.Err(err, category)`; propagate `stderr` typed errors. If the op yields a response-only value resolved in-flow, return it alongside the aggregate (`(*Aggregate, <value>, error)`) — don't stash it on the aggregate.
+- [ ] `exec.go`: implement `Exec`; co-locate request/result models + private helpers; log at the boundary with `logger.Context(ctx)` + event names + `logger.Err(err, category)`; propagate `stderr` typed errors. If the op yields a response-only value resolved in-flow, return it alongside the aggregate (`(*Aggregate, <value>, error)`), don't stash it on the aggregate.
 
-## 5. Gateway adapter (`integration.md`) — only if step 2 added a gateway port
+## 5. Gateway adapter (`integration.md`): only if step 2 added a gateway port
 - [ ] Implement the port in `internal/adapters/gateway/<sys>/http` (`NewHTTPAdapter → <sys>.<Upstream>`); map wire DTO → integration type; translate errors.
 - [ ] Add a **fake** of the port for tests.
 
@@ -39,7 +39,7 @@ when you open those files.
 - [ ] Event-driven: add the case in the consumer `processor` + the `eventid` enum; map the transport DTO to usecase inputs.
 
 ## 7. Wiring (`cmd/api`, `app.md`)
-- [ ] In `cmd/api/http.go` `buildHandlers` (or `consumer.go`): construct the usecase via `New(Params{...})` and inject it into the handler/processor. Import the centralized `repository` / `event` ports it needs (alias only integration packages whose name collides with a handler — e.g. `dm<sys>`).
+- [ ] In `cmd/api/http.go` `buildHandlers` (or `consumer.go`): construct the usecase via `New(Params{...})` and inject it into the handler/processor. Import the centralized `repository` / `event` ports it needs (alias only integration packages whose name collides with a handler, e.g. `dm<sys>`).
 - [ ] `cmd/api/adapters.go`: construct any new outbound adapter (returns a port interface).
 - [ ] Register the route: add a `register<Resource>` (or extend one) in `internal/delivery/http/router` and wire the handler into `router.Handlers` (see `handler.md`).
 
@@ -55,5 +55,5 @@ when you open those files.
 - [ ] Gates green: `gofmt`/`goimports` clean · `go build ./...` · `go vet` · `golangci-lint` (≤ baseline) · `make test`.
 - [ ] `make compose-up` **then** `make test-e2e` (rebuild first).
 
-## 11. API collection (`bruno.md`) — optional
+## 11. API collection (`bruno.md`): optional
 - [ ] Add a request file under `bruno/<resource>/`; update `openapi.yaml`.

@@ -16,7 +16,7 @@ import (
 
 // Run is the composition root. It starts the HTTP server immediately (so /health
 // is available without infrastructure) and connects to Postgres on a best-effort
-// basis — a freshly scaffolded service must run with `go run ./cmd/api` alone.
+// basis: a freshly scaffolded service must run with `go run ./cmd/api` alone.
 // neo replaces the best-effort wiring with real repositories, usecases and
 // handlers as it builds the first domain (see .kiro/steering/app.md).
 func Run(ctx context.Context, cfg *config.Config) error {
@@ -29,7 +29,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 }
 
 // tryOpenDB connects to Postgres when it is reachable, returning nil (after a
-// warning) when it is not — the empty skeleton never panics on a missing
+// warning) when it is not: the empty skeleton never panics on a missing
 // database. neo swaps this for the real connection + sqlc.New(db) wiring.
 func tryOpenDB(ctx context.Context, pg config.PostgresConfig) *sql.DB {
 	db, err := sql.Open("pgx", pg.ConnectionString())

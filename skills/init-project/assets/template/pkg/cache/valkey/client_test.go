@@ -38,7 +38,7 @@ func TestClient_SetThenGet(t *testing.T) {
 }
 
 // TestClient_GetMissReturnsErrNotFound proves that a Get on a missing key
-// returns ErrNotFound — callers rely on this to distinguish cache miss
+// returns ErrNotFound: callers rely on this to distinguish cache miss
 // from transport failure.
 func TestClient_GetMissReturnsErrNotFound(t *testing.T) {
 	t.Parallel()
@@ -85,7 +85,7 @@ func TestClient_KeyPrefixApplied(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "x", got)
 
-	// And the un-prefixed key must not exist — proving the prefix is the
+	// And the un-prefixed key must not exist: proving the prefix is the
 	// only address.
 	_, err = mr.Get("abc")
 	assert.Error(t, err)
@@ -131,6 +131,6 @@ func TestNewClient_PanicsOnEmptyKeyPrefix(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
 	assert.Panics(t, func() {
-		_ = NewClient(Config{Addr: mr.Addr()}) // KeyPrefix unset — must panic
+		_ = NewClient(Config{Addr: mr.Addr()}) // KeyPrefix unset: must panic
 	})
 }

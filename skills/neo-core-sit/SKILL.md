@@ -12,10 +12,10 @@ Default is **inspect-only**. Do not mutate cluster / ArgoCD / DB unless the user
 
 **Default allowed:** `kubectl get/describe/logs/top/auth can-i`, read secrets for diagnosis, Application get/history/diff via kubectl, `psql` SELECT / \\d / \\dt / \\di with LIMIT, `aws sts` / `eks update-kubeconfig` / `sso login` for local auth, OpenSearch Discover **read/search** via browser session (see logs section).
 
-**Mutating (only if user explicitly asks):** `kubectl apply|create|delete|patch|replace|rollout|scale|exec`, `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL, pod restarts. If not explicitly requested — refuse and stay read-only.
+**Mutating (only if user explicitly asks):** `kubectl apply|create|delete|patch|replace|rollout|scale|exec`, `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL, pod restarts. If not explicitly requested, refuse and stay read-only.
 
 ## When to Use
-Use when the user asks to inspect Core SIT / core-neo live state: pod logs, OpenSearch historical logs, restarts, ArgoCD app sync/health/history, deployment image/tag, ExternalSecret status, or Postgres connection settings for a Neo core service (payment, account, transaction, …). Triggers: ดู log core sit, core-neo, argocd payment, หา postgres, debug บน SIT, ดู secret payment, opensearch payment, search log sit. Not for Auxiliary cluster — use `neo-aux-sit`. Not for mutating cluster state unless the user explicitly asks.
+Use when the user asks to inspect Core SIT / core-neo live state: pod logs, OpenSearch historical logs, restarts, ArgoCD app sync/health/history, deployment image/tag, ExternalSecret status, or Postgres connection settings for a Neo core service (payment, account, transaction, …). Triggers: ดู log core sit, core-neo, argocd payment, หา postgres, debug บน SIT, ดู secret payment, opensearch payment, search log sit. Not for Auxiliary cluster, use `neo-aux-sit`. Not for mutating cluster state unless the user explicitly asks.
 
 ## Local auth (required env)
 
@@ -36,9 +36,9 @@ Use when the user asks to inspect Core SIT / core-neo live state: pod logs, Open
 Use `"$NEO_CORE_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand in this doc: `$PROFILE` / `$REGION`.
 
 ## Procedure
-1. Identity map (org SIT — shared team defaults):
+1. Identity map (org SIT: shared team defaults):
 - Env: Core SIT (Neo core)
-- AWS account (expect): 986629373331 — confirm live via sts, do not assume
+- AWS account (expect): 986629373331: confirm live via sts, do not assume
 - EKS cluster: `core-eks-hbq5y8` (legacy name `eks-cluster-hbq5y8` is dead)
 - kubectl context alias: `core-neo`
 - Workload namespace: `core-systems`
@@ -46,7 +46,7 @@ Use `"$NEO_CORE_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorth
 - Argo flavor: AWS EKS Capability for Argo CD (managed). No in-cluster argocd-server. Prefer kubectl Application CRDs over the argocd CLI.
 2. Connect / heal access (every session, before queries):
 1) Require `$PROFILE` / `$REGION` per **Local auth** above.
-2) `aws sts get-caller-identity --profile "$PROFILE"` — expect account **986629373331** and ARN role **CoreIntegrationAccess**. On Forbidden/expired: `aws sso login --profile "$PROFILE"` (user approves browser).
+2) `aws sts get-caller-identity --profile "$PROFILE"`: expect account **986629373331** and ARN role **CoreIntegrationAccess**. On Forbidden/expired: `aws sso login --profile "$PROFILE"` (user approves browser).
 3) If context missing / NXDOMAIN / ResourceNotFound:  
    `aws eks update-kubeconfig --name core-eks-hbq5y8 --region "$REGION" --profile "$PROFILE" --alias core-neo`
 4) Smoke: `kubectl --context core-neo get ns` && `kubectl --context core-neo get applications -n argocd`  
@@ -72,7 +72,7 @@ Fuzzy when unsure: `kubectl --context core-neo get secrets,deploy -n core-system
 | Need | Path |
 |---|---|
 | Last ~15–30m, pod still running | **A. kubectl** |
-| Older window / pod rotated / count by `msg` / multi-pod history | **B. OpenSearch** — read `references/opensearch-sit.md` (same dir as this skill) and follow it |
+| Older window / pod rotated / count by `msg` / multi-pod history | **B. OpenSearch**: read `references/opensearch-sit.md` (same dir as this skill) and follow it |
 
 **A. kubectl (recent)**
 - `kubectl --context $CTX get pods -n $NS -l app=$APP -o wide`
@@ -83,16 +83,16 @@ Fuzzy when unsure: `kubectl --context core-neo get secrets,deploy -n core-system
 - running image/tag: `kubectl --context $CTX get deploy $APP -n $NS -o jsonpath='{.spec.template.spec.containers[0].image}'`
 - **Filter:** use the **grep tool** on the command output or a temp file. **Never** `kubectl … | rg` or `… | grep` in bash (interceptor blocks them).
 
-**B. OpenSearch (historical)** — full recipe in `references/opensearch-sit.md`:
+**B. OpenSearch (historical)**: full recipe in `references/opensearch-sit.md`:
 - Host: `https://opensearch.sit.awesome-poc-th.com` (Dashboards 3.5.0)
 - Index: `console-sit-log`; filter `kubernetes_container_name` = deploy/container name (e.g. `payment`)
 - Call `POST /_dashboards/api/console/proxy?path=console-sit-log%2F_search&method=POST` via **sync XHR inside a browser tab** (session cookies; httpOnly)
 - **Not proven:** export cookie → shell curl
 - **Cold start:** if SSO/login page or XHR 401/HTML login → ask user to log in, then retry
-- `tab.evaluate` must not `await fetch` — sync `XMLHttpRequest` only
+- `tab.evaluate` must not `await fetch`: sync `XMLHttpRequest` only
 - When reporting aggregates, ensure counts sum to `hits.total` (do not present a capped `size` sample as full totals)
 
-5. ArgoCD status via kubectl (managed capability — no argocd CLI server):
+5. ArgoCD status via kubectl (managed capability: no argocd CLI server):
 - List: kubectl --context core-neo get applications -n argocd -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REV:.status.sync.revision
 - One app JSON summary: get application ARGO_APP -n argocd -o json | jq '{sync:.status.sync.status,rev:.status.sync.revision,health:.status.health.status,images:[.status.summary.images[]?],conditions:.status.conditions,source:.spec.source}'
 - History last 5: jq '.status.history[-5:] | .[] | {id,deployedAt,revision,initiatedBy}'
@@ -121,18 +121,18 @@ Default read-only. Never sync/prune/delete unless user explicitly requests a mut
 8. Report in Thai, terminal-friendly: identity used (account/role from sts, profile name only as “from env”); Argo SYNC/HEALTH + image tag; pod READY/restarts; log evidence with timestamps (and OpenSearch msg counts when used); for DB report host/db/user/schema by default and only reveal the secret value when the user asked to connect. Never write decoded secrets into repo files, skill body, or durable memory.
 
 ## Pitfalls
-- Aux SIT is a different AWS account/cluster — use `neo-aux-sit` + `NEO_AUX_AWS_PROFILE`, not this skill’s profile.
-- Stale kubeconfig cluster name `eks-cluster-hbq5y8` causes ResourceNotFound or NXDOMAIN — use `core-eks-hbq5y8`.
+- Aux SIT is a different AWS account/cluster: use `neo-aux-sit` + `NEO_AUX_AWS_PROFILE`, not this skill’s profile.
+- Stale kubeconfig cluster name `eks-cluster-hbq5y8` causes ResourceNotFound or NXDOMAIN, use `core-eks-hbq5y8`.
 - SSO role **SystemsManagerAccess** yields ForbiddenException; need **CoreIntegrationAccess** on the profile.
 - Missing `NEO_CORE_AWS_PROFILE` → fail fast; never guess a profile name.
 - argocd CLI 'server address unspecified' is expected on Core; use kubectl Application CRDs.
-- Secret stores settings inside config.yaml, not discrete DB_* keys — grepping only for bare keys misses it.
+- Secret stores settings inside config.yaml, not discrete DB_* keys: grepping only for bare keys misses it.
 - authentication-service nests under database.postgres and uses username not user.
-- Extracted RDS settings do not imply laptop connectivity — private network.
+- Extracted RDS settings do not imply laptop connectivity: private network.
 - Read-only by default: no apply/delete/sync/secret edits unless user explicitly asks.
 - Never persist decoded credentials into git, skills, or memory stores.
 - OpenSearch: do not pipe kubectl to `rg`; do not assume curl+cookie works; do not await fetch in `tab.evaluate`; ask user on SSO cold start.
-- OpenSearch `log` field is a JSON **string** — parse client-side for `msg`/`level`.
+- OpenSearch `log` field is a JSON **string**: parse client-side for `msg`/`level`.
 
 ## Verification
 1. `NEO_CORE_AWS_PROFILE` set; `aws configure get region --profile "$PROFILE"` non-empty.

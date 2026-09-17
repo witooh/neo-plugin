@@ -1,0 +1,3 @@
+interface:
+  display_name: "Neo Core SIT"
+  short_description: "Inspect Core SIT logs, Argo, Postgres"

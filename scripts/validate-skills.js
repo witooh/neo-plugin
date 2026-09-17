@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Lean validator for neo skills and agents.
+ * Lean validator for neo skills.
  *   1. Every skills/<dir>/SKILL.md has YAML frontmatter with name (matching the
  *      directory), a non-empty description ≤ 1024 characters, and only Agent
  *      Skills closed fields (name, description, license, allowed-tools,
- *      metadata, compatibility-as-string).
- *   2. Every agents/<name>.md has frontmatter name equal to the basename and a
- *      non-empty description.
+ *      metadata, compatibility-as-string, disable-model-invocation).
+ *   2. If agents/ exists, every agents/<name>.md has frontmatter name equal to
+ *      the basename and a non-empty description. Missing agents/ is OK (count 0).
  *   3. No file in skills/, agents/, hooks/, extensions/, AGENTS.md, or README.md
- *      references a removed skill name or an unknown agent name.
+ *      references a removed skill name or an unknown agent name. Missing
+ *      agents/, hooks/, and extensions/ are skipped.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -23,6 +24,7 @@ const SKILL_FIELDS = new Set([
 	"allowed-tools",
 	"metadata",
 	"compatibility",
+	"disable-model-invocation",
 ]);
 
 
@@ -51,6 +53,7 @@ const DEAD_SKILLS = [
 	"spec-driven-development",
 	"test-driven-development",
 	"sync-upstream",
+	"using-neo",
 ];
 
 function parseFrontmatter(text) {
@@ -199,7 +202,8 @@ function walk(dir) {
 }
 
 walk(skillsDir);
-walk(path.join(root, "hooks"));
+if (fs.existsSync(path.join(root, "hooks")))
+	walk(path.join(root, "hooks"));
 if (fs.existsSync(path.join(root, "extensions")))
 	walk(path.join(root, "extensions"));
 if (fs.existsSync(agentsDir)) walk(agentsDir);

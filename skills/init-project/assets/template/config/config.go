@@ -52,7 +52,7 @@ type KafkaConfig struct {
 
 // Load reads the YAML config file, overlays environment-variable overrides, and
 // returns the decoded configuration. The composition root (cmd/api) calls it
-// explicitly at startup and threads the result through the wiring — there is no
+// explicitly at startup and threads the result through the wiring: there is no
 // package-level global and no init side effect.
 func Load() (*Config, error) {
 	var cfg Config
@@ -134,7 +134,7 @@ func overlayEnv(m map[string]any, prefix string) {
 
 // ConnectionString returns the PostgreSQL connection string.
 // The format is: postgres://username:password@host:port/database?sslmode=sslmode&search_path=schema
-// search_path pins the per-service schema — services share one database, one schema each.
+// search_path pins the per-service schema: services share one database, one schema each.
 func (p *PostgresConfig) ConnectionString() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s",
 		p.User,

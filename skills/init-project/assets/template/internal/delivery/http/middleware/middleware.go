@@ -1,6 +1,6 @@
 // Package middleware bundles the standard gin middleware chain for the HTTP
-// delivery layer. It wraps the shared common-lib middleware — it does not
-// reimplement it — so the service keeps correlation-id / request-id / HTTP
+// delivery layer. It wraps the shared common-lib middleware: it does not
+// reimplement it: so the service keeps correlation-id / request-id / HTTP
 // logging / standard error rendering / panic recovery behaviour.
 package middleware
 
@@ -12,7 +12,7 @@ import (
 	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stdresp"
 )
 
-// Setup applies the standard middleware chain (common-lib v2.2.5).
+// Setup applies the standard middleware chain (common-lib v2.2.4).
 //
 // Order: CorrelationId → RequestId → LoggingMiddleware → GinErrorHandler → Recovery.
 // LoggingMiddleware and GinErrorHandler wrap Recovery so a recovered panic is

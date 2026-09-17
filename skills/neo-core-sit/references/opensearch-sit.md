@@ -1,14 +1,14 @@
-# OpenSearch SIT — historical logs (measured)
+# OpenSearch SIT: historical logs (measured)
 
 Shared SIT log store for Core + Aux containers. Use when **kubectl is not enough**
 (window older than the live pod, multi-pod history, count/group by `msg`).
-Parent skills (`neo-core-sit` / `neo-aux-sit`) own the path choice — this file is only the OS recipe.
+Parent skills (`neo-core-sit` / `neo-aux-sit`) own the path choice: this file is only the OS recipe.
 
 ## When to use
 
 | Need | Path |
 |---|---|
-| Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`) — parent skill section A |
+| Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), parent skill section A |
 | Older window / pod rotated / aggregate by `msg` / multi-pod history | **This recipe** |
 
 ## Verified surface (2026-08-06)
@@ -21,7 +21,7 @@ Parent skills (`neo-core-sit` / `neo-aux-sit`) own the path choice — this file
 | Index-pattern id | `0118f120-7391-11f1-b139-918a526f3084` |
 | Time field | `@timestamp` |
 | Container field | `kubernetes_container_name` (phrase match; e.g. `payment`) |
-| Auth | Browser SSO session cookies (**httpOnly** — not in `document.cookie`) |
+| Auth | Browser SSO session cookies (**httpOnly**: not in `document.cookie`) |
 
 ### Working search endpoint
 
@@ -76,14 +76,14 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
    - If `hits.hits.length < total`, re-query with `size >= total` (cap reasonably, e.g. 1000; page with `search_after` only if over cap).
    - For each hit: `JSON.parse(_source.log)` → `msg` / `level` (fallback: raw slice if parse fails).
    - Build `counts[msg]++` and `levels[level]++` over **all returned hits**.
-   - **Gate:** `sum(counts) === total` and `returned === total`. If not equal, do not publish the table as “full” — raise `size` or mark as partial top-N.
-   - Sort `counts` desc for the report. (Measured: payment error/warn 24h → 78 hits, client tally summed to 78 after `size: 200` ≥ 78. A prior `size: 50` tally summed to 50 and was wrongly presented as full — do not repeat.)
+   - **Gate:** `sum(counts) === total` and `returned === total`. If not equal, do not publish the table as “full”, raise `size` or mark as partial top-N.
+   - Sort `counts` desc for the report. (Measured: payment error/warn 24h → 78 hits, client tally summed to 78 after `size: 200` ≥ 78. A prior `size: 50` tally summed to 50 and was wrongly presented as full, do not repeat.)
 5. Report in Thai: total hits, **full** counts by `msg` (only if gate passed), level split, a few timestamped examples, pod name if present.
 
 ## Body: logs for one container (copy-paste)
 
 Replace `CONTAINER` (e.g. `payment`) and time range as needed.  
-The `should` block below keeps **error+warn**; drop it (or swap needles) for info/all-level or free-text hunts — always keep container + time `filter`.
+The `should` block below keeps **error+warn**; drop it (or swap needles) for info/all-level or free-text hunts, always keep container + time `filter`.
 
 ```json
 {
@@ -124,8 +124,8 @@ The `should` block below keeps **error+warn**; drop it (or swap needles) for inf
 Notes:
 
 - `log` is a **string** of JSON (not structured fields). Phrase-match on substrings inside `log`; parse client-side for `msg` / `level` / `error.message`.
-- **No dedicated `level` / `service` / `msg` fields** — do **not** query `level:error` as an ES field. Filter with `match_phrase` on `log` for `"\"level\":\"error\""` / `"\"level\":\"warn\""` (body above).
-- There is **no reliable ES `terms` agg on `msg`** here — `msg` lives inside the string. Client-side parse + count is the measured path.
+- **No dedicated `level` / `service` / `msg` fields**: do **not** query `level:error` as an ES field. Filter with `match_phrase` on `log` for `"\"level\":\"error\""` / `"\"level\":\"warn\""` (body above).
+- There is **no reliable ES `terms` agg on `msg`** here: `msg` lives inside the string. Client-side parse + count is the measured path.
 - Some older backing indices lack `@timestamp` mapping → shard failures in response are OK if `hits.total` and current indices still return data. Prefer `unmapped_type: "boolean"` on the sort as above.
 - **`size` is not optional decoration.** Counts built from `hits.hits` only cover `min(size, total)`. Always gate with `sum(counts) === hits.total.value` before calling a table complete.
 - For a free-text needle, add  
@@ -135,7 +135,7 @@ Notes:
 ## Minimal sync-XHR evaluate sketch (count-complete)
 
 ```js
-// inside tab.evaluate — MUST be sync; return a plain object
+// inside tab.evaluate: MUST be sync; return a plain object
 function sxhr(method, url, body) {
   const xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
@@ -199,7 +199,7 @@ return {
 };
 ```
 
-## kubectl companion (recent only — parent skill owns this path)
+## kubectl companion (recent only: parent skill owns this path)
 
 For the last ~15–30m while the pod is up, prefer kubectl (parent skill section A).  
 This block is a short reminder, not an OS fallback hierarchy.

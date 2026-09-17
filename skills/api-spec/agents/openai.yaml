@@ -1,0 +1,3 @@
+interface:
+  display_name: "API Spec"
+  short_description: "Author the docs/api YAML contract"

@@ -1,21 +1,21 @@
 # neo-service
 
 A freshly scaffolded Go microservice on a **hexagonal / DDD** architecture: a pure `domain`
-core (encapsulated aggregates, domain services, typed errors, and the centralized driven ports — `repository` + `event`),
+core (encapsulated aggregates, domain services, typed errors, and the centralized driven ports, `repository` + `event`),
 an application `usecase` layer (one package per operation), and `delivery` / `adapters` layers
 for every inbound (HTTP, Kafka consumer) and outbound (Postgres, Redis, Kafka) integration.
-Dependencies point **inward only** — `delivery / adapters → usecase → domain`.
+Dependencies point **inward only**: `delivery / adapters → usecase → domain`.
 
 It builds and serves `GET /health` out of the box with **no business domains yet**. Grow it
-with the **`using-neo`** skill — it reads the engineering guides in `.kiro/steering/` and
-follows the documented layer patterns.
+using `.kiro/steering/` (start with `structure.md` / `new-feature-checklist.md`) and
+follow the documented layer patterns.
 
 ## Tech Stack
 
 - Go 1.26 / Gin HTTP framework
 - PostgreSQL (`jackc/pgx/v5`, sqlc) + Valkey/Redis (`redis/go-redis/v9`)
-- Kafka (`segmentio/kafka-go`) — generic producer/consumer primitives in `pkg/lib/kafka`
-- mockery (mocks) + golang-migrate (migrations) — pinned tool modules under `tools/`
+- Kafka (`segmentio/kafka-go`): generic producer/consumer primitives in `pkg/lib/kafka`
+- mockery (mocks) + golang-migrate (migrations): pinned tool modules under `tools/`
 - Docker / Docker Compose / GitLab CI
 
 ## Project Structure
@@ -28,7 +28,7 @@ neo-service/
 ├── config/                          # typed config + loader, beside config.yaml
 ├── internal/
 │   ├── core/
-│   │   ├── domain/                  # THE MODEL (per layer: entity/ service/ repository/ event/) —
+│   │   ├── domain/                  # THE MODEL (per layer: entity/ service/ repository/ event/) , 
 │   │   │                            #   aggregates, domain services, typed errors + centralized ports (neo adds these)
 │   │   └── usecase/                 # ONE operation per package → usecase.go + exec.go (neo adds)
 │   ├── delivery/
@@ -48,14 +48,14 @@ neo-service/
 ```
 
 `internal/core/domain`, `internal/core/usecase`, `internal/adapters/gateway` and the HTTP
-handlers are created through `using-neo` as it adds domains — a fresh skeleton has none. The contract for
+handlers are added later as domains: a fresh skeleton has none. The contract for
 each layer lives in `.kiro/steering/` (start with `structure.md`).
 
 ## Getting Started
 
 ### Prerequisites
 - Go 1.26+
-- Private Go module access for `gitlab.awesome-poc-th.com` (`GOPRIVATE` + git credentials) — the
+- Private Go module access for `gitlab.awesome-poc-th.com` (`GOPRIVATE` + git credentials), the
   service depends on the org `common-lib`.
 - Docker & Docker Compose (only for the full stack)
 - `jq` (for pretty-printing log output)
@@ -65,7 +65,7 @@ each layer lives in `.kiro/steering/` (start with `structure.md`).
 go run ./cmd/api                       # or: make run-api
 curl -sf http://localhost:8080/health  # {"status":"ok"}
 ```
-Postgres/Redis are dialed **best-effort** — the skeleton serves `/health` even with nothing else running.
+Postgres/Redis are dialed **best-effort**: the skeleton serves `/health` even with nothing else running.
 
 ### Full stack in Docker
 ```bash
@@ -87,14 +87,13 @@ make compose-down      # tear down (removes volumes)
 
 ## Adding a feature
 
-This service is meant to be grown with the **`using-neo`** skill. `using-neo` reads `.kiro/steering/`
-(the source of truth for the architecture) and follows the layer-by-layer procedure in
-`new-feature-checklist.md`. Don't hand-improvise structure — if a pattern isn't in the
+This service is meant to be grown using `.kiro/steering/` (start with `structure.md` /
+`new-feature-checklist.md`). Don't hand-improvise structure: if a pattern isn't in the
 steering, surface it and fold the decision back into the guide (see `structure.md`).
 
 ## Configuration
 
 A single committed `config/config.yaml` holds local/compose defaults. Every value can be
 overridden by an environment variable named after its dotted path in upper snake case
-(`.` → `_`) — e.g. `postgres.host` → `POSTGRES_HOST`. SIT/production inject the full config as
+(`.` → `_`): e.g. `postgres.host` → `POSTGRES_HOST`. SIT/production inject the full config as
 environment variables from the secret manager, so no per-environment YAML file is needed.

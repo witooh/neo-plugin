@@ -15,8 +15,8 @@ below before doing any work. This index is already loaded; currently, read
 
 | Guide | `inclusion` | `fileMatchPattern` |
 |---|---|---|
-| `INDEX.md` | `always` | — |
-| `structure.md` | `always` | — |
+| `INDEX.md` | `always` |: |
+| `structure.md` | `always` |: |
 | `app.md` | `fileMatch` | `**/cmd/api/**,**/config/**` |
 | `bruno.md` | `fileMatch` | `**/bruno/**` |
 | `domain.md` | `fileMatch` | `**/internal/core/domain/**` |
@@ -28,5 +28,5 @@ below before doing any work. This index is already loaded; currently, read
 | `testing.md` | `fileMatch` | `**/*_test.go` |
 | `tooling.md` | `fileMatch` | `Makefile,tools/**,scripts/**,.mockery.yaml,.golangci.yaml,.golangci.yml,Dockerfile,docker-compose*.yaml` |
 | `usecase.md` | `fileMatch` | `**/internal/core/usecase/**` |
-| `new-feature-checklist.md` | `manual` | — |
-| `repo-instance.md` | `manual` | — |
+| `new-feature-checklist.md` | `manual` |: |
+| `repo-instance.md` | `manual` |: |

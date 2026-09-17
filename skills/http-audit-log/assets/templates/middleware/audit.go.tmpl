@@ -1,0 +1,202 @@
+package middleware
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"__MODULE__/internal/core/domain/audit"
+	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/logger"
+)
+
+const (
+	// maxAuditBodyLimit caps how many request/response body bytes the audit
+	// middleware buffers, so a large payload cannot exhaust memory.
+	maxAuditBodyLimit = 1024 * 1024 // 1MB
+
+	requestTooLargeMessage  = "Request body too large"
+	requestTooLargeResponse = `{"message":"Request body too large"}`
+	requestTruncatedMarker  = "[truncated: request body too large]"
+)
+
+// captureResponseWriter wraps gin.ResponseWriter to accumulate the response body
+// bytes and intercept the status code written by the inner middleware chain.
+type captureResponseWriter struct {
+	gin.ResponseWriter
+	body   bytes.Buffer
+	status int
+}
+
+// Write intercepts response bytes up to the cap so the audit middleware can
+// capture raw_response safely, while still forwarding every byte downstream.
+func (w *captureResponseWriter) Write(b []byte) (int, error) {
+	if w.body.Len() < maxAuditBodyLimit {
+		remaining := maxAuditBodyLimit - w.body.Len()
+		if len(b) <= remaining {
+			w.body.Write(b)
+		} else {
+			w.body.Write(b[:remaining])
+			w.body.WriteString("... [truncated due to size limit]")
+		}
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+// WriteHeader intercepts the status code before forwarding it.
+func (w *captureResponseWriter) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
+}
+
+// Status returns the captured HTTP status code, falling back to 200 when
+// WriteHeader was not called.
+func (w *captureResponseWriter) Status() int {
+	if w.status == 0 {
+		return http.StatusOK
+	}
+	return w.status
+}
+
+// Audit is the outermost gin middleware that records one audit_log row per
+// inbound HTTP attempt. It captures the raw request body (restoring it for
+// downstream handlers), wraps the response writer to collect the final response,
+// then persists the row after c.Next() returns and before the response reaches
+// the client. A persistence failure only logs: it never fails the request.
+func Audit(writer audit.AuditLogRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		if c.Request.ContentLength > maxAuditBodyLimit {
+			rejectOversizedRequest(c, writer)
+			return
+		}
+
+		rawRequest, bodyTooLarge := captureRequestBodyCapped(c, maxAuditBodyLimit)
+		if bodyTooLarge {
+			rejectOversizedRequest(c, writer)
+			return
+		}
+
+		wrapped := &captureResponseWriter{ResponseWriter: c.Writer}
+		c.Writer = wrapped
+
+		c.Next()
+
+		httpStatus := wrapped.Status()
+		route := c.FullPath()
+		rawResponse := wrapped.body.String()
+		responseCode, failureReason := extractResponseFields(rawResponse)
+
+		log := audit.NewAuditLog(audit.NewAuditLogParam{
+			RequestId:     uuid.New(),
+			HttpMethod:    c.Request.Method,
+			Route:         route,
+			Status:        auditStatus(httpStatus),
+			HttpStatus:    int16(httpStatus),
+			ResponseCode:  responseCode,
+			FailureReason: failureReason,
+			Metadata:      extractMetadata(route, rawRequest),
+			RawRequest:    rawRequest,
+			RawResponse:   rawResponse,
+			DurationMs:    time.Since(start).Milliseconds(),
+			CreatedAt:     time.Now(),
+		})
+
+		persistAuditLog(c, writer, log)
+	}
+}
+
+// rejectOversizedRequest aborts with 413, records the failed attempt, and returns.
+func rejectOversizedRequest(c *gin.Context, writer audit.AuditLogRepository) {
+	c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": requestTooLargeMessage})
+	c.Abort()
+	log := audit.NewAuditLog(audit.NewAuditLogParam{
+		RequestId:     uuid.New(),
+		HttpMethod:    c.Request.Method,
+		Route:         c.FullPath(),
+		Status:        audit.AuditStatus_FAILED,
+		HttpStatus:    http.StatusRequestEntityTooLarge,
+		ResponseCode:  "",
+		FailureReason: requestTooLargeMessage,
+		Metadata:      json.RawMessage(`{}`),
+		RawRequest:    requestTruncatedMarker,
+		RawResponse:   requestTooLargeResponse,
+		DurationMs:    0,
+		CreatedAt:     time.Now(),
+	})
+	persistAuditLog(c, writer, log)
+}
+
+// persistAuditLog writes the row through the port. A failure is logged and
+// swallowed: auditing must never fail the request it is recording.
+func persistAuditLog(c *gin.Context, writer audit.AuditLogRepository, log *audit.AuditLog) {
+	if writer == nil {
+		return
+	}
+	if err := writer.Insert(c, log); err != nil {
+		logger.Error("audit middleware: failed to persist audit log",
+			logger.String("route", log.Route()),
+			logger.String("method", log.HttpMethod()),
+			logger.Err(err),
+		)
+	}
+}
+
+// captureRequestBodyCapped reads the request body bytes up to limit, restores
+// c.Request.Body so downstream handlers can read it, and returns the raw string.
+// If the body exceeds limit, it returns "", true.
+func captureRequestBodyCapped(c *gin.Context, limit int64) (string, bool) {
+	if c.Request.Body == nil {
+		return "", false
+	}
+	limitReader := io.LimitReader(c.Request.Body, limit+1)
+	b, err := io.ReadAll(limitReader)
+	if err != nil {
+		return "", false
+	}
+	if int64(len(b)) > limit {
+		return "", true
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(b))
+	return string(b), false
+}
+
+// auditStatus maps an HTTP status code to the domain audit status: < 400 is
+// SUCCESS, anything else is FAILED.
+func auditStatus(httpStatus int) audit.AuditStatus {
+	if httpStatus < http.StatusBadRequest {
+		return audit.AuditStatus_SUCCESS
+	}
+	return audit.AuditStatus_FAILED
+}
+
+// extractResponseFields tries to pull responseCode and a failure message from
+// the response JSON. Both fields default to "" when the response is not JSON or
+// the keys are absent (fail-soft).
+func extractResponseFields(rawResponse string) (responseCode, failureReason string) {
+	if rawResponse == "" {
+		return "", ""
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(rawResponse), &m); err != nil {
+		return "", ""
+	}
+	if v, ok := m["responseCode"].(string); ok {
+		responseCode = v
+	}
+	if v, ok := m["message"].(string); ok {
+		failureReason = v
+	}
+	return responseCode, failureReason
+}
+
+// extractMetadata builds the searchable JSONB metadata for the audit row.
+// Default is {}. Fill route-specific keys only when the user names them.
+func extractMetadata(_ /* route */, _ /* rawRequest */ string) json.RawMessage {
+	return json.RawMessage(`{}`)
+}

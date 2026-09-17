@@ -2,7 +2,7 @@
 
 The authoring rules the `e2e-playwright` skill writes against, and the rule book the L1 script
 (`e2echeck.py`) and the L2 fresh-eyes verifier both read. The harness is **Jest the runner +
-Playwright's HTTP `request` API as the client** — NOT the `@playwright/test` runner, and never a
+Playwright's HTTP `request` API as the client**: NOT the `@playwright/test` runner, and never a
 browser. Match the project's existing specs; this file is the contract, the repo is the reference.
 
 ## Layout (per-project values are discovered, not assumed)
@@ -10,14 +10,14 @@ browser. Match the project's existing specs; this file is the contract, the repo
 ```
 tests/e2e/
   specs/<usecase>.e2e.ts        # one spec file per usecase/endpoint group
-  helpers/{api-client,db-helper}.ts   # REUSE — never add a second HTTP client
+  helpers/{api-client,db-helper}.ts   # REUSE: never add a second HTTP client
   fixtures/{seed,cleanup}.sql
   jest.config.ts · jest.global-setup.ts · jest.setup.ts
-  .env.test                     # API_BASE_URL, DB_* — read from here, never hardcode
+  .env.test                     # API_BASE_URL, DB_*: read from here, never hardcode
 ```
 
 `jest.global-setup.ts` waits for `GET /health` and seeds the DB; `jest.setup.ts` exposes
-`globalThis.apiContext`. A spec consumes those — it does not re-create them.
+`globalThis.apiContext`. A spec consumes those: it does not re-create them.
 
 ## The test-title prefix (the traceability contract)
 
@@ -28,15 +28,14 @@ Every test that exercises an acceptance criterion is titled:
 ```
 
 - **Spaces around the dash**: `[GI-74 - AC-001]`, not `[GI-74-AC-001]`.
-- `<CARD>` = the JIRA card (e.g. `GI-74`, `BFID-5`) **or** the task-folder slug when the work has no
-  JIRA key (`[awareness-answer-resp - AC-001]`). A leading test-case id is allowed too
-  (`[TC-028 - GI-52 - AC-001]`) — the AC id must be the **last** segment in the bracket; the card is
-  read as the last JIRA-style key in the label.
-- **Table-driven tests** may interpolate the AC id — `` it(`[GI-74 - ${tc.ac}] …`) `` — provided the
+- `<CARD>` = the ticket identifier: an issue number (`#123`), a local ticket slug (`01-add-endpoint`), or a tracker key (`GI-74`, `BFID-5`). A leading test-case id is allowed too
+  (`[TC-028 - GI-52 - AC-001]`): the AC id must be the **last** segment in the bracket; the card is
+  read as the last tracker-style key in the label.
+- **Table-driven tests** may interpolate the AC id: `` it(`[GI-74 - ${tc.ac}] …`) ``, provided the
   loop reads `for (const tc of TABLE)` and `TABLE` is an array literal holding literal
   `ac: "AC-NNN"` entries. The tripwire follows that chain; any other shape is reported as
   unresolvable rather than credited.
-- `<expected outcome>` names the HTTP result the AC asserts — e.g. `→ 400 INVALID_DATE_RANGE`,
+- `<expected outcome>` names the HTTP result the AC asserts: e.g. `→ 400 INVALID_DATE_RANGE`,
   `→ 200 StandardResponse`. Keep the **stable error code** in the title; it doubles as documentation.
 - **One AC → several `it()`** is fine (e.g. a gate tested on the keep-path and the exclude-path).
 - **One `it()` → several ACs** (co-coverage): put the extra ids in a comment on the **same line**
@@ -45,8 +44,8 @@ Every test that exercises an acceptance criterion is titled:
 
 ## Non-HTTP-observable ACs (decision: count only what HTTP can check)
 
-An AC whose effect cannot be seen in an HTTP response — a masked log line, a PII redaction, an
-internal-only side effect — is **declared, not omitted**:
+An AC whose effect cannot be seen in an HTTP response: a masked log line, a PII redaction, an
+internal-only side effect: is **declared, not omitted**:
 
 ```ts
 it.skip("[GI-74 - AC-017] masked tracer log on every failed path (log sink not observable over HTTP)", () => {});
@@ -55,53 +54,53 @@ it.skip("[GI-74 - AC-017] masked tracer log on every failed path (log sink not o
 The reason goes **in the title** after the prefix. The L1 tripwire requires the reason to be
 present; the **L2 verifier judges whether it is legitimate** (a genuinely unobservable effect) vs a
 lazy excuse for an AC that actually *is* HTTP-testable. Such ACs are not counted against the gate,
-but they must still be covered elsewhere (the unit suite) — that is the project's concern, recorded
+but they must still be covered elsewhere (the unit suite): that is the project's concern, recorded
 in the run report, not silently dropped.
 
 ## Deferred ACs (the feature is not built this round)
 
 An `it.skip` says "HTTP cannot see this". It is the wrong tool for "we decided not to build this
-yet" — there is nothing to skip, because the behavior does not exist. Declare those in the AC
+yet": there is nothing to skip, because the behavior does not exist. Declare those in the AC
 source instead, on one machine-readable line:
 
 ```markdown
-Deferred-ACs: AC-011, AC-012, AC-013 — biometric evaluation + challenge protocol deferred (D10)
+Deferred-ACs: AC-011, AC-012, AC-013: biometric evaluation + challenge protocol deferred (D10)
 ```
 
 The tripwire reports them as **declared deferred** and does not count them as uncovered. The reason
-is required — a deferral with no reason is how an AC gets silently dropped — and the L2 verifier
+is required: a deferral with no reason is how an AC gets silently dropped, and the L2 verifier
 judges whether it matches a real decision in the spec. Deferring is a **spec** edit, so it travels
-with the task-docs sync: un-deferring means deleting the id from this line in the same pass as
+with the ticket: un-deferring means deleting the id from this line in the same pass as
 writing the test.
 
 The word "deferred" in prose is **not** scanned, deliberately. A real spec line reads *"Was: defer
-AC-007/008/013 … AC-007 + AC-008 un-deferred … AC-013 remains deferred"* — any line-level match
+AC-007/008/013 … AC-007 + AC-008 un-deferred … AC-013 remains deferred"*, any line-level match
 gets all three wrong.
 
-## Referring to another card's AC — keep the card id on the same line
+## Referring to another card's AC: keep the card id on the same line
 
 The tripwire harvests the AC ids it must cover from the spec text, and treats `AC-NNN` as
 **another card's** only when a different card id appears just before it **on the same line**
 (`GI-445 AC-008`, or `the GI-445 verify-session (AC-008)`). If markdown wrapping pushes the card
-id onto the previous line —
+id onto the previous line , 
 
 ```markdown
-- [`docs/tasks/GI-445/spec.md`](../GI-445/spec.md) — sibling verify spec; its
+- See issue #445: sibling verify ticket; its
   AC-008 verify-session is consumed here
 ```
 
-— the reference is harvested as one of **this** card's criteria and reported as a phantom
-UNCOVERED, sending someone hunting for a test that should not exist. Write `GI-445 AC-008` on
+,  the reference is harvested as one of **this** card's criteria and reported as a phantom
+UNCOVERED, sending someone hunting for a test that should not exist. Write `#445 AC-008` (or `GI-445 AC-008`) on
 the same line. The look-behind is deliberately not widened past the line: doing so would let a
-card's own ACs be swallowed by a neighbouring mention, and a dropped AC is a false PASS — the
+card's own ACs be swallowed by a neighbouring mention, and a dropped AC is a false PASS: the
 failure direction that matters.
 
 ## No-AC mode
 
-A task with no acceptance criteria has no coverage to gate. Title its tests `[<CARD>] <desc> →
-<expected>` — card prefix, no AC segment — and the tripwire reports `No-AC mode — coverage gate
-N/A`, still checking title grammar and card consistency. If the task really does have ACs, number
-them `AC-001…` in the spec first; No-AC mode is for tasks that genuinely have none, not a way
+A ticket with no acceptance criteria has no coverage to gate. Title its tests `[<CARD>] <desc> →
+<expected>`: card prefix, no AC segment: and the tripwire reports `No-AC mode, coverage gate
+N/A`, still checking title grammar and card consistency. If the ticket really does have ACs, number
+them `AC-001…` in the spec first; No-AC mode is for tickets that genuinely have none, not a way
 around an unnumbered spec.
 
 ## Spec skeleton
@@ -112,7 +111,7 @@ import { DbHelper } from "../helpers/db-helper";
 
 const PATH = "/products/eligibles";
 
-describe("GET /products/eligibles — Eligible Products [GI-74]", () => {
+describe("GET /products/eligibles: Eligible Products [GI-74]", () => {
   let api: ApiClient;
   beforeAll(() => { api = new ApiClient(globalThis.apiContext); });
 

@@ -1,6 +1,6 @@
 {
   "name": "neo",
-  "description": "Production-grade engineering skills for AI coding agents — covering the full software development lifecycle from spec to ship.",
+  "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
   "owner": {
     "name": "Witoo Harianto",
     "url": "https://github.com/witooh"
@@ -8,14 +8,14 @@
   "plugins": [
     {
       "name": "neo",
-      "description": "Production-grade engineering skills covering every phase of software development: ingest, spec, plan, build, verify, review, and ship.",
+      "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
       "category": "development",
       "source": {
         "source": "url",
         "url": "https://github.com/witooh/neo-plugin.git"
       },
       "homepage": "https://github.com/witooh/neo-plugin",
-      "keywords": ["skills", "agents", "engineering", "spec", "tdd", "review", "ship"]
+      "keywords": ["skills", "engineering", "api", "e2e"]
     }
   ]
 }

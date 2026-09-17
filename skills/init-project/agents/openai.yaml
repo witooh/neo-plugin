@@ -1,0 +1,3 @@
+interface:
+  display_name: "Init Project"
+  short_description: "Scaffold a Go hexagonal service"

@@ -1,74 +1,11 @@
 # neo
 
-**A thin engineering router for AI coding agents.** The injected main agent owns the work:
-it decides loop vs graph, makes the edits itself by default, hands a surface to a specialist
-node when the work fans out or must fail in isolation, and stops only where a machine can
-prove the work or a human confirms.
+Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.
 
-Most agent setups hand you a pile of skills and hope the model picks the right one. neo picks for
-you: every request enters through a single router. The default is a **loop**. A **graph** is earned
-when specialties hand off, work fans out, or a node must fail in isolation.
+neo is a skill pack: 17 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
 
-- **Loop first.** One job stays one job, done inline. Do not draw an org chart to summarize a PDF.
-- **Conditional machine gates.** Unit coverage, AC coverage, and the API contract fire from the
-  touched surface, decided by scripts, not by an agent's opinion of its own work.
-- **Evidence before assertion.** External fields, endpoints, and error codes come from ingested
-  sources with a citable path — never from memory.
-- **Your git stays yours.** neo never creates, switches, or guards a branch. Commit / push only
-  when you ask, through `gitlab`.
-- **One owner, optional nodes.** The main agent does the work and owns the verdict. `neo-builder`,
-  `neo-author`, and `neo-e2e` take a surface when the work fans out or must fail in isolation.
-  `fresh-eyes` reviews a production / contract / e2e diff only when a work record is in play.
-
-## How a request runs
-
-```text
-ask → loop or graph?
-         │
-         ├─ loop (default) ── inline, one node, or a direct answer ── fan-in ─┤ gates? ├─ done
-         │
-         └─ graph (earned) ── wave of disjoint nodes ── fan-in ─┤ gates? ├─ next wave / done
-```
-
-| Gate | Kind | When |
-|---|---|---|
-| Package tests + unit coverage ≥ 80% | machine | production code touched — with or without a record |
-| API contract (`apispeccheck.py` + drift = 0) | machine | `docs/api/` or HTTP wire touched — with or without a record |
-| AC coverage (`e2echeck.py`) | machine | HTTP-observable ACs, and a work record is in play |
-| `neocheck.py` | machine | a work record is in play, and you are claiming that work done |
-| MR / ship | human | you asked to ship |
-
-```bash
-# three machine gates, one table — AC gate reads docs/tasks/<key>/spec.md (or --ac-source PATH)
-python3 skills/using-neo/assets/neocheck.py <repo> <key>
-```
-
-There is no FEATURE / BUG / RECONCILE pipeline. Domain skills (`tdd`, `api-spec`, `e2e-playwright`, …)
-are what the router — or the node it hands the surface to — loads, not a step list it walks.
-
-A **work key** (a JIRA token in the ask, a name the user set, or an existing
-`docs/tasks/<key>/` folder) gets a **work record** under `docs/tasks/<key>/`, three files
-answering three different questions plus a transcript. A JIRA card key is one kind of work
-key, not the only one. `spec.md` — what was asked: objective, `AC-NNN`, non-goals, dated
-decisions, and the file every AC-aware gate and skill reads. `plan.md` — how the work was
-cut: one row per surface with who writes it, its seam, and `depends`, carrying no status.
-`todo.md` — what happened: wave, status, and an evidence line per row, plus the gate ledger
-and a session stamp. The router writes the last two itself, in full, **before** the first
-edit, which is what lets a later session resume instead of restart — a row flipped to
-`dispatched` the moment work starts is how it tells a surface that was started from one
-that was only ever planned. Add `e2e-run.txt` when the router runs the suite. None of them
-waits for approval. Slices are rows, not `docs/tasks/<slice>/` folders. A graph always gets
-the record (ask only for the key if missing). A loop without a key is asked once: do the work
-with no record (default), or name a key. Do not write `local://plan.md`; do not mint a slug.
-
-| You say | neo runs |
-|---|---|
-| a question | answers — one loop, no graph |
-| "แก้ X", a work key, a behavior change | loop or graph; the router edits, or writer node(s) when it fans out |
-| a bug, a failing test | `diagnosing-bugs` → the fix, inline or one `build` node |
-| a refactor | `codebase-design` → the edit(s) if you asked for them |
-| "everything's green but I don't trust it" | `falsifying` (the gate), `bug-hunter` (the product), or `attack-test` (live HTTP) |
-| docs, MR, JIRA, scaffolding | the matching domain skill — via an `author` node when several files fan out |
+- **advice-mode** is user-invoked. The other 16 are model-invoked.
+- **Your git stays yours.** Commit / push only when you ask, through `gitlab`.
 
 ## Install
 
@@ -88,12 +25,17 @@ grok plugin install witooh/neo-plugin --trust
 grok plugin enable neo
 ```
 
-Grok 1.0.3 does not inject `using-neo` at session start (hook stdout is ignored). Use `/using-neo` or rely on skill auto-invocation.
+Or add this repo as a marketplace, then install by catalog name:
+
+```bash
+grok plugin marketplace add witooh/neo-plugin
+grok plugin install neo --trust
+grok plugin enable neo
+```
 
 **omp**
 
-Native omp package: the `omp` block in `package.json` loads an ESM session extension that injects the
-`using-neo` router, and `skills/` is discovered as-is. See [docs/omp-setup.md](docs/omp-setup.md).
+Native omp package: the `omp` block in `package.json` and `skills/` discovered as-is. See [docs/omp-setup.md](docs/omp-setup.md).
 
 ```bash
 # install
@@ -113,8 +55,7 @@ Dev against a working tree: `omp plugin link <path-to-local-clone>`.
 
 **pi**
 
-Installs as a native pi package; skills load unchanged, and a session extension injects the
-`using-neo` router before every agent run. See [docs/pi-setup.md](docs/pi-setup.md).
+Installs as a native pi package; skills load from `skills/`. See [docs/pi-setup.md](docs/pi-setup.md).
 
 Install from the repo:
 
@@ -129,8 +70,6 @@ git clone https://github.com/witooh/neo-plugin.git
 pi install ./neo-plugin
 ```
 
-Either way the method skills ship inside the plugin — there is no second install.
-
 **Cursor / Kiro**
 
 ```bash
@@ -138,86 +77,53 @@ Either way the method skills ship inside the plugin — there is no second insta
 ./kiro.sh --project      # or --global → ~/.kiro
 ```
 
-Copies `skills/`, `agents/*.md` (graph nodes), and the SessionStart hook that injects `using-neo`. Graph dispatch uses the same Agent/Task shape as Claude Code. See `skills/using-neo/GRAPH.md`.
-
-## Architecture
-
-```text
-┌─ ROUTER ─────────────────────────────────────────────┐
-│ using-neo — injected at session start                │
-│ orchestrator · loop-or-graph · gates · verdict       │
-├─ NODE LAYER (agents/) ───────────────────────────────┤
-│ neo-builder · neo-author · neo-e2e · fresh-eyes      │
-├─ METHOD LAYER (vendored from mattpocock/skills) ─────┤
-│ grilling · domain-modeling · tdd · diagnosing-bugs   │
-│ research · prototype                                 │
-│ codebase-design · resolving-merge-conflicts          │
-├─ DOMAIN LAYER (neo-owned) ───────────────────────────┤
-│ code-review · falsifying · bug-hunter · attack-test  │
-│ api-spec · e2e-playwright · openapi-doc              │
-│ open-collection · confluence-api-doc · markitdown    │
-│ init-project · migrate-project · audit-log           │
-│ atlassian · gitlab · neo-core-sit · neo-aux-sit      │
-└──────────────────────────────────────────────────────┘
-```
-
-- **Router** — _when_ things happen. One skill, injected into every session. Mechanics in `GRAPH.md`.
-- **Node layer** — _who else_ writes. Specialist agents the router hands a surface to when the work
-  fans out, must fail in isolation, or needs an independent reviewer.
-- **Method layer** — _how_ generic engineering is done. Vendored via `sync-mattpocock`
-  (allowlist + 3-way compare), shipped inside the plugin.
-- **Domain layer** — _how_ this org's work is done: the API contract chain, AC-driven e2e gates,
-  JIRA/GitLab operations, Go service scaffolding.
+Copies **skills only**.
 
 ## Skills
 
-The router and the neo-owned domain layer. The method layer is listed in the diagram above and
-documented upstream.
+**Session / ingest / trackers**
 
-**Driving the work**
-
-| Skill        | Purpose                                                                         |
-| ------------ | ------------------------------------------------------------------------------- |
-| `using-neo`  | The router — loop-or-graph, the edits, dispatch, gates, verdict               |
-| `markitdown` | Ingest JIRA, Confluence, URLs, and files into `docs/knowledge/` with provenance |
-| `atlassian`  | JIRA / Confluence operations via `acli`                                         |
-| `gitlab`     | GitLab MR operations via `glab`                                                 |
+| Skill          | Purpose                                                                         |
+| -------------- | ------------------------------------------------------------------------------- |
+| `advice-mode`  | Pick omp session mode (plan / vibe / goal / none) — user-invoked                |
+| `markitdown`   | Ingest JIRA, Confluence, URLs, and files into `docs/knowledge/` with provenance |
+| `atlassian`    | JIRA / Confluence operations via `acli`                                         |
+| `gitlab`       | GitLab MR operations via `glab`                                                 |
 
 **Proving it works**
 
-| Skill            | Purpose                                                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `e2e-playwright` | AC-driven HTTP e2e tests (Jest + Playwright request) behind the `e2echeck` gate                                                         |
-| `code-review`    | Two-axis review of a diff — Standards (`.kiro/steering/`) and Spec (`docs/tasks/<key>/spec.md`) — plus Security when the diff earns it |
-| `falsifying`     | Attacks a green signal: can this gate go red at all? Audits the apparatus, not the product                                              |
-| `bug-hunter`     | Hunts defects no gate covers, starting from the ingested originals in `docs/knowledge/`                                                 |
-| `attack-test`    | Fires abuse/hack paths over live HTTP after happy path — money-move, authz bypass, proof forge, idempotency                             |
+| Skill            | Purpose                                                     |
+| ---------------- | ----------------------------------------------------------- |
+| `e2e-playwright` | AC-driven HTTP e2e tests (Jest + Playwright request)        |
+| `falsifying`     | Attack a green gate: can it go red?                         |
+| `bug-hunter`     | Latent defects no gate covers                               |
+| `attack-test`    | Live HTTP abuse paths after happy path                      |
 
 **The API contract chain**
 
-| Skill                | Purpose                                                                          |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `api-spec`           | Authors the custom-YAML contract at `docs/api/` — the spec-first source of truth |
-| `openapi-doc`        | Read-only drift report: Go source vs `docs/api/`                                 |
-| `open-collection`    | Generates a runnable Bruno collection from the spec                              |
-| `confluence-api-doc` | Publishes the API docs to Confluence                                             |
+| Skill                | Purpose                                                          |
+| -------------------- | ---------------------------------------------------------------- |
+| `api-spec`           | Custom-YAML contract at `docs/api/` — spec-first source of truth |
+| `openapi-doc`        | Go vs `docs/api/` drift report                                   |
+| `open-collection`    | Bruno collection from the spec                                   |
+| `confluence-api-doc` | Publish API docs to Confluence                                   |
 
 **Shaping a service**
 
-| Skill             | Purpose                                                                   |
-| ----------------- | ------------------------------------------------------------------------- |
-| `init-project`    | Scaffolds a Go hexagonal / DDD service from a frozen template             |
-| `migrate-project` | Restructures an existing Go service to the same blueprint, slice by slice |
-| `audit-log`       | Adds per-request HTTP audit logging (table + gin middleware + sqlc)       |
+| Skill             | Purpose                                                                      |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `init-project`    | Scaffold a Go hexagonal / DDD service from a frozen template                 |
+| `migrate-project` | Restructure an existing Go service to that blueprint                         |
+| `http-audit-log`  | Per-request HTTP audit logging (table + gin middleware + sqlc)               |
+
+**SIT**
+
+| Skill          | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
+| `neo-core-sit` | Core SIT kubectl / ArgoCD / logs / secrets helpers   |
+| `neo-aux-sit`  | Auxiliary SIT kubectl / ArgoCD / logs / secrets helpers |
 
 ## Maintaining
-
-Update the vendored method layer:
-
-```bash
-python3 .agents/skills/sync-mattpocock/assets/sync.py          # dry run
-python3 .agents/skills/sync-mattpocock/assets/sync.py --apply  # write
-```
 
 Validate before shipping:
 
@@ -226,8 +132,6 @@ node scripts/validate-skills.js       # frontmatter + dead-reference scan
 node scripts/validate-pi-package.js   # pi package wiring
 node scripts/validate-omp-package.js  # omp package wiring
 node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
-bash hooks/session-start-test.sh      # Claude Code hook
-python3 skills/using-neo/assets/neocheck_test.py  # neocheck exit-code contract
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```

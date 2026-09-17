@@ -1,6 +1,6 @@
 // Package router wires the gin engine: the standard middleware chain and the
-// health probe. It is the HTTP-composition sub-layer — analogous to cmd/api but
-// scoped to routing — and the one inbound package permitted to import the handler
+// health probe. It is the HTTP-composition sub-layer: analogous to cmd/api but
+// scoped to routing: and the one inbound package permitted to import the handler
 // packages. Each resource's route registration lives in its own file (neo adds
 // account.go, balance.go, … as it builds handlers) so that adding or changing one
 // resource's routes touches a single file.
@@ -20,7 +20,7 @@ import (
 type Handlers struct{}
 
 // New builds the gin engine with the standard middleware chain and the health
-// probe. neo registers resource route groups here as handlers are added — e.g.
+// probe. neo registers resource route groups here as handlers are added, e.g.
 // `accounts := r.Group("/accounts"); registerAccount(accounts, h.Account)`.
 func New(h Handlers, serviceID string) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)

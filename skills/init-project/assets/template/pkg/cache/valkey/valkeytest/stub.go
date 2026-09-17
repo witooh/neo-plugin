@@ -85,7 +85,7 @@ func (s *Stub) Get(_ context.Context, key string) ([]byte, error) {
 	return nil, valkey.ErrNotFound
 }
 
-// Set satisfies valkey.Client. The TTL is accepted but not retained — tests
+// Set satisfies valkey.Client. The TTL is accepted but not retained: tests
 // assert TTL behaviour at the production-client integration level
 // (pkg/cache/valkey/client_test.go).
 func (s *Stub) Set(_ context.Context, key string, value []byte, _ time.Duration) error {
@@ -114,6 +114,6 @@ func (s *Stub) Delete(_ context.Context, key string) error {
 // Close is a no-op; the stub holds no external resources.
 func (s *Stub) Close() error { return nil }
 
-// Compile-time interface check — fails compilation if Stub drifts from the
+// Compile-time interface check: fails compilation if Stub drifts from the
 // valkey.Client contract.
 var _ valkey.Client = (*Stub)(nil)

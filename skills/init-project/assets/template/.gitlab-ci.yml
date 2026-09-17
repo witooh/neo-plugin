@@ -78,7 +78,7 @@ build:
     # Isolate docker config from other jobs on the shared shell runner so we
     # don't inherit stale credsStore/credHelpers from ~/.docker/config.json.
     DOCKER_CONFIG: "${CI_PROJECT_DIR}/.docker-${CI_JOB_ID}"
-    # Override the global DOCKER_HOST (set for DinD jobs) — ec2-shell uses the host socket.
+    # Override the global DOCKER_HOST (set for DinD jobs): ec2-shell uses the host socket.
     DOCKER_HOST: unix:///var/run/docker.sock
   before_script:
     - set -euo pipefail
