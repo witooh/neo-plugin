@@ -19,7 +19,9 @@ You are given: the **target dir** and the intended **module path / service name 
 
 2. **Genuinely zero business logic.** Confirm these do **not** exist: `internal/core/domain`,
    `internal/core/usecase`, `internal/adapters/gateway`, `internal/adapters/eventbus`, `internal/mocks`,
-   `pkg/messaging`, `pkg/accountnumber`, `tests/`, `docs/`. Confirm no `.go` file under
+   `pkg/messaging`, `pkg/accountnumber`, `docs/`. `tests/e2e/` **does** exist: it is the empty
+   harness (`helpers/api-client.ts`, `specs/health.e2e.ts` only). Fail if any other `*.e2e.ts`
+   names a business resource. Confirm no `.go` file under
    `internal/adapters`, `internal/delivery`, or `pkg` imports `core/domain` or `core/usecase`. Spot-check
    that no business term (account, objective, vault, alpha, dopa, as400, customer-info, …) leaks into the
    **service's own** files. There must be **no** `.kiro/skills/` or `.kiro/agents/` tree in the
@@ -45,18 +47,22 @@ You are given: the **target dir** and the intended **module path / service name 
    deliberately chose that value.
 
 7. **Standard images.** `docker-compose.yaml` pins
-   `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`.
+   `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`,
+   `mockoon/cli:9.7.0` with `placeholder.json`.
    `Dockerfile` uses `public.ecr.aws/docker/library/golang:1.26-alpine` then
    `public.ecr.aws/docker/library/alpine:3.21` (fail on `alpine:latest`).
-   `.gitlab-ci.yml` `prepare-mod` / `test` use `public.ecr.aws/docker/library/golang:1.26`.
+   `.gitlab-ci.yml` `prepare-mod` / `test` use `public.ecr.aws/docker/library/golang:1.26`;
+   `e2e-test` uses `docker:28.5.1` + job-scoped `docker:28.5.1-dind` + `node:22-alpine`.
    See `.kiro/steering/tooling.md` § *Standard images*. Fail on
    `apache/kafka:3.7.0`, plain `valkey/valkey:…`, or ECR Hub mirrors for postgres/redis.
 
 8. **GitLab CI shape.** `.gitlab-ci.yml` has `workflow.auto_cancel`, Go module `cache` paths
    (`.go/pkg/mod/`, `.go/bin/`), `prepare-mod` → vendor artifact, `test` with `-mod=vendor` +
-   coverage script, and `build` on **`ec2-shell`** with ECR credential helper. Fail if `build` is
-   still `linux` + DinD + manual `docker login` / `create-repository`. Absence of `e2e-test` is
-   expected (no `tests/e2e` in the skeleton).
+   coverage script, **`e2e-test`** (compose up + node:22-alpine `npm ci && npm test`), and `build`
+   on **`ec2-shell`** with ECR credential helper. Fail if `build` is still `linux` + DinD +
+   manual `docker login` / `create-repository`, or if leftover **top-level** DinD globals
+   (`DOCKER_HOST: tcp://docker:2375`, `DOCKER_TLS_CERTDIR`) remain. Job-scoped DinD on
+   `e2e-test` is required (linux runners have no host socket).
 
 9. **common-lib v2.2.4.** `go.mod` pins
    `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4`.

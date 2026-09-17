@@ -267,6 +267,12 @@ def check_compose_images(root: Path) -> None:
         uses_docker_image = re.search(r"(?m)^\s+image:\s*.*\bdocker:", citext) or re.search(r"(?m)^\s+- docker:", citext)
         if uses_docker_image and "public.ecr.aws/docker/library/docker:28.5.1" not in citext:
             note(".gitlab-ci.yml", "CI docker image must be public.ecr.aws/docker/library/docker:28.5.1 (tooling.md)")
+        top = re.search(r"(?m)^variables:\n((?:[ \t].*\n)*)", citext)
+        top_vars = top.group(1) if top else ""
+        if "tcp://docker:2375" in top_vars or "DOCKER_TLS_CERTDIR" in top_vars:
+            note(".gitlab-ci.yml", "drop leftover top-level DinD globals; job-scoped DinD belongs on e2e-test (tooling.md)")
+        if re.search(r"docker:[^\s]*dind", citext) and "public.ecr.aws/docker/library/docker:28.5.1-dind" not in citext:
+            note(".gitlab-ci.yml", "CI dind image must be public.ecr.aws/docker/library/docker:28.5.1-dind (tooling.md)")
 
 
 def main() -> None:

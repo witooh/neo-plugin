@@ -73,30 +73,29 @@ the slice and hand it to the Verifier.
 - **Standard images**: when the slice touches `Dockerfile` / `docker-compose*.yaml` /
   `.gitlab-ci.yml` (or S1 installs tooling contract and those files already exist), align tags
   to `INIT_TEMPLATE/.kiro/steering/tooling.md` § *Standard images*:
-  compose `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`;
+  compose `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`,
+  `mockoon/cli:9.7.0` (empty `placeholder.json` until the first upstream);
   Dockerfile `public.ecr.aws/docker/library/golang:1.26-alpine` then
   `public.ecr.aws/docker/library/alpine:3.21` (not `alpine:latest`);
-  CI golang `public.ecr.aws/docker/library/golang:1.26`; node (when an e2e job exists)
-  `public.ecr.aws/docker/library/node:22-alpine`; docker CLI (only if the job already uses a
-  docker image) `public.ecr.aws/docker/library/docker:28.5.1`. Do not invent tags, do not
-  switch local compose to ECR Hub mirrors for postgres/redis, and do not add DinD
-  (`docker:*-dind`) when the job can use the host socket or a separate compose project.
-  Path-only / same-major fixes (plain valkey → valkey-bundle, ECR → Hub, `alpine:latest` →
-  `alpine:3.21`) are behavior-preserving. A **major** broker or language bump (e.g. kafka 3.x
-  → 4.1.0, golang 1.24 → 1.26) still lands the standard tag, but report
-  **DONE_WITH_CONCERNS**: same bar as the postgres-schema cutover above; it is not a silent
-  no-op. Optional extras (mockoon `mockoon/cli:9.7.0` / kafka-ui / localstack / migrate
-  runner) stay on the allowed list in that section.
+  CI golang `public.ecr.aws/docker/library/golang:1.26`; node (e2e-test)
+  `public.ecr.aws/docker/library/node:22-alpine`; docker CLI
+  `public.ecr.aws/docker/library/docker:28.5.1`. Do not invent tags, do not
+  switch local compose to ECR Hub mirrors for postgres/redis. Job-scoped DinD
+  (`docker:28.5.1-dind`) is required on the `e2e-test` linux job; do not add it to
+  `build` and do not leave leftover top-level DinD globals.
+  Strip leftover top-level DinD globals (`DOCKER_HOST: tcp://docker:2375`, `DOCKER_TLS_CERTDIR`,
+  `DOCKER_DRIVER`) when they are not on the `e2e-test` job.
 - **GitLab CI**: when the slice touches `.gitlab-ci.yml` (or S1 installs tooling contract and
   `.gitlab-ci.yml` already exists), align to `INIT_TEMPLATE/.gitlab-ci.yml` +
   `INIT_TEMPLATE/.kiro/steering/tooling.md` § *GitLab CI*: `workflow.auto_cancel` + skip branch
   pipelines while an MR is open; Go `cache` on `.go/pkg/mod/` + `.go/bin/`; `prepare-mod` vendor
-  artifact; `test` with `-mod=vendor` + `scripts/check-coverage.sh`; **`build` on `ec2-shell`** with
+  artifact; `test` with `-mod=vendor` + `scripts/check-coverage.sh`; **`e2e-test`** (compose up +
+  `node:22-alpine`); **`build` on `ec2-shell`** with
   job-local `DOCKER_CONFIG` / ECR `ecr-login` (not `linux`+DinD + manual `docker login`). Keep any
-  **existing** service-specific jobs the target already relies on (e.g. `e2e-test` with real
-  `tests/e2e`, extra deploy stages): merge blueprint shape into them; do not delete working e2e.
-  Adding a brand-new `e2e-test` job when the tree has no `tests/e2e` is out of scope (report
-  DONE_WITH_CONCERNS if the old CI referenced paths that no longer exist).
+  **existing** service-specific jobs the target already relies on (e.g. extra deploy stages): merge
+  blueprint shape into them; do not delete working e2e. If the target has **no** `tests/e2e/`, copy
+  the skeleton harness from `INIT_TEMPLATE/tests/e2e/` (health spec only) plus `mockoon/placeholder.json`
+  and the `e2e-test` job. If it already has e2e, merge; do not overwrite specs.
 
 ## Stop conditions (never improvise)
 - A target shape the steering does not cover, or a move that would change observable behavior →

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "neo",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
   "author": {
     "name": "Witoo Harianto"

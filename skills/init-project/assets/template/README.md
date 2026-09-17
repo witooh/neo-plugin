@@ -40,7 +40,8 @@ neo-service/
 │   ├── clock/  idgen/               #   ambient capabilities (clock, id) + *test fakes
 │   └── lib/kafka/                   #   generic Kafka producer/consumer primitives
 ├── .kiro/steering/                  # the authoritative engineering guide (read structure.md first)
-├── bruno/  mockoon/                 # API-collection + upstream-stub shells (skills populate them)
+├── bruno/  mockoon/                 # API-collection shell + empty Mockoon placeholder
+├── tests/e2e/                       # Jest + Playwright-request harness (`GET /health`)
 ├── tools/                           # pinned tool modules (sqlc, mockery, golang-migrate, …)
 ├── Makefile  Dockerfile  docker-compose.yaml
 ├── config/config.yaml               # single committed config (env vars override per env)

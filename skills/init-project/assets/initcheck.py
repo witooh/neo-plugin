@@ -34,6 +34,8 @@ MANIFEST = [
     "internal/delivery/http/middleware/middleware.go",
     "go.mod", "go.sum", "Dockerfile", "Makefile", "docker-compose.yaml",
     "scripts/check-coverage.sh",
+    "tests/e2e/package.json", "tests/e2e/package-lock.json", "tests/e2e/jest.config.ts",
+    "tests/e2e/specs/health.e2e.ts", "mockoon/placeholder.json",
     ".kiro/steering/INDEX.md", ".kiro/steering/structure.md",
     ".kiro/steering/repo-instance.md", "CLAUDE.md",
     "tools/sqlc/go.mod", "tools/mockery/go.mod", "tools/golang-migrate/go.mod",
@@ -205,6 +207,7 @@ def main() -> None:
         "valkey/valkey-bundle:8-alpine",
         "postgres:17-alpine",
         "apache/kafka:4.1.0",
+        "mockoon/cli:9.7.0",
     )
     missing_img = [img for img in required_images if img not in ctext]
     banned = []
@@ -233,6 +236,20 @@ def main() -> None:
     citext = ci.read_text(encoding="utf-8") if ci.is_file() else ""
     check("public.ecr.aws/docker/library/golang:1.26" in citext,
           "CI golang image", "need public.ecr.aws/docker/library/golang:1.26")
+    top = re.search(r"(?m)^variables:\n((?:[ \t].*\n)*)", citext)
+    top_vars = top.group(1) if top else ""
+    check("tcp://docker:2375" not in top_vars and "DOCKER_TLS_CERTDIR" not in top_vars,
+          "CI top-level variables have no leftover DinD",
+          "DinD host/TLS belong on the e2e-test job only")
+    check("e2e-test:" in citext, "CI e2e-test job", "")
+    check("public.ecr.aws/docker/library/node:22-alpine" in citext,
+          "CI e2e node image", "need public.ecr.aws/docker/library/node:22-alpine")
+    check("public.ecr.aws/docker/library/docker:28.5.1" in citext,
+          "CI e2e docker image", "need public.ecr.aws/docker/library/docker:28.5.1")
+    if re.search(r"docker:[^\s]*dind", citext):
+        check("public.ecr.aws/docker/library/docker:28.5.1-dind" in citext,
+              "CI dind pin", "need public.ecr.aws/docker/library/docker:28.5.1-dind")
+    check("placeholder.json" in ctext, "compose mockoon placeholder", "")
 
     ok, detail = probe_health(t)
     check(ok, "boots + serves /health without infra (no panic)", detail)

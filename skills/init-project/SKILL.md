@@ -12,7 +12,7 @@ description: >
   "bootstrap a Go service", "สร้าง project ใหม่", "สร้าง service ใหม่", "scaffold service ใหม่",
   "โครง service เปล่า", "ตั้งโปรเจกต์ใหม่ตาม account-service", "ทำ boilerplate", "new Go service
   skeleton". Needs Go >= 1.26 and GOPRIVATE access to the org `common-lib` the template needs.
-  NOTE: only CREATES the empty skeleton: adding domains / AC / endpoints / tests is later work,
+  NOTE: only CREATES the empty skeleton: adding domains / AC / endpoints is later work,
   not this skill.
 ---
 
@@ -34,9 +34,11 @@ A complete service skeleton under the target dir:
 - **Layers**: `cmd/api` (composition root), `config`, `internal/delivery/http/{router,middleware}`
   (with `/health`), `internal/adapters/repository/{postgres,redis,cache}`,
   `pkg/{clock,idgen,cache/valkey,lib/kafka}`.
-- **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka),
-  `.gitlab-ci.yml` (workflow + Go cache; `prepare-mod` / `test` / `ec2-shell` `build`: no e2e until
-  `tests/e2e` exists), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
+- **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka + mockoon
+  placeholder), `.gitlab-ci.yml` (workflow + Go cache; `prepare-mod` / `test` / `e2e-test` /
+  `ec2-shell` `build`), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
+  `tests/e2e` is the Jest + Playwright-request harness with a `GET /health` spec; `mockoon/`
+  ships an empty `placeholder.json` so the stub container starts before any upstream exists.
 - **Agentic context**: `.kiro/steering/*` (architecture guides) + `CLAUDE.md`.
   Skills come from the plugin / user install: **not** bundled under the service tree.
 - `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **added later as domains**, not the

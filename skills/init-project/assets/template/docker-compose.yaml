@@ -18,6 +18,21 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      mockoon:
+        condition: service_started
+
+  mockoon:
+    image: mockoon/cli:9.7.0
+    container_name: mockoon
+    command:
+      - "--data"
+      - "/data/placeholder.json"
+      - "--port"
+      - "8500"
+    ports:
+      - "8500:8500"
+    volumes:
+      - ./mockoon:/data:ro
 
   kafka:
     image: apache/kafka:4.1.0

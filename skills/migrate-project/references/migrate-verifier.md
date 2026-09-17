@@ -44,24 +44,25 @@ pre-migration picture).
 
 6. **Standard images (when `Dockerfile` / `docker-compose*.yaml` / `.gitlab-ci.yml` exist).**
    Tags match `INIT_TEMPLATE/.kiro/steering/tooling.md` § *Standard images*:
-   compose `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`;
+   compose `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`,
+   `mockoon/cli:9.7.0`;
    Dockerfile `public.ecr.aws/docker/library/golang:1.26-alpine` then
    `public.ecr.aws/docker/library/alpine:3.21` (fail on `alpine:latest`);
    CI golang `public.ecr.aws/docker/library/golang:1.26`. Fail on
    `apache/kafka:3.7.0`, plain `valkey/valkey:…`, or ECR Hub mirrors for postgres/redis in
-   local compose. Optional extras (`mockoon/cli:9.7.0`, kafka-ui, localstack, migrate runner)
+   local compose. Optional extras (kafka-ui, localstack, migrate runner)
    must stay on that allow-list. A node or docker CI image, if present, must be
    `public.ecr.aws/docker/library/node:22-alpine` /
-   `public.ecr.aws/docker/library/docker:28.5.1` (dind only if the job has no other docker).
-
+   `public.ecr.aws/docker/library/docker:28.5.1` (job-scoped dind `28.5.1-dind` on `e2e-test` only).
 
 7. **GitLab CI (when `.gitlab-ci.yml` exists).** Shape matches
    `INIT_TEMPLATE/.gitlab-ci.yml` / tooling.md § *GitLab CI*: `workflow` auto-cancel + no dual
    branch+MR pipelines; Go cache paths; `prepare-mod` → vendor artifact; `test` uses `-mod=vendor`
-   + coverage script; `build` uses **`ec2-shell`** + ECR credential helper (fail if build is still
-   `linux`+DinD with manual `docker login` / `create-repository`). Keep service-specific jobs
-   (e2e, deploy) if present and still valid: absence of `e2e-test` on a service without
-   `tests/e2e` is PASS, not a gap.
+   + coverage script; `e2e-test` compose + `node:22-alpine` when `tests/e2e` exists; `build` uses
+   **`ec2-shell`** + ECR credential helper (fail if build is still
+   `linux`+DinD with manual `docker login` / `create-repository`, or leftover **top-level** DinD globals
+   `DOCKER_HOST: tcp://docker:2375` / `DOCKER_TLS_CERTDIR` remain). Keep service-specific jobs
+   (deploy) if present and still valid.
 
 ## Output
 A short report: each check PASS / FAIL with one line of evidence (`file:line`), then a final verdict

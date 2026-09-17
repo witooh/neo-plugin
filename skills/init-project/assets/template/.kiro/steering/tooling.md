@@ -108,8 +108,8 @@ that floods the baseline.
 
 ## GitLab CI: `.gitlab-ci.yml`
 
-Empty-skeleton pipeline (no `tests/e2e` yet). Align with the org core services that already
-tuned CI for speed: **not** the older DinD build path.
+Skeleton pipeline. Align with the org core services that already tuned CI for speed:
+**not** the older DinD *build* path (`build` stays on `ec2-shell`).
 
 | Piece | Required shape |
 |---|---|
@@ -117,15 +117,11 @@ tuned CI for speed: **not** the older DinD build path.
 | Go cache | top-level `cache.paths`: `.go/pkg/mod/`, `.go/bin/` with `GOPATH: ${CI_PROJECT_DIR}/.go` |
 | `prepare-mod` | `go mod download` + `go mod vendor`; `vendor/` artifact (1 day); `CI_JOB_TOKEN` rewrite for the private module host |
 | `test` | `needs: [prepare-mod]`; `go test -short -mod=vendor` + `scripts/check-coverage.sh` (threshold 80) |
+| `e2e-test` | `linux` + `public.ecr.aws/docker/library/docker:28.5.1` with job-scoped DinD (`docker:28.5.1-dind`) because linux runners have no host socket; `docker compose up --build --wait`; Node test container `public.ecr.aws/docker/library/node:22-alpine` with `API_BASE_URL=http://<service>:8080`. No migrate step until the service owns tables. |
 | `build` | tag **`ec2-shell`** (host docker socket: **not** `linux` + DinD); job-local `DOCKER_CONFIG` + ECR `credHelpers` / `ecr-login`; assume-role to n005; `docker build` + `docker push` of `${ECR_URI}/${ECR_REPO_NAME}:${IMAGE_TAG}`; `interruptible: false` |
-| stages (skeleton) | `prepare-mod` → `test` → `build` |
+| stages | `prepare-mod` → `test` → `e2e-test` → `build` |
 
-**When `e2e-playwright` adds HTTP e2e**, insert stage `e2e-test` (between `test` and `build`)
-modeled on payment-gateway: `docker compose up` on the runner's docker socket (or a separate
-compose project), migrate on the compose network, then a Node test container
-(`public.ecr.aws/docker/library/node:22-alpine`) with service-specific `API_BASE_URL` /
-`DB_SCHEMA`. Do not add DinD (`docker:*-dind`) unless the job has no other way to talk to
-Docker. Do not copy e2e into a service that has no `tests/e2e` yet.
+Do not put DinD globals (`DOCKER_HOST: tcp://docker:2375`, `DOCKER_TLS_CERTDIR`, `DOCKER_DRIVER`) on the top-level `variables:` block: they belong on the `e2e-test` job only.
 
 ### Don'ts
 
@@ -157,7 +153,7 @@ mirrors; align `Dockerfile`, `docker-compose*.yaml`, `.gitlab-ci.yml`, and docke
 |---|---|
 | golang (CI `prepare-mod` / `test`) | `public.ecr.aws/docker/library/golang:1.26` |
 | golang alpine (Dockerfile builder) | `public.ecr.aws/docker/library/golang:1.26-alpine` |
-| node (e2e test container, when `tests/e2e` exists) | `public.ecr.aws/docker/library/node:22-alpine` |
+| node (e2e-test container) | `public.ecr.aws/docker/library/node:22-alpine` |
 | alpine (Dockerfile final stage) | `public.ecr.aws/docker/library/alpine:3.21` |
 
 ### Docker (CI only, when a job needs a docker image)
@@ -167,8 +163,9 @@ mirrors; align `Dockerfile`, `docker-compose*.yaml`, `.gitlab-ci.yml`, and docke
 | docker CLI | `public.ecr.aws/docker/library/docker:28.5.1` |
 | docker dind | `public.ecr.aws/docker/library/docker:28.5.1-dind` |
 
-Prefer the host docker socket (`ec2-shell`) or a separate compose project over DinD.
-Do not add a `docker:*-dind` service to the skeleton.
+Prefer the host docker socket (`ec2-shell`) for `build`. `e2e-test` on `linux` runners has no
+host socket, so job-scoped DinD (`public.ecr.aws/docker/library/docker:28.5.1-dind`) is required
+there. Do not leave leftover DinD globals on the top-level `variables:` block.
 
 ### GitLab helper
 
@@ -183,12 +180,12 @@ Do not add a `docker:*-dind` service to the skeleton.
 | cache | `valkey/valkey-bundle:8-alpine` |
 | postgres / postgres-init | `postgres:17-alpine` |
 | kafka | `apache/kafka:4.1.0` |
+| mockoon | `mockoon/cli:9.7.0` (empty `placeholder.json` on `:8500` until the first upstream) |
 
 ### When the feature needs it
 
 | Service | Image | When |
 |---|---|---|
-| mockoon | `mockoon/cli:9.7.0` | first external HTTP upstream stub |
 | kafka-ui | `ghcr.io/kafbat/kafka-ui:latest` | local topic browsing (optional) |
 | migrate | `migrate/migrate:v4.18.1` | one-shot migration runner in compose (optional; Makefile uses `tools/golang-migrate`) |
 | localstack | `localstack/localstack:3.4` | AWS API mock |
@@ -200,6 +197,7 @@ Do not add a `docker:*-dind` service to the skeleton.
 - ✗ `valkey/valkey:8-alpine`: use **`valkey-bundle`**, not plain valkey.
 - ✗ `public.ecr.aws/docker/library/{postgres,redis}:…` mirrors in local compose, use the Hub paths above.
 - ✗ `redis:*` for the cache service: Valkey is the cache image.
+- ✗ leftover **top-level** DinD globals (`DOCKER_HOST: "tcp://docker:2375"`, `DOCKER_TLS_CERTDIR`, `DOCKER_DRIVER`): job-scoped DinD on `e2e-test` is required on `linux` runners; do not leak it into `prepare-mod` / `test` / `build`.
 
 ## Don'ts
 

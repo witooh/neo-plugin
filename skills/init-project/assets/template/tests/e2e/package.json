@@ -1,0 +1,25 @@
+{
+  "name": "neo-service-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E2E tests for neo-service",
+  "scripts": {
+    "test": "jest --runInBand --forceExit",
+    "test:debug": "jest --runInBand --forceExit --verbose --detectOpenHandles",
+    "test:watch": "jest --runInBand --watch",
+    "test:coverage": "jest --runInBand --forceExit --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  }
+}

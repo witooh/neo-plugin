@@ -24,12 +24,15 @@ domain work.
   `internal/delivery/http/{router,middleware}` (the `/health` probe + middleware chain),
   `internal/adapters/repository/{postgres,redis,cache}` (low-level clients + `sqlc/db.go` +
   `transactor`/`utilities`/`dberror`), `pkg/{clock,idgen,cache/valkey,lib/kafka}` (ambient + generic kafka).
-- **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres+valkey+kafka), `.gitlab-ci.yml`
-  (workflow auto-cancel + Go module cache; stages `prepare-mod` / `test` / `build` on `ec2-shell` for
-  image push: no DinD build, no `e2e-test` until the service has `tests/e2e`), `.golangci.yaml`,
+- **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres+valkey+kafka+mockoon
+  placeholder), `.gitlab-ci.yml`
+  (workflow auto-cancel + Go module cache; stages `prepare-mod` / `test` / `e2e-test` / `build` on
+  `ec2-shell` for image push: no DinD *build*), `.golangci.yaml`,
   `.mockery.yaml`, `sqlc.yaml`, `.pre-commit-config.yaml`, `.gitignore`, the five pinned `tools/*` modules.
+  `tests/e2e/` Jest + Playwright-request harness (`specs/health.e2e.ts` only) and
+  `mockoon/placeholder.json` (empty env on `:8500`).
 - **Agentic context**: `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
-  `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template , 
+  `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template ,
   those install from the neo plugin / `kiro.sh`, not per service.
   `bruno/` + `mockoon/` shells (READMEs + env; collections/stubs regenerate per-domain).
   - **`CLAUDE.md` is gitignored by design** (`template/.gitignore`): this is a **Kiro-first**
@@ -42,8 +45,8 @@ domain work.
 
 All business: `internal/core/{domain,usecase}`, `internal/adapters/{gateway,eventbus}`, business HTTP
 handlers/DTOs/routes, business sqlc queries/migrations/seed (kept generic `sqlc/db.go`), `internal/mocks`,
-`pkg/{messaging,accountnumber,mocks}`, the whole `tests/` e2e harness, `docs/`, and the business
-`bruno`/`mockoon` content.
+`pkg/{messaging,accountnumber,mocks}`, **business** e2e specs and mockoon upstream files (keep the
+empty harness + `placeholder.json`), `docs/`, and the business `bruno` content.
 
 ## Boot model (why it runs with no Docker)
 
@@ -78,7 +81,8 @@ is committed.
    **config** (`config.go` → `logger/service/postgres/redis/kafka` only; `config.yaml` to match).
 4. **Strip** the now-orphaned business packages (domains, usecases, gateways, eventbus adapters,
    business repos + migrations + queries + business sqlc, mocks, `pkg/messaging`, `pkg/accountnumber`,
-   `tests/`, `docs/`, business `bruno`/`mockoon`).
+   business e2e specs and mockoon upstream files (keep `tests/e2e` harness + `health.e2e.ts` +
+   `mockoon/placeholder.json`), `docs/`, business `bruno`).
 5. **Genericize** the docs/config that name the business: `README.md`, `CLAUDE.md`,
    `repo-instance.md` (empty-service version), `docker-compose.yaml`, `Makefile`, `.gitlab-ci.yml`,
    `mockoon/README.md`, `bruno/{README.md,opencollection.yml,environments/*}`.
