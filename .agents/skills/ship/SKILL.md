@@ -23,8 +23,8 @@ are not.
 ## Non-negotiables
 
 - **`.claude-plugin/plugin.json` is the canonical version source.** Sync the same
-  version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root `plugin.json`,
-  and `package.json` in the same bump. Marketplace indexes carry no version
+  version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, `.cursor-plugin/plugin.json`,
+  root `plugin.json`, and `package.json` in the same bump. Marketplace indexes carry no version
   field — never touch them for versioning.
 - **Semver by change type:** `patch` = fix/docs, `minor` = new skill/feature,
   `major` = breaking.
@@ -74,9 +74,9 @@ echo "$cur -> $next"
 ### 3. Stage + draft (no commit yet)
 
 1. Bump the `version` field in `.claude-plugin/plugin.json` and sync the same
-   value into `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root
-   `plugin.json`, and `package.json` (Edit the `"version": "<cur>"` line to
-   `<next>` in all five).
+   value into `.plugin/plugin.json`, `.grok-plugin/plugin.json`,
+   `.cursor-plugin/plugin.json`, root `plugin.json`, and `package.json` (Edit the
+   `"version": "<cur>"` line to `<next>` in all six).
 2. Pack everything: `git add -A` (all changes incl. untracked, plus the manifest).
 3. Draft the **commit message** — Conventional Commits (`type(scope): subject`),
    a body saying what changed and why, derived from `git diff --cached`. End with

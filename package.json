@@ -1,6 +1,6 @@
 {
   "name": "neo",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
   "keywords": [
     "pi-package",

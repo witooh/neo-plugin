@@ -70,14 +70,29 @@ git clone https://github.com/witooh/neo-plugin.git
 pi install ./neo-plugin
 ```
 
-**Cursor / Kiro**
+**Cursor**
+
+In Customize, add this repo from GitHub. Cursor reads `.cursor-plugin/marketplace.json` and loads skills from `skills/`.
+
+```text
+https://github.com/witooh/neo-plugin
+```
+
+**Kiro**
 
 ```bash
-./cursor.sh --project    # or --global → ~/.cursor
 ./kiro.sh --project      # or --global → ~/.kiro
 ```
 
 Copies **skills only**.
+
+**Cursor Cloud Agent.** `scripts/install-cursor-cloud.sh` copies the pack into `~/.cursor/skills` during `install`, which is what the Build snapshots. Do not `curl | bash`. Do not put it in `start`. Pin a tag when the script is vendored outside this repo:
+
+```bash
+NEO_REF=v5.0.1 ./scripts/install-cursor-cloud.sh
+```
+
+From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. It does not modify the service working tree.
 
 ## Skills
 
@@ -132,6 +147,7 @@ node scripts/validate-skills.js       # frontmatter + dead-reference scan
 node scripts/validate-pi-package.js   # pi package wiring
 node scripts/validate-omp-package.js  # omp package wiring
 node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
+node scripts/validate-cursor-package.js # Cursor marketplace + plugin wiring
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```

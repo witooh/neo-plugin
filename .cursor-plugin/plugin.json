@@ -1,5 +1,6 @@
 {
   "name": "neo",
+  "displayName": "neo",
   "version": "5.0.2",
   "description": "Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.",
   "author": {
@@ -8,10 +9,6 @@
   "homepage": "https://github.com/witooh/neo-plugin",
   "repository": "https://github.com/witooh/neo-plugin",
   "license": "MIT",
-  "keywords": [
-    "skills",
-    "engineering",
-    "api",
-    "e2e"
-  ]
+  "keywords": ["skills", "engineering", "api", "e2e"],
+  "skills": "./skills"
 }

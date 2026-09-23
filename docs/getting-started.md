@@ -9,7 +9,7 @@ neo is a bag of org domain skills in `skills/`. One plugin install. Developers p
 /plugin install neo@neo
 ```
 
-For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi-setup.md). For omp, see [omp-setup.md](omp-setup.md). Cursor: `./cursor.sh`. Kiro: `./kiro.sh`.
+For Grok Build, see [grok-setup.md](grok-setup.md). For pi, see [pi-setup.md](pi-setup.md). For omp, see [omp-setup.md](omp-setup.md). Cursor: add `https://github.com/witooh/neo-plugin` from GitHub in Customize. Kiro: `./kiro.sh`.
 
 ## First run
 

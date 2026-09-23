@@ -22,6 +22,7 @@ skills/            the 17 org domain skills
 scripts/           Validators
 docs/              Setup guides
 .claude-plugin/    Claude Code plugin + marketplace manifests
+.cursor-plugin/    Cursor plugin + marketplace manifests (GitHub Add)
 .grok-plugin/      Grok Build marketplace index + plugin manifest
 .omp-plugin/       omp marketplace index
 .plugin/           Generic plugin manifest mirror
@@ -40,7 +41,8 @@ Six supported channels. Each **only discovers skills**. There is no SessionStart
 - **Grok Build**: `.grok-plugin/` + `skills/`. See `docs/grok-setup.md`.
 - **pi**: `package.json` `pi.skills: ["./skills"]`; `.pi/skills` symlink for a project-local checkout. See `docs/pi-setup.md`.
 - **omp**: `package.json` `"omp": {}` (harness discovery); skills from `skills/`. See `docs/omp-setup.md`.
-- **Cursor / Kiro**: `./cursor.sh` / `./kiro.sh` copy **skills only**.
+- **Cursor**: `.cursor-plugin/marketplace.json` + `.cursor-plugin/plugin.json`; skills from `skills/`. Add the repo from GitHub in Customize. Cloud Agent snapshot install is `scripts/install-cursor-cloud.sh` (`install`, not `start`).
+- **Kiro**: `./kiro.sh` copies **skills only**.
 
 Do not fork skill content per harness.
 
@@ -61,6 +63,7 @@ There is none. The host agent loads matching skills. neo does not own the work, 
 - pi package: `node scripts/validate-pi-package.js`
 - omp package: `node scripts/validate-omp-package.js`
 - Grok package: `node scripts/validate-grok-package.js`
+- Cursor package: `node scripts/validate-cursor-package.js`
 - Claude plugin structure: `claude plugin validate .`
 - Grok plugin structure: `grok plugin validate .`
 
@@ -68,7 +71,7 @@ There is none. The host agent loads matching skills. neo does not own the work, 
 
 When the user asks to bump the version, commit, or cut a release:
 
-1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, root `plugin.json`, and `package.json` in the same bump. Marketplace indexes (`.claude-plugin/marketplace.json`, `.grok-plugin/marketplace.json`, `.omp-plugin/marketplace.json`) intentionally have no version field.
+1. Bump the canonical `version` in `.claude-plugin/plugin.json` (SemVer: patch for fixes/docs, minor for backward-compatible features or skills, major for breaking changes). Sync the same version to `.plugin/plugin.json`, `.grok-plugin/plugin.json`, `.cursor-plugin/plugin.json`, root `plugin.json`, and `package.json` in the same bump. Marketplace indexes (`.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`, `.grok-plugin/marketplace.json`, `.omp-plugin/marketplace.json`) intentionally have no version field.
 2. After the commit lands, create an annotated tag: `git tag -a v<version> -m "neo <version> — <headline>"`, then push the branch and tag.
 3. After the tag reaches `origin`, publish a GitHub release with `gh release create v<version> --title "v<version>" --notes-file <tmp.md> --latest`. Headline plus Added / Changed / Removed / Notes sections in the body; the title is the version only.
 
