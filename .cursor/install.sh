@@ -21,12 +21,17 @@ fi
 if sudo -n true 2>/dev/null; then
   sudo env "PATH=$PATH" npm install -g "$pkg"
 else
-  export NPM_CONFIG_PREFIX="$HOME/.npm-global"
-  mkdir -p "$NPM_CONFIG_PREFIX/bin"
-  npm install -g "$pkg"
+  prefix="$HOME/.npm-global"
+  mkdir -p "$prefix/bin"
+  npm install -g --prefix "$prefix" "$pkg"
+  # Put the user-local bin on PATH for the login and interactive shells the
+  # agent uses, without duplicating the line on re-runs.
   path_line='export PATH="$HOME/.npm-global/bin:$PATH"'
-  grep -qxF "$path_line" "$HOME/.bashrc" 2>/dev/null || echo "$path_line" >>"$HOME/.bashrc"
-  export PATH="$HOME/.npm-global/bin:$PATH"
+  for rc in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.bash_profile"; do
+    touch "$rc"
+    grep -qxF "$path_line" "$rc" 2>/dev/null || echo "$path_line" >>"$rc"
+  done
+  export PATH="$prefix/bin:$PATH"
 fi
 
 echo "install.sh: installed $(claude --version 2>/dev/null | head -1)"
