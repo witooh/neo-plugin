@@ -1,0 +1,4 @@
+{
+  "name": "neo",
+  "install": "bash .cursor/install.sh"
+}
