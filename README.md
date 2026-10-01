@@ -9,6 +9,17 @@ neo is a skill pack: 17 skills in `skills/`. The host agent loads matching skill
 
 ## Install
 
+**Codex**
+
+Add the marketplace, then install the plugin. See [docs/codex-setup.md](docs/codex-setup.md) for desktop and local checkout setup.
+
+```bash
+codex plugin marketplace add witooh/neo-plugin
+codex plugin add neo@neo
+```
+
+Start a new Codex session after installing. Skills load from the same `skills/` directory as the other channels.
+
 **Claude Code**
 
 ```
@@ -148,6 +159,8 @@ node scripts/validate-pi-package.js   # pi package wiring
 node scripts/validate-omp-package.js  # omp package wiring
 node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
 node scripts/validate-cursor-package.js # Cursor marketplace + plugin wiring
+node scripts/validate-codex-package.js # Codex marketplace + plugin wiring
+node scripts/test-codex-install.js    # Codex install + actual skill discovery
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```

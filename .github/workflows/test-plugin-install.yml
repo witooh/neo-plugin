@@ -23,6 +23,9 @@ jobs:
       - name: Validate Pi package
         run: node scripts/validate-pi-package.js
 
+      - name: Validate Codex package
+        run: node scripts/validate-codex-package.js
+
   validate:
     name: Validate plugin structure
     needs: [validate-skills]
@@ -35,6 +38,24 @@ jobs:
 
       - name: Validate marketplace and plugin manifests
         run: claude plugin validate .
+
+  test-codex-install:
+    name: Test Codex plugin installation
+    needs: [validate-skills]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex@0.159.3
+
+      - name: Install plugin and verify loaded skills
+        run: node scripts/test-codex-install.js
 
   test-install:
     name: Test plugin installation

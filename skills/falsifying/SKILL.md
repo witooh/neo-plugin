@@ -2,7 +2,7 @@
 name: falsifying
 description: >-
   Attacks a green signal to find out whether it can go red at all. Audits the measuring apparatus
- : a gate, checker, coverage number, CI job, or test suite: rather than the product: constructs
+  : a gate, checker, coverage number, CI job, or test suite: rather than the product: constructs
   the case that must fail and checks that it does, and diffs every independent source of the same
   fact against the others. Use when a gate or checker is written or changed, when a metric looks
   better than the work feels, before trusting a number in an MR, or when a suite passes on code

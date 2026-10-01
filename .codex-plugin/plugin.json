@@ -8,5 +8,10 @@
   "homepage": "https://github.com/witooh/neo-plugin",
   "repository": "https://github.com/witooh/neo-plugin",
   "license": "MIT",
-  "skills": "./skills"
+  "keywords": ["skills", "engineering", "api", "e2e"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "neo",
+    "shortDescription": "Org skills for API, Go, Jira/GitLab, and SIT"
+  }
 }
