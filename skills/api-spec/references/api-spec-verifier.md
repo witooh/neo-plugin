@@ -44,12 +44,23 @@ do not invent a rule, do not mark it verified. An honest "could not verify X" be
    `docs/api/<domain>/*.yaml`; no required endpoint is silently missing. (When `covers_ac` is used, every
    in-scope AC-ID maps to an endpoint.)
 2. **Request/response fields reflect the contract.** Each field the intent requires is present with the right
-   `type`; fields the intent does not mention are not invented. The response shape matches the stated success
-   outcome.
+   `type`; fields the intent does not mention are not invented. Verify **success and error** bodies
+   separately, not only the success outcome.
 3. **M/O matches the business rules.** A field's `mandatory: M|O` agrees with whether the
    requirement/validation actually makes it required (a "required when X" rule → `O` + a `remark`, not `M`).
 4. **Errors cover the failure paths.** Every failure/edge case the intent describes has an `errors[]` row with
-   the right `status` + `code`; no failure path is undocumented. A happy-path-only spec is the classic gap.
+   the right `status` + `code` and, for common-lib, structured String `responseCode`; no failure path is undocumented.
+   For the new common-lib contract, every documented error body has exactly the required String
+   fields `responseCode`, `errorCode`, `errorMessage`, with status derived from `responseCode`.
+   A legacy `type/status/serviceId/message/errors[]` body, even with a newly prefixed code inside,
+   is **WRONG**, not a harmless example or a preserved semantic. Check field tables, nested objects,
+   JSON examples, `_meta.overview`, common errors and endpoint errors together. Each common-lib
+   error row's `responseCode` must match the approved catalog/contract and body example; prose
+   inside `description` is not a substitute. `status/code/message` remain documentation metadata.
+   Read the template's **Common-lib error response contract** and the shared `errors.md`.
+   For an explicitly requested breaking migration, confirm the old body/statuses are replaced and
+   `VERSION.md` records **BREAKING**; preserving old error rows is a defect. Also verify that request
+   semantics, success bodies and documented partner-specific contracts did not change.
 5. **business_logic reflects the real flow.** The prose (incl. multi-flow / dispatch sub-headings) matches the
    sequence the intent or the code actually follows: not a plausible-sounding invention.
 6. **Examples are consistent.** Each `example` JSON's keys line up with its field table (no key in the example

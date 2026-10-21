@@ -63,6 +63,16 @@ Read [`references/request-template.md`](references/request-template.md), **§0**
 
 - **Hand-map** each endpoint YAML → one request (`path_params`/`query_params` populate `params`; `request_body.example` → `http.body.data` verbatim; `auth` → request/folder auth; `_meta.base_url` + `path` → the `{{baseUrl}}` URL). Render each endpoint's `docs:` with `yaml2md.py` (see Step 3). *(There is no `bru import openapi`: the custom YAML is not OpenAPI; always hand-map.)*
 
+For common-lib services, follow the
+[`API spec error contract`](../api-spec/references/api-spec-template.md#common-lib-error-response-contract):
+the error body is exactly `{ responseCode, errorCode, errorMessage }`, separate from success.
+Both request and collection-root error tables always include **Status / Response Code / Error Code /
+Error Messages**, followed by Description for the rejection condition. Map these from
+`status` / `responseCode` / `code` / `message`; preserve leading zeroes and leave absent values blank,
+never infer them from prose. **Error Messages** is a column title, not a new wire field.
+An obsolete/missing common-lib response contract in the source must be reconciled by `api-spec`,
+not invented or silently repaired in the collection.
+
 ## Step 3 · Generate / Update / Validate
 
 Write using [`references/request-template.md`](references/request-template.md) (per-file templates) + [`references/yaml-reference.md`](references/yaml-reference.md) (schema):
@@ -71,7 +81,7 @@ Write using [`references/request-template.md`](references/request-template.md) (
 - **environments/**: one file per environment; `baseUrl` + a var per `{{name}}` referenced in any request; secret-looking names → `value: ""` + `secret: true` (never write a literal secret).
 - **`<group>/folder.yml`**: display name, `seq` (10,20,30…), shared headers + auth derived from the endpoints' `auth`; `docs:` = the domain group prose from `_meta.domains.<group>`.
 - **`<group>/<endpoint>.yml`**: `info → http → docs → settings`. `http.body.data` is the endpoint's `request_body.example` JSON copied **verbatim** (runnable body is never filtered). Omit `body` when the endpoint has no request body. **`docs:`** = `python3 <ASSET_DIR>/yaml2md.py docs/api/<group>/<endpoint>.yaml` (Audience-filtered endpoint Markdown, `colcheck.py` K7 enforces it matches exactly).
-- **Update**: diff against existing files; touch the minimum; **preserve** any user-added `headers`/`auth`/env values (often hand-typed secrets); re-render `docs:` from the api-spec; assign the next free `seq` for new requests.
+- **Update**: diff against existing files; touch the minimum; **preserve** user-added `headers`/`auth`/env values (often hand-typed secrets), not obsolete error documentation. Re-render affected request **and collection-root** `docs:` from the current api-spec so old response bodies and error table columns are replaced; assign the next free `seq` for new requests.
 - **Validate**: no writes; run the verify layers below as a pure check and produce a report.
 
 ### verify-L1 · Script tripwire (always)

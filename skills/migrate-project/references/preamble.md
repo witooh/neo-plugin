@@ -61,6 +61,13 @@ evidence, by priority:
 
 Found a regression? Fix and re-verify until clean. Never report a slice green on confidence.
 
+**The one declared exception: the error body.** Adopting the common-lib v2.3.0 error code standard
+(S1, `roles/migrator.md`) changes every HTTP error to `{ responseCode, errorCode, errorMessage }`,
+with the status taken from the catalog. That breaking change is declared `BREAKING` in `plan.md`:
+update the tests / e2e specs that assert an error body to the new shape (same cases, new expected
+body and status). That edit is not a regression; deleting a test or dropping a case still is.
+Everything else stays behavior-preserving.
+
 ## 4. Status line (end of every output)
 Close with a single line: **`Status:`** followed by one of
 - **DONE**: fully complete

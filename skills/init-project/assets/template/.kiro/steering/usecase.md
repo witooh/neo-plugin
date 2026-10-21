@@ -119,9 +119,11 @@ Rules:
   dot-separated event names, and `logger.Err(err, category)`: levels and the category
   list live in `structure.md` § *Logging and errors*. Do not log HTTP method/path/body
   here (`LoggingMiddleware` does). `Fatal` / `Panic` are forbidden in `Exec`.
-- **Error wrapping:** pass `stderr.StandardError` values through unchanged so
-  `GinErrorHandler` can map `GetErrorType()`. Wrap with `fmt.Errorf("...: %w", err)` only
-  to add context, never to flatten a typed error into a string.
+- **The usecase picks the error code.** Map integration-port sentinels / typed errors with
+  `errors.Is` / `errors.As` to domain constructors (`errors.md`). Pass an already-coded error
+  through; never return a raw port error, free-text `fmt.Errorf`, or legacy `stderr` constructor.
+  Add this operation's Title Case package name to each raised catalog row's `raisedBy`.
+  Log a best-effort side-effect failure without changing the operation's decided outcome.
 
 ## Multi-port operations
 

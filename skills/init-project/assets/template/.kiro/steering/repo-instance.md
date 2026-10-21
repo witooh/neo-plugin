@@ -39,6 +39,9 @@ The skeleton ships the infrastructure every service needs, ready for the first d
 
 - **Postgres**: `internal/adapters/repository/postgres` (sqlc `db.go` + `transactor` /
   `utilities` / `dberror`); `cmd/api` dials it best-effort so `/health` serves without it.
+  `migrations/000001` creates `uuid_generate_v7()` only (no tables yet).
+- **Error codes**: `internal/core/domain/errors.go` + `errorcatalog/` (prefix `NZQ`); only
+  `NZQ-8001` (database unavailable, raised by `dberror`) until the first domain adds its own.
 - **Redis / Valkey**: `internal/adapters/repository/{redis,cache}` + `pkg/cache/valkey`.
 - **Kafka**: `pkg/lib/kafka` generic producer/consumer primitives; no topics until a domain
   publishes or consumes (see `messaging.md`).
@@ -50,6 +53,7 @@ The skeleton ships the infrastructure every service needs, ready for the first d
 |---|---|
 | `{{MODULE_PATH}}` | `example.com/neo/service` |
 | `{{SERVICE_NAME}}` | `neo-service` (service id `NEOSVC`) |
+| `<PREFIX>` | `NZQ` (error code prefix: `internal/core/domain/errorcatalog/errors.json`) |
 | `<context>` / `<operation>` | _(none yet: neo fills these on the first domain)_ |
 | `<Aggregate>` | _(none yet)_ |
 | `<Upstream>` | _(none yet)_ |

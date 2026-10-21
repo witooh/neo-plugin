@@ -21,17 +21,17 @@ Use when the user asks to inspect Auxiliary SIT / aux-eks live state: pod logs, 
 
 **No AWS profile name is baked into this skill.** Before any `aws` / `eks` call:
 
-1. Read env `NEO_AUX_AWS_PROFILE`.
+1. Read env `NEO_SIT_AUX_AWS_PROFILE`.
 2. If unset/empty → **stop**. Tell the user to export it to their local profile name, e.g.  
-   `export NEO_AUX_AWS_PROFILE=<profile-in-aws-config>`  
+   `export NEO_SIT_AUX_AWS_PROFILE=<profile-in-aws-config>`  
    Optional helper: copy `sit.env.example` → keep outside git / shell rc.  
    Do **not** invent a default profile name.
 3. Resolve region from that profile:  
-   `REGION=$(aws configure get region --profile "$NEO_AUX_AWS_PROFILE")`  
+   `REGION=$(aws configure get region --profile "$NEO_SIT_AUX_AWS_PROFILE")`  
    If empty → stop and ask user to set `region` on that profile in `~/.aws/config`.
-4. Optional: `aws configure get sso_role_name --profile "$NEO_AUX_AWS_PROFILE"`: expect org role **AuxiliaryEsignatureAccess**.
+4. Optional: `aws configure get sso_role_name --profile "$NEO_SIT_AUX_AWS_PROFILE"`: expect org role **AuxiliaryEsignatureAccess**.
 
-Use `"$NEO_AUX_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand: `$PROFILE` / `$REGION`.
+Use `"$NEO_SIT_AUX_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand: `$PROFILE` / `$REGION`.
 
 ## Procedure
 1. Identity map (org SIT: shared team defaults):
@@ -114,8 +114,8 @@ Default read-only. No sync/prune/delete unless user explicitly requests mutate.
 8. Report in Thai, terminal-friendly: identity (account/role from sts; profile from env only); Argo sync/health + image; pod ready/restarts; log snippets with timestamps (and OpenSearch msg counts when used); DB host/db/user/schema by default. Never write decoded credentials into repo files, skill bodies, or durable memory.
 
 ## Pitfalls
-- Core SIT is a different AWS account/cluster: use `neo-core-sit` + `NEO_CORE_AWS_PROFILE`.
-- Missing `NEO_AUX_AWS_PROFILE` → fail fast; never guess a profile name.
+- Core SIT is a different AWS account/cluster: use `neo-core-sit` + `NEO_SIT_CORE_AWS_PROFILE`.
+- Missing `NEO_SIT_AUX_AWS_PROFILE` → fail fast; never guess a profile name.
 - Argo apps mainly in argocd-app; argocd namespace is the control plane.
 - Wrong namespace is the top miss: resolve Application destination first.
 - Secret name suffix is inconsistent (-secret vs -secrets).
@@ -127,7 +127,7 @@ Default read-only. No sync/prune/delete unless user explicitly requests mutate.
 - OpenSearch: shared recipe under `neo-core-sit`; do not pipe kubectl to `rg`; sync XHR only; ask user on SSO cold start.
 
 ## Verification
-1. `NEO_AUX_AWS_PROFILE` set; `aws configure get region --profile "$PROFILE"` non-empty.
+1. `NEO_SIT_AUX_AWS_PROFILE` set; `aws configure get region --profile "$PROFILE"` non-empty.
 2. sts get-caller-identity with that profile shows account 290768402609 and AuxiliaryEsignatureAccess.
 3. kubectl --context aux-neo get ns lists argocd, argocd-app, and domain namespaces.
 4. kubectl --context aux-neo get applications -n argocd-app lists Aux apps.

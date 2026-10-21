@@ -255,7 +255,7 @@ Then add a sub-table for the inner data object.
 
 **List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields, `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
 
-**Error envelope:** the per-endpoint Error Responses table documents status + message only. If the API returns a structured error body (e.g. `{success:false, error:{code,message}}`), show that shape once as a shared schema referenced from the root `components.responses`, not in every endpoint.
+**Error envelope:** compare the custom-YAML error response fields/examples separately from success. Error rows carry HTTP `status`, structured `responseCode` (common-lib), `code` and/or `message`, plus the rejection description. Do not treat prose in `description` as the response-code field or introduce OpenAPI `components.responses` into this custom-YAML spec.
 
 ### Response Discovery Fallbacks
 
@@ -350,10 +350,21 @@ If 204 No Content, the endpoint has no response body: omit the Response section 
 
 ### Error Mapping
 
-Look for error-to-status-code mapping in handlers:
+For common-lib catalog-backed services, read the shared
+[`error contract`](../../init-project/assets/template/.kiro/steering/errors.md) first. Trace a
+usecase's domain constructors / `stderr.Ref`s into `errorcatalog/errors.json`; derive status from
+`responseCode`, and compare it with the row's structured `responseCode` field (not its description).
+Gateway adapters speak port sentinels / typed errors, the usecase selects the code,
+and handlers only `c.Error(err)`. `stdresp.FromBind` supplies reserved validation codes.
+Preserve an already-coded error through wrapping; `NewDBError` is a DB `8xxx` error, not an
+automatic 500. Only an uncoded / unresolved error or panic becomes `<PREFIX>-9001` / `999` / 500.
+Verify startup loading + `Require(domain.ErrorRefs()...)`, and distinguish the three-field error
+body from the success envelope. An explicitly documented partner contract keeps its own body.
+
+For services with **handler-owned error mapping**, look for:
 
 ```go
-// Typed error checks (preferred pattern)
+// Typed error checks in a non-catalog service
 switch {
 case errors.Is(err, domain.ErrNotFound):
     return c.Status(fiber.StatusNotFound).JSON(...)
@@ -484,7 +495,12 @@ After writing a field table:
 
 ## Error Tracing Patterns
 
-Use a **usecase-first** approach: start by reading ALL usecase methods to enumerate all business errors, then supplement with handler-level errors. The usecase layer is the source of truth for what can go wrong, the handler just maps those errors to HTTP status codes.
+Use a **usecase-first** approach: read ALL usecase methods, then supplement with delivery-level
+errors. For common-lib, apply **Error Mapping** above: inventory distinct catalog codes, follow
+domain constructors and `NewDBError`, derive status from `responseCode`, and deduplicate by code.
+The handler-mapping examples, tracing boundary, and consolidation rules below describe
+**non-catalog services** only; never collapse a common-lib dependency code to a generic 500 or
+classify its validation as 422.
 
 ### Step 1: Read ALL Usecase Methods (start here)
 

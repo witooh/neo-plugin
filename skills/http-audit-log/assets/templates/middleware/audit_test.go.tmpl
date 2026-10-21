@@ -79,6 +79,33 @@ func TestAudit_ClientErrorWritesFailedRow(t *testing.T) {
 	assert.Equal(t, "nope", row.FailureReason())
 }
 
+func TestAudit_StandardErrorRecordsFailureReason(t *testing.T) {
+	for _, legacyMessage := range []string{"", "legacy message"} {
+		t.Run(legacyMessage, func(t *testing.T) {
+			repo := &stubAuditRepo{}
+			r := setupAuditEngine(t, repo)
+			r.GET("/standard-error", func(c *gin.Context) {
+				body := gin.H{
+					"responseCode": "005", "errorCode": "TST-8001",
+					"errorMessage": "Database unavailable",
+				}
+				if legacyMessage != "" {
+					body["message"] = legacyMessage
+				}
+				c.JSON(http.StatusServiceUnavailable, body)
+			})
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/standard-error", nil))
+
+			require.Len(t, repo.inserted, 1)
+			row := repo.inserted[0]
+			assert.Equal(t, audit.AuditStatus_FAILED, row.Status())
+			assert.Equal(t, "005", row.ResponseCode())
+			assert.Equal(t, "Database unavailable", row.FailureReason())
+		})
+	}
+}
+
 func TestAudit_PersistErrorDoesNotFailRequest(t *testing.T) {
 	repo := &stubAuditRepo{err: errors.New("db down")}
 	r := setupAuditEngine(t, repo)

@@ -1,0 +1,6 @@
+{
+  "prefix": "NZQ",
+  "errors": [
+    {"code": "NZQ-8001", "responseCode": "005", "message": "Database unavailable", "condition": "Postgres is unreachable or a query / transaction failed", "raisedBy": "All"}
+  ]
+}

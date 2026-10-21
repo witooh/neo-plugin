@@ -26,6 +26,10 @@ diffs, no merge conflicts. Point each adapter's `base_url` at its upstream's stu
 - **Determinism via sentinel IDs:** requests use fixed sentinel identifiers, each chosen to
   trigger exactly one path (eligible / not-found / blocked / unavailable) so assertions stay
   single-cause. Keep sentinels in sync with the seed data.
+- **Error responses mirror the real upstream's error body**, not this service's: a common-lib
+  v2.3.0 upstream answers `{ responseCode, errorCode, errorMessage }`, a legacy one its old
+  envelope. When an upstream switches, update its stub together with the adapter
+  (`integration.md`): a stub left on the old shape keeps e2e green while production breaks.
 - **Templating** only where a canned body won't do (echo the request, mint a fresh id per
   call); plain JSON otherwise.
 - **One stub may wrap another:** a derived stub can reuse another upstream's `base_url` rather
@@ -61,7 +65,7 @@ tests/e2e/
 ```
 
 Arrange the stub (pick the sentinel) → call the endpoint → assert the **full envelope** (HTTP
-status, `status`, `data` / error code) **and** side effects (persisted rows, emitted events).
+status, `status` / `data` on success, `{ responseCode, errorCode, errorMessage }` on error) **and** side effects (persisted rows, emitted events).
 E2e is the contract guard; reaching a real upstream from a test = never (stub it).
 
 ## ⚠️ Rebuild before e2e

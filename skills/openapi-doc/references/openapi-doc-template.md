@@ -108,7 +108,11 @@ Field extraction completeness, embedded-struct expansion, custom-type resolution
 - [ ] Field groups with no confident struct match were reached and reconciled
 - [ ] Response envelope wrapper + inline query/path params verified against the handler
 - [ ] Custom-type fields (`type X string` + `const`): the spec `remark`/values still match the const block
-- [ ] **Error-status tracing**: each spec `errors[]` row is backed by a real Go sentinel (handler + usecase + domain-service), and every traced sentinel is documented; wrapped repo/external → a single `500`
+- [ ] **Error-status tracing**: every reachable error is documented and every spec row is backed.
+  Common-lib: trace usecase-selected domain codes / `NewDBError` to the catalog + `responseCode`
+  status (`errors.md`, `go-scan-patterns.md §Error Mapping`), deduplicate by code, and keep its
+  exact three-field error body separate from success. Non-catalog services: trace the real handler
+  mapping; collapse wrapped repo/external failures to one 500 only when the implementation does.
 
 ### Completeness (L3)
 - [ ] Both inventories re-derived (router + `docs/api/`); no whole route/endpoint silently un-compared

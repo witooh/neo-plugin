@@ -125,10 +125,13 @@ describe("GET /products/eligibles: Eligible Products [GI-74]", () => {
   });
 
   describe("Validation & errors", () => {
-    it("[GI-74 - AC-010] missing customer_id → 400 CUSTOMER_NOT_FOUND", async () => {
+    it("[GI-74 - AC-010] missing customer_id → 400 <PREFIX>-1001", async () => {
       const res = await api.get<ErrorEnvelope>(PATH);
       expect(res.status).toBe(400);
-      expect(res.body.errors.map((e) => e.code)).toContain("CUSTOMER_NOT_FOUND");
+      expect(Object.keys(res.body).sort()).toEqual(["errorCode", "errorMessage", "responseCode"]);
+      expect(res.body.errorCode).toBe("<PREFIX>-1001");
+      expect(res.body.responseCode).toBe("001");
+      expect(res.body.errorMessage).toBe("Mandatory field missing: customer_id");
     });
   });
 });
@@ -136,9 +139,13 @@ describe("GET /products/eligibles: Eligible Products [GI-74]", () => {
 
 ## Authoring rules
 
-1. **Assert the contract, not a guess.** Status code **and** the StandardResponse envelope **and**
-   the api-spec's stable error `code` (`res.body.errors[].code`), per the AC's expected outcome. A
-   test that only checks `res.status` is half a test.
+1. **Assert the contract, not a guess.** Assert HTTP status and the documented success/error body.
+   The example uses the common-lib error contract: replace `<PREFIX>` with the service's prefix
+   and assert all three fields, exactly those keys, and status derived from `responseCode`
+   ([`errors.md`](../../init-project/assets/template/.kiro/steering/errors.md)).
+   Reuse the project's `expectErrorResponse` helper when present. A partner-specific or non-common-lib
+   endpoint keeps its documented body; never impose a success envelope or legacy `errors[]` on
+   common-lib errors. A status-only assertion is incomplete.
 2. **Reuse helpers.** `new ApiClient(globalThis.apiContext)`; `DbHelper` for seed/assert. Do not
    `import { test } from "@playwright/test"` and do not new up a second HTTP client.
 3. **Group by AC area** with `describe` blocks; keep each `it()` to one AC case.

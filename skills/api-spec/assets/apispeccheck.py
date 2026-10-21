@@ -27,6 +27,8 @@ except ImportError:
 ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
 ALLOWED_MANDATORY = {"M", "O"}
 KNOWN_TYPES = {"String", "Number", "Boolean", "Object", "Array", "Integer"}
+RESPONSE_STATUSES = {"001": 400, "002": 400, "003": 404, "004": 409,
+                     "005": 503, "006": 504, "999": 500}
 
 # An evidence citation inside a field's remark:  "…: evidence: docs/knowledge/contracts/pcc.md"
 EVIDENCE_RE = re.compile(r"evidence\s*:\s*([^\s,;)\"']+)", re.I)
@@ -121,6 +123,19 @@ def check_errors(errs, ctx):
             err(f"{ctx}: an error is missing 'status'")
         if "description" not in e and "message" not in e:
             err(f"{ctx}: error {e.get('status','?')} needs a 'description' or 'message'")
+        response_code = e.get("responseCode")
+        if "responseCode" in e and not isinstance(response_code, str):
+            err(f"{ctx}: responseCode must be a quoted String, got {response_code!r}")
+        if re.fullmatch(r"[A-Z]{2,3}-[0-9]{4}", str(e.get("code", ""))):
+            if "responseCode" not in e:
+                err(f"{ctx}: common-lib error {e['code']} is missing 'responseCode'")
+            elif isinstance(response_code, str):
+                expected_status = RESPONSE_STATUSES.get(response_code)
+                if expected_status is None:
+                    err(f"{ctx}: unknown common-lib responseCode {response_code!r}")
+                elif e.get("status") != expected_status:
+                    err(f"{ctx}: responseCode {response_code!r} requires HTTP {expected_status}, "
+                        f"got {e.get('status')!r}")
 
 
 def check_json(s, ctx):
@@ -227,10 +242,15 @@ def render_index(meta, endpoints):
         P.append("\n".join(rows))
     if meta.get("common_errors"):
         P.append("## Common Error Responses")
-        ce = ["| Status | Code | Error Message | Description |",
-              "| ------ | ---- | ------------- | ----------- |"]
+        columns = ["Status", "Response Code", "Error Code", "Error Messages", "Description"]
+        ce = ["| " + " | ".join(columns) + " |",
+              "| " + " | ".join("-" * len(c) for c in columns) + " |"]
         for e in meta["common_errors"]:
-            ce.append(f"| {e.get('status','')} | `{e.get('code','')}` | {e.get('message','')} | {e.get('description','')} |")
+            cells = [str(e.get("status", ""))]
+            cells.append(f"`{e['responseCode']}`" if "responseCode" in e else "")
+            cells += [f"`{e['code']}`" if e.get("code") else "",
+                      str(e.get("message", "")), str(e.get("description", ""))]
+            ce.append("| " + " | ".join(cells) + " |")
         P.append("\n".join(ce))
     return "\n\n".join(P) + "\n"
 

@@ -19,9 +19,9 @@ internal/delivery/http/
         <resource>.go     # request + response DTOs (resource-prefixed) + their mappers (To*/New<Resource>Response)
         shared.go         # response-mapper helpers (e.g. decimalToFloat)
     middleware/
-        middleware.go     # Setup(r, serviceID): CorrelationId → RequestId → Logging → GinErrorHandler → Recovery
+        middleware.go     # Setup(r, catalog): CorrelationId → RequestId → Logging → ErrorHandler → Recovery
     router/
-        router.go         # Handlers struct + New(h, serviceID) *gin.Engine: gin + middleware + health + groups
+        router.go         # Handlers struct + New(h, catalog) *gin.Engine: gin + middleware + health + groups
         <resource>.go     # register<Resource>(r gin.IRoutes, h *<resource>.Handler)
 ```
 
@@ -134,30 +134,33 @@ DTOs are the wire shape; they never leak into `usecase`/`domain`. Map at the edg
 (A handler that echoes a read-model directly returns the `integration/<sys>` type, an aliased
 `*dm<upstream>.<ReadModel>`: and needs no `dto` mapper.)
 
-## `middleware/`: the standard chain (wraps common-lib v2.2.4)
+## `middleware/`: the standard chain (wraps common-lib v2.3.0)
 
-`Setup(r, serviceID)` applies the chain by **calling common-lib**: it does not reimplement
-it. `serviceID` is only an argument to `stdresp.GinErrorHandler` (the error envelope).
+`Setup(r, catalog)` applies the chain by **calling common-lib**: it does not reimplement
+it. `catalog` (`*stderr.Catalog`, loaded in `cmd/api`) is what `stdresp.ErrorHandler` resolves
+codes against; the error body has no `serviceId`.
 Request-scoped service identity in logs is `logger.Config.ServiceName` (required, a free-form
 string) via `logger.ServiceName()`: there is no `ServiceIdMiddleware` / `GetServiceId`.
 
-Order: CorrelationId → RequestId → LoggingMiddleware → GinErrorHandler → Recovery.
-`LoggingMiddleware` and `GinErrorHandler` wrap `Recovery` so a recovered panic is still
-logged (`http.server.request.completed`) and still rendered as JSON.
+Order: CorrelationId → RequestId → LoggingMiddleware → ErrorHandler → Recovery.
+`LoggingMiddleware` and `ErrorHandler` wrap `Recovery` so a recovered panic is still
+logged (`http.server.request.completed`) and still rendered as JSON (`<PREFIX>-9001` / 500).
+`LoggingMiddleware` sits outside `ErrorHandler` so it logs the rendered `responseCode` /
+`errorCode`. `Recovery` writes no status, so it must stay innermost.
 
 ```go
-func Setup(r *gin.Engine, serviceID string) {
+func Setup(r *gin.Engine, catalog *stderr.Catalog) {
 	r.Use(commonmw.CorrelationIdMiddleware())
 	r.Use(commonmw.RequestIdMiddleware())
 	r.Use(commonmw.LoggingMiddleware(logger.GetLogger()))
-	r.Use(stdresp.GinErrorHandler(serviceID))
+	r.Use(stdresp.ErrorHandler(catalog))
 	r.Use(commonmw.Recovery())
 }
 ```
 
 ## `router/`: routes split by resource + a main file
 
-`router.New(h Handlers, serviceID)` builds the gin engine, applies `middleware.Setup`,
+`router.New(h Handlers, catalog)` builds the gin engine, applies `middleware.Setup`,
 registers `/health`, creates the route groups, and calls each `register<Resource>`. Each
 resource's routes live in their own file so adding/changing one resource's routes touches a
 single file. The composition root (`app.md`) builds the concrete handlers, fills
@@ -167,11 +170,11 @@ single file. The composition root (`app.md`) builds the concrete handlers, fills
 // router.go
 type Handlers struct { Order *order.Handler; /* … one field per handler */ }
 
-func New(h Handlers, serviceID string) *gin.Engine {
+func New(h Handlers, catalog *stderr.Catalog) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	gin.EnableJsonDecoderDisallowUnknownFields()
 	r := gin.New()
-	middleware.Setup(r, serviceID)
+	middleware.Setup(r, catalog)
 	r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
 	orders := r.Group("/orders")
 	registerOrder(orders, h.Order)
@@ -191,17 +194,14 @@ Handlers still must never import each other.
 
 ## Error handling
 
-Handlers **do not choose status codes** and **do not log the HTTP request**
-(`LoggingMiddleware` emits `http.server.request.completed`). They push errors with
-`c.Error(err)`; `stdresp.GinErrorHandler` maps `stderr.StandardError.GetErrorType()` to
-HTTP status (table in `structure.md` § *Logging and errors*) and renders the envelope.
-Validation/bind failures go through `shared.HandleValidationError` first:
+All error-code, catalog, validation and rendering rules are in **`errors.md`**.
+Handlers call `c.Error(err)` and return; bind failures go through
+`shared.HandleValidationError` → `stdresp.FromBind`. Never choose an error status or write an
+error body. `LoggingMiddleware` logs the HTTP request.
 
-```go
-func HandleValidationError(err error) error {
-	return stderr.NewValidationError(err.Error()).Wrap(err)
-}
-```
+An inbound partner contract that mandates its own error body is an explicit exception:
+document that contract here and render it directly, without changing the standard body on
+other endpoints.
 
 If a handler must log a business event (rare: prefer the usecase), use
 `logger.Context(c)` and an event-name message; never `Fatal`/`Panic`.
@@ -214,4 +214,4 @@ If a handler must log a business event (rare: prefer the usecase), use
 - ✗ DTOs inline in the operation file: request and response DTOs both live in `dto/<resource>.go`, resource-prefixed.
 - ✗ Domain/custom types (`decimal.Decimal`, `uuid.UUID`, a domain enum) in a DTO field, use a primitive and convert in the mapper.
 - ✗ A handler importing another handler, the router, or a concrete adapter.
-- ✗ Picking an HTTP status or logging method/path/body: `GinErrorHandler` / `LoggingMiddleware`.
+- ✗ Picking an HTTP status or logging method/path/body: `ErrorHandler` / `LoggingMiddleware`.

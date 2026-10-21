@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"example.com/neo/service/internal/delivery/http/middleware"
+	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stderr"
 )
 
 // Handlers bundles every HTTP handler the router wires. A freshly scaffolded
@@ -19,15 +20,16 @@ import (
 // and neo adds a field here per resource (e.g. Account *account.Handler).
 type Handlers struct{}
 
-// New builds the gin engine with the standard middleware chain and the health
-// probe. neo registers resource route groups here as handlers are added, e.g.
+// New builds the gin engine with the standard middleware chain (errors rendered
+// against catalog) and the health probe. neo registers resource route groups here
+// as handlers are added, e.g.
 // `accounts := r.Group("/accounts"); registerAccount(accounts, h.Account)`.
-func New(h Handlers, serviceID string) *gin.Engine {
+func New(h Handlers, catalog *stderr.Catalog) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	gin.EnableJsonDecoderDisallowUnknownFields()
 	r := gin.New()
 
-	middleware.Setup(r, serviceID)
+	middleware.Setup(r, catalog)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

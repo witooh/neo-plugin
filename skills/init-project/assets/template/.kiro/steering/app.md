@@ -101,8 +101,8 @@ func buildHandlers(<aggregate>Repo repository.<Aggregate>Repository, <upstream>A
 	}
 }
 
-func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers) error {
-	engine := router.New(*h, svcCfg.ServiceId) // gin + middleware + /health + groups (delivery)
+func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers, catalog *stderr.Catalog) error { // catalog from loadErrorCatalog in Run
+	engine := router.New(*h, catalog) // gin + middleware + /health + groups (delivery)
 	srv := &http.Server{Addr: addr, Handler: engine.Handler()}
 	go func() { <-ctx.Done(); srv.Shutdown(shutdownCtx) }() // graceful shutdown on ctx cancel
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -137,11 +137,14 @@ the full config this way. Secrets come from the environment / secret store, neve
 commit them. `cmd/api` calls `MustLoad`, then hands each adapter its slice via the
 adapter's own `Config` struct; adapters/usecases never read config globally.
 
-`logger` is `logger.Config` from common-lib v2.2.4: `environment` (`development` /
+`logger` is `logger.Config` from common-lib v2.3.0: `environment` (`development` /
 `production`), `level` (`debug`/`info`/`warn`/`error`), **`service_name` (required
 string: `InitLogger` panics if empty)**, optional `service_version`, optional
 `disable_body_capture`. Pin `service_name` to the same id as `service.service_id`
-(the `NEOSVC` sentinel) so `logger.ServiceName()` matches `GinErrorHandler`.
+(the `NEOSVC` sentinel) so `logger.ServiceName()` matches the success envelope `serviceId`.
+`Run` loads the error catalog first (`stderr.LoadCatalog(errorcatalog.JSON())` +
+`catalog.Require(domain.ErrorRefs()...)`); an invalid catalog fails startup, and the catalog is
+passed to `router.New`. The error contract is in `errors.md`.
 Levels, event names, `logger.Err(err, category)`, and `Fatal`/`Panic` (startup only)
 are in `structure.md` § *Logging and errors*.
 

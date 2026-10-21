@@ -36,7 +36,9 @@ codebase up to that blueprint, slice by slice, behavior-preserving and resumable
 - **Point-to-read, never paste.** A dispatch sends *paths* (`MIGRATE_DIR` + `INIT_TEMPLATE` +
   artifact paths); the specialist reads its own role spec. Never paste role specs / file contents.
 - **Behavior-preserving.** This is a structural migration: observable behavior must not change. It is
-  proven per slice by the existing tests + build + lint staying green, never by reasoning.
+  proven per slice by the existing tests + build + lint staying green, never by reasoning. One
+  declared exception: S1 moves the error body to the common-lib v2.3.0 error code standard
+  (`BREAKING` in `plan.md`; CP1 agrees the error prefix and lists the callers to notify).
 
 ## Tools
 | Tool | Purpose |

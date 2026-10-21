@@ -11,6 +11,7 @@ import (
 	"example.com/neo/service/config"
 	"example.com/neo/service/internal/delivery/http/router"
 	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/logger"
+	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stderr"
 )
 
 // buildHandlers returns the handler set wired into the router. A freshly
@@ -20,8 +21,8 @@ func buildHandlers() *router.Handlers {
 	return &router.Handlers{}
 }
 
-func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers) error {
-	engine := router.New(*h, svcCfg.ServiceId)
+func runHTTPServer(ctx context.Context, svcCfg config.ServiceConfig, h *router.Handlers, catalog *stderr.Catalog) error {
+	engine := router.New(*h, catalog)
 
 	addr := svcCfg.Host + ":" + svcCfg.Port
 	srv := &http.Server{Addr: addr, Handler: engine.Handler()}

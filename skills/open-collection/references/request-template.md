@@ -25,6 +25,7 @@ Input is the `docs/api/*.yaml` custom-YAML **API spec** (the `api-spec` skill's 
 
 - **Grouping** comes from the endpoint's `domain` (→ collection folder), mirroring the api-spec's by-domain tree.
 - Response field tables / `objects:` / `errors:` are doc-only for the runnable request, but **are** rendered into `docs:` by `yaml2md.py`: never hand-write the `docs:` markdown.
+- Endpoint and collection-root error tables always use **Status / Response Code / Error Code / Error Messages**, followed by Description. Map from `status` / `responseCode` / `code` / `message`, keep absent values blank, and preserve String values such as `"001"`; never infer them from status or prose. The wire field remains singular `errorMessage`.
 - An endpoint with no `request_body` → request has **no** `http.body`.
 
 ---

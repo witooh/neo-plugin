@@ -12,7 +12,7 @@ when you open those files.
 - [ ] Add/extend the **aggregate** (private fields, `New`/`Restore` factories, command methods) or **value object**. No setters.
 - [ ] A value resolved during the op but **not persisted** (response-only) → return it from the **usecase**, not as an aggregate field (no transient field + re-attach).
 - [ ] If logic spans aggregates → a **domain service** package function (no IO/log).
-- [ ] Add **typed errors** (root `errors.go`, package `domain`) for new rejection reasons, `stderr` constructors (or wrappers) so `GinErrorHandler` can map `GetErrorType()` (`structure.md` § *Logging and errors*).
+- [ ] Add new rejection codes, domain constructors, and `ErrorRefs()` entries with their catalog rows (`message` ≤ 255 bytes, `condition`, operation-derived `raisedBy`); follow `errors.md`.
 - [ ] New persistence need → add a method to the **repository interface** in the centralized `repository` package (`internal/core/domain/repository`, speaks in aggregates).
 - [ ] New event → define it in the `event` package (`internal/core/domain/event/events.go`).
 - [ ] ⚠️ If the aggregate is `json.Marshal`-ed anywhere (cache/event), add/update `Marshal/UnmarshalJSON`.
@@ -28,10 +28,10 @@ when you open those files.
 ## 4. Usecase (`usecase.md`)
 - [ ] Create the package `internal/core/usecase/<context>/<operation>/`.
 - [ ] `usecase.go`: `<Op>Usecase` interface (`Exec`) + `Params` + unexported `usecase` + `New(Params) <Op>Usecase`.
-- [ ] `exec.go`: implement `Exec`; co-locate request/result models + private helpers; log at the boundary with `logger.Context(ctx)` + event names + `logger.Err(err, category)`; propagate `stderr` typed errors. If the op yields a response-only value resolved in-flow, return it alongside the aggregate (`(*Aggregate, <value>, error)`), don't stash it on the aggregate.
+- [ ] `exec.go`: implement `Exec`; co-locate request/result models + private helpers; log at the boundary with `logger.Context(ctx)` + event names + `logger.Err(err, category)`; map port errors to domain constructors and pass through already-coded errors (`errors.md`). If the op yields a response-only value resolved in-flow, return it alongside the aggregate (`(*Aggregate, <value>, error)`), don't stash it on the aggregate.
 
 ## 5. Gateway adapter (`integration.md`): only if step 2 added a gateway port
-- [ ] Implement the port in `internal/adapters/gateway/<sys>/http` (`NewHTTPAdapter → <sys>.<Upstream>`); map wire DTO → integration type; translate errors.
+- [ ] Implement the port in `internal/adapters/gateway/<sys>/http` (`NewHTTPAdapter → <sys>.<Upstream>`); map wire DTO → integration type; translate upstream failures into port sentinels / typed errors, never catalog codes (`errors.md`).
 - [ ] Add a **fake** of the port for tests.
 
 ## 6. Inbound adapter (`handler.md` / `messaging.md`)

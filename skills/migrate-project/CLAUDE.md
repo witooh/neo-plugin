@@ -51,7 +51,9 @@ completeness). Per-target state is a resumable markdown plan at `<target>/docs/m
   runs are the regression guard.
 - **Behavior preservation is the prime directive.** Every slice is `done` only when the **existing**
   tests + build + golangci stay green (`migration-tracking.md` §3). A deleted/disabled test to make a
-  slice pass is a defect, not a pass: the Verifier and the L2 Reviewer both flag it.
+  slice pass is a defect, not a pass: the Verifier and the L2 Reviewer both flag it. The single
+  declared exception is the S1 error-body move to the common-lib v2.3.0 catalog (`preamble.md` §3):
+  error-body assertions change shape, the cases stay.
 - **The plan-file is markdown, sole-writer = Mapper, lives in the target.**
   `<target>/docs/migration/plan.md` (+ `target-map.md`): never HTML, never in this skill's tree. The
   orchestrator reads it to resume; only the Mapper writes it.

@@ -118,11 +118,12 @@ def check_files(root: Path) -> int:
     return errors
 
 
-def first_use_is_audit(setup_src: str) -> bool:
-    uses = re.findall(r"r\.Use\(([^)]*)\)", setup_src)
-    if not uses:
-        return False
-    return uses[0].strip().startswith("Audit(")
+def has_standard_audit_order(setup_src: str) -> bool:
+    uses = [name.rsplit(".", 1)[-1]
+            for name in re.findall(r"r\.Use\(\s*([\w.]+)\(", setup_src)]
+    expected = ["CorrelationIdMiddleware", "RequestIdMiddleware", "Audit",
+                "LoggingMiddleware", "ErrorHandler", "Recovery"]
+    return uses[:len(expected)] == expected
 
 
 def check_middleware(root: Path) -> int:
@@ -136,11 +137,11 @@ def check_middleware(root: Path) -> int:
     if "AuditLogRepository" not in setup_src:
         fail("Setup does not take an AuditLogRepository")
         errors += 1
-    if not first_use_is_audit(setup_src):
-        fail("Audit is not the first r.Use in Setup (must be outermost)")
+    if not has_standard_audit_order(setup_src):
+        fail("Setup must use CorrelationId -> RequestId -> Audit -> Logging -> ErrorHandler -> Recovery")
         errors += 1
     else:
-        ok("Audit is outermost in Setup")
+        ok("Audit wraps logging, error rendering and recovery after request identity")
 
     if not audit.is_file():
         return errors + 1

@@ -97,13 +97,18 @@ Method bodies (in `<operation>.go`):
    so `httpclient` can forward correlation/request ids.
 2. Call; cap the response body (`io.LimitReader`, e.g. `1<<20`).
 3. Decode the upstream DTO, **map it to the `integration/<sys>` type**: never leak the wire DTO outward.
-4. Translate failures into **`stderr` types** (the adapter's own `domain` package,
-   `adapters/gateway/<sys>/domain`: constructors that return `stderr.StandardError`):
-   not-found the caller treats as empty → `(nil, nil)` (or a swallow-able sentinel, not
-   stderr); transport / 5xx / malformed → `stderr.NewServiceError` (503) or
-   `stderr.NewThirdPartyError` (504); timeout → `stderr.NewThirdPartyError`. Log at the
-   usecase with `logger.Err(err, logger.CategoryExternal|Timeout|Network)`, not here.
-   Status table: `structure.md` § *Logging and errors*.
+4. Translate failures into the **integration port's sentinels or typed errors**
+   (`integration/<sys>/gateway.go`), never catalog-coded errors (`errors.md`):
+   not-found the caller treats as empty → `(nil, nil)` or a port sentinel;
+   transport / 5xx / malformed → wrap the cause in the port's unavailable sentinel;
+   timeout → the port's timeout sentinel. The **usecase** maps these to domain constructors,
+   choosing the dependency's `005` / `006` code or a business code at the decision point,
+   and logs with `logger.Err(err, logger.CategoryExternal|Timeout|Network)`.
+   An adapter that needs the upstream's specific failure decodes the error body **that upstream**
+   answers: a common-lib v2.3.0 upstream answers `{ responseCode, errorCode, errorMessage }`
+   (branch on `responseCode` for the class, `errorCode` for the condition, never the legacy
+   `errors[0].code`); a legacy upstream still answers its old envelope. When an upstream switches,
+   change its error DTO, the adapter tests and its stub (`e2e.md`) in the same change.
 
 ## Cache adapter: `internal/adapters/repository/cache`
 

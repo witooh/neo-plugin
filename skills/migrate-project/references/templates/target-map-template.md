@@ -37,11 +37,19 @@ Analyzed: <YYYY-MM-DD or session marker>
 - [ ] ports: <feature-local internal/<feat>/ports/ or scattered> → centralize in internal/core/domain/repository/ + event/ (gateways stay integration/<sys>/), domain.md
 - [ ] deterministic-by-injection: time.Now()/uuid.New() in core at <file:line> → clock/idgen, structure.md
 - [ ] DTO mapping: <returns aggregate raw?> → map at the edge: handler.md
-- [ ] common-lib: <pin + residue, or "v2.2.4, new chain"> → v2.2.4 + handler.md chain (no ServiceIdMiddleware / ErrorLoggingMiddleware / GetServiceId; logger.Config.ServiceName required; httpclient on outbound HTTP), migrator.md S1
+- [ ] common-lib: <pin + residue, or "v2.3.0, new chain"> → v2.3.0 + handler.md chain (no ServiceIdMiddleware / ErrorLoggingMiddleware / GetServiceId; logger.Config.ServiceName required; httpclient on outbound HTTP), migrator.md S1
+- [ ] error codes: <GinErrorHandler / legacy stderr constructors at file:line, or "catalog in place"> → ErrorHandler(catalog) + errorcatalog/ with prefix <PFX or "unknown: ask">, BREAKING, domain.md / migrator.md S1
+- [ ] UUIDv7: <idgen System() = v4/v7; gen_random_uuid() columns: table.column, …> → idgen NewV7 + uuid_generate_v7 migration, repository.md / migrator.md S1
 - [ ] <other gaps>
 
 ## Cross-cutting
 - error handling: <where> · response envelope: <where> · middleware: <where> · config loader: <where>
+
+## Error bodies across services
+| Upstream | Gateway decodes error body? (file:line) | Stub error shape (mockoon file) | Upstream body version |
+|---|---|---|---|
+| <sys> | <e.g. reads errors[0].code at …:220> | <legacy envelope / v2.3.0 / none> | <legacy / v2.3.0 / unknown: ask> |
+Callers of this service (break on the new error body): <list, or "unknown: ask">
 - already has .golangci.yaml? <y/n>   .kiro/steering/? <y/n>
 
 ## Candidate slice order (advisory)

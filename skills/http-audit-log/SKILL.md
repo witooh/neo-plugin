@@ -2,8 +2,8 @@
 name: http-audit-log
 description: >
   Add per-request HTTP audit logging to a Go hexagonal gin+sqlc service: one
-  audit_log row per inbound request, written by the outermost gin middleware
-  after the handler returns and before the client sees the response.
+  audit_log row per inbound request, captured after request identity and outside
+  logging/error rendering/recovery, written before the client sees the response.
   Persistence is fail-soft. Ports the account-service pattern (domain audit
   aggregate, postgres adapter, middleware, tests). Use when adding an audit
   log, an audit_log table, gin audit middleware, per-request audit, or Thai
@@ -14,11 +14,11 @@ description: >
 # HTTP audit log (one-row)
 
 Port the **one-row** HTTP audit: one `audit_log` row per inbound HTTP request,
-SUCCESS and FAILED, captured by the **outermost** gin middleware, persisted
-**fail-soft** (a write error never fails the request).
+SUCCESS and FAILED, captured after request identity and outside response rendering,
+persisted **fail-soft** (a write error never fails the request).
 
-Reference: account-service MR 196. Copy that pattern. Do not invent a second
-schema.
+Reference: account-service MR 196 for the row schema; payment-gateway for common-lib
+standard error capture and middleware ordering. Do not invent a second schema.
 
 `ASSET_DIR` = `<skill base dir>/assets`. Read
 [`references/invariants.md`](references/invariants.md) before editing. Copy
@@ -68,15 +68,17 @@ category argument when this service uses one).
 
 Wire, do not reorder the rest of the chain:
 
-1. `Setup(r, serviceID, auditRepo)` registers `r.Use(Audit(auditRepo))` **first**.
+1. `Setup(r, catalog, auditRepo)` registers `r.Use(Audit(auditRepo))` after CorrelationId /
+   RequestId and before LoggingMiddleware / ErrorHandler / Recovery, per the shared
+   [`error contract`](../init-project/assets/template/.kiro/steering/errors.md).
 2. `router.New(..., auditRepo)` threads it into `Setup`.
 3. `cmd/api`: `auditRepo := postgres.NewAuditLogRepository(queries)` into
    `runHTTPServer` → `router.New`.
 4. Grep `middleware.Setup(` and `router.New(`: every callsite takes the extra
    arg. Tests may pass `nil` (no-op persist).
 
-Done when `go test ./internal/delivery/http/...` is green and Audit is the first
-`r.Use` in `Setup`.
+Done when `go test ./internal/delivery/http/...` is green and Audit wraps logging /
+error rendering / recovery after the request-identity middleware.
 
 ## Step 5 · E2e (only if `tests/e2e` exists)
 

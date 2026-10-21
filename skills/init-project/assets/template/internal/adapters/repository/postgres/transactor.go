@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-
-	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stderr"
 )
 
 type postgresTxKey struct{}
@@ -32,7 +30,9 @@ func (t *transactor) Execute(ctx context.Context, executeFunc func(ctx context.C
 	defer func() {
 		if err != nil {
 			if rollbackErr := t.rollback(txnCtx); rollbackErr != nil {
-				err = stderr.NewInternalServerError("rollback error", err, rollbackErr)
+				// Join keeps err reachable by errors.As, so a coded error inside the transaction
+				// keeps its code; the repository wraps an uncoded one as NZQ-8001.
+				err = errors.Join(err, rollbackErr)
 			}
 		}
 	}()

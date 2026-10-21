@@ -21,19 +21,19 @@ Use when the user asks to inspect Core SIT / core-neo live state: pod logs, Open
 
 **No AWS profile name is baked into this skill.** Before any `aws` / `eks` call:
 
-1. Read env `NEO_CORE_AWS_PROFILE`.
+1. Read env `NEO_SIT_CORE_AWS_PROFILE`.
 2. If unset/empty → **stop**. Tell the user to export it to their local profile name, e.g.  
-   `export NEO_CORE_AWS_PROFILE=<profile-in-aws-config>`  
+   `export NEO_SIT_CORE_AWS_PROFILE=<profile-in-aws-config>`  
    Optional helper file: copy `sit.env.example` → keep outside git / shell rc.  
    Do **not** invent a default profile name.
 3. Resolve region from that profile (do not hardcode region in commands when config has it):  
-   `REGION=$(aws configure get region --profile "$NEO_CORE_AWS_PROFILE")`  
+   `REGION=$(aws configure get region --profile "$NEO_SIT_CORE_AWS_PROFILE")`  
    If empty → stop and ask user to set `region` (or `sso_region` workflow) on that profile in `~/.aws/config`.
 4. Optional checks from the same profile (informational):  
-   `aws configure get sso_role_name --profile "$NEO_CORE_AWS_PROFILE"`  
+   `aws configure get sso_role_name --profile "$NEO_SIT_CORE_AWS_PROFILE"`
    Expect org role **CoreIntegrationAccess** (not SystemsManagerAccess).
 
-Use `"$NEO_CORE_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand in this doc: `$PROFILE` / `$REGION`.
+Use `"$NEO_SIT_CORE_AWS_PROFILE"` and `"$REGION"` in every aws command below. Shorthand in this doc: `$PROFILE` / `$REGION`.
 
 ## Procedure
 1. Identity map (org SIT: shared team defaults):
@@ -121,10 +121,10 @@ Default read-only. Never sync/prune/delete unless user explicitly requests a mut
 8. Report in Thai, terminal-friendly: identity used (account/role from sts, profile name only as “from env”); Argo SYNC/HEALTH + image tag; pod READY/restarts; log evidence with timestamps (and OpenSearch msg counts when used); for DB report host/db/user/schema by default and only reveal the secret value when the user asked to connect. Never write decoded secrets into repo files, skill body, or durable memory.
 
 ## Pitfalls
-- Aux SIT is a different AWS account/cluster: use `neo-aux-sit` + `NEO_AUX_AWS_PROFILE`, not this skill’s profile.
+- Aux SIT is a different AWS account/cluster: use `neo-aux-sit` + `NEO_SIT_AUX_AWS_PROFILE`, not this skill’s profile.
 - Stale kubeconfig cluster name `eks-cluster-hbq5y8` causes ResourceNotFound or NXDOMAIN, use `core-eks-hbq5y8`.
 - SSO role **SystemsManagerAccess** yields ForbiddenException; need **CoreIntegrationAccess** on the profile.
-- Missing `NEO_CORE_AWS_PROFILE` → fail fast; never guess a profile name.
+- Missing `NEO_SIT_CORE_AWS_PROFILE` → fail fast; never guess a profile name.
 - argocd CLI 'server address unspecified' is expected on Core; use kubectl Application CRDs.
 - Secret stores settings inside config.yaml, not discrete DB_* keys: grepping only for bare keys misses it.
 - authentication-service nests under database.postgres and uses username not user.
@@ -135,7 +135,7 @@ Default read-only. Never sync/prune/delete unless user explicitly requests a mut
 - OpenSearch `log` field is a JSON **string**: parse client-side for `msg`/`level`.
 
 ## Verification
-1. `NEO_CORE_AWS_PROFILE` set; `aws configure get region --profile "$PROFILE"` non-empty.
+1. `NEO_SIT_CORE_AWS_PROFILE` set; `aws configure get region --profile "$PROFILE"` non-empty.
 2. `aws sts get-caller-identity --profile "$PROFILE"` → account 986629373331 + CoreIntegrationAccess.
 3. kubectl --context core-neo get ns lists core-systems and argocd.
 4. kubectl --context core-neo get applications -n argocd lists core apps (e.g. payment-service).

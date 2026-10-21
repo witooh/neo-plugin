@@ -25,6 +25,11 @@ Read first, then check each request `.yml` + its `folder.yml` against the matchi
 5. **Environment sensibility**: `baseUrl` exists for each environment; secret-looking variables (`token`, `pin`, `otp`, `password`, `key`, `secret`, `biometric`, `national_id`, …) carry `secret: true` with an empty value; **no literal credential is committed** to any env file.
 6. **Structure + naming**: `folder.yml` `info.name` is the `domain` in Title Case; request `info.name` matches the endpoint's `endpoint` name; `seq` follows `_meta.domains` order; the collection folder tree mirrors the api-spec's by-domain tree (a correctly-named file in the **wrong group** is a real defect).
 7. **`docs:` faithfulness** *(K7 proved the byte-exact match against Audience-filtered yaml2md, you judge meaning)*, the rendered `docs:` is the **right** endpoint (not another that happens to render similarly), reads coherently, and the collection-root + `folder.yml` `docs:` (from `_meta`) are present and sensible (overview / Field Information / group prose). A request with an out-of-date or mismatched `docs:` that nonetheless passed K7 (e.g. the wrong endpoint matched) is a real defect.
+   For common-lib, both root and request docs must show the current three-field error body,
+   not the old success/error wrapper. Their error tables must include Status / Response Code /
+   Error Code / Error Messages in that order (Description keeps the rejection condition).
+   Compare values with `status` / structured `responseCode` / `code` / `message`, including
+   leading zeroes; absent metadata stays blank, never reconstructed from description.
 8. **Audience fitness (consumer doc, not dev dump)**: `docs:` (request, folder, collection root) must **not** contain Drop-column material. Flag any of:
    - Ticket/card framing left as prose (`GI-####`, `[PAY-…]`, `AC-NNN` lists) outside a public error code/message itself
    - Evidence / repo paths (`docs/knowledge/…`, `docs/tasks/…`, commit SHAs)

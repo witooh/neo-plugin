@@ -61,7 +61,7 @@ names. **To reuse this steering in another service: copy all guides unchanged an
 `repo-instance.md`**: the one exception is the literal stub-directory glob in `e2e.md`'s
 `fileMatchPattern` and the index below, which tracks your stub tool's directory.
 
-Shared org infrastructure (`common-lib` v2.2.4: `logger`, `stderr`, `stdresp`, `ctxutils`,
+Shared org infrastructure (`common-lib` v2.3.0: `logger`, `stderr`, `stdresp`, `ctxutils`,
 `middleware`, `httpclient`) is assumed present; its import paths are kept verbatim in examples.
 
 ## Layout
@@ -77,7 +77,8 @@ config/                           CONFIGURATION (package config): typed config +
 internal/
   core/                           THE CORE: domain + application logic (depends on nothing outward)
     domain/                       THE MODEL: split per technical layer (one package per stereotype)
-      enums.go errors.go          package domain: typed enums + stderr constructors (flat root files)
+      enums.go errors.go          package domain: typed enums + catalog code refs + stderr constructors (flat root files)
+      errorcatalog/               package errorcatalog: embedded errors.json (Appendix-E), loaded + checked at startup
       entity/                     package entity: aggregates + value objects + computed results + read-models
       service/                    package service: domain services (stateless package functions)
       repository/                 package repository: ALL driven persistence ports (centralized, one per file)
@@ -91,7 +92,7 @@ internal/
       handler/<resource>/         handler.go (struct+New) + one file per operation
       dto/                        response DTOs + mappers (resource-prefixed names)
       middleware/                 standard gin middleware chain (wraps common-lib)
-      router/                     New(Handlers, serviceID) + one route file per resource
+      router/                     New(Handlers, catalog) + one route file per resource
     consumer/                     inbound messaging (Kafka processor)
   adapters/                       DRIVEN ADAPTERS: implement / call a driven port
     eventbus/kafka/               messaging infra: producer, consumer (low-level client glue)
@@ -125,7 +126,7 @@ never import an outer one.
   per-upstream.
 - **Ambient capabilities are the exception.** A *context-free technical primitive* every layer
   consumes identically, with no business semantics in its signature: the wall-clock
-  (`clock.Clock`), a fresh id (`idgen.Generator`): is **not** a driven port and is **not**
+  (`clock.Clock`), a fresh id (`idgen.Generator`, UUIDv7): is **not** a driven port and is **not**
   co-located: it lives in `pkg/` (beside any pure-function domain helper there), with its own
   small interface + a `System()` constructor wired from `cmd/api`, faked in a `*test` sub-package.
   The test: does the contract speak a context's language, driven by one context (→ a domain
@@ -192,12 +193,12 @@ not a license to guess.
 | Composition root | `cmd/api/**` | Build + wire everything | everything (the only place) |
 | Configuration | `config/**` | Typed `Config` + env/file loader via `Load`/`MustLoad`; read once at startup, injected as values | (its own leaf config types only) |
 
-## Logging and errors (common-lib v2.2.4)
+## Logging and errors (common-lib v2.3.0)
 
 Two taxonomies: do not mix them up:
 
-- **`stderr` types** (`StandardError.GetErrorType()`) → HTTP status, via `stdresp.GinErrorHandler`. Domain, usecase, and adapters **return** these; handlers `c.Error(err)` and never pick a status.
-- **`logger.ErrorCategory`** → log field `error.category` only, via `logger.Err(err, category)`. `logger.Err` does **not** copy `errorType` / `errorCode` from stderr. Omit the category → `"UNKNOWN"`.
+- **Catalog codes** follow the single contract in `errors.md`. Domain owns constructors; the usecase maps integration-port errors to codes; repositories wrap driver errors with `NewDBError`; handlers only `c.Error(err)`.
+- **`logger.ErrorCategory`** → log field `error.category` only, via `logger.Err(err, category)`. `logger.Err` does **not** copy `errorCode` from stderr (`LoggingMiddleware` logs the rendered `responseCode` / `errorCode`). Omit the category → `"UNKNOWN"`.
 
 Domain may import `stderr` (error constructors). Domain must **not** import `logger` or `stdresp`. Usecase may import both `logger` and `stderr`.
 
@@ -218,21 +219,11 @@ Domain may import `stderr` (error constructors). Domain must **not** import `log
 - Subsystem groups when the call is DB / cache / Kafka: `logger.DBFields` / `CacheFields` / `KafkaFields` (`repository.md`, `messaging.md`).
 - This library does **not** redact or truncate: Fluentbit does.
 
-### `stderr` → HTTP status (`GinErrorHandler`)
+### Catalog code → HTTP status (`ErrorHandler`)
 
-| Constructor | `GetErrorType()` | Status |
-|---|---|---|
-| `NewValidationError` | `ValidationError` | 400 |
-| `NewAuthenticationError` | `AuthenticationError` | 401 |
-| `NewAccessDeniedError` | `AccessDeniedError` | 403 |
-| `NewResourceNotFoundError` | `ResourceNotFoundError` | 404 |
-| `NewBusinessRuleError` | `BusinessRuleError` | 422 |
-| `NewInternalServerError` | `InternalServerError` | 500 |
-| `NewServiceError` | `ServiceError` | 503 |
-| `NewThirdPartyError` | `ThirdPartyError` | 504 |
-| anything else / not `StandardError` |: | 500 |
-
-Wrap causes with `.Wrap(err, stderr.WithField("amount"))`: `WithField` is the option the envelope renders. Per-layer constructors: `domain.md` (business), `repository.md` (`NewDBError` → `ServiceError`), `integration.md` (upstream → `ThirdPartyError` / `ServiceError`), `handler.md` (bind → `ValidationError`).
+See **`errors.md`** for the three-field body, the `responseCode` → HTTP status table, reserved
+codes, catalog schema, and layer-by-layer mapping. Service-specific codes are the Appendix-E
+section of `README.md`.
 
 ## The invariants: keep the structure clean and the code readable (MUST)
 
@@ -251,7 +242,7 @@ review and by the gates. Per-layer detail lives in the linked guides.
   persistence / infra library (`gin`, `net/http`, `database/sql`, `pgx`, `go-redis`, `kafka-go`) , 
   the build fails on it. Business logic depends only on the stdlib + its own ports.
 - ★ **Business logic is deterministic-by-injection** (forbidigo): `domain` / `usecase` never call
-  `time.Now()`, `uuid.New()` / `uuid.NewString()`, `rand`, or `os.Getenv` **directly**: a domain
+  `time.Now()`, `uuid.New()` / `uuid.NewString()` / `uuid.NewV7()`, `rand`, or `os.Getenv` **directly**: a domain
   service takes the resolved value (`now time.Time`), a usecase injects the port (`clock.Clock` /
   `idgen.Generator`) and reads it at the boundary; `cmd/api` wires `System()`. The build fails on a
   direct call: **this is what stops the testability seam from rotting** (see "Ambient capabilities").
@@ -303,9 +294,10 @@ Open a file in a layer and its guide loads automatically. `manual` files load on
 
 | Guide | Loads when you touch | Covers |
 |---|---|---|
+| `errors.md` | *always* | the single error contract: catalog schema, domain constructors, usecase mapping, delivery, and tests |
 | `domain.md` | `internal/core/domain/**` | per-layer split (entity/service/repository/event + root enums), aggregate encapsulation, value objects, domain services, events, stderr typed errors, centralized driven-port interfaces, integration read-models |
 | `usecase.md` | `internal/core/usecase/**` | the `usecase.go` + `exec.go` one-operation-per-package pattern; `logger.Context` + event-name logs |
-| `handler.md` | `internal/delivery/http/**` | inbound HTTP: handler (op-split) + DTO + router + middleware + `c.Error` → GinErrorHandler |
+| `handler.md` | `internal/delivery/http/**` | inbound HTTP: handler (op-split) + DTO + router + middleware + `c.Error` → ErrorHandler(catalog) |
 | `messaging.md` | `internal/delivery/consumer/**`, `internal/adapters/eventbus/**` | Kafka inbound processor + outbound producer + event infra |
 | `integration.md` | `internal/core/domain/integration/**`, `internal/adapters/gateway/**`, `internal/adapters/repository/cache/**` | define a driven port (in its domain context) + implement it as an outbound adapter |
 | `repository.md` | `internal/adapters/repository/**`, `*.sql`, `sqlc.yaml` | sqlc-backed persistence adapter + query/migration conventions |

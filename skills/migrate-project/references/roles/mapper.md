@@ -21,8 +21,8 @@ not invent a placement.
   its own. Slice order = execution order.
 - Canonical order: **S1** cross-cutting + install the contract (`.golangci.yaml` with the target's
   module path + `.kiro/steering/` + `CLAUDE.md`, relocate edge code, create the `internal/core/`
-  skeleton, and: when `target-map.md` flags it: bump common-lib to v2.2.4 and rewrite
-  removed APIs per migrator.md) → **S2..Sn** one bounded context per slice → **S-last**
+  skeleton, and: when `target-map.md` flags it: bump common-lib to v2.3.0, rewrite removed APIs,
+  adopt the error catalog (**BREAKING**: error body) and UUIDv7 defaults per migrator.md) → **S2..Sn** one bounded context per slice → **S-last**
   composition root.
 - A slice that cannot end green is too big: split it. Respect the Analyzer's coupling notes in
   ordering (the `Depends-on` column).

@@ -84,8 +84,10 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
   seed/assert; follow the existing spec's per-spec **created-data teardown** in `afterAll`. Reach
   error paths through the project's fault **sentinels** when they exist (e.g. a `NODEFAIL` id), do
   not fake a 500.
-- **Assert the contract**: status code + the StandardResponse envelope + the api-spec's stable
-  **error `code`** (not just the HTTP status), per the AC's expected outcome.
+- **Assert the contract**: status code + the actual success/error body + the api-spec's stable
+  error code, per the AC. For common-lib catalog errors, assert exactly `responseCode`, `errorCode`,
+  `errorMessage` (not a success `StandardResponse` or `errors[]`); status follows `responseCode`.
+  The shared contract is [`errors.md`](../init-project/assets/template/.kiro/steering/errors.md).
 - **Non-HTTP-observable ACs**: an AC whose effect cannot be seen in an HTTP response (log/PII
   masking, an internal side effect) is recorded as an `it.skip("[<CARD> - AC-NNN] … (why it is not
   HTTP-observable)")` **with the reason in the title**: a visible, declared classification, never a

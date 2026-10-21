@@ -12,9 +12,11 @@ upstreams.
 
 ## Unit tests: Go
 
-- **Table-driven**, `t.Run(name, ...)` per case. Cover the rejection paths (`stderr` typed
-  errors: `errors.As` onto `stderr.StandardError` / `errors.Is` through `Unwrap`), not just
-  the happy path.
+- **Table-driven**, `t.Run(name, ...)` per case. Cover the rejection paths (coded errors:
+  `stderr.HasCode(err, domain.Err…)`, `errors.As` onto `*stderr.Error` for `Field()`, `errors.Is`
+  through `Unwrap` for the cause), not just the happy path. HTTP tests assert the full
+  `{ responseCode, errorCode, errorMessage }` body. Follow `errors.md`, including
+  `catalog.Require(domain.ErrorRefs()...)` so every declared code is resolvable.
 - **Mock every driven port with its mockery-generated mock** (`mockPKG.NewMockXxx(t)`; see
   `tooling.md` for regen). `NewMockXxx(t)` registers `AssertExpectations` via `t.Cleanup`, so the
   expectations *are* the assertions:

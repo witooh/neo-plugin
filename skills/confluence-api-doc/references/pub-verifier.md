@@ -23,6 +23,10 @@ Read each sampled page's **staged source** (the post-Audience-filter markdown in
 5. **Inline formatting**: `**bold**`/`*italic*`/`` `code` `` preserved; bare `&`, `<`, `>` in prose escaped (but NOT inside code macros).
 6. **Page identity + completeness**: page title = `<METHOD>: <path>` matching the endpoint's `method` + `path`; the title is not duplicated in-body; every assembled **consumer** section (field tables, examples, business logic, error table) is present in the storage. `covers_ac` must **not** appear.
 7. **api-spec wire fidelity**: every `errors[]` entry has an Error Responses row; every `path_params`/`query_params`/`request_body.fields`/`responses[].fields` row (and each `objects` sub-table) is present; each row's **Mandatory** matches the explicit `mandatory: M|O`. Prose may be shorter than the raw yaml after the Audience filter, that is expected; missing **wire** rows are not.
+   Endpoint and parent-page error tables must include Status / Response Code / Error Code /
+   Error Messages in that order, followed by the rejection Description. Compare values with
+   `status` / structured `responseCode` / `code` / `message`; preserve leading zeroes and blank
+   missing values instead of dropping columns or reconstructing them from prose.
 8. **Audience fitness (consumer doc, not dev dump)**: staged source + storage must **not** contain Drop-column material from `publish-reference.md` § Audience filter. Flag any of:
    - Ticket/card framing left as prose (`GI-####`, `[PAY-…]`, `AC-NNN` lists) outside a public error code/message itself
    - Evidence / repo paths (`docs/knowledge/…`, `docs/tasks/…`, commit SHAs)

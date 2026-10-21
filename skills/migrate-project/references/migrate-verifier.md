@@ -25,14 +25,24 @@ pre-migration picture).
 
 2. **Behavior preserved.** `go build ./...` + `go vet` clean; the **existing** `go test ./...` passes
    (the same tests that passed before: a deleted / disabled test to make it pass is a red flag, call
-   it out). If the service boots, `go run ./cmd/api` + `curl /health` returns `{"status":"ok"}`.
+   it out). The one declared exception is the error body (`plan.md` `BREAKING`): an assertion that
+   moved to `{ responseCode, errorCode, errorMessage }` with the same case is expected; a dropped case
+   is not. If the service boots, `go run ./cmd/api` + `curl /health` returns `{"status":"ok"}`.
 
 3. **Conventions per the steering** (spot-check, don't exhaustively re-derive): aggregates
    encapsulated (private fields + getters + factories, no setters: `domain.md`); driven ports
    centralized in `repository/` + `event/` (gateways in `integration/<sys>/`, `domain.md`); one-operation-per-usecase-package
    (`usecase.go` + `exec.go`, `usecase.md`); one-operation-per-handler-file + DTO mapping at the edge
-   (`handler.md`); core is deterministic-by-injection (no `time.Now()` / `uuid.New()` in
-   domain / usecase).
+   (`handler.md`); core is deterministic-by-injection (no `time.Now()` / `uuid.New()` /
+   `uuid.NewV7()` in domain / usecase). Errors: `stdresp.ErrorHandler(catalog)`, the catalog loaded
+   + `Require(domain.ErrorRefs()...)` at startup with the agreed prefix; catalog `message` ≤ 255
+   UTF-8 bytes, `condition`, and operation-derived Title Case `raisedBy`; gateways return port
+   errors and usecases choose codes (`errors.md`). No `GinErrorHandler` or legacy `stderr` typed
+   constructor left, no 401 / 403 silently remapped. UUIDv7:
+   `pkg/idgen` uses `uuid.NewV7`, and every `gen_random_uuid()` default has moved to
+   `uuid_generate_v7()` through a new migration (`repository.md`). Upstream stubs + gateway error
+   DTOs match each upstream's recorded error body version in `target-map.md` (`e2e.md`,
+   `integration.md`); none was rewritten only because this service migrated.
 
 4. **No residue of the old layout.** The old dialect dirs are gone / empty, e.g. no leftover `app/`
    (vs `cmd/api/`), `internal/adapter/` (singular), `external/`, root `database/postgres/`, flat
@@ -66,6 +76,7 @@ pre-migration picture).
 
 ## Output
 A short report: each check PASS / FAIL with one line of evidence (`file:line`), then a final verdict
-,  **is this a faithful, behavior-preserving migration to the blueprint?** Call out any
-non-conformance, residue, broken / disabled test, or dropped feature. Be specific. Do not fix
+,  **is this a faithful, behavior-preserving migration to the blueprint** (apart from the declared
+error-body change)? Call out any non-conformance, residue, broken / disabled test, or dropped
+feature. Be specific. Do not fix
 anything: just report.

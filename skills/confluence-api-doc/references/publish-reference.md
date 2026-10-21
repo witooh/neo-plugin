@@ -46,15 +46,15 @@ There is no pre-rendered markdown page: **assemble** each page's body from the e
   - **Request Body** table ← `request_body.fields` (filter Description/Remark); **Request Example** ← `request_body.example` (a JSON code block, examples stay verbatim);
   - for each item in **`responses`**: a **Response (`status` `description`)** table ← its `fields` (filter Description/Remark), then a **`<Name>` Object** sub-table for each entry in `objects`, then a **Response Example** ← its `example` (JSON code block);
   - **Business Logic** ← `business_logic` (prose; preserve multi-flow sub-headers / lists; **Audience-filter** ticket tags and internal cross-refs out of the prose);
-  - **Error Responses** table ← `errors`: columns Status / Error Code / Error Message / Description, but **include the Error Code or Error Message column only when some entry carries that key** (`code` and `message` are both optional, e.g. create uses `code`, get/list use `message`); **filter** Description cells;
+  - **Error Responses** table ← `errors`: always use Status / Response Code / Error Code / Error Messages / Description, in that order. Map from `status` / `responseCode` / `code` / `message` / `description`; keep absent values blank rather than hiding columns. Preserve leading zeroes in `responseCode`, never infer it from status or description; **filter** Description cells;
   - **Notes** ← only `notes[]` entries that survive the Audience filter (caller-facing cross-cutting rules). **Drop** the whole Notes section when every entry is internal/dev. Prefer omitting implementer changelog / "Amended YYYY-MM-DD…" notes entirely.
-- **Parent page body** ← `_meta.yaml`: a **Version / Base URL** line ← `version` / `base_url`; **Overview** ← `overview` (filter); **Field Information** ← `field_info` (a `###` sub-section per key, each a Code / Description table); **Common Error Responses** table ← `common_errors` (Status / Code / Error Message / Description; filter Description).
+- **Parent page body** ← `_meta.yaml`: a **Version / Base URL** line ← `version` / `base_url`; **Overview** ← `overview` (filter); **Field Information** ← `field_info` (a `###` sub-section per key, each a Code / Description table); **Common Error Responses** table ← `common_errors`, using the same Status / Response Code / Error Code / Error Messages / Description columns and mapping as endpoint errors.
 
 The api-spec is the contract source: keep every **wire** field row, every M/O, every public error, every example. Do **not** keep every remark/note verbatim when it is internal. Validate before converting: an endpoint YAML with no `responses` → skip + warn.
 
 ### Audience filter (strip before Confluence)
 
-Apply when assembling **any** prose that lands on a page: `description`, field `description` / `remark`, `business_logic`, error `description` / `message`, `notes[]`, `_meta.overview`, domain `description`. **Do not** alter JSON/examples, field `name`/`type`/`mandatory`/`example`, status codes, or error `code`.
+Apply when assembling **any** prose that lands on a page: `description`, field `description` / `remark`, `business_logic`, error `description` / `message`, `notes[]`, `_meta.overview`, domain `description`. **Do not** alter JSON/examples, field `name`/`type`/`mandatory`/`example`, status codes, error `code`, or structured `responseCode`.
 
 | Keep (consumer needs it) | Drop (dev / internal: leave in api-spec only) |
 |---|---|

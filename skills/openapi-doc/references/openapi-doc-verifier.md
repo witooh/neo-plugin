@@ -31,13 +31,22 @@ Anything unclear or unresolvable (a usecase you cannot locate, a genuinely ambig
 ## What to verify (judgment only: never what the script already did)
 
 1. **Error-status tracing** *(the script does NOT trace errors: top priority)*. Per `go-scan-patterns.md §Error Tracing Patterns`: open **every** usecase method the handler calls **and** every domain-service method those call. Compare the distinct typed errors to the endpoint's spec `errors:` rows. Confirm:
-   - every distinct sentinel has an `errors[]` row (one per sentinel even when several share a status); each row's `status` matches where the handler actually returns it; its `code`/`message` matches the real code string;
-   - wrapped repo/external errors (`fmt.Errorf("...: %w", err)`) → a **single** `500` row (not traced into repos);
-   - the same sentinel from two methods = **one** row (dedup);
-   - handler-level errors present where the pattern exists (bind/parse → 400, validation → 422, param-parse → 400);
-   - a spec `errors[]` row with **no** matching Go sentinel = a **stale** error (drift the other way).
+   - For common-lib catalog-backed services, follow `go-scan-patterns.md §Error Mapping` and the
+     shared `errors.md`: trace usecase-selected domain codes into the catalog, derive status from
+     `responseCode`, include reserved validation/unexpected codes where reachable, and deduplicate
+     by code. Gateways return port errors; an already-coded dependency error keeps its code through
+     wrapping, never automatically becomes 500.
+   - For non-catalog services, trace each distinct sentinel to the actual handler mapping
+     (one row per sentinel, deduplicated across calls); only collapse wrapped repo/external errors
+     to a single 500 when that handler really renders them that way. Bind/validation/parse statuses
+     come from the implementation, not an assumed 422.
+   - Match each row's code/message to the actual body. Unbacked spec rows are stale; reachable
+     error codes missing from the spec are undocumented drift.
 2. **Unconfident field groups** *(the script NOTEd "no confident struct match")*, manually pair the spec group (`request_body.fields` or a `responses[].objects.<Name>`) to its Go struct and check presence / M-O / type **by hand**, applying the same Drift Rules. A stale spec field that broke the auto-match lives here.
-3. **Response envelope**: the wrapper fields (`status`/`serviceId`/`message`/`data`, etc.) match the handler's actual response shape, and `data`'s `object:` points at the right inner struct (the one you verified in item 2).
+3. **Response envelope**: verify success wrappers (`status`/`serviceId`/`message`/`data`) and their
+   inner `data` object separately from errors. Common-lib errors contain exactly `responseCode`,
+   `errorCode`, `errorMessage`, without a success wrapper or `serviceId`; a partner-specific
+   endpoint follows its documented exception.
 4. **Inline query/path params**: each spec `query_params` / `path_params` row exists in the handler (`c.Query(...)` / `c.Params(...)`); the param's M/O is right (`required:false` by default, `true` only if the handler returns an error when it is empty, read the handler).
 5. **Custom-type fields**: for each `type X string` + `const` block: the spec field's `remark`/value list still matches **all** the const values (a stale enum is drift).
 6. **Route nuances**: a route the script's regex may have missed (registered via a non-standard helper, a grouped prefix, a method the spec mislabels); confirm the method + path the script matched is the true one.

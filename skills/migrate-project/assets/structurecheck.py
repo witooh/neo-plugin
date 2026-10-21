@@ -186,8 +186,8 @@ def check_dependency_rule(root: Path, module: str | None) -> None:
 
 
 def check_ambient_calls(root: Path) -> None:
-    """forbidigo contract: no time.Now()/uuid.New() in core: NOTE (golangci is authoritative)."""
-    pat = re.compile(r"\b(time\.Now|uuid\.New(?:String)?)\s*\(")
+    """forbidigo contract: no time.Now()/uuid.New()/NewV7() in core: NOTE (golangci is authoritative)."""
+    pat = re.compile(r"\b(time\.Now|uuid\.New(?:String|V7)?)\s*\(")
     for layer in ("internal/core/domain", "internal/core/usecase"):
         for p, txt in go_files_under(root, layer):
             m = pat.search(txt)
@@ -195,6 +195,30 @@ def check_ambient_calls(root: Path) -> None:
                 note(p.relative_to(root).as_posix(),
                      f"ambient call {m.group(1)}() in core: inject clock.Clock/idgen.Generator "
                      f"(forbidigo; run golangci-lint to confirm)")
+
+
+def check_error_codes_and_uuid(root: Path) -> None:
+    """common-lib v2.3.0 error catalog + UUIDv7 defaults (migrator.md S1): NOTE, convention not layout."""
+    for p, txt in go_files_under(root, "."):
+        if "GinErrorHandler(" in txt:
+            note(p.relative_to(root).as_posix(),
+                 "legacy GinErrorHandler: render errors with stdresp.ErrorHandler(catalog) (errors.md)")
+    if not (root / "internal/core/domain/errorcatalog/errors.json").is_file():
+        note("(errors)", "no internal/core/domain/errorcatalog/errors.json: common-lib v2.3.0 error codes "
+                         "not adopted (errors.md)")
+    idgen = list(go_files_under(root, "pkg/idgen"))
+    # Strip // comments: a doc comment naming NewV7 is not an implementation.
+    if idgen and not any("uuid.NewV7(" in re.sub(r"//.*", "", txt) for _, txt in idgen):
+        note("pkg/idgen", "idgen System() is not UUIDv7: use uuid.NewV7 (structure.md)")
+    sql = []
+    for dirpath, _, files in pruned_walk(root):
+        if Path(dirpath).name == "migrations":
+            for name in files:
+                if name.endswith(".sql"):
+                    sql.append((Path(dirpath) / name).read_text(encoding="utf-8", errors="ignore"))
+    if any("gen_random_uuid()" in s for s in sql) and not any("uuid_generate_v7" in s for s in sql):
+        note("(migrations)", "uuid defaults use gen_random_uuid() (v4): add a uuid_generate_v7() "
+                             "migration (repository.md)")
 
 
 def check_contract(root: Path, module: str | None) -> None:
@@ -295,6 +319,7 @@ def main() -> None:
     check_group_case(root)
     check_dependency_rule(root, module)
     check_ambient_calls(root)
+    check_error_codes_and_uuid(root)
     check_contract(root, module)
     check_compose_images(root)
 

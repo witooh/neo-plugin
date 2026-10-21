@@ -2,16 +2,18 @@
 """L1 deterministic verify for an init-project scaffold.
 
 Run against a freshly generated service. Proves it builds + vets, carries the
-right identity, has zero business survivors, keeps the steering placeholders, and
-serves /health via a best-effort (never-panicking) boot path.
+right identity (incl. the error code prefix), has zero business survivors, keeps the
+steering placeholders, and serves /health via a best-effort (never-panicking) boot path.
 
 Usage:
-    initcheck.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID [--schema SCHEMA]
+    initcheck.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID
+                 --error-prefix PFX [--schema SCHEMA]
 Exit code 0 = all checks pass, 1 = a check failed, 2 = bad invocation.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -24,26 +26,35 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-SENTINELS = {"module": "example.com/neo/service", "name": "neo-service", "id": "NEOSVC", "schema": "neoschema"}
+SENTINELS = {"module": "example.com/neo/service", "name": "neo-service", "id": "NEOSVC", "schema": "neoschema",
+             "prefix": "NZQ"}
 SKIP_DIRS = {".git", "__pycache__", "node_modules", "vendor"}
+SKIP_FILES = {"go.sum"}  # base64 hashes: a short sentinel can occur inside one by chance
 
 MANIFEST = [
     "cmd/api/main.go", "cmd/api/app.go", "cmd/api/http.go",
     "config/config.go", "config/config.yaml",
     "internal/delivery/http/router/router.go",
     "internal/delivery/http/middleware/middleware.go",
+    "internal/core/domain/errors.go",
+    "internal/core/domain/errorcatalog/embed.go", "internal/core/domain/errorcatalog/errors.json",
+    "internal/adapters/repository/postgres/migrations/000001_create_uuid_generate_v7.up.sql",
+    "internal/adapters/repository/postgres/migrations/000001_create_uuid_generate_v7.down.sql",
     "go.mod", "go.sum", "Dockerfile", "Makefile", "docker-compose.yaml",
     "scripts/check-coverage.sh",
     "tests/e2e/package.json", "tests/e2e/package-lock.json", "tests/e2e/jest.config.ts",
     "tests/e2e/specs/health.e2e.ts", "mockoon/placeholder.json",
-    ".kiro/steering/INDEX.md", ".kiro/steering/structure.md",
+    ".kiro/steering/INDEX.md", ".kiro/steering/structure.md", ".kiro/steering/errors.md",
     ".kiro/steering/repo-instance.md", "CLAUDE.md",
     "tools/sqlc/go.mod", "tools/mockery/go.mod", "tools/golang-migrate/go.mod",
     "tools/golangci-lint/go.mod", "tools/govulncheck/go.mod",
 ]
 
+# internal/core/domain holds only the error codes + catalog until the first domain lands.
+DOMAIN_ALLOWED = {"errors.go", "errorcatalog"}
+
 BUSINESS_ABSENT = [
-    "internal/core/domain", "internal/core/usecase",
+    "internal/core/usecase",
     "internal/adapters/gateway", "internal/adapters/eventbus",
     "internal/mocks", "pkg/messaging", "pkg/accountnumber",
 ]
@@ -59,6 +70,8 @@ def walk_texts(root: Path):
     for dirpath, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for name in files:
+            if name in SKIP_FILES:
+                continue
             path = Path(dirpath) / name
             try:
                 yield path, path.read_text(encoding="utf-8")
@@ -120,6 +133,7 @@ def main() -> None:
     ap.add_argument("--module-path", required=True)
     ap.add_argument("--service-name", required=True)
     ap.add_argument("--service-id", required=True)
+    ap.add_argument("--error-prefix", required=True)
     ap.add_argument("--schema", default=None,
                     help="postgres schema passed to scaffold.py (default: derived from --service-name)")
     args = ap.parse_args()
@@ -143,7 +157,8 @@ def main() -> None:
     mv = subprocess.run(["go", "mod", "verify"], cwd=t, capture_output=True, text=True)
     check(mv.returncode == 0, "go mod verify", (mv.stdout + mv.stderr).strip()[:200])
 
-    user = {"module": args.module_path, "name": args.service_name, "id": args.service_id, "schema": args.schema}
+    user = {"module": args.module_path, "name": args.service_name, "id": args.service_id, "schema": args.schema,
+            "prefix": args.error_prefix}
     leftover = []
     for key, sent in SENTINELS.items():
         if user[key] == sent:
@@ -161,10 +176,15 @@ def main() -> None:
     check(not missing, "manifest present", f"missing: {missing}")
 
     present = [d for d in BUSINESS_ABSENT if (t / d).exists()]
+    domain_dir = t / "internal/core/domain"
+    if domain_dir.is_dir():
+        present += [f"internal/core/domain/{p.name}" for p in domain_dir.iterdir()
+                    if p.name not in DOMAIN_ALLOWED]
     check(not present, "zero business survivors", f"present: {present}")
 
+    # Outer layers may import the domain root (error constructors), nothing deeper and no usecase.
     outer = {("internal", "adapters"), ("internal", "delivery")}
-    import_domain = re.compile(r'"[^"]*/internal/core/(?:domain|usecase)')
+    import_domain = re.compile(r'"[^"]*/internal/core/(?:usecase|domain/)')
     dom = []
     for p, txt in texts:
         if p.suffix != ".go":
@@ -172,7 +192,7 @@ def main() -> None:
         parts = p.relative_to(t).parts
         if (parts[:2] in outer or parts[:1] == ("pkg",)) and import_domain.search(txt):
             dom.append(str(p.relative_to(t)))
-    check(not dom, "no domain imports in outer layers", f"{dom[:3]}")
+    check(not dom, "outer layers import only the domain root", f"{dom[:3]}")
 
     router = t / "internal/delivery/http/router/router.go"
     rtext = router.read_text(encoding="utf-8") if router.is_file() else ""
@@ -181,19 +201,38 @@ def main() -> None:
 
     gomod = t / "go.mod"
     gtext = gomod.read_text(encoding="utf-8") if gomod.is_file() else ""
-    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4" in gtext,
-          "common-lib v2.2.4", "")
+    check("gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.3.0" in gtext,
+          "common-lib v2.3.0", "")
 
     mw = t / "internal/delivery/http/middleware/middleware.go"
     mwtext = mw.read_text(encoding="utf-8") if mw.is_file() else ""
-    old_mw = [s for s in ("ServiceIdMiddleware", "ErrorLoggingMiddleware", "GetServiceId") if s in mwtext]
+    old_mw = [s for s in ("ServiceIdMiddleware", "ErrorLoggingMiddleware", "GetServiceId", "GinErrorHandler")
+              if s in mwtext]
     has_new = all(s in mwtext for s in (
         "CorrelationIdMiddleware", "RequestIdMiddleware", "LoggingMiddleware",
-        "GinErrorHandler", "Recovery",
+        "stdresp.ErrorHandler(catalog)", "Recovery",
     ))
-    check(not old_mw and has_new, "common-lib v2.2.4 middleware chain",
+    check(not old_mw and has_new, "common-lib v2.3.0 middleware chain",
           (f"removed symbols: {old_mw}; " if old_mw else "") +
-          ("" if has_new else "missing RequestIdMiddleware/LoggingMiddleware"))
+          ("" if has_new else "missing RequestIdMiddleware/LoggingMiddleware/ErrorHandler(catalog)"))
+
+    cat = t / "internal/core/domain/errorcatalog/errors.json"
+    try:
+        catalog = json.loads(cat.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        catalog = {}
+    codes = [e.get("code", "") for e in catalog.get("errors", [])]
+    check(catalog.get("prefix") == args.error_prefix
+          and all(c.startswith(args.error_prefix + "-") for c in codes),
+          "error catalog prefix", f"prefix={catalog.get('prefix')!r} codes={codes}")
+
+    idgen = t / "pkg/idgen/idgen.go"
+    mig = t / "internal/adapters/repository/postgres/migrations/000001_create_uuid_generate_v7.up.sql"
+    # Match the NewString body, not a comment that merely names NewV7.
+    check(idgen.is_file()
+          and re.search(r"NewString\(\) string \{[^}]*uuid\.NewV7\(\)", idgen.read_text(encoding="utf-8"))
+          and mig.is_file() and "uuid_generate_v7()" in mig.read_text(encoding="utf-8"),
+          "UUIDv7 default (idgen + uuid_generate_v7 migration)", "")
 
     cfg_yaml = t / "config/config.yaml"
     ytext = cfg_yaml.read_text(encoding="utf-8") if cfg_yaml.is_file() else ""

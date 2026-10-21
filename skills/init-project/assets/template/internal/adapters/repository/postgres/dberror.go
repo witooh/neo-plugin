@@ -5,14 +5,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stderr"
+	"example.com/neo/service/internal/core/domain"
 )
 
+// NewDBError wraps a driver failure as NZQ-8001 (database unavailable). The driver's text is the
+// cause: logged, never rendered.
 func NewDBError(err error) error {
-	return stderr.NewServiceError(
-		"An unexpected error has occurred on physical resource.",
-		stderr.NewSubError(err, stderr.WithCode("err_database"), stderr.WithMessage(err.Error())),
-	)
+	return domain.NewDatabaseUnavailableError(err)
 }
 
 func IsDuplicateEntryError(err error) bool {

@@ -6,7 +6,8 @@ tooling + infra wiring + `.kiro/` steering, with **zero business domains**, that
 with no setup. Your job is to confirm that claim by reading the project (and, if you can, running it).
 You did **not** generate it: trust nothing until you have checked it.
 
-You are given: the **target dir** and the intended **module path / service name / service id**.
+You are given: the **target dir** and the intended **module path / service name / service id /
+error prefix**.
 
 ## Check each of these and report PASS/FAIL with evidence
 
@@ -17,12 +18,15 @@ You are given: the **target dir** and the intended **module path / service name 
    && /tmp/v &` then `curl -fsS localhost:8080/health` should return `{"status":"ok"}` with nothing else
    running; kill it after. Clean up the port first if needed.
 
-2. **Genuinely zero business logic.** Confirm these do **not** exist: `internal/core/domain`,
+2. **Genuinely zero business logic.** `internal/core/domain` holds **only** `errors.go` (the
+   `<PREFIX>-8001` ref + `ErrorRefs()` + `NewDatabaseUnavailableError`) and `errorcatalog/`: fail on any
+   other file or sub-package (`entity/`, `repository/`, …). Confirm these do **not** exist:
    `internal/core/usecase`, `internal/adapters/gateway`, `internal/adapters/eventbus`, `internal/mocks`,
    `pkg/messaging`, `pkg/accountnumber`, `docs/`. `tests/e2e/` **does** exist: it is the empty
    harness (`helpers/api-client.ts`, `specs/health.e2e.ts` only). Fail if any other `*.e2e.ts`
    names a business resource. Confirm no `.go` file under
-   `internal/adapters`, `internal/delivery`, or `pkg` imports `core/domain` or `core/usecase`. Spot-check
+   `internal/adapters`, `internal/delivery`, or `pkg` imports `core/usecase` or a `core/domain`
+   sub-package (only `dberror.go` imports the domain root, for its error constructor). Spot-check
    that no business term (account, objective, vault, alpha, dopa, as400, customer-info, …) leaks into the
    **service's own** files. There must be **no** `.kiro/skills/` or `.kiro/agents/` tree in the
    scaffolded project (steering only under `.kiro/`).
@@ -42,9 +46,10 @@ You are given: the **target dir** and the intended **module path / service name 
 
 6. **Identity substituted cleanly.** `go.mod`'s module line is the intended module path;
    `config.yaml`'s `service_id` is the intended id and its `schema` is the intended per-service
-   postgres schema; `docker-compose.yaml`'s container name is the intended name. No sentinel
-   (`example.com/neo/service`, `neo-service`, `NEOSVC`, `neoschema`) remains, unless the user
-   deliberately chose that value.
+   postgres schema; `docker-compose.yaml`'s container name is the intended name;
+   `internal/core/domain/errorcatalog/errors.json`'s `prefix` and every code carry the intended
+   error prefix. No sentinel (`example.com/neo/service`, `neo-service`, `NEOSVC`, `neoschema`,
+   `NZQ`) remains outside `go.sum`, unless the user deliberately chose that value.
 
 7. **Standard images.** `docker-compose.yaml` pins
    `valkey/valkey-bundle:8-alpine`, `postgres:17-alpine`, `apache/kafka:4.1.0`,
@@ -64,11 +69,20 @@ You are given: the **target dir** and the intended **module path / service name 
    (`DOCKER_HOST: tcp://docker:2375`, `DOCKER_TLS_CERTDIR`) remain. Job-scoped DinD on
    `e2e-test` is required (linux runners have no host socket).
 
-9. **common-lib v2.2.4.** `go.mod` pins
-   `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.2.4`.
+9. **common-lib v2.3.0 + error catalog.** `go.mod` pins
+   `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2 v2.3.0`.
    `internal/delivery/http/middleware/middleware.go` uses CorrelationId → RequestId →
-   LoggingMiddleware → GinErrorHandler → Recovery. Fail on `ServiceIdMiddleware`,
-   `ErrorLoggingMiddleware`, or `GetServiceId`.
+   LoggingMiddleware → `stdresp.ErrorHandler(catalog)` → Recovery. Fail on `GinErrorHandler`,
+   `ServiceIdMiddleware`, `ErrorLoggingMiddleware`, or `GetServiceId`. `cmd/api/app.go` `Run` loads
+   the catalog first (`stderr.LoadCatalog(errorcatalog.JSON())` + `Require(domain.ErrorRefs()...)`), returns
+   the error on an invalid one, and hands it to `router.New`. If you can run it, a recovered panic
+   or a `NewDBError` must render `{ responseCode, errorCode, errorMessage }` (`999`/`<PREFIX>-9001`,
+   `005`/`<PREFIX>-8001`).
+
+10. **UUIDv7 by default.** `pkg/idgen` `System()` returns `uuid.Must(uuid.NewV7()).String()`;
+    `.golangci.yaml` forbidigo bans `uuid.New` / `NewString` / `NewV7` in core;
+    `internal/adapters/repository/postgres/migrations/000001_create_uuid_generate_v7.up.sql` creates
+    `uuid_generate_v7()` (no table) and its `down` drops it.
 
 ## Output
 

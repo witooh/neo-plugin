@@ -16,9 +16,13 @@ rule. That is the shape the target must reach; you measure the gap against it. (
 1. **Module + stack**: `go.mod` module path, Go version, key deps (gin / pgx / sqlc /
    **common-lib version**). Pin
    `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` **exactly**
-   (`v2.2.4` is the blueprint). If the pin is missing or below `v2.2.4`, grep for residue:
-   `ServiceIdMiddleware`, `ErrorLoggingMiddleware`, `GetServiceId`, `ContextKey_ServiceId`.
-   Record version + each hit as a convention gap (Migrator rewrites in S1).
+   (`v2.3.0` is the blueprint). If the pin is missing or below `v2.3.0`, grep for residue:
+   `ServiceIdMiddleware`, `ErrorLoggingMiddleware`, `GetServiceId`, `ContextKey_ServiceId`, and the
+   legacy error rendering: `GinErrorHandler`, `stderr.New(Validation|ResourceNotFound|BusinessRule|Service|ThirdParty|InternalServer|Authentication|AccessDenied)Error`,
+   `NewSubError`, `WithCode(`. Record version + each hit as a convention gap (Migrator rewrites in
+   S1). Record the service's **error prefix** (2-3 upper-case letters) if the user / docs name one,
+   else raise it as an Open Question for CP1. Any `NewAuthenticationError` / `NewAccessDeniedError`
+   hit is an Open Question too (the platform has no 401 / 403 response code).
    `go list ./...` for the package tree.
 2. **Current layout + dialect**: top-level dirs and where each layer lives now; name the dialect
    deltas (`app/` vs `cmd/api/`, `internal/adapter/` vs `internal/delivery/http/`, `external/` vs
@@ -30,9 +34,15 @@ rule. That is the shape the target must reach; you measure the gap against it. (
 4. **Layers present vs absent / mixed**: is business logic cleanly separated or mixed (DB calls in
    handlers)? Are aggregates encapsulated (private fields + getters) or plain structs? Are driven
    ports **centralized** in `repository/` + `event/` (the blueprint target) or scattered? Is
-   `time.Now()` / `uuid.New()` called inside core?
+   `time.Now()` / `uuid.New()` called inside core? Does `pkg/idgen` (if any) yield UUIDv7
+   (`uuid.NewV7`)? Which uuid columns default to `gen_random_uuid()` (list them)?
 5. **Cross-cutting**: error handling, response envelope, middleware, config loader, logging: where
    each lives, and whether the target already has a `.golangci.yaml` / `.kiro/steering/`.
+   **Error bodies across services**: per upstream, does its gateway decode the upstream's error body
+   (`errors[]`, `serviceId`, `responseCode`, …) and which error shape does its mockoon stub return?
+   Record the upstream's error body version (legacy envelope or v2.3.0) from the user / its API
+   docs; unknown → Open Question. This service's own error body change breaks its callers: list
+   the known callers, else raise an Open Question.
 6. **The delta**: per concern: `current path → blueprint path` plus the convention gaps
    (encapsulation, centralized ports, deterministic-by-injection, DTO-at-edge). This is the heart of
    the map.

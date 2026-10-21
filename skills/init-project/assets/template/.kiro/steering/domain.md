@@ -20,7 +20,8 @@ exception and stay under `integration/<sys>/`.
 ```
 core/domain/
   enums.go                  package domain: ALL typed string/enum constants (one flat root file)
-  errors.go                 package domain: typed stderr constructors (HTTP status via GinErrorHandler)
+  errors.go                 package domain: catalog code refs + stderr constructors (HTTP status via ErrorHandler)
+  errorcatalog/             package errorcatalog: embedded Appendix-E catalog (schema in errors.md)
   entity/                   package entity: ALL domain data types: aggregates + their component
                             value objects + computed results + read-models (private fields, factories, commands)
   service/                  package service: stateless domain services (package functions), one file per service
@@ -187,26 +188,11 @@ It holds the driven port (`gateway.go`, see `integration.md`) and the **read-mod
 consumes (`readmodels.go`: read-models the core needs from the upstream). These are plain
 data the adapter maps the upstream wire DTO into; no behavior.
 
-## Typed errors (stderr: common-lib v2.2.4)
+## Coded errors (stderr: common-lib v2.3.0)
 
-Typed errors live in a root `errors.go` (`package domain`, beside `enums.go`). They are
-**`stderr.StandardError` constructors** (or thin wrappers that return one). `stdresp.GinErrorHandler`
-maps `GetErrorType()` to HTTP status: domain never sets a status, and there is no local
-error-to-HTTP mapper. Status table: `structure.md` § *Logging and errors*.
-
-```go
-import "gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2/stderr"
-
-func NewInvalidRequestError(cause error, msg string) error {
-	return stderr.NewValidationError(msg).Wrap(cause)
-}
-func NewNotFoundError(cause error) error {
-	return stderr.NewResourceNotFoundError("not found").Wrap(cause)
-}
-func New<Rule>Error(cause error, msg string) error {
-	return stderr.NewBusinessRuleError(msg).Wrap(cause, stderr.WithField("<field>"))
-}
-```
-
-Keep wire/validation-framework concerns out of `domain`: only business meaning lives here.
-Do not import `logger` or `stdresp` in domain.
+The single contract is **`errors.md`** (catalog schema, ranges, constructors, validation, and tests).
+Domain owns the `stderr.Ref`s, their constructors, and `ErrorRefs()` in root `errors*.go` files;
+`errorcatalog/` embeds Appendix-E. Persisted failure-reason constants are separate from API codes.
+Integration ports declare plain sentinels or typed upstream errors, not catalog codes; the usecase
+maps them to domain constructors. Keep wire/validation-framework concerns out of domain, and never
+import `logger` or `stdresp` here.

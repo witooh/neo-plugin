@@ -12,7 +12,7 @@ deterministic string substitution; generic steering placeholders ({{MODULE_PATH}
 
 Usage:
     scaffold.py --target-dir DIR --module-path PATH --service-name NAME --service-id ID
-                [--force] [--no-build] [--no-git] [--no-tidy]
+                --error-prefix PFX [--force] [--no-build] [--no-git] [--no-tidy]
 """
 from __future__ import annotations
 
@@ -29,8 +29,11 @@ SENTINEL_MODULE = "example.com/neo/service"
 SENTINEL_NAME = "neo-service"
 SENTINEL_ID = "NEOSVC"
 SENTINEL_SCHEMA = "neoschema"
+SENTINEL_PREFIX = "NZQ"
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", "vendor"}
+# go.sum hashes are base64: a short upper-case sentinel can occur inside one by chance.
+SKIP_FILES = {"go.sum"}
 AUTH_NEEDLES = (
     "could not read Username", "terminal prompts disabled", "410 Gone",
     "authentication required", "fatal: could not read", "Authentication failed",
@@ -52,6 +55,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--module-path", required=True, help="Go module path, e.g. gitlab.example.com/org/foo-service")
     p.add_argument("--service-name", required=True, help="kebab-case service name, e.g. foo-service")
     p.add_argument("--service-id", required=True, help="UPPER service id, e.g. NEOFOO")
+    p.add_argument("--error-prefix", required=True,
+                   help="2-3 upper-case letter error code prefix of the service catalog, e.g. FRD")
     p.add_argument("--schema", help="postgres schema owned by this service inside the shared database "
                                     "(default: service name minus a trailing '-service', dashes -> underscores)")
     p.add_argument("--force", action="store_true", help="allow a non-empty target dir")
@@ -68,6 +73,8 @@ def validate(args: argparse.Namespace) -> None:
         fail(f"--service-name must be kebab-case [a-z0-9-]: {args.service_name!r}")
     if not re.fullmatch(r"[A-Z0-9_]+", args.service_id):
         fail(f"--service-id must be UPPER [A-Z0-9_]: {args.service_id!r}")
+    if not re.fullmatch(r"[A-Z]{2,3}", args.error_prefix):
+        fail(f"--error-prefix must be 2-3 upper-case letters [A-Z]: {args.error_prefix!r}")
     if args.schema and not re.fullmatch(r"[a-z][a-z0-9_]*", args.schema):
         fail(f"--schema must be a lower snake_case postgres identifier: {args.schema!r}")
 
@@ -89,6 +96,8 @@ def walk_texts(root: Path):
     for dirpath, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for name in files:
+            if name in SKIP_FILES:
+                continue
             path = Path(dirpath) / name
             try:
                 yield path, path.read_text(encoding="utf-8")
@@ -140,11 +149,13 @@ def main() -> None:
         SENTINEL_NAME: args.service_name,
         SENTINEL_ID: args.service_id,
         SENTINEL_SCHEMA: schema,
+        SENTINEL_PREFIX: args.error_prefix,
     })
     log(f"rewrote:  module path  {SENTINEL_MODULE} -> {args.module_path}   ({counts[SENTINEL_MODULE]} files)")
     log(f"rewrote:  service name  {SENTINEL_NAME} -> {args.service_name}   ({counts[SENTINEL_NAME]} files)")
     log(f"rewrote:  service id    {SENTINEL_ID} -> {args.service_id}   ({counts[SENTINEL_ID]} files)")
     log(f"rewrote:  pg schema     {SENTINEL_SCHEMA} -> {schema}   ({counts[SENTINEL_SCHEMA]} files)")
+    log(f"rewrote:  error prefix  {SENTINEL_PREFIX} -> {args.error_prefix}   ({counts[SENTINEL_PREFIX]} files)")
 
     if not args.no_tidy:
         r = run(["go", "mod", "tidy"], target)

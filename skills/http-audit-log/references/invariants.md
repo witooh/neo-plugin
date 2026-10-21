@@ -17,7 +17,7 @@ One `audit_log` row per inbound HTTP request, SUCCESS and FAILED.
 | `status` | `SUCCESS` if HTTP `< 400`, else `FAILED`. CHECK `IN ('SUCCESS','FAILED')` |
 | `http_status` | CHECK `BETWEEN 100 AND 599` |
 | `response_code` | fail-soft from JSON key `responseCode`, else `''` |
-| `failure_reason` | fail-soft from JSON key `message`, else `''` |
+| `failure_reason` | fail-soft from JSON key `errorMessage` for common-lib errors; otherwise `message`, else `''`. `errorMessage` wins when both exist |
 | `metadata` | JSONB, default `{}`. Extension point for searchable fields; leave `{}` unless the user names keys |
 | `raw_request` / `raw_response` | captured bodies, cap 1MB |
 | `duration_ms` | CHECK `>= 0` |
@@ -29,7 +29,7 @@ Table lives on the service `search_path` (no schema prefix in the migration). E2
 
 ## Middleware
 
-- **outermost**: first `r.Use` in `Setup`, so it wraps ServiceId / CorrelationId / error handler / recovery / the route.
+- **Ordering**: CorrelationId → RequestId → Audit → LoggingMiddleware → ErrorHandler → Recovery, matching payment-gateway and the shared `errors.md`. Identity is set before capture; Audit wraps response rendering and recovery.
 - Capture request body, restore `c.Request.Body` for handlers, wrap the writer, `c.Next()`, then INSERT, then the client sees the response.
 - Body `ContentLength` or actual bytes over 1MB: abort 413, still write a FAILED row (`raw_request` = `[truncated: request body too large]`).
 - `persistAuditLog`: `writer == nil` is a no-op (tests pass `nil`). Insert error is logged and swallowed. Auditing never changes the HTTP outcome.

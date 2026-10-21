@@ -11,12 +11,13 @@ frontmatter. Keep it in sync when adding, removing, or changing a guide.
 
 At the start of every session, read every guide marked `always` in the table
 below before doing any work. This index is already loaded; currently, read
-`structure.md` next.
+`structure.md` and `errors.md` next.
 
 | Guide | `inclusion` | `fileMatchPattern` |
 |---|---|---|
 | `INDEX.md` | `always` |: |
 | `structure.md` | `always` |: |
+| `errors.md` | `always` |: |
 | `app.md` | `fileMatch` | `**/cmd/api/**,**/config/**` |
 | `bruno.md` | `fileMatch` | `**/bruno/**` |
 | `domain.md` | `fileMatch` | `**/internal/core/domain/**` |

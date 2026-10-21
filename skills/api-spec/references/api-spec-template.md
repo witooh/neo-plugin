@@ -30,14 +30,16 @@ verb-noun stem (e.g. `create`, `get`, `list`, `update-state`). Mirror the route 
 title: Account Service API Documentation
 version: "1.1"                  # service-level doc version (string; bump in VERSION.md too)
 base_url: /
-overview: |                     # prose, 1-2 sentences
-  Account Service provides APIs for managing bank accounts. ...
+overview: |                     # service purpose + separate success/error wire contracts
+  Account Service provides APIs for managing bank accounts.
+  Success responses keep their endpoint-specific envelope. Common-lib errors contain exactly
+  { responseCode, errorCode, errorMessage }; responseCode determines the HTTP status.
 field_info:                     # reference enums shared across endpoints (rendered in INDEX "Field Information")
   Account Type:
     - { code: S, description: Saving }
     - { code: D, description: Current }
-common_errors:                  # errors every endpoint may return (rendered once, in INDEX)
-  - { status: 400, code: INVALID_REQUEST, message: "...", description: "..." }
+common_errors:                  # shared errors; descriptions state applicability (rendered in INDEX)
+  - { status: 400, responseCode: "001", code: ACC-1001, message: "Mandatory field missing", description: "A required field is absent; append its name when known" }
 domains:                        # per-domain ordering + optional group prose for the INDEX
   Account: { seq: 10 }
   Alpha:   { seq: 80, title: "Alpha (Customer Inquiry)", description: "Proxied inquiry endpoints ..." }
@@ -65,7 +67,7 @@ request_body:                   # optional: POST/PUT/PATCH
     - { name: customerId, description: ..., type: String, mandatory: M, example: "uuid-v4" }
   example: |                    # the request JSON, verbatim
     { "customerId": "uuid-v4", ... }
-responses:                      # one or more: usually a single 2xx
+responses:                      # success + documented error response bodies, not a success wrapper for errors
   - status: 200
     description: OK             # the reason phrase → "Response (200 OK)"
     fields:
@@ -76,11 +78,19 @@ responses:                      # one or more: usually a single 2xx
         - { name: accountId, description: ..., type: String, mandatory: M, example: "uuid-v4" }
     example: |                  # the response JSON, verbatim
       { "status": "Success", "data": { ... } }
+  - status: 400
+    description: Bad Request
+    fields:
+      - { name: responseCode, description: Outcome class that determines HTTP status, type: String, mandatory: M, example: "001" }
+      - { name: errorCode, description: Service-prefixed catalog code, type: String, mandatory: M, example: "ACC-1002" }
+      - { name: errorMessage, description: Support/log message, not customer-facing wording, type: String, mandatory: M, example: "Invalid field format: customerId" }
+    example: |
+      { "responseCode": "001", "errorCode": "ACC-1002", "errorMessage": "Invalid field format: customerId" }
 business_logic: |               # prose; preserve multi-flow / dispatch as **bold** sub-headed numbered lists
   **Common (both flows)**
   1. ...
 errors:                         # endpoint-specific errors (the common ones live in _meta, not here)
-  - { status: 400, code: INVALID_REQUEST, description: Required field missing or type mismatch }
+  - { status: 400, responseCode: "001", code: ACC-1002, message: "Invalid field format", description: "Malformed JSON or field value; append the field name when known" }
 notes:                          # OPTIONAL: cross-cutting notes ONLY; omit the key entirely when none
   - "an out-of-scope statement that applies to the whole endpoint"
 ```
@@ -95,10 +105,55 @@ notes:                          # OPTIONAL: cross-cutting notes ONLY; omit the k
 - **`remark`** is the field's element-specific note (enum values, a conditional like ``Required when
   `accountType="G"` ``, a format). This is where per-field notes live: **never** a separate notes blob.
 
+### Common-lib error response contract
+
+The common-lib v2.3.0+ error body is a **breaking replacement**, not the success envelope:
+
+```json
+{"responseCode": "001", "errorCode": "<PREFIX>-1002", "errorMessage": "Invalid field format: customerId"}
+```
+
+Author exactly these three required **String** fields. Keep leading zeroes in `responseCode`.
+Do not retain `type`, `status`, `serviceId`, `message`, `errors[]`, `data` or a correlation id in
+the error body; these are not aliases for the new fields. Success responses are unchanged.
+`errorMessage` is for logs/support, never raw upstream, driver or panic text.
+
+Document the body in `_meta.overview` and in error `responses[].fields` / `example` where the
+endpoint's response bodies are shown (as above). Each common-lib error row has a quoted String
+`responseCode` field, separate from `description`. The YAML keys `status/code/message` remain
+documentation metadata: HTTP status / wire `errorCode` / base `errorMessage`. Description explains
+the rejection condition; never put the response code there instead of a field or infer it from
+HTTP status (`001` and `002` are both 400). Its HTTP mapping, reserved codes and code ranges are
+the shared [`error contract`](../../init-project/assets/template/.kiro/steering/errors.md).
+
+When migrating an existing spec, replace old error field tables, nested `errors[]` objects,
+examples and envelope prose, and reconcile common/endpoint error rows and statuses together.
+In particular, business `002` is HTTP 400, not the old 422; conflicts `004` are 409.
+Do not preserve stale error documentation under the ordinary sync-back preservation rule.
+Keep request fields/M-O, success bodies, unrelated flow/remarks, `/health`'s plain success body
+and documented partner-specific error contracts intact. Only delete an old object definition
+after every remaining reference is gone. Record the cutover as **BREAKING** in `VERSION.md`.
+
+
 ### Error object rules (a row in `errors:` or `_meta.common_errors`)
-- Keys: `status` · `code?` · `message?` · `description`. **`code` and `message` are both optional**: give a
-  machine `code` (rendered backticked) and/or a human `message` (plain prose); the renderer emits whichever
-  columns are populated. `_meta.common_errors` typically carries both.
+- Keys: `status` · `responseCode?` · `code?` · `message?` · `description`.
+  `responseCode` is **required** for common-lib catalog codes (`<PREFIX>-NNNN`, 2–3 uppercase
+  prefix letters and four digits), in both endpoint `errors` and `_meta.common_errors`.
+  It must be a quoted String from the common-lib mapping and agree with `status`.
+  For non-common-lib contracts it is optional and, when supplied, remains that contract's String
+  value; do not apply common-lib's status mapping to a partner's code.
+  `code` and `message` remain optional for generic contracts. All error tables use **Status /
+  Response Code / Error Code / Error Messages**, followed by Description; keep every column even
+  when a value is absent (blank), and never extract values from prose. The wire field stays `errorMessage`.
+- For a common-lib catalog-backed service, `code` is the prefixed `errorCode` (`<PREFIX>-NNNN`),
+  not a persisted failure-reason constant or a legacy `errors[].code`. `message` documents
+  `errorMessage`; `status` follows the catalog's `responseCode` mapping. Use the shared
+  [`error contract`](../../init-project/assets/template/.kiro/steering/errors.md).
+  These YAML error rows document the API; they are **not** the Appendix-E `errors.json` catalog.
+  Do not add catalog-only `condition` / `raisedBy` fields here or change other API contracts.
+- On migration, move known response codes out of error descriptions into `responseCode`; retain
+  the condition text without duplicating the code. Resolve missing values from the approved
+  contract/catalog, not from HTTP status alone.
 
 ### Notes discipline (keep docs low-noise)
 A field's note → its `remark`. An element's mechanism → its `description` / `business_logic`. **Only a
@@ -128,6 +183,9 @@ Changelog entries live **only** here: never as a note inside an endpoint file.
   report**, then reconcile the YAML to the intended contract (or, if the code is correct and the spec is
   stale, update the YAML to match) + log it in `VERSION.md`. A genuine design conflict (not small drift) →
   surface it for a human decision, never silently diverge.
+- **Breaking error-response migration:** an explicit request to adopt the new common-lib body
+  authorizes replacing obsolete error semantics, not just structural field sync. Apply the
+  cutover above to every affected endpoint and shared definition; preserve unrelated semantics.
 
 ## Verify (your L1 gate)
 ```
@@ -136,6 +194,8 @@ python3 <ASSET_DIR>/apispeccheck.py docs/api      # validates every endpoint YAM
 ```
 `apispeccheck.py` checks: each endpoint file parses + has the required keys; `mandatory ∈ {M,O}`; every
 `example`/`request_body.example`/`responses[].example` JSON parses; every `object:` reference resolves to a
-defined `objects:` entry; `_meta.yaml` is well-formed; and `index.md` is in sync (it rewrites it). Fix every
-error before returning `DONE`. Then self-check semantically: every endpoint the intent touches exists and
-its request/response/errors match the intent's business rules + status codes.
+defined `objects:` entry; common-lib error rows require structured String `responseCode` values
+matching the HTTP status; `_meta.yaml` is well-formed; and `index.md` is in sync (it rewrites it).
+Fix every error before returning `DONE`. L1 does not prove the whole response body contract. Self-check every affected
+error field table/example against the new body and sweep obsolete schemas/statuses during a breaking
+migration; also confirm request, success and explicit partner contracts remain unchanged.

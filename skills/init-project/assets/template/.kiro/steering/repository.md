@@ -90,13 +90,14 @@ per type rather than inlining.
 ## Errors
 
 `dberror.go` exposes `NewDBError(err)` which wraps a driver error as
-`stderr.NewServiceError` (GinErrorHandler → 503). Repositories return `NewDBError(...)`;
+`domain.NewDatabaseUnavailableError` (`<PREFIX>-8001`, `005` → 503). Repositories return `NewDBError(...)`;
 they never return a raw `pgconn`/`pq` error upward and they do **not** log, the usecase
 logs with `logger.Err(err, logger.CategoryDatabase)` and, when it has the timing, `logger.DBFields`.
 A separate helper (`IsDuplicateEntryError`, checking pg code `23505`) classifies a specific
 constraint violation where a caller must branch on it. `sql.ErrNoRows` for an **optional**
 read becomes `(nil, nil)`; for a **required** read it becomes
-`stderr.NewResourceNotFoundError` (404). Status table: `structure.md` § *Logging and errors*.
+the domain's not-found constructor (a `2xxx` code with `003` → 404). A transaction helper
+passes an already-coded error (`*stderr.Error`) through and wraps anything else with `NewDBError`. The error contract is in `errors.md`.
 
 ## Transactions
 
@@ -112,6 +113,10 @@ repository method (or a transactor passed in): usecases stay persistence-agnosti
 - **`migrations/`** are ordered and append-only; a schema change = a new migration
   (`make create-migration NAME=…`, applied with `make migration-up`), never an edit to a
   shipped one.
+- **UUID ids are v7** (time-ordered). An id the code generates comes from the injected
+  `idgen.Generator` (`System()` = UUIDv7); an id the database generates uses
+  `DEFAULT uuid_generate_v7()`, the function migration `000001_create_uuid_generate_v7` creates in
+  the service schema (PostgreSQL 17 has no built-in `uuidv7()`). Never `DEFAULT gen_random_uuid()` (v4).
 - **Per-service postgres schema**: services share one database; this service owns exactly one
   schema in it, created by the compose `postgres-init` one-shot and pinned via `search_path` in
   every connection string (runtime DSN `config.PostgresConfig.ConnectionString`, Makefile

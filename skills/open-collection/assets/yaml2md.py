@@ -75,26 +75,19 @@ def field_table(fields):
 
 
 def error_table(errors):
-    has_code = any("code" in e for e in errors)
-    has_msg = any("message" in e for e in errors)
-    cols = ["Status"]
-    if has_code:
-        cols.append("Error Code")
-    if has_msg:
-        cols.append("Error Message")
-    cols.append("Description")
+    cols = ["Status", "Response Code", "Error Code", "Error Messages", "Description"]
     # dash widths match the header word lengths (cosmetic parity with the source)
     sep = "| " + " | ".join("-" * len(c) for c in cols) + " |"
     out = [row(cols), sep]
     for e in errors:
-        cells = [str(e.get("status", ""))]
-        if has_code:
-            c = e.get("code", "")
-            cells.append(fmt_code(c) if c else "")
-        if has_msg:
-            # public error message stays (caller sees it); only strip framing tails
-            cells.append(audience_text(e.get("message", "") or ""))
-        cells.append(audience_text(e.get("description", "") or ""))
+        c = e.get("code", "")
+        cells = [
+            str(e.get("status", "")),
+            f"`{e['responseCode']}`" if "responseCode" in e else "",
+            fmt_code(c) if c else "",
+            audience_text(e.get("message", "") or ""),
+            audience_text(e.get("description", "") or ""),
+        ]
         out.append(row(cells))
     return "\n".join(out)
 
@@ -304,14 +297,7 @@ def render_index(meta, ddir, nav=False):
         P.append("\n".join(t))
     if meta.get("common_errors"):
         P.append("## Common Error Responses")
-        ce = ["| Status | Code | Error Message | Description |",
-              "| ------ | ---- | ------------- | ----------- |"]
-        for e in meta["common_errors"]:
-            ce.append(
-                f"| {e.get('status','')} | `{e.get('code','')}` | "
-                f"{audience_text(e.get('message',''))} | {audience_text(e.get('description',''))} |"
-            )
-        P.append("\n".join(ce))
+        P.append(error_table(meta["common_errors"]))
     return "\n\n".join(P) + "\n"
 
 

@@ -40,32 +40,71 @@ the slice and hand it to the Verifier.
   **substitute** the sentinel module `example.com/neo/service` → the target's real module path (read
   from its `go.mod`) everywhere in the depguard rules. This is the one substitution; the steering
   placeholders (`{{MODULE_PATH}}`, `<context>`, …) stay intact.
-- **common-lib v2.2.4**: when `target-map.md` flags a pin below `v2.2.4` or any removed
-  symbol (`ServiceIdMiddleware`, `ErrorLoggingMiddleware`, `GetServiceId`,
-  `ContextKey_ServiceId`), bump
-  `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2` to **`v2.2.4`**
-  (`go get …@v2.2.4 && go mod tidy`) and rewrite in the same slice. The new chain lives in
-  `INIT_TEMPLATE/.kiro/steering/handler.md`; logging + stderr→HTTP live in
-  `structure.md` § *Logging and errors*; `logger.Config` in `app.md`. Do not keep a
-  parallel copy. Mapping:
+- **common-lib v2.3.0 + error code standard (BREAKING: error body)**: when `target-map.md` flags a
+  pin below `v2.3.0`, a removed symbol (`ServiceIdMiddleware`, `ErrorLoggingMiddleware`,
+  `GetServiceId`, `ContextKey_ServiceId`), or legacy error rendering (`GinErrorHandler`, `stderr`
+  typed constructors), bump `gitlab.awesome-poc-th.com/libero-engineering/core/common-lib.git/v2`
+  to **`v2.3.0`** (`go get …@v2.3.0 && go mod tidy`) and rewrite in the same slice. The chain lives
+  in `INIT_TEMPLATE/.kiro/steering/handler.md`; the single error contract (catalog, constructors,
+  port vocabulary, usecase mapping, response codes) is `errors.md`; `logger.Config` + catalog
+  loading live in `app.md`. Do not keep a parallel copy. Removed APIs:
 
-  | Removed (≤ v2.2.0-beta002) | v2.2.4 |
+  | Removed (≤ v2.2.0-beta002) | v2.3.0 |
   |---|---|
-  | `ServiceIdMiddleware(id)` | gone. Pass `id` to `stdresp.GinErrorHandler(id)` only. |
+  | `ServiceIdMiddleware(id)` | gone. The id only feeds `logger.service_name` and the success envelope `serviceId`. |
   | `ctxutils.GetServiceId` / `ContextKey_ServiceId` | `logger.ServiceName()` (reads `Config.ServiceName`) |
   | `ErrorLoggingMiddleware(l)` | `LoggingMiddleware(l)`: one `http.server.request.completed` line per request |
   | `logger.Config{Environment, Level string}` | typed `Environment` / `Level`; **`ServiceName string` required** (empty panics); optional `ServiceVersion`, `DisableBodyCapture` |
   | free-text `logger.Info("… start")` / no `logger.Context` | `logger.Context(ctx)` + dot-separated event name + `logger.Err(err, category)` (`structure.md`) |
-  | custom HTTP-status domain errors / a local error→status mapper | `stderr` constructors; `GinErrorHandler` maps `GetErrorType()` (`structure.md`, `domain.md`) |
   | (none) | `RequestIdMiddleware()`; `ctxutils.GetRequestId`; `httpclient.WrapTransport` / `NewClient` on outbound HTTP |
 
-  Middleware order (handler.md): CorrelationId → RequestId → LoggingMiddleware →
-  GinErrorHandler → Recovery. `LoggingMiddleware` and `GinErrorHandler` wrap Recovery so a
-  recovered panic is still logged and still rendered as JSON. Pin `logger.service_name` in
-  config to the same id as `service.service_id`. Outbound HTTP uses
-  `httpclient.WrapTransport` and `http.NewRequestWithContext` (`integration.md`). This is
-  compile-breaking, not silent: a bump without the rewrite fails `go build`. Already on
-  v2.2.4 with the new chain → skip.
+  Error rendering: every legacy error becomes a catalog code **in S1**, because
+  `ErrorHandler(catalog)` renders any uncoded error as `<PREFIX>-9001` / 500, so a half-converted
+  S1 cannot end green:
+
+  | Legacy (≤ v2.2.x) | v2.3.0 (`responseCode` → HTTP status) |
+  |---|---|
+  | `stdresp.GinErrorHandler(serviceID)`, `router.New(h, serviceID)`, `middleware.Setup(r, serviceID)` | `stdresp.ErrorHandler(catalog)`, `router.New(h, catalog)`, `middleware.Setup(r, catalog)` |
+  | `stderr.NewValidationError` on a bind / decode failure | `stdresp.FromBind(err)` (`1001` for a missing body / `required`, else `1002`) |
+  | `stderr.NewValidationError` on a field check | `stderr.NewField(stderr.MandatoryFieldMissing` or `stderr.InvalidFieldFormat, field, cause)` (`001` → 400) |
+  | `stderr.NewResourceNotFoundError` | a `2xxx`–`7xxx` code with `003` → 404 |
+  | `stderr.NewBusinessRuleError` | a `2xxx`–`7xxx` code with `002` → **400** (was 422), or `004` → 409 for a conflict / duplicate |
+  | `stderr.NewServiceError`, `NewDBError` | one `8xxx` code per dependency with `005` → 503 |
+  | `stderr.NewThirdPartyError` | the upstream's `8xxx` code: `006` → 504 on a timeout, else `005` → 503 |
+  | `stderr.NewInternalServerError`, an untyped error | `stderr.UnexpectedError` (`9001`, `999` → 500) or leave it uncoded |
+  | rollback `stderr.NewInternalServerError("rollback error", err, rollbackErr)` | `errors.Join(err, rollbackErr)` (keeps the inner error's code) |
+  | `stderr.NewAuthenticationError`, `stderr.NewAccessDeniedError` | **no** platform response code maps to 401 / 403: stop, `NEEDS_CONTEXT` |
+
+  Install `INIT_TEMPLATE/internal/core/domain/errors.go` + `errorcatalog/` with the sentinel prefix
+  `NZQ` → the target's error prefix (recorded in `plan.md`, agreed at CP1; none → `NEEDS_CONTEXT`);
+  add one catalog row + `stderr.Ref` + `ErrorRefs()` entry + domain constructor per code
+  (`message` ≤ 255 UTF-8 bytes; `condition`; operation-derived Title Case `raisedBy`, per `errors.md`).
+  Gateway adapters return integration-port sentinels / typed errors; usecases map them to domain
+  constructors. Wire `loadErrorCatalog` + `Require(domain.ErrorRefs()...)` into `cmd/api` (`app.md`);
+  add the Appendix-E table to `README.md`. Update
+  every test / e2e spec that asserts an error body to `{ responseCode, errorCode, errorMessage }`:
+  same cases, new expected body and status. This is the one **declared** behavior change
+  (`preamble.md` §3): `plan.md` marks it `BREAKING`, and the report lists the callers to notify.
+  Middleware order (handler.md): CorrelationId → RequestId → LoggingMiddleware → ErrorHandler →
+  Recovery. `LoggingMiddleware` and `ErrorHandler` wrap Recovery so a recovered panic is still
+  logged and still rendered as JSON. Pin `logger.service_name` in config to the same id as
+  `service.service_id`. Outbound HTTP uses `httpclient.WrapTransport` and
+  `http.NewRequestWithContext` (`integration.md`). This is compile-breaking, not silent: a bump
+  without the rewrite fails `go build`. Already on v2.3.0 with the catalog → keep the pin, but still
+  align `ErrorRefs()`, catalog metadata and gateway/usecase ownership with `errors.md`.
+- **Upstream stubs + gateway error DTOs**: do **not** rewrite an upstream's mockoon stub or the
+  gateway's error-body DTO because *this* service migrates: they mirror the error body **that
+  upstream** answers (`e2e.md`, `integration.md`). Change one only when `target-map.md` records the
+  upstream as already on the v2.3.0 body (confirmed by the user), and then change stub + adapter +
+  adapter tests in the same slice.
+- **UUIDv7 by default**: copy `INIT_TEMPLATE/pkg/idgen/` (`System()` =
+  `uuid.Must(uuid.NewV7()).String()`). When a migration sets `DEFAULT gen_random_uuid()`, add a
+  **new** migration (`make create-migration NAME=uuid_v7_defaults`) that creates
+  `uuid_generate_v7()` (body: `INIT_TEMPLATE/internal/adapters/repository/postgres/migrations/000001_create_uuid_generate_v7.up.sql`,
+  `CREATE OR REPLACE`) and runs `ALTER TABLE … ALTER COLUMN … SET DEFAULT uuid_generate_v7()` for
+  every such column (list them from the applied schema, not only the migration files); its `down`
+  restores `gen_random_uuid()` and then drops the function. Existing v4 rows stay: v4 and v7 share
+  the `uuid` column. Never edit a shipped migration.
 - Copy `INIT_TEMPLATE/.kiro/steering/` verbatim (generic, placeholders kept), including
   `.kiro/steering/INDEX.md`, and copy `INIT_TEMPLATE/CLAUDE.md`. Fill `repo-instance.md` with the
   target's real bounded contexts + driven ports (from `target-map.md`). Before handing off S1,

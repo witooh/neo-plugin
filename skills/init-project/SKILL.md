@@ -5,7 +5,7 @@ description: >
   empty-but-runnable account-service snapshot (clean layers, tooling, infra, `.kiro/` steering)
   with ZERO business domains. It builds and serves `GET /health` immediately, ready to
   extend with the first domain later. Asks the service identity (Go
-  module path, name, id, postgres schema, target dir), runs `scaffold.py` (copy +
+  module path, name, id, postgres schema, error code prefix, target dir), runs `scaffold.py` (copy +
   sentinel-substitute + go mod tidy + git init + build), then verifies (L1 `initcheck.py` + L2
   fresh-eyes). Trigger on:
   "init project", "/init-project", "scaffold a service", "new service from template",
@@ -34,6 +34,14 @@ A complete service skeleton under the target dir:
 - **Layers**: `cmd/api` (composition root), `config`, `internal/delivery/http/{router,middleware}`
   (with `/health`), `internal/adapters/repository/{postgres,redis,cache}`,
   `pkg/{clock,idgen,cache/valkey,lib/kafka}`.
+- **Error codes** (common-lib v2.3.0): `internal/core/domain/errors.go` + `errorcatalog/` (embedded
+  `errors.json` with the service prefix, loaded + checked at startup; only `<PREFIX>-8001` database
+  unavailable so far). Every HTTP error renders `{ responseCode, errorCode, errorMessage }` via
+  `stdresp.ErrorHandler(catalog)`. `.kiro/steering/errors.md` is the single error contract, aligned
+  with payment-gateway (domain constructors + `ErrorRefs()`, usecase mapping, gateway port errors).
+- **UUIDv7 by default**: `pkg/idgen` `System()` yields UUIDv7; migration
+  `000001_create_uuid_generate_v7` adds `uuid_generate_v7()` for DB-generated ids (PostgreSQL 17 has no
+  `uuidv7()`).
 - **Tooling**: `Makefile`, `Dockerfile`, `docker-compose.yaml` (postgres + valkey + kafka + mockoon
   placeholder), `.gitlab-ci.yml` (workflow + Go cache; `prepare-mod` / `test` / `e2e-test` /
   `ec2-shell` `build`), `.golangci.yaml`, `.mockery.yaml`, `sqlc.yaml`, pinned `tools/*` modules.
@@ -41,8 +49,9 @@ A complete service skeleton under the target dir:
   ships an empty `placeholder.json` so the stub container starts before any upstream exists.
 - **Agentic context**: `.kiro/steering/*` (architecture guides) + `CLAUDE.md`.
   Skills come from the plugin / user install: **not** bundled under the service tree.
-- `internal/core/{domain,usecase}`, gateways, and HTTP handlers are **added later as domains**, not the
-  skeleton: a fresh service legitimately has none.
+- `internal/core/usecase`, the rest of `internal/core/domain` (beyond `errors.go` + `errorcatalog/`),
+  gateways, and HTTP handlers are **added later as domains**, not the skeleton: a fresh service
+  legitimately has none.
 
 The boot path is **best-effort**: `go run ./cmd/api` serves `/health` even with no Postgres / Redis /
 Kafka running (it warns and continues: it never panics on missing infra).
@@ -69,37 +78,43 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
 
 ## Steps
 
-1. **Gather identity.** Get five values from the user (ask for the module path first; derive
+1. **Gather identity.** Get six values from the user (ask for the module path first; derive
    sensible suggestions for the rest and confirm):
    - **module path**: the Go module path, e.g. `gitlab.awesome-poc-th.com/libero-engineering/core/<svc>`.
    - **service name**: kebab-case; default to the **last path segment** of the module.
-   - **service id**: UPPER short id used in the error envelope / tracer (e.g. `NEOPAY`); suggest one
-     from the name and confirm.
+   - **service id**: UPPER short id used as `logger.service_name` and the success envelope
+     `serviceId` (e.g. `NEOPAY`); suggest one from the name and confirm.
    - **postgres schema**: the schema this service owns inside the shared database (services share
      one database: `sit_core`: one schema per service, pinned via `search_path`); suggest the
      service name minus a trailing `-service` with dashes→underscores (e.g. `account-service` →
      `account`) and confirm.
+   - **error prefix**: 2-3 upper-case letters every error code carries (`<PREFIX>-NNNN`, e.g.
+     fraud-service → `FRD`); suggest one from the name and confirm (the org may already have
+     assigned one).
    - **target dir**: where to create the project (suggest a sibling dir `../<service-name>`).
 
-   Confirm all five before generating. Never invent the module path: it is org-specific; ask.
+   Confirm all six before generating. Never invent the module path: it is org-specific; ask.
 
 2. **Generate.** Run the bundled scaffold:
    ```bash
    python3 <skill-dir>/assets/scaffold.py \
-     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema>
+     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema> \
+     --error-prefix <PFX>
    ```
-   It copies the frozen template, substitutes the four sentinels, runs `go mod tidy`, `git init`, and
+   It copies the frozen template, substitutes the five sentinels, runs `go mod tidy`, `git init`, and
    `go build ./...`. If the build fails on private-module auth (the output prints a hint), re-run with
    `--no-build` and tell the user to run `go mod tidy && go build ./...` once they have access.
 
 3. **L1 verify (deterministic).** Run the checker; **every check must PASS**:
    ```bash
    python3 <skill-dir>/assets/initcheck.py \
-     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema>
+     --target-dir <dir> --module-path <mod> --service-name <name> --service-id <id> --schema <schema> \
+     --error-prefix <PFX>
    ```
    It proves: build + vet, module identity, `go mod verify`, no leftover sentinels, steering
-   placeholders preserved, manifest present, zero business survivors, no domain imports in outer
-   layers, `/health` wired with an empty `Handlers`, and a best-effort (never-panicking) boot path. If
+   placeholders preserved, manifest present, zero business survivors, outer layers import only the
+   domain root, `/health` wired with an empty `Handlers`, the v2.3.0 chain + catalog prefix, UUIDv7
+   defaults, and a best-effort (never-panicking) boot path. If
    any check FAILs, fix and re-run before reporting success.
 
 4. **L2 verify (independent).** Spawn a read-only sub-agent (no write, edit, or commit) with the
@@ -115,7 +130,8 @@ In the steps below, `<skill-dir>` is this skill's base directory (shown to you w
 ## Notes
 
 - The bundled template is a **frozen snapshot** under `assets/template/` (sentinel module path
-  `example.com/neo/service`, name `neo-service`, id `NEOSVC`, postgres schema `neoschema`). To
+  `example.com/neo/service`, name `neo-service`, id `NEOSVC`, postgres schema `neoschema`, error
+  prefix `NZQ`; `go.sum` is never substituted). To
   refresh it when `account-service`'s conventions change, follow `references/init-project-guide.md`.
 - Generic steering placeholders (`{{MODULE_PATH}}`, `<context>`, …) are intentionally left unresolved
-  as placeholders for later domain work: only the four sentinels are substituted at generation time.
+  as placeholders for later domain work: only the five sentinels are substituted at generation time.

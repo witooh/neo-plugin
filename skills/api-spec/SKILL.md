@@ -27,7 +27,7 @@ Four modes. **Draft** and **Generate** both author a spec where none exists yet;
 
 - **Draft** (design-first): signalled by a "draft / ออกแบบ … ก่อน" request: author a **provisional** contract from intent **only** (acceptance criteria / requirements / `docs/knowledge/`), **before any code exists**, so a feature has a contract to design against from the start. It writes the same `docs/api/*.yaml` as Generate, **single producer, single location** (not a separate artifact); its provisional nature is contextual, it is drafted before the code exists, with **no marker** in the spec. Draft authors the **structural contract only**: method/path/auth, request/response fields, `errors`, and `covers_ac`; and **omits `business_logic`**: the per-endpoint flow is a design inference that must not be pinned before the handler exists.
 - **Generate**: no `docs/api/` (or no `_meta.yaml`) at the target, and not a Draft request → author the spec from intent (full three-layer verify).
-- **Update**: a spec already present → apply the delta from intent (a new endpoint, a changed field), **or** reconcile the spec against built code. The DOC-step **Update-from-code** (sync-back) reads the Go source and syncs only the **structural surface**: routes, request/response fields, types, into the spec, **preserving** all hand-authored M/O, `business_logic`, `remark`, and `errors` (a structural sync, never a regenerate-over-top).
+- **Update**: apply the requested delta or reconcile the spec against built code. Ordinary **Update-from-code** syncs routes, request/response fields and types while preserving unrelated M/O, `business_logic`, `remark` and `errors`. An explicitly requested **breaking response-contract migration** also replaces the obsolete error body, examples, error rows and statuses; preservation is not a reason to retain the old contract (Step 2).
 - **Validate**: request says "validate/check/เช็ค/ตรงกับ … ไหม" with a spec present → no writes.
 
 ## Step 1 · Locate the source-of-intent + the spec root
@@ -44,12 +44,27 @@ Four modes. **Draft** and **Generate** both author a spec where none exists yet;
 
 Write per [`references/api-spec-template.md`](references/api-spec-template.md):
 
-- **`_meta.yaml`**: service title/version/base_url/overview, shared `field_info` enums, `common_errors` (errors every endpoint may return), per-domain `seq`/title in `domains`, and `extra_endpoints` for index-only rows (e.g. a health probe).
+- **`_meta.yaml`**: service title/version/base_url/overview, shared `field_info` enums, `common_errors` (shared errors with their endpoint applicability), per-domain `seq`/title in `domains`, and `extra_endpoints` for index-only rows (e.g. a health probe). State the success and error wire bodies separately in the overview, following the template's **Common-lib error response contract**.
 - **`<domain>/<endpoint>.yaml`**: one file per endpoint: method/path/auth, `path_params`/`query_params`/`request_body` field tables, `responses` (with nested `objects:`), `business_logic` (preserve multi-flow as bold-subheaded numbered lists, **Generate/Update only; Draft omits it**, see Mode), endpoint-specific `errors`, and `covers_ac` when driven from a spec. A field's element-specific note → its `remark`; only a genuinely cross-cutting note → `notes:` (omit when empty).
-- **Update**: touch the minimum; preserve hand-authored prose; re-run the L1 check after. For **Update-from-code** (DOC-step sync-back): read the Go source and sync only the structural surface (routes / fields / types); **preserve** M/O, `business_logic`, `remark`, and `errors`: never regenerate over hand-authored semantics.
+- **Error rows**: common-lib `errors` and `_meta.common_errors` carry quoted `responseCode` values
+  as structured fields, not text in `description`. Keep description for the rejection condition;
+  the validator checks the response-code → HTTP-status mapping.
+- **Update**: touch the minimum and preserve unrelated hand-authored semantics. Ordinary sync-back reconciles the structural surface; a requested breaking response migration follows the cutover below instead of preserving obsolete `errors`, error response fields or examples. Re-run L1 after either kind of update.
 - **VERSION.md**: append a `## v<N>: <date>` section (newest first) per change.
 
-Do **not** scan Go to **author** (Draft / Generate / intent-only Update), those are authored from intent. **Only Update-from-code** reads Go, and only to reconcile the structural surface against a built implementation (sync-back); the read-only drift *report* remains `openapi-doc`.
+### Breaking response-contract cutover
+
+For common-lib's new error response, follow
+[`Common-lib error response contract`](references/api-spec-template.md#common-lib-error-response-contract).
+This is a **breaking wire change**, not a rename of error-code examples. In Draft/Generate, author
+the new body from the outset. In a requested migration, replace every affected old error response
+field table, nested error object, JSON example, `_meta.overview`, `common_errors`, endpoint `errors`
+row and HTTP status together. Remove obsolete error objects only when no remaining response uses
+them. Preserve success bodies, request semantics and explicitly distinct partner contracts.
+Record **BREAKING**, old → new body/status changes, affected endpoints and known caller impact in
+`VERSION.md`; do not leave old bodies beside the new body as a compatibility option.
+
+Do **not** scan Go to **author** (Draft / Generate / intent-only Update): use intent and the shared error contract. **Update-from-code** may read built Go to reconcile the requested surface, including an explicitly requested breaking error-response migration; the read-only drift report remains `openapi-doc`.
 
 ## Step 3 · Three-layer verify
 
@@ -61,7 +76,10 @@ Do **not** scan Go to **author** (Draft / Generate / intent-only Update), those 
 python3 <ASSET_DIR>/apispeccheck.py docs/api      # validates every endpoint YAML + regenerates index.md
 ```
 
-It checks each endpoint parses + has the required keys; `mandatory ∈ {M,O}`; every `example` JSON parses; every `object:` reference resolves; `_meta.yaml` is well-formed; and it rewrites `index.md` so it can never drift. **Tripwire, not ground truth.**
+It checks each endpoint parses + has the required keys; `mandatory ∈ {M,O}`; every `example` JSON parses; every `object:` reference resolves; common-lib error rows have structured String `responseCode` values with matching HTTP statuses; `_meta.yaml` is well-formed; and it rewrites `index.md` so it can never drift. **Tripwire, not ground truth.**
+L1 checks syntax/structure, not whether a legacy response body is still being documented. A green
+L1 alone does **not** prove the common-lib response cutover; verify it in L3 (including Draft)
+and in L2 when that pass runs.
 
 - **exit 0** → `PASS: 0 error(s)` → go to L1.5.
 - **exit 1** → for each ERROR, open the actual YAML, fix the real defect, re-run. **Loop until exit 0, OR ~3 rounds with no progress → STOP and escalate.** Never fake a green run.
@@ -98,6 +116,10 @@ End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 ### verify-L3 · Completeness sweep (omission critic)
 
 L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enumerate the **full intended endpoint inventory** from the source-of-intent (every endpoint the requirements/AC call for, or, in sync-back, every route an `openapi-doc` drift report flagged) and confirm: every intended endpoint has a `docs/api/<domain>/*.yaml`, every endpoint is reachable from `index.md`, every `covers_ac` AC-ID (when driven from a spec) is real, and no endpoint file is an orphan with no intent behind it. Report any whole endpoint the pipeline silently dropped; fix → re-run L1.
+For a common-lib breaking migration, also sweep **every affected endpoint and shared error
+definition** for leftover legacy error fields, objects, examples and statuses. Confirm the new
+error contract is documented while success, request and partner-specific contracts stay intact.
+Draft/Generate must start with the new body too; a correct error-code table alone is insufficient.
 
 ### Output
 
@@ -120,4 +142,4 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 - **Not** a read-only drift *reporter*: producing a report of whether the Go code matches the spec **without writing** is **`openapi-doc`**. This skill *reconciles* the spec to code (Update-from-code, which writes); the pure drift report stays with `openapi-doc`.
 - **Not** a Bruno OpenCollection generator (**`open-collection`**) or a Confluence publisher (**`confluence-api-doc`**), both also read `docs/api/*.yaml`. This skill is the single **producer**; those three are **consumers**.
 - **Not** an OpenAPI / Swagger / Postman converter: the custom-YAML api-spec is the single source of truth (it carries M/O + Remark + multi-flow business logic that OpenAPI cannot without `x-` hacks). There is no OpenAPI intermediate in this chain.
-- **Authoring never scans Go**: Draft / Generate / intent-only Update are authored from **intent**, before the code. The one exception is **Update-from-code** (DOC-step sync-back), which reads Go to reconcile the *structural* surface (routes / fields / types) into an existing spec while preserving hand-authored semantics.
+- **Authoring never scans Go**: Draft / Generate / intent-only Update use intent. **Update-from-code** reconciles built code with the spec; preserve unrelated semantics, but migrate obsolete response/error documentation when a breaking contract change is explicitly requested.

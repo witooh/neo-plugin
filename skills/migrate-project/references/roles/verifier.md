@@ -12,9 +12,11 @@ migration: deterministic, no judgment. A slice is `done` only when **every** gat
 2. `go vet ./internal/... ./cmd/... ./config/...`: clean.
 3. `go test ./...`: the **existing** tests stay green. This is the behavior-preservation proof: a
    refactor that breaks (or needs deleting) a test changed behavior. A disabled / removed test to
-   make this pass is a FAIL: report it.
+   make this pass is a FAIL: report it. The one exception: a test / e2e spec whose only change is
+   the expected error body + status moving to `{ responseCode, errorCode, errorMessage }` (the S1
+   error-code step `plan.md` declares `BREAKING`, `preamble.md` §3).
 4. `golangci-lint run ./internal/... ./cmd/... ./config/...` (pinned `go tool -modfile=tools/golangci-lint/go.mod …` form if `tools/golangci-lint/` exists), the depguard / forbidigo **architecture
-   contract**. A cross-layer import or an ambient call (`time.Now` / `uuid.New`) inside core **fails**
+   contract**. A cross-layer import or an ambient call (`time.Now` / `uuid.New` / `uuid.NewV7`) inside core **fails**
    here: that is the conformance signal, not a style nit. Compare to the pre-migration baseline: a
    refactor may not *increase* the issue count.
 5. Optional (slice touched the composition root / boot): build `./cmd/api`, boot it on an ephemeral

@@ -29,12 +29,15 @@ neo-service/
 ├── internal/
 │   ├── core/
 │   │   ├── domain/                  # THE MODEL (per layer: entity/ service/ repository/ event/) , 
-│   │   │                            #   aggregates, domain services, typed errors + centralized ports (neo adds these)
+│   │   │   │                        #   aggregates, domain services, typed errors + centralized ports (neo adds these)
+│   │   │   ├── errors.go            #   NZQ error codes (common-lib stderr): only NZQ-8001 so far
+│   │   │   └── errorcatalog/        #   errors.json (Appendix-E) embedded + loaded at startup
 │   │   └── usecase/                 # ONE operation per package → usecase.go + exec.go (neo adds)
 │   ├── delivery/
 │   │   └── http/{router,middleware} # inbound HTTP (gin): /health + the middleware chain
 │   └── adapters/
 │       └── repository/{postgres,redis,cache}   # outbound persistence + cache (low-level clients)
+│                                    #   postgres/migrations/000001: uuid_generate_v7() for DB-generated ids
 ├── pkg/                             # shared low-level libs (no domain logic)
 │   ├── cache/valkey/                #   Valkey client
 │   ├── clock/  idgen/               #   ambient capabilities (clock, id) + *test fakes
@@ -48,8 +51,9 @@ neo-service/
 └── go.mod
 ```
 
-`internal/core/domain`, `internal/core/usecase`, `internal/adapters/gateway` and the HTTP
-handlers are added later as domains: a fresh skeleton has none. The contract for
+`internal/core/usecase`, `internal/adapters/gateway`, the HTTP handlers and everything in
+`internal/core/domain` beyond `errors.go` + `errorcatalog/` are added later as domains: a fresh
+skeleton has none. The contract for
 each layer lives in `.kiro/steering/` (start with `structure.md`).
 
 ## Getting Started
@@ -91,6 +95,22 @@ make compose-down      # tear down (removes volumes)
 This service is meant to be grown using `.kiro/steering/` (start with `structure.md` /
 `new-feature-checklist.md`). Don't hand-improvise structure: if a pattern isn't in the
 steering, surface it and fold the decision back into the guide (see `structure.md`).
+
+## Error codes (Appendix-E)
+
+Every HTTP error answers the common-lib body `{ "responseCode", "errorCode", "errorMessage" }`
+(common-lib v2.3.0 error code standard). Callers branch on `responseCode` and log `errorCode`.
+`errorMessage` is for logs and support, not for customers. Prefix: **`NZQ`**. The catalog is
+`internal/core/domain/errorcatalog/errors.json`, loaded at startup (an invalid catalog stops the
+service). Startup checks every `domain.ErrorRefs()` entry. The HTTP status follows the response
+code; the single error contract is `.kiro/steering/errors.md` (payment-gateway standard).
+
+| Error Code | Response Code | HTTP Status | Message | Condition | Raised By |
+|---|---|---|---|---|---|
+| NZQ-1001 | 001 | 400 | Mandatory field missing | A required field is absent, null or empty (reserved) | All |
+| NZQ-1002 | 001 | 400 | Invalid field format | Malformed JSON, unknown field, wrong JSON kind or value (reserved) | All |
+| NZQ-8001 | 005 | 503 | Database unavailable | Postgres is unreachable or a query / transaction failed | All |
+| NZQ-9001 | 999 | 500 | Unexpected system error | Any error with no specific code, including a panic (reserved) | All |
 
 ## Configuration
 

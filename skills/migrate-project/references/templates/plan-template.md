@@ -11,6 +11,8 @@ orchestrator reads it to resume. Keep it a tracking index, not prose.
 Target: <abs path to the target repo>
 Blueprint: INIT_TEMPLATE steering (account-service hexagonal/DDD)
 Branch: migrate/hexagonal-blueprint
+Error prefix: <PFX>   (agreed at CP1; catalog codes are <PFX>-NNNN)
+BREAKING: error body → { responseCode, errorCode, errorMessage } (S1, common-lib v2.3.0)
 Slices: <done>/<N> done
 Updated: <YYYY-MM-DD or session marker>
 
@@ -32,9 +34,12 @@ Moves:
 - install `INIT_TEMPLATE/.kiro/steering/` → `<target>/.kiro/steering/`  (including INDEX.md; fill repo-instance.md with real contexts)
 - install `INIT_TEMPLATE/CLAUDE.md` → `<target>/CLAUDE.md`
 - <current edge path> → <blueprint path>     (error mapping / response envelope / middleware / config)
-- bump common-lib to v2.2.4 + rewrite removed APIs (when target-map flags the gap; handler.md chain)
+- bump common-lib to v2.3.0 + rewrite removed APIs + legacy stderr → catalog codes (BREAKING error body;
+  install errors.go + errorcatalog/ with <PFX>; update error-body assertions; migrator.md)
+- UUIDv7: pkg/idgen → NewV7; new migration uuid_generate_v7() + SET DEFAULT on every gen_random_uuid() column
 - create `internal/core/{domain,usecase}/` skeleton
-Steering: structure.md · app.md · handler.md (middleware + router) · integration.md (httpclient)
+Steering: structure.md · app.md · handler.md (middleware + router) · domain.md (coded errors) ·
+repository.md (UUIDv7) · integration.md (httpclient)
 Verify: `go build ./... && go test ./... && golangci-lint run ./internal/... ./cmd/... ./config/...`
 
 ## S2: <context> → blueprint                  (coarse until it becomes the next unbuilt slice)
@@ -42,6 +47,10 @@ Scope: relocate the <context> bounded context (domain + usecase + repository + g
 the blueprint layout; fill convention gaps per steering. (Elaborated to path level when reached.)
 
 … one section per slice …
+
+## Callers to notify (BREAKING error body)
+- <service / team that calls this service: its gateway error DTO + its mockoon stub of this service
+  must move to the new body. From target-map.md; unknown → ask the user.>
 
 ## Notes (optional)
 - <lean tracking bullets only: cross-slice ordering caveat, a convention gap the user accepted as
