@@ -23,12 +23,12 @@ Git is yours — neo never touches branches; commit / push only when you ask, th
 
 ## Skills
 
-Seventeen skills under `skills/`. Full list in the [README](../README.md). Brief map:
+Nineteen skills under `skills/`. Full list in the [README](../README.md). Brief map:
 
 - **Ingest / tracker / VCS:** `markitdown`, `atlassian`, `gitlab`
 - **API contract chain:** `api-spec`, `openapi-doc`, `open-collection`, `confluence-api-doc`
 - **HTTP e2e / audit:** `e2e-playwright`, `http-audit-log`
 - **QA probes:** `falsifying`, `bug-hunter`, `attack-test`
 - **Go service:** `init-project`, `migrate-project`
-- **SIT:** `neo-core-sit`, `neo-aux-sit`
+- **SIT / UAT:** `neo-core-sit`, `neo-aux-sit`, `neo-core-uat`, `neo-aux-uat`
 - **User-invoked:** `advice-mode`

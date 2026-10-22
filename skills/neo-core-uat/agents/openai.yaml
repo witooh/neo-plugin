@@ -1,0 +1,3 @@
+interface:
+  display_name: "Neo Core UAT"
+  short_description: "Inspect Core UAT logs, Argo, Postgres"

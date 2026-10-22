@@ -1,17 +1,28 @@
-# OpenSearch SIT: historical logs (measured)
+# OpenSearch: historical logs for SIT and UAT
 
-Shared SIT log store for Core + Aux containers. Use when **kubectl is not enough**
+One recipe for Core + Auxiliary, SIT + UAT. Use when **kubectl is not enough**
 (window older than the live pod, multi-pod history, count/group by `msg`).
-Parent skills (`neo-core-sit` / `neo-aux-sit`) own the path choice: this file is only the OS recipe.
+The shared cluster inspection procedure owns the path choice; this file is only the OS recipe.
 
 ## When to use
 
 | Need | Path |
 |---|---|
-| Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), parent skill section A |
+| Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), shared procedure §4 |
 | Older window / pod rotated / aggregate by `msg` / multi-pod history | **This recipe** |
 
-## Verified surface (2026-08-06)
+## Bind the active environment first
+
+Use `OS_HOST`, `OS_INDEX` and `OS_VERSION` from the active skill, verified against that environment.
+SIT defaults are recorded below. UAT has no assumed endpoint/index/version: resolve them from
+verified infrastructure/configuration or the actual Dashboards UI; if unavailable, ask the user
+before a historical search. Do not replace `sit` in a hostname or silently search the SIT index.
+Read the current Dashboards version from the UI or `GET /_dashboards/api/status` before setting
+`osd-version`. Bind `OS_INDEX` and `OS_VERSION` as strings in the browser evaluation below.
+If a store spans environments/clusters, require an environment-specific index or a verified
+cluster/environment filter from its mapping; a container name alone does not isolate UAT.
+
+## Verified SIT surface (2026-08-06; not UAT defaults)
 
 | | |
 |---|---|
@@ -23,13 +34,13 @@ Parent skills (`neo-core-sit` / `neo-aux-sit`) own the path choice: this file is
 | Container field | `kubernetes_container_name` (phrase match; e.g. `payment`) |
 | Auth | Browser SSO session cookies (**httpOnly**: not in `document.cookie`) |
 
-### Working search endpoint
+### Working SIT search endpoint (measured example)
 
 ```
 POST /_dashboards/api/console/proxy?path=console-sit-log%2F_search&method=POST
 ```
 
-Required headers:
+Required headers (SIT measurement; use the active environment's verified version):
 
 - `osd-xsrf: true`
 - `osd-version: 3.5.0`
@@ -66,9 +77,8 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
 
 ## Procedure (agent)
 
-1. Open (or reuse) browser tab on  
-   `https://opensearch.sit.awesome-poc-th.com/_dashboards/app/home`  
-   (Discover URL optional).
+1. Open (or reuse) a browser tab on the verified active environment's
+   `OS_HOST` + `/_dashboards/app/home` (Discover URL optional).
 2. Wait for app shell. If login/SSO → ask user to authenticate → wait for home/Discover.
 3. Run **sync XHR** search via `tab.evaluate` (plain return value, no async/fetch).
 4. **Count-complete tally (required before stating totals):**
@@ -83,6 +93,8 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
 ## Body: logs for one container (copy-paste)
 
 Replace `CONTAINER` (e.g. `payment`) and time range as needed.  
+For UAT, verify the index's timestamp, container and log fields before applying this SIT query
+shape. Adapt field names to the observed mapping and retain any required environment filter.
 The `should` block below keeps **error+warn**; drop it (or swap needles) for info/all-level or free-text hunts, always keep container + time `filter`.
 
 ```json
@@ -134,13 +146,17 @@ Notes:
 
 ## Minimal sync-XHR evaluate sketch (count-complete)
 
+Bind `esBody` to the complete JSON query above, with the live container/time range and any
+required environment filter. Pass it and the verified `OS_INDEX` / `OS_VERSION` into the same
+browser evaluation scope; do not replace the query with an empty object.
+
 ```js
-// inside tab.evaluate: MUST be sync; return a plain object
+// inside tab.evaluate: synchronous; bind OS_INDEX, OS_VERSION and esBody first
 function sxhr(method, url, body) {
   const xhr = new XMLHttpRequest();
   xhr.open(method, url, false);
   xhr.setRequestHeader("osd-xsrf", "true");
-  xhr.setRequestHeader("osd-version", "3.5.0");
+  xhr.setRequestHeader("osd-version", OS_VERSION);
   xhr.setRequestHeader("accept", "application/json");
   if (body) {
     xhr.setRequestHeader("content-type", "application/json");
@@ -151,17 +167,9 @@ function sxhr(method, url, body) {
   return { status: xhr.status, body: xhr.responseText || "" };
 }
 
-const esBody = {
-  size: 200, // bump if total > size
-  track_total_hits: true,
-  sort: [{ "@timestamp": { order: "desc", unmapped_type: "boolean" } }],
-  query: { /* same bool query as JSON body above */ },
-  _source: ["log", "@timestamp", "kubernetes_pod_name"],
-};
-
 const r = sxhr(
   "POST",
-  "/_dashboards/api/console/proxy?path=console-sit-log%2F_search&method=POST",
+  "/_dashboards/api/console/proxy?path=" + encodeURIComponent(OS_INDEX + "/_search") + "&method=POST",
   JSON.stringify(esBody)
 );
 // if r.status is 401/403 or body looks like login HTML → user must SSO login
@@ -199,9 +207,9 @@ return {
 };
 ```
 
-## kubectl companion (recent only: parent skill owns this path)
+## kubectl companion (recent only: shared procedure owns this path)
 
-For the last ~15–30m while the pod is up, prefer kubectl (parent skill section A).  
+For the last ~15–30m while the pod is up, prefer kubectl (shared procedure §4).
 This block is a short reminder, not an OS fallback hierarchy.
 
 ```bash
@@ -212,9 +220,10 @@ kubectl --context CTX logs -n NS deploy/APP --previous --tail=200
 Then filter with the **grep tool** on the command output/artifact.  
 Do **not** pipe to `rg`/`grep` in bash.
 
-## Aux note
+## Auxiliary and UAT notes
 
-Same host + index for SIT. Filter `kubernetes_container_name` to the Aux
-container/deploy name. Core `payment` path was exercised end-to-end; Aux
-container names on this index are expected to work the same but were not
-separately smoke-tested in the session that wrote this file.
+Core and Auxiliary share the SIT host/index. Filter to the target's live container/deploy name.
+If an Auxiliary search has zero hits, verify that name from a live pod before saying “no logs”.
+Core `payment` was exercised end-to-end on SIT; Auxiliary containers on that index were expected
+to work the same but were not separately smoke-tested when the original recipe was measured.
+UAT host/index/mapping and SSO must be verified on UAT; the SIT measurement is not UAT evidence.

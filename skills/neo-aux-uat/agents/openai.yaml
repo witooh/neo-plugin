@@ -1,0 +1,3 @@
+interface:
+  display_name: "Neo Aux UAT"
+  short_description: "Inspect Auxiliary UAT logs, Argo, Postgres"

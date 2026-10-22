@@ -1,10 +1,10 @@
 # neo
 
-Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). No router, no bundled workflow.
+Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT). No router, no bundled workflow.
 
-neo is a skill pack: 17 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
+neo is a skill pack: 19 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
 
-- **advice-mode** is user-invoked. The other 16 are model-invoked.
+- **advice-mode** is user-invoked. The other 18 are model-invoked.
 - **Your git stays yours.** Commit / push only when you ask, through `gitlab`.
 
 ## Install
@@ -142,12 +142,19 @@ From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. 
 | `migrate-project` | Restructure an existing Go service to that blueprint                         |
 | `http-audit-log`  | Per-request HTTP audit logging (table + gin middleware + sqlc)               |
 
-**SIT**
+**SIT / UAT**
 
-| Skill          | Purpose                                              |
-| -------------- | ---------------------------------------------------- |
-| `neo-core-sit` | Core SIT kubectl / ArgoCD / logs / secrets helpers   |
-| `neo-aux-sit`  | Auxiliary SIT kubectl / ArgoCD / logs / secrets helpers |
+| Skill          | Required profile env       | Purpose |
+| -------------- | -------------------------- | ------- |
+| `neo-core-sit` | `NEO_SIT_CORE_AWS_PROFILE` | Core SIT kubectl / ArgoCD / logs / secrets |
+| `neo-aux-sit`  | `NEO_SIT_AUX_AWS_PROFILE`  | Auxiliary SIT kubectl / ArgoCD / logs / secrets |
+| `neo-core-uat` | `NEO_UAT_CORE_AWS_PROFILE` | Core UAT kubectl / ArgoCD / logs / secrets |
+| `neo-aux-uat`  | `NEO_UAT_AUX_AWS_PROFILE`  | Auxiliary UAT kubectl / ArgoCD / logs / secrets |
+
+All four reuse one [inspection procedure](skills/neo-core-sit/references/cluster-inspection.md),
+[OpenSearch recipe](skills/neo-core-sit/references/opensearch.md), and
+[Postgres helper](skills/neo-core-sit/scripts/pg-from-secret). Each skill owns only its environment
+bindings and profile example. UAT targets are discovered and verified, not copied from SIT.
 
 ## Maintaining
 

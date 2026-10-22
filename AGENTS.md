@@ -4,12 +4,12 @@ Canonical repository guidance for AI coding harnesses working on this repo. Root
 
 ## Repository Overview
 
-neo is a skill pack of 17 org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT). It is not a router and does not ship a bundled workflow. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
+neo is a skill pack of 19 org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT). It is not a router and does not ship a bundled workflow. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
 
-The 17 skills live in `skills/`:
+The 19 skills live in `skills/`:
 
 - **User-invoked:** `advice-mode`
-- **Model-invoked:** `markitdown`, `atlassian`, `gitlab`, `api-spec`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `e2e-playwright`, `http-audit-log`, `falsifying`, `bug-hunter`, `attack-test`, `init-project`, `migrate-project`, `neo-core-sit`, `neo-aux-sit`
+- **Model-invoked:** `markitdown`, `atlassian`, `gitlab`, `api-spec`, `openapi-doc`, `open-collection`, `confluence-api-doc`, `e2e-playwright`, `http-audit-log`, `falsifying`, `bug-hunter`, `attack-test`, `init-project`, `migrate-project`, `neo-core-sit`, `neo-aux-sit`, `neo-core-uat`, `neo-aux-uat`
 
 `falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/` — and `attack-test` fires abuse paths over live HTTP against a running stack. All three stop at a confirmed symptom; none fixes in place.
 
@@ -18,7 +18,7 @@ There are no personas and no phase-contract files. Domain skills are edited in p
 ## Project Structure
 
 ```text
-skills/            the 17 org domain skills
+skills/            the 19 org domain skills
 scripts/           Validators
 docs/              Setup guides
 .claude-plugin/    Claude Code plugin + marketplace manifests
@@ -33,7 +33,7 @@ docs/              Setup guides
 .omp/              Project omp settings (`config.yml`: customDirectories for `.agents/skills`)
 ```
 
-`ship` is maintainer-only and is not one of the shipped 17.
+`ship` is maintainer-only and is not one of the shipped 19.
 
 ## Harness Channels
 
