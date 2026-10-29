@@ -2,9 +2,9 @@
 name: neo-core-sit
 description: "Inspects Core SIT logs, managed ArgoCD status, workloads and Postgres settings read-only. Use when debugging Core SIT services such as payment, account, transaction or customer; not for UAT or Auxiliary SIT."
 metadata:
-  version: "4"
+  version: "5"
   created: "2026-07-24"
-  updated: "2026-10-22"
+  updated: "2026-10-29"
 ---
 ## Core SIT
 
@@ -24,6 +24,7 @@ ARGO_URL=
 OS_HOST=https://opensearch.sit.awesome-poc-th.com
 OS_INDEX=console-sit-log
 OS_VERSION=3.5.0
+OS_CLUSTER=core-systems-dev
 ```
 
 The OpenSearch version is a measured baseline; re-check it when using historical logs.

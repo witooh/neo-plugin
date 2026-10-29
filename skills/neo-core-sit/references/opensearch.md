@@ -10,19 +10,26 @@ The shared cluster inspection procedure owns the path choice; this file is only 
 |---|---|
 | Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), shared procedure §4 |
 | Older window / pod rotated / aggregate by `msg` / multi-pod history | **This recipe** |
+| UAT, any window | **This recipe first** (`neo-core-uat/references/uat-access.md`) |
 
 ## Bind the active environment first
 
-Use `OS_HOST`, `OS_INDEX` and `OS_VERSION` from the active skill, verified against that environment.
-SIT defaults are recorded below. UAT has no assumed endpoint/index/version: resolve them from
-verified infrastructure/configuration or the actual Dashboards UI; if unavailable, ask the user
-before a historical search. Do not replace `sit` in a hostname or silently search the SIT index.
+Use `OS_HOST`, `OS_INDEX`, `OS_VERSION` and, when set, `OS_CLUSTER` (a `cluster_name.keyword`
+filter) from the active skill, verified against that environment. SIT values are recorded below;
+UAT values are in `neo-core-uat/references/uat-access.md`. Resolve an empty binding from verified
+infrastructure/configuration or the actual Dashboards UI; if unavailable, ask the user before a
+historical search. Do not replace `sit` in a hostname or silently search the SIT index.
 Read the current Dashboards version from the UI or `GET /_dashboards/api/status` before setting
 `osd-version`. Bind `OS_INDEX` and `OS_VERSION` as strings in the browser evaluation below.
 If a store spans environments/clusters, require an environment-specific index or a verified
 cluster/environment filter from its mapping; a container name alone does not isolate UAT.
 
-## Verified SIT surface (2026-08-06; not UAT defaults)
+Log searches always target the wrapper's `OS_INDEX` (`console-sit-log` on SIT, `console-uat-log`
+on UAT). Never take the index from the Dashboards `defaultIndex` setting or from what Discover
+opens: on SIT that default is `access-sit-log` (2026-10-29). Search `access-<env>-log` or
+`audit-<env>-log` only when the user asks for access or audit logs.
+
+## Verified SIT surface (2026-08-06, fields re-measured 2026-10-29; not UAT defaults)
 
 | | |
 |---|---|
@@ -30,8 +37,11 @@ cluster/environment filter from its mapping; a container name alone does not iso
 | Dashboards | `3.5.0` |
 | Index / pattern title | `console-sit-log` |
 | Index-pattern id | `0118f120-7391-11f1-b139-918a526f3084` |
+| Other patterns | `access-sit-log` (Dashboards `defaultIndex`), `audit-sit-log` |
 | Time field | `@timestamp` |
-| Container field | `kubernetes_container_name` (phrase match; e.g. `payment`) |
+| Container field | `kubernetes_container_name.keyword` (exact `term`; e.g. `payment`) |
+| Cluster field | `cluster_name.keyword`: `core-systems-dev` (Core), `auxiliary-systems-dev` (Aux); despite `dev`, both matched live SIT pod names |
+| Aux namespaces indexed | `ekyc`, `kong`, `portal`, `special-list`, `email`, `consent`, `e-signature` (7 days to 2026-10-29) |
 | Auth | Browser SSO session cookies (**httpOnly**: not in `document.cookie`) |
 
 ### Working SIT search endpoint (measured example)
@@ -55,10 +65,12 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
 
 ## Hard constraints (measured failures)
 
-1. **Sync XHR only inside the browser tab.**  
+1. **Sync XHR when the browser evaluate cannot await.**  
    `tab.evaluate(() => fetch(…))` returns a Promise this harness cannot await  
    (“tab.evaluate() returned a Promise…”). Use **synchronous** `XMLHttpRequest`  
-   (`xhr.open(method, url, false)`).
+   (`xhr.open(method, url, false)`).  
+   Claude in Chrome's `javascript_tool` does evaluate top-level `await`, so `fetch` works there
+   (measured on UAT 2026-10-29).
 
 2. **Do not document cookie-export → shell curl as working.**  
    Session cookies are httpOnly; `document.cookie` is empty.  
@@ -83,7 +95,7 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
 3. Run **sync XHR** search via `tab.evaluate` (plain return value, no async/fetch).
 4. **Count-complete tally (required before stating totals):**
    - Read `total = hits.total.value` (with `track_total_hits: true`).
-   - If `hits.hits.length < total`, re-query with `size >= total` (cap reasonably, e.g. 1000; page with `search_after` only if over cap).
+   - If `hits.hits.length < total`, re-query with `size >= total` (cap reasonably, e.g. 1000). Over the cap, page with `search_after` set to the last hit's `sort` values; the `_id` tiebreaker in the body stops equal timestamps from skipping or repeating hits.
    - For each hit: `JSON.parse(_source.log)` → `msg` / `level` (fallback: raw slice if parse fails).
    - Build `counts[msg]++` and `levels[level]++` over **all returned hits**.
    - **Gate:** `sum(counts) === total` and `returned === total`. If not equal, do not publish the table as “full”, raise `size` or mark as partial top-N.
@@ -92,20 +104,24 @@ Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
 
 ## Body: logs for one container (copy-paste)
 
-Replace `CONTAINER` (e.g. `payment`) and time range as needed.  
-For UAT, verify the index's timestamp, container and log fields before applying this SIT query
-shape. Adapt field names to the observed mapping and retain any required environment filter.
-The `should` block below keeps **error+warn**; drop it (or swap needles) for info/all-level or free-text hunts, always keep container + time `filter`.
+Replace `OS_CLUSTER` with the active wrapper's value, `CONTAINER` (e.g. `payment`) with the exact
+live container name, and the time range as needed. For a new environment, verify its timestamp,
+container, cluster and log fields before applying this query shape; adapt to the observed mapping.
+The `should` block below keeps **error+warn**; drop it (or swap needles) for info/all-level or free-text hunts, always keep cluster + container + time `filter`.
 
 ```json
 {
   "size": 200,
   "track_total_hits": true,
-  "sort": [{ "@timestamp": { "order": "desc", "unmapped_type": "boolean" } }],
+  "sort": [
+    { "@timestamp": { "order": "desc", "unmapped_type": "boolean" } },
+    { "_id": { "order": "desc" } }
+  ],
   "query": {
     "bool": {
       "filter": [
-        { "match_phrase": { "kubernetes_container_name": "CONTAINER" } },
+        { "term": { "cluster_name.keyword": "OS_CLUSTER" } },
+        { "term": { "kubernetes_container_name.keyword": "CONTAINER" } },
         {
           "range": {
             "@timestamp": {
@@ -138,6 +154,25 @@ Notes:
 - `log` is a **string** of JSON (not structured fields). Phrase-match on substrings inside `log`; parse client-side for `msg` / `level` / `error.message`.
 - **No dedicated `level` / `service` / `msg` fields**: do **not** query `level:error` as an ES field. Filter with `match_phrase` on `log` for `"\"level\":\"error\""` / `"\"level\":\"warn\""` (body above).
 - There is **no reliable ES `terms` agg on `msg`** here: `msg` lives inside the string. Client-side parse + count is the measured path.
+- Match containers with `term` on `kubernetes_container_name.keyword`, never `match_phrase`: the
+  text field is tokenized. On SIT, `match_phrase` `transaction` hit 5 containers across both
+  clusters (62,061 vs 2,303 exact in 24h, 2026-10-29).
+- `terms` aggregations do work on the `.keyword` metadata fields (SIT and UAT). Resolve live
+  namespace and container names before searching:
+
+```json
+{
+  "size": 0,
+  "query": { "bool": { "filter": [
+    { "term": { "cluster_name.keyword": "OS_CLUSTER" } },
+    { "range": { "@timestamp": { "gte": "now-7d" } } }
+  ] } },
+  "aggs": { "ns": {
+    "terms": { "field": "kubernetes_namespace_name.keyword", "size": 50 },
+    "aggs": { "c": { "terms": { "field": "kubernetes_container_name.keyword", "size": 50 } } }
+  } }
+}
+```
 - Some older backing indices lack `@timestamp` mapping → shard failures in response are OK if `hits.total` and current indices still return data. Prefer `unmapped_type: "boolean"` on the sort as above.
 - **`size` is not optional decoration.** Counts built from `hits.hits` only cover `min(size, total)`. Always gate with `sum(counts) === hits.total.value` before calling a table complete.
 - For a free-text needle, add  
@@ -222,8 +257,10 @@ Do **not** pipe to `rg`/`grep` in bash.
 
 ## Auxiliary and UAT notes
 
-Core and Auxiliary share the SIT host/index. Filter to the target's live container/deploy name.
-If an Auxiliary search has zero hits, verify that name from a live pod before saying “no logs”.
+Core and Auxiliary share the SIT host/index: filter on `cluster_name.keyword` (`OS_CLUSTER`) as well
+as the exact live container name (`ingress-controller` exists in both clusters).
+If an Auxiliary search has zero hits, verify that name from a live pod before saying “no logs”;
+the index holds only the Aux namespaces listed in the SIT surface table.
 Core `payment` was exercised end-to-end on SIT; Auxiliary containers on that index were expected
 to work the same but were not separately smoke-tested when the original recipe was measured.
 UAT host/index/mapping and SSO must be verified on UAT; the SIT measurement is not UAT evidence.

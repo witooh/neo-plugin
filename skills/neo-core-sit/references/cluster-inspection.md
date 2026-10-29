@@ -3,8 +3,9 @@
 One procedure for `neo-core-sit`, `neo-aux-sit`, `neo-core-uat` and `neo-aux-uat`.
 The active skill supplies environment bindings; never take bindings from another skill.
 This file and `opensearch.md` belong to `neo-core-sit` and are reused by all four skills.
-Resolve `CORE_SKILL_DIR` to the directory containing `neo-core-sit/SKILL.md`;
-shared assets are relative to that directory, not to the invoking UAT/Aux skill.
+Resolve `CORE_SKILL_DIR` to the `neo-core-sit` skill directory itself (the one whose `SKILL.md`
+has `name: neo-core-sit`, i.e. `<skills>/neo-core-sit`); shared assets are relative to that
+directory, not to the invoking UAT/Aux skill.
 
 ## Permission: READ by default
 
@@ -13,7 +14,9 @@ for that action in the current turn. Invoking a skill is not authorization to wr
 
 Allowed: `kubectl get/describe/logs/top/auth can-i`, secret reads for diagnosis, Application
 get/history/diff via kubectl, `psql` SELECT / `\d` / `\dt` / `\di` with LIMIT, AWS identity and
-EKS list/describe, local `eks update-kubeconfig` / `sso login`, and OpenSearch read/search.
+EKS/RDS list/describe, local `eks update-kubeconfig` / `eks get-token` /
+`rds generate-db-auth-token` / `sso login`, OpenSearch
+read/search, and Argo REST GETs in an authenticated browser session on the wrapper's verified URL.
 An optional local port-forward may be used to view Argo UI/API.
 
 Only on an explicit current-turn request: `kubectl apply|create|delete|patch|replace|rollout|scale|exec`,
@@ -38,27 +41,31 @@ if ! REGION="$(aws configure get region --profile "$PROFILE")" || [ -z "$REGION"
 fi
 ```
 
+The gate reads the agent's process environment: a value changed in a shell rc after the session
+started stays invisible until the session restarts. Use the user's stated value for that run only.
 Use `--profile "$PROFILE" --region "$REGION"` on every subsequent AWS call.
 Run `aws sts get-caller-identity --profile "$PROFILE" --region "$REGION"` each session.
 On expired SSO credentials, use `aws sso login --profile "$PROFILE" --region "$REGION"`;
 the user approves browser authentication. An identity mismatch is not an expired-session error:
 stop rather than logging into or querying the wrong account.
 
-For SIT, compare Account and ARN role against the active wrapper's `EXPECTED_ACCOUNT` and
-`EXPECTED_ROLE`. For UAT, inspect the selected profile's account/role configuration and compare
-it with STS; do not import SIT account IDs or role expectations. A missing region stops the flow.
+When the active wrapper sets `EXPECTED_ACCOUNT` and `EXPECTED_ROLE`, compare Account and ARN role
+against them. When they are empty, inspect the selected profile's account/role configuration and
+compare it with STS; never import another environment's account IDs or role expectations.
+A missing region stops the flow.
 
 ## 2. Resolve and verify the EKS target
 
-SIT supplies a known `CLUSTER`. UAT deliberately supplies none: discover it with the selected
-profile, not by replacing `sit` in a name or reusing the current kubeconfig context.
+When the wrapper supplies `CLUSTER`, describe it and confirm its ARN account/region. When `CLUSTER`
+is empty, discover it with the selected profile, not by replacing `sit` in a name or reusing the
+current kubeconfig context.
 
 ```bash
 aws eks list-clusters --profile "$PROFILE" --region "$REGION"
 aws eks describe-cluster --name "$CLUSTER" --profile "$PROFILE" --region "$REGION"
 ```
 
-For UAT, assign `CLUSTER` only after inspecting candidates. Check name, ARN account/region and
+With an empty `CLUSTER`, assign it only after inspecting candidates. Check name, ARN account/region and
 tags against **both** the requested environment and domain. One listed cluster is not, by itself,
 proof that it is the UAT target. If discovery is forbidden, empty or ambiguous, use existing
 verified infrastructure/configuration evidence; if still unresolved, ask the user for the target
@@ -74,8 +81,11 @@ kubectl --context "$CTX" get ns
 ```
 
 Always pass `--context "$CTX"`; never trust current-context. UAT aliases are separate from SIT.
-For SIT, smoke `get applications -n "$ARGO_NS"`. For UAT, discover Application namespaces with
-`kubectl --context "$CTX" get applications -A`; assign `ARGO_NS` from the matching Application's
+If kubectl then fails with `the server has asked for the client to provide credentials` while
+`aws eks get-token` succeeds, the role has no EKS access entry: do not retry or log in again.
+Follow the active wrapper's non-kubectl path if it names one; otherwise stop and report.
+When `ARGO_NS` is set, smoke `get applications -n "$ARGO_NS"`. When it is empty, discover
+Application namespaces with `kubectl --context "$CTX" get applications -A`; assign `ARGO_NS` from the matching Application's
 metadata namespace. Read its `spec.destination.namespace` for workload `NS` before deployments,
 logs or secrets. Namespace hints below are not proof of a UAT destination.
 
@@ -134,6 +144,7 @@ Do not assume either SIT Argo flavor in UAT; inspect the live services/Applicati
 
 Last ~15–30 minutes while the pod exists: kubectl first. Older windows, rotated pods, multi-pod
 history or counts by `msg`: read `references/opensearch.md` in `CORE_SKILL_DIR`.
+On UAT, OpenSearch comes first for every window; follow the UAT wrapper's access notes.
 Use only the active environment's verified OpenSearch host/index; UAT has no SIT fallback.
 
 After resolving `DEPLOY` and `NS` live:
@@ -160,15 +171,19 @@ kubectl --context "$CTX" get application "$ARGO_APP" -n "$ARGO_NS" -o json
 
 For one app, inspect sync/revision/health, destination, summary images, conditions and sources.
 History: `.status.history[-5:]` with id/deployedAt/revision/initiatedBy. Never sync/prune/delete
-without a current-turn request. Use only a verified environment-specific UI URL. Auxiliary SIT's
-UI is supplied by its wrapper; UAT URLs must be discovered, not derived from SIT hostnames.
+without a current-turn request. Use only a verified environment-specific UI URL from the active
+wrapper's `ARGO_URL`. When it is empty, discover it (managed Argo: `aws eks describe-capability
+--capability-name argocd` → `serverUrl`), never derive it from another environment's hostname.
 
 ## 6. Inspect Postgres settings
+
+When the active wrapper sets `PG_HOST`, connect with an RDS IAM token as its access notes describe
+and skip the secret helper below. Otherwise resolve settings from the service secret:
 
 List secrets in `NS`, then grep the output for the service fragment. Core SIT typically stores
 `config.yaml`: top-level `postgres`, or `database.postgres` with `username` in authentication-service.
 The shared helper also accepts YAML blobs such as `secrets.yaml`, discrete `POSTGRES_*` and `DB_*`.
-Do not assume the same secret layout in UAT; inspect keys and use the existing helper.
+Do not assume the same secret layout in another environment; inspect keys and use the existing helper.
 
 ```bash
 PG="$CORE_SKILL_DIR/scripts/pg-from-secret"
@@ -177,7 +192,7 @@ PG="$CORE_SKILL_DIR/scripts/pg-from-secret"
   -c 'SELECT current_user, current_database();'
 ```
 
-Always supply the resolved namespace/secret explicitly, including for Core UAT; do not inherit
+Always supply the resolved namespace/secret explicitly; do not inherit
 the helper's `--service` shortcut namespace. Manual decoding is a fallback only if the helper fails.
 Use `--export` / `--with-password` only when the user asks to connect or reveal credentials.
 Report host/database/user/schema by default; passwords remain hidden. Extracted settings do not
