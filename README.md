@@ -155,8 +155,8 @@ All four reuse one [inspection procedure](skills/neo-core-sit/references/cluster
 [OpenSearch recipe](skills/neo-core-sit/references/opensearch.md), and
 [Postgres helper](skills/neo-core-sit/scripts/pg-from-secret). Each skill owns only its environment
 bindings and profile example. UAT targets are discovered and verified, not copied from SIT; where UAT
-differs (kubectl blocked for the UAT role, Argo and OpenSearch via the browser session, Postgres via
-RDS IAM tokens) is in the
+differs (read-only with no write exception, kubectl blocked for the UAT role, Argo and OpenSearch via
+the browser session, Postgres via RDS IAM tokens) is in the
 [UAT access notes](skills/neo-core-uat/references/uat-access.md).
 
 ## Maintaining

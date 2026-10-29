@@ -7,10 +7,9 @@ Resolve `CORE_SKILL_DIR` to the `neo-core-sit` skill directory itself (the one w
 has `name: neo-core-sit`, i.e. `<skills>/neo-core-sit`); shared assets are relative to that
 directory, not to the invoking UAT/Aux skill.
 
-## Permission: READ by default
+## Permission: READ by default, READ only on UAT
 
-Default is **inspect-only**. Do not mutate cluster / ArgoCD / DB unless the user explicitly asks
-for that action in the current turn. Invoking a skill is not authorization to write.
+Default is **inspect-only**. Invoking a skill is not authorization to write.
 
 Allowed: `kubectl get/describe/logs/top/auth can-i`, secret reads for diagnosis, Application
 get/history/diff via kubectl, `psql` SELECT / `\d` / `\dt` / `\di` with LIMIT, AWS identity and
@@ -19,10 +18,18 @@ EKS/RDS list/describe, local `eks update-kubeconfig` / `eks get-token` /
 read/search, and Argo REST GETs in an authenticated browser session on the wrapper's verified URL.
 An optional local port-forward may be used to view Argo UI/API.
 
-Only on an explicit current-turn request: `kubectl apply|create|delete|patch|replace|rollout|scale|exec`,
+Only when `ENVIRONMENT=SIT` and on an explicit current-turn request:
+`kubectl apply|create|delete|patch|replace|rollout|scale|exec`,
 `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL and pod restarts.
 Otherwise refuse those actions and continue read-only. Never persist decoded credentials in
 repo files, skills or durable memory.
+
+`ENVIRONMENT=UAT` has no write exception. Refuse every change to UAT, even when the user asks for
+it in the current turn: the actions above, any Argo UI or API action other than a GET, OpenSearch
+requests other than `_search` / `_count` / GETs, mutating AWS calls (for example
+`create-access-entry`) and any SQL write or DDL. Tell the user what change is needed and give the
+command or UI step for them to run themselves; never run it for them. Local writes that only
+enable reads (`update-kubeconfig`, `sso login`) are allowed.
 
 ## 1. Authenticate with the active environment's profile
 

@@ -17,7 +17,8 @@ SIT measurements are not UAT evidence.
 | Postgres | RDS IAM token + `psql` with the wrapper's `PG_*` bindings | works |
 
 Browser calls run as the user's SSO session in Chrome, not the CLI role; which user it is was not
-verified. Browser calls are GET or search only, under the same read-only rule.
+verified. UAT is read-only with no exception (shared procedure, Permission): browser calls are GET
+or search only, even when the user asks for an action.
 
 ## kubectl is blocked for `UserAcceptanceTestingAccess`
 
@@ -47,9 +48,13 @@ the token inline for each command so it is never printed or stored:
 ```bash
 PGPASSWORD="$(aws rds generate-db-auth-token --hostname "$PG_HOST" --port "$PG_PORT" \
   --username "$PG_USER" --profile "$PROFILE" --region "$REGION")" \
-psql "host=$PG_HOST port=$PG_PORT dbname=$PG_DB user=$PG_USER sslmode=require" -X \
-  -c 'SELECT current_user, current_database();'
+psql "host=$PG_HOST port=$PG_PORT dbname=$PG_DB user=$PG_USER sslmode=require options='-c default_transaction_read_only=on'" \
+  -X -c 'SELECT current_user, current_database();'
 ```
+
+- `default_transaction_read_only=on` makes the session reject writes; `SHOW transaction_read_only`
+  returned `on` on both clusters (2026-10-29). Keep it in every connection you open; never turn it
+  off (`SET … off`, `BEGIN READ WRITE`).
 
 - Measured from this laptop on 2026-10-29: both clusters accepted the token (Aurora PostgreSQL
   18.6 Core, 18.4 Aux). `sslmode=require` is mandatory.
