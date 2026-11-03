@@ -11,6 +11,7 @@ The shared cluster inspection procedure owns the path choice; this file is only 
 | Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), shared procedure §4 |
 | Older window / pod rotated / aggregate by `msg` / multi-pod history | **This recipe** |
 | UAT, any window | **This recipe first** (`neo-core-uat/references/uat-access.md`) |
+| Core SIT, any window, while kubectl is blocked | **This recipe first** (`neo-core-sit` bindings) |
 
 ## Bind the active environment first
 
@@ -43,6 +44,12 @@ opens: on SIT that default is `access-sit-log` (2026-10-29). Search `access-<env
 | Cluster field | `cluster_name.keyword`: `core-systems-dev` (Core), `auxiliary-systems-dev` (Aux); despite `dev`, both matched live SIT pod names |
 | Aux namespaces indexed | `ekyc`, `kong`, `portal`, `special-list`, `email`, `consent`, `e-signature` (7 days to 2026-10-29) |
 | Auth | Browser SSO session cookies (**httpOnly**: not in `document.cookie`) |
+
+This surface was measured on `opensearch.sit`, the host that `neo-aux-sit` and old Core SIT bind.
+Core SIT now ships to `os.sit.awesome-poc-th.com` (fluent-bit overlay `sit` in
+`kong-gateway-coresystems`; Dashboards `3.7.0` from `/_dashboards/api/status`, 2026-11-03). The overlay
+declares the same index names and `core-systems-dev`. The index-pattern id, mapping and namespace
+coverage on that host were not measured, so verify them before trusting zero hits.
 
 ### Working SIT search endpoint (measured example)
 
@@ -257,10 +264,10 @@ Do **not** pipe to `rg`/`grep` in bash.
 
 ## Auxiliary and UAT notes
 
-Core and Auxiliary share the SIT host/index: filter on `cluster_name.keyword` (`OS_CLUSTER`) as well
+Old Core SIT and Auxiliary share the `opensearch.sit` host/index: filter on `cluster_name.keyword` (`OS_CLUSTER`) as well
 as the exact live container name (`ingress-controller` exists in both clusters).
 If an Auxiliary search has zero hits, verify that name from a live pod before saying “no logs”;
 the index holds only the Aux namespaces listed in the SIT surface table.
-Core `payment` was exercised end-to-end on SIT; Auxiliary containers on that index were expected
+Core `payment` was exercised end-to-end on old SIT; Auxiliary containers on that index were expected
 to work the same but were not separately smoke-tested when the original recipe was measured.
 UAT host/index/mapping and SSO must be verified on UAT; the SIT measurement is not UAT evidence.

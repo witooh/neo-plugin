@@ -102,7 +102,7 @@ List deployments in the destination namespace; Argo Application and deployment n
 Find secrets by service fragment and inspect the matching name (`-secret` and `-secrets` both occur).
 Use the **grep tool** on command output/artifacts, never `kubectl ... | rg` or `... | grep` in bash.
 
-### Core mapping hints (measured on SIT)
+### Core mapping hints (measured on old SIT `core-eks-hbq5y8`)
 
 Spoken name → deployment → Argo Application → secret. SIT namespace is `core-systems`.
 Verify these hints live in UAT and always prefer the Application destination:
@@ -123,7 +123,8 @@ Verify these hints live in UAT and always prefer the Application destination:
 
 Fuzzy lookup: `kubectl --context "$CTX" get secrets,deploy -n "$NS"`.
 Core SIT uses managed ArgoCD with no in-cluster `argocd-server`; prefer Application CRDs.
-The retired SIT cluster `eks-cluster-hbq5y8` is not a fallback for `core-eks-hbq5y8`.
+Neither old SIT `core-eks-hbq5y8` nor the retired `eks-cluster-hbq5y8` is a fallback for the wrapper's
+`CLUSTER`.
 
 ### Auxiliary namespace hints (measured on SIT)
 
@@ -185,7 +186,8 @@ wrapper's `ARGO_URL`. When it is empty, discover it (managed Argo: `aws eks desc
 ## 6. Inspect Postgres settings
 
 When the active wrapper sets `PG_HOST`, connect with an RDS IAM token as its access notes describe
-and skip the secret helper below. Otherwise resolve settings from the service secret:
+and skip the secret helper below. When it sets `SECRET_PREFIX`, use the Secrets Manager recipe below
+and skip the helper. Otherwise resolve settings from the service secret:
 
 List secrets in `NS`, then grep the output for the service fragment. Core SIT typically stores
 `config.yaml`: top-level `postgres`, or `database.postgres` with `username` in authentication-service.
@@ -205,6 +207,32 @@ Use `--export` / `--with-password` only when the user asks to connect or reveal 
 Report host/database/user/schema by default; passwords remain hidden. Extracted settings do not
 prove laptop connectivity to private RDS. SELECT/describe with LIMIT only; never SQL write/DDL.
 
+### Secrets Manager recipe (`SECRET_PREFIX` set)
+
+Secret names differ from the Kubernetes ones (`payment-secret` → `sit/core/payment-gateway`), so list
+them first. The service's schema is `.rds.schema`. Keep `default_transaction_read_only=on`: it makes
+the session reject writes.
+
+```bash
+aws secretsmanager list-secrets --profile "$PROFILE" --region "$REGION" \
+  --query "SecretList[?starts_with(Name, '$SECRET_PREFIX/')].Name" --output text
+JSON="$(aws secretsmanager get-secret-value --secret-id "$SECRET_PREFIX/$SERVICE" \
+  --profile "$PROFILE" --region "$REGION" --query SecretString --output text)"
+PGHOST="$(jq -r .rds.host <<<"$JSON")" PGPORT="$(jq -r .rds.port <<<"$JSON")" PGUSER="$(jq -r .rds.username <<<"$JSON")" \
+PGDATABASE="$(jq -r .rds.database <<<"$JSON")" PGPASSWORD="$(jq -r .rds.password <<<"$JSON")" PGSSLMODE=require \
+PGOPTIONS='-c default_transaction_read_only=on' psql -X -c 'SELECT current_user, current_database();'
+```
+
+### Migration state
+
+`information_schema.tables` hides tables the role cannot access, so an empty result proves nothing.
+Find the table through `pg_catalog`, then compare `version` with the service repo's highest migration:
+
+```sql
+SELECT schemaname, tableowner FROM pg_catalog.pg_tables WHERE tablename = 'schema_migrations';
+SELECT version, dirty FROM <schema>.schema_migrations;
+```
+
 ## 7. Inspect ExternalSecret drift and report
 
 Get/describe matching ExternalSecrets in `NS`; inspect their SecretStore/ClusterSecretStore when
@@ -220,6 +248,7 @@ timestamped log snippets and complete OpenSearch msg counts when used; DB host/d
 2. STS identity and EKS ARN/tags establish the intended environment/domain before kubectl.
 3. `CTX` is refreshed with that profile/cluster; namespace and Applications are readable.
 4. The named service's Application destination, deployment, logs and secret resolve live.
-5. Postgres decoding uses the shared helper without exposing credentials by default.
+5. Postgres settings come from the wrapper's path (`PG_HOST`, `SECRET_PREFIX`) or the shared helper,
+   without exposing credentials by default.
 6. Historical searches use the correct environment's host/index; XHR returns 200 and complete
    aggregation counts sum to `hits.total`. Never label a capped sample as a full total.

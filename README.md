@@ -171,6 +171,7 @@ node scripts/validate-grok-package.js # Grok marketplace + plugin wiring
 node scripts/validate-cursor-package.js # Cursor marketplace + plugin wiring
 node scripts/validate-codex-package.js # Codex marketplace + plugin wiring
 node scripts/test-codex-install.js    # Codex install + actual skill discovery
+bash scripts/pg-from-secret-test.sh   # Postgres helper reads only the postgres settings
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```
