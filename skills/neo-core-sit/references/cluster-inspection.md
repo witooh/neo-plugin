@@ -126,7 +126,7 @@ Core SIT uses managed ArgoCD with no in-cluster `argocd-server`; prefer Applicat
 Neither old SIT `core-eks-hbq5y8` nor the retired `eks-cluster-hbq5y8` is a fallback for the wrapper's
 `CLUSTER`.
 
-### Auxiliary namespace hints (measured on SIT)
+### Auxiliary namespace hints (measured on old SIT `aux-eks-goqmac0w`; fraud, mobile-setting, payroll and qr from `argocd/sit`)
 
 - consent / tc-service → consent
 - datamart-* → datamart
@@ -142,10 +142,15 @@ Neither old SIT `core-eks-hbq5y8` nor the retired `eks-cluster-hbq5y8` is a fall
 - kafbat-ui → kafbat-ui
 - kong → kong
 - common-service → auxiliary-systems
+- fraud-* → fraud
+- mobile-setting → mobile-setting
+- payroll → payroll
+- qr → qr
 
 Fuzzy lookup: `kubectl --context "$CTX" get deploy,secrets -A`.
-Auxiliary SIT Applications mostly live in `argocd-app`, occasionally `argocd`; the control plane
-is in `argocd`. Its self-hosted `argocd-server` is ClusterIP and local admin is disabled.
+Old Auxiliary SIT Applications mostly live in `argocd-app`, occasionally `argocd`; the control plane
+is in `argocd`. Its self-hosted `argocd-server` is ClusterIP and local admin is disabled. The active
+Auxiliary SIT cluster uses managed Argo in `argocd-app`.
 Do not assume either SIT Argo flavor in UAT; inspect the live services/Applications first.
 
 ## 4. Inspect logs and workload health
@@ -222,6 +227,20 @@ PGHOST="$(jq -r .rds.host <<<"$JSON")" PGPORT="$(jq -r .rds.port <<<"$JSON")" PG
 PGDATABASE="$(jq -r .rds.database <<<"$JSON")" PGPASSWORD="$(jq -r .rds.password <<<"$JSON")" PGSSLMODE=require \
 PGOPTIONS='-c default_transaction_read_only=on' psql -X -c 'SELECT current_user, current_database();'
 ```
+
+Check what the secret returned before trusting it:
+
+- `.rds.host` must be on the wrapper's RDS. A stale secret can point elsewhere:
+  `sit/core/payroll-service` still names old `rds-core-hbq5y8`.
+- `.rds.host` can be the `cluster-ro` endpoint (`sit/aux/qr-service`, `sit/aux/email-gateway`). Both
+  clusters have one instance, so it reached the writer on 2026-11-03. Run
+  `SELECT pg_is_in_recovery()` before relying on write access.
+- The layout can differ: `rds.specialist_config_db.*` in `sit/aux/specialist`, `datamart_db` in
+  `sit/aux/datamart`, and no `rds` at all in some others. Read the `property:` names in the service's
+  `overlays/sit` ExternalSecret.
+- `jq` exits 5 on secrets that are not strict JSON (`sit/aux/sms-service`,
+  `sit/aux/los-credit-card/api`, `sit/aux/portal/portal-superset`, `sit/core/wai-adapter`). Report it
+  and ask; do not print the secret to inspect it.
 
 ### Migration state
 

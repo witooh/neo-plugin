@@ -51,6 +51,10 @@ Core SIT now ships to `os.sit.awesome-poc-th.com` (fluent-bit overlay `sit` in
 declares the same index names and `core-systems-dev`. The index-pattern id, mapping and namespace
 coverage on that host were not measured, so verify them before trusting zero hits.
 
+Auxiliary did not move: its `sit` and `dev` overlays both ship to `opensearch.sit` with
+`auxiliary-systems-dev`, so `cluster_name` cannot separate new Aux from old. Whether the new cluster's
+logs arrive, and which field would separate them, were not measured.
+
 ### Working SIT search endpoint (measured example)
 
 ```

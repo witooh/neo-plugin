@@ -29,6 +29,8 @@ SECRET_PREFIX=sit/core
 ```
 
 Values were measured on 2026-11-03 (region `ap-southeast-7`); re-check them each session.
+RDS is `rds-core-ckrztgxi8f-sit`, database `sit_core`. Payroll deploys from the Auxiliary gateway repo,
+so use `neo-aux-sit` for it; `sit/core/payroll-service` still names old `rds-core-hbq5y8`.
 `OS_INDEX` and `OS_CLUSTER` come from the `sit` fluent-bit overlay and were not searched on this host;
 `ARGO_URL` comes from `aws eks describe-capability` and its login was not tried.
 `CoreIntegrationAccess` has no EKS access entry on this cluster, so kubectl and Kubernetes secrets stay
