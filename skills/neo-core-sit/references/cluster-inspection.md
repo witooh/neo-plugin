@@ -102,43 +102,46 @@ List deployments in the destination namespace; Argo Application and deployment n
 Find secrets by service fragment and inspect the matching name (`-secret` and `-secrets` both occur).
 Use the **grep tool** on command output/artifacts, never `kubectl ... | rg` or `... | grep` in bash.
 
-### Core mapping hints (measured on old SIT `core-eks-hbq5y8`)
+### Core mapping hints (measured on `core-eks-ckrztgxi8f-sit`, 2026-11-04)
 
 Spoken name → deployment → Argo Application → secret. SIT namespace is `core-systems`.
 Verify these hints live in UAT and always prefer the Application destination:
 
-- payment / payment-gateway → payment → payment-service → payment-secret
+- payment / payment-gateway → payment, payment-pcc → payment-service → payment-secret
 - account → account → account-service → account-secret
-- transaction → transaction → transaction-service → transaction-secret
+- transaction → transaction → transaction-service → transaction-secret (+ CronJob transaction-cron → transaction-cron-secret)
 - transaction-consumer → transaction-consumer → transaction-consumer-service → transaction-consumer-secret
 - product → product → product-service → product-secret
 - authentication → authentication → authentication-service → authentication-secret
-- customer / customer-api → customer-api → customer-service → customer-api-secret (+ customer-consumer-secret)
+- customer / customer-api → customer-api → customer-service → customer-api-secret
 - customer-profiling → customer-profiling → customer-profiling-service → customer-profiling-secret
 - customer-settings → customer-settings → customer-settings-service → customer-settings-secret
 - bff / backend-for-frontend → backend-for-frontend → backend-for-frontend-service → backend-for-frontend-secret
 - bot → bot → bot-service → bot-secret
 - wai-adapter → wai-adapter → wai-adapter-service → wai-adapter-secret
-- as400adapter → as400adapter → as400adapter-service → inspect secrets list
+- credit-card-authorization → credit-card-authorization → credit-card-authorization-service → credit-card-authorization-secret
+- gl-mapping → gl-mapping → gl-mapping-service → gl-mapping-secret
+- manual-posting → manual-posting → manual-posting-service → manual-posting-secret
+- statement → statement → statement-service → statement-secret
+- as400adapter, mock, mock-bff → same name → `<name>-service` → no secret mounted
 
 Fuzzy lookup: `kubectl --context "$CTX" get secrets,deploy -n "$NS"`.
 Core SIT uses managed ArgoCD with no in-cluster `argocd-server`; prefer Application CRDs.
-Neither old SIT `core-eks-hbq5y8` nor the retired `eks-cluster-hbq5y8` is a fallback for the wrapper's
-`CLUSTER`.
 
-### Auxiliary namespace hints (measured on old SIT `aux-eks-goqmac0w`; fraud, mobile-setting, payroll and qr from `argocd/sit`)
+### Auxiliary namespace hints (from `argocd/sit`, 2026-11-04)
 
 - consent / tc-service → consent
-- datamart-* → datamart
+- datamart-api, datamart-notification → datamart
 - e-document → e-signature
 - ekyc-* → ekyc
 - email-* → email
-- los-credit-card family → los-credit-card
-- as-app / as-service / example-* → ndid-interface
+- los-credit-card family, datamart-external, special-list-external, statement → los-credit-card
+- as-app / as-service / crypto-service / example-* → ndid-interface
+- branch-device-bff → branch-device
 - push-notification → notification
 - portal-* → portal
 - sms → sms
-- special-list-* → special-list
+- special-list-config, special-list-notification, special-list-service → special-list
 - kafbat-ui → kafbat-ui
 - kong → kong
 - common-service → auxiliary-systems
@@ -146,12 +149,12 @@ Neither old SIT `core-eks-hbq5y8` nor the retired `eks-cluster-hbq5y8` is a fall
 - mobile-setting → mobile-setting
 - payroll → payroll
 - qr → qr
+- keda-helm → keda
+- demo-keda → demo-keda
 
 Fuzzy lookup: `kubectl --context "$CTX" get deploy,secrets -A`.
-Old Auxiliary SIT Applications mostly live in `argocd-app`, occasionally `argocd`; the control plane
-is in `argocd`. Its self-hosted `argocd-server` is ClusterIP and local admin is disabled. The active
-Auxiliary SIT cluster uses managed Argo in `argocd-app`.
-Do not assume either SIT Argo flavor in UAT; inspect the live services/Applications first.
+Auxiliary SIT uses managed Argo with every Application in `argocd-app`.
+Do not assume the SIT Argo setup in UAT; inspect the live services/Applications first.
 
 ## 4. Inspect logs and workload health
 
@@ -191,8 +194,10 @@ wrapper's `ARGO_URL`. When it is empty, discover it (managed Argo: `aws eks desc
 ## 6. Inspect Postgres settings
 
 When the active wrapper sets `PG_HOST`, connect with an RDS IAM token as its access notes describe
-and skip the secret helper below. When it sets `SECRET_PREFIX`, use the Secrets Manager recipe below
-and skip the helper. Otherwise resolve settings from the service secret:
+and skip the secret helper below. When it sets `SECRET_PREFIX`, use the Secrets Manager recipe below.
+Use the helper there only when the wrapper says kubectl reads secrets and you need the secret a pod
+actually mounts; set `PGOPTIONS='-c default_transaction_read_only=on'` for `--psql` so the session
+rejects writes. Otherwise resolve settings from the service secret:
 
 List secrets in `NS`, then grep the output for the service fragment. Core SIT typically stores
 `config.yaml`: top-level `postgres`, or `database.postgres` with `username` in authentication-service.
@@ -231,7 +236,7 @@ PGOPTIONS='-c default_transaction_read_only=on' psql -X -c 'SELECT current_user,
 Check what the secret returned before trusting it:
 
 - `.rds.host` must be on the wrapper's RDS. A stale secret can point elsewhere:
-  `sit/core/payroll-service` still names old `rds-core-hbq5y8`.
+  `sit/core/payroll-service` still names deleted `rds-core-hbq5y8`.
 - `.rds.host` can be the `cluster-ro` endpoint (`sit/aux/qr-service`, `sit/aux/email-gateway`). Both
   clusters have one instance, so it reached the writer on 2026-11-03. Run
   `SELECT pg_is_in_recovery()` before relying on write access.
@@ -255,7 +260,9 @@ SELECT version, dirty FROM <schema>.schema_migrations;
 ## 7. Inspect ExternalSecret drift and report
 
 Get/describe matching ExternalSecrets in `NS`; inspect their SecretStore/ClusterSecretStore when
-not Ready. Do not patch a secret, store or workload to resolve drift without explicit authorization.
+not Ready. Where kubectl is blocked, read one with the Argo `/resource` GET using `kind=ExternalSecret`,
+`group=external-secrets.io` and `version=v1` (returned `SecretSynced` on Auxiliary SIT, 2026-11-04).
+Do not patch a secret, store or workload to resolve drift without explicit authorization.
 
 Report in Thai, terminal-friendly: environment/domain; identity (STS account/role, profile only as
 “from env”); verified cluster/context; Argo sync/health/revision/image; pod ready/restarts;
@@ -265,8 +272,9 @@ timestamped log snippets and complete OpenSearch msg counts when used; DB host/d
 
 1. The active wrapper's profile env is non-empty; its configured region is non-empty.
 2. STS identity and EKS ARN/tags establish the intended environment/domain before kubectl.
-3. `CTX` is refreshed with that profile/cluster; namespace and Applications are readable.
-4. The named service's Application destination, deployment, logs and secret resolve live.
+3. `CTX` is refreshed with that profile/cluster; namespace and Applications are readable through
+   kubectl or the wrapper's non-kubectl path.
+4. The named service's Application destination, deployment, logs and secret resolve live by that path.
 5. Postgres settings come from the wrapper's path (`PG_HOST`, `SECRET_PREFIX`) or the shared helper,
    without exposing credentials by default.
 6. Historical searches use the correct environment's host/index; XHR returns 200 and complete

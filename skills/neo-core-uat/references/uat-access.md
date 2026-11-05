@@ -141,11 +141,8 @@ variable (for example the version for `osd-version`) instead of printing it.
 - Account `915848750617` (Core UAT) holds only `core-eks-yblzrf0dwv-uat` and
   `data-hub-eks-yblzrf0dwv-uat`; a profile that resolves there is not an Aux UAT profile.
 - Argo: 59 Applications in `argocd-app`. Destinations name the cluster ARN plus namespace, not
-  `in-cluster`. The Auxiliary SIT namespace hints hold, except for these:
-  - `datamart-external-service`, `special-list-external-service` and `statement-service` deploy
-    to `los-credit-card`.
-  - `crypto-service` deploys to `ndid-interface`.
-  - Namespaces that SIT lacks: `branch-device`, `fraud`, `mobile-setting`, `qr`.
+  `in-cluster`. `argocd/uat` destinations match the Auxiliary SIT namespace hints, except that UAT has
+  no `demo-keda` (manifests, 2026-11-04; live UAT not re-checked).
 - OpenSearch covers only some Aux namespaces: `kong`, `portal`, `special-list`, `consent`, `ekyc`,
   `email` and `e-signature`, from 2026-10-20. `sms` had live pod logs in Argo yet 0 documents in the
   index. For any other namespace, zero hits does not mean no logs: read pod logs through Argo

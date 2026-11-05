@@ -11,7 +11,7 @@ The shared cluster inspection procedure owns the path choice; this file is only 
 | Last ~15–30m, deploy/pod still up | **kubectl first** (`--since=15m`), shared procedure §4 |
 | Older window / pod rotated / aggregate by `msg` / multi-pod history | **This recipe** |
 | UAT, any window | **This recipe first** (`neo-core-uat/references/uat-access.md`) |
-| Core SIT, any window, while kubectl is blocked | **This recipe first** (`neo-core-sit` bindings) |
+| Auxiliary SIT, older window or counts, while kubectl is blocked | **This recipe** (`neo-aux-sit` bindings); live pods use Argo REST `/logs` |
 
 ## Bind the active environment first
 
@@ -27,52 +27,69 @@ cluster/environment filter from its mapping; a container name alone does not iso
 
 Log searches always target the wrapper's `OS_INDEX` (`console-sit-log` on SIT, `console-uat-log`
 on UAT). Never take the index from the Dashboards `defaultIndex` setting or from what Discover
-opens: on SIT that default is `access-sit-log` (2026-10-29). Search `access-<env>-log` or
+opens: on SIT that default is `access-sit-log` (2026-11-05). Search `access-<env>-log` or
 `audit-<env>-log` only when the user asks for access or audit logs.
 
-## Verified SIT surface (2026-08-06, fields re-measured 2026-10-29; not UAT defaults)
+## Verified SIT surface (2026-11-05; not UAT defaults)
 
 | | |
 |---|---|
-| Host | `https://opensearch.sit.awesome-poc-th.com` |
-| Dashboards | `3.5.0` |
-| Index / pattern title | `console-sit-log` |
-| Index-pattern id | `0118f120-7391-11f1-b139-918a526f3084` |
+| Host | `https://opensearch.sit.awesome-poc-th.com`, for Core and Auxiliary |
+| Dashboards | `3.7.0` |
+| Index / pattern title | `console-sit-log`, an alias over rolled-over indices; the first was created 2026-11-02 |
+| Index-pattern id | `c54fbf80-d82a-11f1-8e7b-53a37eebf317` |
 | Other patterns | `access-sit-log` (Dashboards `defaultIndex`), `audit-sit-log` |
 | Time field | `@timestamp` |
 | Container field | `kubernetes_container_name.keyword` (exact `term`; e.g. `payment`) |
-| Cluster field | `cluster_name.keyword`: `core-systems-dev` (Core), `auxiliary-systems-dev` (Aux); despite `dev`, both matched live SIT pod names |
-| Aux namespaces indexed | `ekyc`, `kong`, `portal`, `special-list`, `email`, `consent`, `e-signature` (7 days to 2026-10-29) |
-| Auth | Browser SSO session cookies (**httpOnly**: not in `document.cookie`) |
+| Cluster field | `cluster_name.keyword`: `core-systems-dev` (Core), `auxiliary-systems-dev` (Aux); despite `dev`, both matched live SIT nodes |
+| Core namespaces indexed | `core-systems`, `kong`; the live fluent-bit `grep` filter drops the rest |
+| Aux namespaces indexed | `kong`, `portal`, `ekyc`, `consent`, `special-list`, `email`, `e-signature`, `branch-device` (24h to 2026-11-05) |
+| Auth | Browser SAML session cookies (**httpOnly**: not in `document.cookie`) |
 
-This surface was measured on `opensearch.sit`, the host that `neo-aux-sit` and old Core SIT bind.
-Core SIT now ships to `os.sit.awesome-poc-th.com` (fluent-bit overlay `sit` in
-`kong-gateway-coresystems`; Dashboards `3.7.0` from `/_dashboards/api/status`, 2026-11-03). The overlay
-declares the same index names and `core-systems-dev`. The index-pattern id, mapping and namespace
-coverage on that host were not measured, so verify them before trusting zero hits.
+Every indexed host belongs to the new clusters: Core's two match `kubectl get nodes`; Auxiliary's eight
+sit in its subnets, and its four running nodes match `ec2 describe-instances`. So `cluster_name` selects
+the new cluster and old SIT's logs are not here. The oldest hits are Core 2026-11-02T05:30Z and Auxiliary
+2026-11-04T08:08Z. Retention was not measured.
 
-Auxiliary did not move: its `sit` and `dev` overlays both ship to `opensearch.sit` with
-`auxiliary-systems-dev`, so `cluster_name` cannot separate new Aux from old. Whether the new cluster's
-logs arrive, and which field would separate them, were not measured.
+Zero hits is not proof of no logs. Core `payment` has no hits, while kubectl shows two lines from
+2026-11-02T05:02Z, before fluent-bit started at 05:25Z with `read.head: Off`. Check kubectl or Argo before
+reporting no logs.
 
-### Working SIT search endpoint (measured example)
+Core's fluent-bit writes to `os.sit.awesome-poc-th.com` (live `fluent-bit-cluster-info` ConfigMap), which
+resolves to the same private address as `opensearch.sit`, and those logs appear on `opensearch.sit`. Do
+not browse `os.sit`: its SAML login ends on `opensearch.sit` with 400 `Invalid requestId`.
+
+`ERR_NAME_NOT_RESOLVED` is a DNS failure, not an SSO prompt. Neither name resolved from the laptop on
+2026-11-04 and both did on 2026-11-05; the cause was not measured. Report it and read live pods through
+kubectl or Argo instead.
+
+### Working SIT search endpoints (measured 2026-11-05)
 
 ```
 POST /_dashboards/api/console/proxy?path=console-sit-log%2F_search&method=POST
 ```
 
-Required headers (SIT measurement; use the active environment's verified version):
+The body is the plain query, and the response is the raw search response, where `hits.total` is
+`{ value, relation }`. Required headers (SIT measurement; use the active environment's verified version):
 
 - `osd-xsrf: true`
-- `osd-version: 3.5.0`
+- `osd-version: 3.7.0`
 - `content-type: application/json`
 - `accept: application/json`
 
-Also works (same session):
+These returned identical hits in the same session, with the same headers:
 
-- `POST /_dashboards/internal/search/opensearch` with body wrapped as `{ "params": { "index": "console-sit-log*", "body": { …ES DSL… } } }`
+```
+POST /_dashboards/internal/search/opensearch-with-long-numerals
+POST /_dashboards/internal/search/opensearch
+```
 
-Status check: `GET /_dashboards/api/status` → version number `3.5.0`.
+Their body wraps the query as `{ "params": { "index": "console-sit-log", "body": { …ES DSL… } } }`. Their
+response nests the search result under `rawResponse`, and `rawResponse.hits.total` is a plain number, so
+`hits.total.value` is `undefined` there and the count gate below must read the number. No difference from
+`opensearch` was seen; the test results held no integer above 2^53. Neither route was measured on UAT.
+
+Status check: `GET /_dashboards/api/status` → version number `3.7.0`; it answers without a login.
 
 ## Hard constraints (measured failures)
 
@@ -268,10 +285,10 @@ Do **not** pipe to `rg`/`grep` in bash.
 
 ## Auxiliary and UAT notes
 
-Old Core SIT and Auxiliary share the `opensearch.sit` host/index: filter on `cluster_name.keyword` (`OS_CLUSTER`) as well
+Core and Auxiliary share the `opensearch.sit` host/index: filter on `cluster_name.keyword` (`OS_CLUSTER`) as well
 as the exact live container name (`ingress-controller` exists in both clusters).
 If an Auxiliary search has zero hits, verify that name from a live pod before saying “no logs”;
-the index holds only the Aux namespaces listed in the SIT surface table.
-Core `payment` was exercised end-to-end on old SIT; Auxiliary containers on that index were expected
-to work the same but were not separately smoke-tested when the original recipe was measured.
+the index held only the Aux namespaces listed in the SIT surface table when last measured (2026-11-05).
+Core `transaction` and Auxiliary `consent` passed the count-complete gate on 2026-11-05 (8 and 30
+error hits in 24h).
 UAT host/index/mapping and SSO must be verified on UAT; the SIT measurement is not UAT evidence.
