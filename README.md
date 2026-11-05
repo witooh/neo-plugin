@@ -146,13 +146,15 @@ From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. 
 
 | Skill          | Required profile env       | Purpose |
 | -------------- | -------------------------- | ------- |
-| `neo-core-sit` | `NEO_SIT_CORE_AWS_PROFILE` | Core SIT kubectl / ArgoCD / logs / secrets |
-| `neo-aux-sit`  | `NEO_SIT_AUX_AWS_PROFILE`  | Auxiliary SIT kubectl / ArgoCD / logs / secrets |
-| `neo-core-uat` | `NEO_UAT_CORE_AWS_PROFILE` | Core UAT kubectl / ArgoCD / logs / secrets |
-| `neo-aux-uat`  | `NEO_UAT_AUX_AWS_PROFILE`  | Auxiliary UAT kubectl / ArgoCD / logs / secrets |
+| `neo-core-sit` | `NEO_SIT_CORE_AWS_PROFILE` | Core SIT kubectl / ArgoCD / logs / secrets / Kafka / tracing |
+| `neo-aux-sit`  | `NEO_SIT_AUX_AWS_PROFILE`  | Auxiliary SIT kubectl / ArgoCD / logs / secrets / Kafka / tracing |
+| `neo-core-uat` | `NEO_UAT_CORE_AWS_PROFILE` | Core UAT kubectl / ArgoCD / logs / secrets / Kafka / tracing |
+| `neo-aux-uat`  | `NEO_UAT_AUX_AWS_PROFILE`  | Auxiliary UAT kubectl / ArgoCD / logs / secrets / Kafka / tracing |
 
 All four reuse one [inspection procedure](skills/neo-core-sit/references/cluster-inspection.md),
-[OpenSearch recipe](skills/neo-core-sit/references/opensearch.md), and
+[OpenSearch recipe](skills/neo-core-sit/references/opensearch.md),
+[Kafka recipe](skills/neo-core-sit/references/kafka.md),
+[tracing recipe](skills/neo-core-sit/references/tracing.md), and
 [Postgres helper](skills/neo-core-sit/scripts/pg-from-secret). Each skill owns only its environment
 bindings and profile example. UAT targets are discovered and verified, not copied from SIT; where UAT
 differs (read-only with no write exception, kubectl blocked for the UAT role, Argo and OpenSearch via

@@ -27,8 +27,9 @@ cluster/environment filter from its mapping; a container name alone does not iso
 
 Log searches always target the wrapper's `OS_INDEX` (`console-sit-log` on SIT, `console-uat-log`
 on UAT). Never take the index from the Dashboards `defaultIndex` setting or from what Discover
-opens: on SIT that default is `access-sit-log` (2026-11-05). Search `access-<env>-log` or
-`audit-<env>-log` only when the user asks for access or audit logs.
+opens: on SIT that default is `access-sit-log` (2026-11-05). Search `access-<env>-log` for the
+[tracing recipe](tracing.md) or when the user asks for access logs, and `audit-<env>-log` only when
+the user asks for audit logs.
 
 ## Verified SIT surface (2026-11-05; not UAT defaults)
 
@@ -38,7 +39,7 @@ opens: on SIT that default is `access-sit-log` (2026-11-05). Search `access-<env
 | Dashboards | `3.7.0` |
 | Index / pattern title | `console-sit-log`, an alias over rolled-over indices; the first was created 2026-11-02 |
 | Index-pattern id | `c54fbf80-d82a-11f1-8e7b-53a37eebf317` |
-| Other patterns | `access-sit-log` (Dashboards `defaultIndex`), `audit-sit-log` |
+| Other patterns | `access-sit-log` (Kong access log, Dashboards `defaultIndex`), `audit-sit-log` |
 | Time field | `@timestamp` |
 | Container field | `kubernetes_container_name.keyword` (exact `term`; e.g. `payment`) |
 | Cluster field | `cluster_name.keyword`: `core-systems-dev` (Core), `auxiliary-systems-dev` (Aux); despite `dev`, both matched live SIT nodes |
@@ -201,6 +202,8 @@ Notes:
   } }
 }
 ```
+- Without an Argo session, a `terms` aggregation on `kubernetes_container_image.keyword` with `min` and `max` of
+  `@timestamp` shows which image ran when, and `kubernetes_pod_name.keyword` shows its pods (UAT, 2026-11-05).
 - Some older backing indices lack `@timestamp` mapping → shard failures in response are OK if `hits.total` and current indices still return data. Prefer `unmapped_type: "boolean"` on the sort as above.
 - **`size` is not optional decoration.** Counts built from `hits.hits` only cover `min(size, total)`. Always gate with `sum(counts) === hits.total.value` before calling a table complete.
 - For a free-text needle, add  

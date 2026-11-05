@@ -2,7 +2,8 @@
 
 One procedure for `neo-core-sit`, `neo-aux-sit`, `neo-core-uat` and `neo-aux-uat`.
 The active skill supplies environment bindings; never take bindings from another skill.
-This file and `opensearch.md` belong to `neo-core-sit` and are reused by all four skills.
+This file, `opensearch.md`, `kafka.md` and `tracing.md` belong to `neo-core-sit` and are reused by all
+four skills.
 Resolve `CORE_SKILL_DIR` to the `neo-core-sit` skill directory itself (the one whose `SKILL.md`
 has `name: neo-core-sit`, i.e. `<skills>/neo-core-sit`); shared assets are relative to that
 directory, not to the invoking UAT/Aux skill.
@@ -13,20 +14,23 @@ Default is **inspect-only**. Invoking a skill is not authorization to write.
 
 Allowed: `kubectl get/describe/logs/top/auth can-i`, secret reads for diagnosis, Application
 get/history/diff via kubectl, `psql` SELECT / `\d` / `\dt` / `\di` with LIMIT, AWS identity and
-EKS/RDS list/describe, local `eks update-kubeconfig` / `eks get-token` /
+EKS/RDS list/describe, MSK `list-clusters-v2` / `get-bootstrap-brokers`, local
+`eks update-kubeconfig` / `eks get-token` /
 `rds generate-db-auth-token` / `sso login`, OpenSearch
-read/search, and Argo REST GETs in an authenticated browser session on the wrapper's verified URL.
+read/search, Kafbat REST GETs on the wrapper's `KAFBAT_URL`, and Argo REST GETs in an authenticated
+browser session on the wrapper's verified URL.
 An optional local port-forward may be used to view Argo UI/API.
 
 Only when `ENVIRONMENT=SIT` and on an explicit current-turn request:
 `kubectl apply|create|delete|patch|replace|rollout|scale|exec`,
 `argocd app sync|rollback|delete|prune`, Secret/ConfigMap edits, SQL write/DDL and pod restarts.
 Otherwise refuse those actions and continue read-only. Never persist decoded credentials in
-repo files, skills or durable memory.
+repo files, skills or durable memory. Kafka has no write exception: `kafka.md` allows GET only.
 
 `ENVIRONMENT=UAT` has no write exception. Refuse every change to UAT, even when the user asks for
-it in the current turn: the actions above, any Argo UI or API action other than a GET, OpenSearch
-requests other than `_search` / `_count` / GETs, mutating AWS calls (for example
+it in the current turn: the actions above, any Argo UI or API action other than a GET, any Kafbat
+request other than a GET, OpenSearch requests other than `_search` / `_count` / GETs, mutating AWS
+calls (for example
 `create-access-entry`) and any SQL write or DDL. Tell the user what change is needed and give the
 command or UI step for them to run themselves; never run it for them. Local writes that only
 enable reads (`update-kubeconfig`, `sso login`) are allowed.
@@ -133,7 +137,7 @@ Core SIT uses managed ArgoCD with no in-cluster `argocd-server`; prefer Applicat
 - consent / tc-service → consent
 - datamart-api, datamart-notification → datamart
 - e-document → e-signature
-- ekyc-* → ekyc
+- ekyc-*, common-api, face-verification-service, qr-service, transaction-api, transaction-service → ekyc
 - email-* → email
 - los-credit-card family, datamart-external, special-list-external, statement → los-credit-card
 - as-app / as-service / crypto-service / example-* → ndid-interface
@@ -266,7 +270,20 @@ Do not patch a secret, store or workload to resolve drift without explicit autho
 
 Report in Thai, terminal-friendly: environment/domain; identity (STS account/role, profile only as
 “from env”); verified cluster/context; Argo sync/health/revision/image; pod ready/restarts;
-timestamped log snippets and complete OpenSearch msg counts when used; DB host/db/user/schema.
+timestamped log snippets and complete OpenSearch msg counts when used; DB host/db/user/schema; Kafka
+broker hosts, offsets and whether a scan was complete when used.
+
+## 8. Inspect Kafka
+
+Read `references/kafka.md` in `CORE_SKILL_DIR` and use the active wrapper's `KAFBAT_URL`, `KAFKA_CLUSTER`
+and `KAFKA_BROKER`; never another environment's.
+
+## 9. Trace a symptom to its root cause
+
+When a report starts from a Mobile or Portal symptom, or names a correlation id, read
+`references/tracing.md` in `CORE_SKILL_DIR` and use its report shape in place of the one in §7. A trace may
+read the same environment's skill for the other domain and apply that skill's bindings, `PROFILE_ENV` included,
+to reads in that domain. That is the only case where a second profile is accepted.
 
 ## Verification
 
@@ -279,3 +296,7 @@ timestamped log snippets and complete OpenSearch msg counts when used; DB host/d
    without exposing credentials by default.
 6. Historical searches use the correct environment's host/index; XHR returns 200 and complete
    aggregation counts sum to `hits.total`. Never label a capped sample as a full total.
+7. Kafka reads use GET only, Kafbat's broker hosts contain the wrapper's `KAFKA_BROKER`, and a miss is
+   reported as complete only when the scan's `cursor` is null.
+8. A trace's `complete` is true, every hop in its diagram comes from a row or is marked as not logged, and
+   its cause is proven from the service's own data or labelled inferred.

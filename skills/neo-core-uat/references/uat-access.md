@@ -15,6 +15,8 @@ SIT measurements are not UAT evidence.
 | Argo status, images, pods | Argo REST API in the browser session | works |
 | Logs for a namespace OpenSearch does not hold | Argo pod logs (live pods only) | fallback |
 | Postgres | RDS IAM token + `psql` with the wrapper's `PG_*` bindings | works |
+| Kafka topics, offsets, payloads, consumer groups | `curl` to Kafbat with the wrapper's `KAFBAT_URL` | works, GET only |
+| A Mobile or Portal symptom, or a correlation id | [Tracing recipe](../../neo-core-sit/references/tracing.md) in the browser session | works |
 
 Browser calls run as the user's SSO session in Chrome, not the CLI role; which user it is was not
 verified. UAT is read-only with no exception (shared procedure, Permission): browser calls are GET
@@ -77,8 +79,10 @@ aws eks describe-capability --cluster-name "$CLUSTER" --capability-name argocd \
 ```
 
 `configuration.argoCd.serverUrl` is `ARGO_URL`; `configuration.argoCd.namespace` is `ARGO_NS`.
-Login is AWS IdC in the browser (`/auth/login` redirects to `signin.aws`). Without a session the API
-returns `no session information`. If the tab shows the IdC sign-in, ask the user to log in.
+Login is AWS IdC in the browser (`/auth/login` redirects to `signin.aws`, and finishes by itself while an
+IdC session is alive). Without a session `/api/v1/applications` returns `no session information`, while
+`/api/v1/session/userinfo` still returns 200, so check with the former. If the tab shows the IdC sign-in,
+ask the user to log in.
 Core and Aux Argo are separate origins; each needs its own login.
 
 In an authenticated Argo tab, run same-origin GETs; add `appNamespace=<ARGO_NS>` to each
@@ -114,9 +118,10 @@ Follow [the OpenSearch recipe](../../neo-core-sit/references/opensearch.md) with
 | Index | alias `console-uat-log` over `console-uat-log.YYYY.MM.DD-NNNNNN`; earliest 2026.10.15 when measured |
 | Index-pattern id | `a0ec61a0-c3e1-11f1-bd92-bf9c10c36336` (time field `@timestamp`) |
 | Environment filter | `cluster_name.keyword`: `core-systems-uat` or `auxiliary-systems-uat` |
-| Other patterns | `access-uat-log`, `audit-uat-log` (contents not inspected); Dashboards `defaultIndex` is `console-uat-log` |
+| Other patterns | `access-uat-log` (Kong access log), `audit-uat-log` (contents not inspected); Dashboards `defaultIndex` is `console-uat-log` |
 
-- Always filter on `cluster_name.keyword` (`OS_CLUSTER`): namespace `kong` exists in both clusters.
+- Filter searches by container or namespace on `cluster_name.keyword` (`OS_CLUSTER`): namespace `kong`
+  exists in both clusters. One correlation id spans both clusters, so the tracing recipe omits the filter.
 - Core coverage: `core-systems` and `kong` only. Aux coverage is partial (see Auxiliary UAT below).
 - The mapping matches SIT (`.keyword` metadata fields), so the recipe's exact `term` filters and
   name-resolving aggregation apply unchanged. On UAT, `match_phrase` `payment` also matched
@@ -127,11 +132,25 @@ Follow [the OpenSearch recipe](../../neo-core-sit/references/opensearch.md) with
 Core `http.server.request.completed` lines carry the full `requestBody`, including account numbers;
 keep `requestBody` out of reports.
 
+## Kafka (Kafbat, measured 2026-11-05)
+
+Follow [the Kafka recipe](../../neo-core-sit/references/kafka.md) with the wrapper's `KAFBAT_URL`,
+`KAFKA_CLUSTER` and `KAFKA_BROKER`. It uses `curl` from the laptop, not the browser session.
+
+- A user request does not lift the GET-only rule on UAT.
+- `core.uat.awesome-poc-th.com` and `auxiliary.uat.awesome-poc-th.com` resolve only through the system
+  resolver (`dscacheutil -q host -a name`; `dig` returned nothing), both to the same three addresses.
+- Each instance's brokers matched `aws kafka get-bootstrap-brokers` under `UserAcceptanceTestingAccess`.
+- Values were not printed while measuring, so what payloads hold is unknown; treat them as customer data.
+
 ## Browser note (Claude in Chrome)
 
 The extension can mask values in tool output as `[BLOCKED: …]` (seen on git SHAs, paths and the
 Dashboards version). The request itself succeeded; it is not an API error. Keep such a value in a
-variable (for example the version for `osd-version`) instead of printing it.
+variable (for example the version for `osd-version`) instead of printing it. Keys containing `token` or
+`auth` or `password` come back as `[BLOCKED: Sensitive key]`, a long string can come back `[TRUNCATED]`,
+and deep nesting `[TRUNCATED: Max depth exceeded]`, so return a shallow object rather than `JSON.stringify`
+output. An unawaited `(async () => {...})()` returns `{}`; use top-level `await`.
 
 ## Auxiliary UAT
 
@@ -140,10 +159,10 @@ variable (for example the version for `osd-version`) instead of printing it.
   `https://identitycenter.amazonaws.com/ssoins-8210f485c132201c`.
 - Account `915848750617` (Core UAT) holds only `core-eks-yblzrf0dwv-uat` and
   `data-hub-eks-yblzrf0dwv-uat`; a profile that resolves there is not an Aux UAT profile.
-- Argo: 59 Applications in `argocd-app`. Destinations name the cluster ARN plus namespace, not
+- Argo: 61 Applications in `argocd-app` (2026-11-05). Destinations name the cluster ARN plus namespace, not
   `in-cluster`. `argocd/uat` destinations match the Auxiliary SIT namespace hints, except that UAT has
   no `demo-keda` (manifests, 2026-11-04; live UAT not re-checked).
 - OpenSearch covers only some Aux namespaces: `kong`, `portal`, `special-list`, `consent`, `ekyc`,
-  `email` and `e-signature`, from 2026-10-20. `sms` had live pod logs in Argo yet 0 documents in the
+  `email`, `e-signature` and `branch-device`, from 2026-10-20 (`branch-device` seen 2026-11-05). `sms` had live pod logs in Argo yet 0 documents in the
   index. For any other namespace, zero hits does not mean no logs: read pod logs through Argo
   (live pods only). The cause was not investigated.
