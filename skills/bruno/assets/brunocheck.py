@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""L1 structural checker for a Bruno OpenCollection whose request `docs:` blocks are the API source of truth.
+"""L1 structural checker for a Bruno OpenCollection whose request `docs:` blocks hold the endpoint contracts.
 
 Rules here: K1 file shape/order, K2 docs headings + endpoint, K3 path params, K7 status test,
 K8 env vars/secrets, K9 folder.yml + unique seq, K4 field tables, K5 example vs table,

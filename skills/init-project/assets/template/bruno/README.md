@@ -3,8 +3,8 @@
 Git-native API collection for driving the neo-service HTTP API locally. Open this folder in
 [Bruno](https://www.usebruno.com/) (File → Open Collection) and select the **local** environment.
 
-This collection is the **API source of truth**, authored with the `bruno` skill (see
-`.kiro/steering/bruno.md`). Each request's `docs:` block holds its contract. A freshly scaffolded
+This collection is **generated from the code** with the `bruno` skill; the code is the source of
+truth (see `.kiro/steering/bruno.md`). Each request's `docs:` block holds its contract. A freshly scaffolded
 service has no endpoints yet; add a request under `<resource>/` as each endpoint is built.
 
 ## Layout

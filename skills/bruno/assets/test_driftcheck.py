@@ -53,6 +53,42 @@ class DriftCheckTests(unittest.TestCase):
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("nickname", r.stdout)
 
+    def test_nested_module_is_not_scanned(self):
+        go = go_copy("dto.go", "Items       []Item",
+                     'Nickname string `json:"nickname"`\n\tItems       []Item')
+        wt = go / ".claude" / "worktrees" / "wt"
+        wt.mkdir(parents=True)
+        shutil.copy(GO / "go.mod", wt / "go.mod")
+        shutil.copy(GO / "dto.go", wt / "dto.go")
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("nickname", r.stdout)
+
+    def test_inline_closure_route_is_counted(self):
+        go = go_copy("router.go", "}\n",
+                     '\tr.GET("/health", func(c *gin.Context) {\n\t\tc.JSON(200, nil)\n\t})\n}\n')
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("GET /health", r.stdout)
+
+    def test_non_route_closure_is_not_a_route(self):
+        go = go_copy("router.go", "}\n",
+                     '\tx := cache.Get("key", func(k string) string { return k })\n\t_ = x\n}\n')
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_request_field_without_required_is_optional(self):
+        go = go_copy("dto.go", '`json:"accountType" binding:"required"`', '`json:"accountType"`')
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("`accountType`: Go tags → O but spec says M", r.stdout)
+
+    def test_omitempty_response_field_is_optional(self):
+        go = go_copy("dto.go", '`json:"accountId"`', '`json:"accountId,omitempty"`')
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("`accountId`: Go tags → O but spec says M", r.stdout)
+
     def test_go_route_without_request_is_drift(self):
         go = go_copy("router.go", "}\n", '\tr.DELETE("/v1/accounts/:accountId", h.Delete)\n}\n')
         r = run(DC, GOOD, "--src", go)
@@ -77,7 +113,7 @@ class MissingPyYamlTests(unittest.TestCase):
         (stub / "yaml.py").write_text(
             'raise ModuleNotFoundError("No module named \'yaml\'", name="yaml")\n')
         env = {**os.environ, "PYTHONPATH": str(stub)}
-        for script in ("driftcheck.py", "brunocheck.py", "migrate.py"):
+        for script in ("driftcheck.py", "brunocheck.py"):
             r = subprocess.run([sys.executable, str(ASSETS / script), str(GOOD)],
                                capture_output=True, text=True, env=env)
             self.assertEqual(r.returncode, 2, (script, r.stderr))

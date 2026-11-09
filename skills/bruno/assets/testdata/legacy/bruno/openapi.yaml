@@ -1,5 +1,0 @@
-openapi: 3.0.3
-info:
-  title: Legacy Service
-  version: "1.0"
-paths: {}

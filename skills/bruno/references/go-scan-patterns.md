@@ -160,7 +160,7 @@ type CreateUserRequest struct {
 | `*string`, `*int`, `*bool`, etc. (pointer) | O | Can be nil |
 | Any type with `json:",omitempty"` (no required) | O | Explicitly optional |
 | `bool` WITHOUT required tag | O | Zero value `false` is valid default; omitting the field is valid |
-| Non-pointer, non-bool WITHOUT required tag | M | Expected to be present |
+| Non-pointer, non-bool WITHOUT required tag | O | The binding accepts a missing field; Go leaves its zero value |
 
 **Where to find:** Same package as handler, typically `request.go` or `dto.go`
 
@@ -406,13 +406,13 @@ The doc table must include `id`, `created_at`, `updated_at`, `consent_id`, and `
 ```go
 type UpdateRequest struct {
     Name     *string  `json:"name,omitempty"`     // optional, can be null
-    Email    string   `json:"email"`              // required
+    Email    string   `json:"email" binding:"required"` // required
     DeleteAt *string  `json:"delete_at,omitempty"` // optional, can be null
 }
 ```
 
 - `*Type` → Mark as `O`, show `null` in Example column when relevant
-- `json:",omitempty"` → confirms optional, may be absent from response
+- `json:",omitempty"` → confirms optional, may be absent from response (response row → `No`)
 
 ### Custom/Domain Types
 
@@ -622,7 +622,7 @@ func (h *Handler) CreateConsent(c *fiber.Ctx) error {
 
 **Search patterns:**
 - `BodyParser`, `Bind`, `ShouldBindJSON` → 400 bind error
-- `validator.Struct`, `validate` → 422 validation error
+- `validator.Struct`, `validate` → validation error, with the status the handler sets (never assume 422)
 - `uuid.Parse`, `strconv.Atoi` → 400 param parse error
 - `c.Status(4xx)`, `c.Status(5xx)` → direct error returns
 
@@ -768,7 +768,7 @@ Always check for ALL of these patterns in the handler. If present, include the r
 // Check 1: bind/parse → always 400
 if err := c.BodyParser(&req); err != nil { ... }     // → row: 400 | invalid request body
 
-// Check 2: validation → always 422
+// Check 2: validation → the status the handler sets (422 in this example)
 if err := h.validator.Struct(req); err != nil { ... } // → row: 422 | validation failed
 
 // Check 3: param parse → always 400

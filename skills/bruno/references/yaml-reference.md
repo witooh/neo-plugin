@@ -135,7 +135,7 @@ info:
 |-----|----------|-------|
 | `name` | yes | Display name. PascalCase → space-separated (`AcceptConsent` → `Accept Consent`). |
 | `type` | yes | Always `http` for HTTP requests. |
-| `seq` | yes | Sort order **within this folder**. Skill assigns 10, 20, 30 to leave room for inserts; a new request in Update takes the highest `seq` + 10. |
+| `seq` | yes | Sort order **within this folder**. Skill assigns 10, 20, 30 to leave room for inserts; a new request added by Generate to an existing folder takes the highest `seq` + 10. |
 
 ### `http`
 
@@ -191,7 +191,7 @@ runtime:
 
 - K7: at least one `type: tests` script must reference `res.status` (or `res.getStatus()`). A `runtime.assertions` list does not satisfy K7.
 - The default test asserts the first success status: `test("status is 200", function() { expect(res.status).to.equal(200); });`.
-- In Update, `runtime` is user-authored: keep it as-is and add a status test only when none exists.
+- In a Generate on an existing request, `runtime` is user-authored: keep it as-is and add a status test only when none exists.
 
 ### `settings`
 
@@ -204,7 +204,7 @@ Always emit `encodeUrl: true` at minimum (per steering rule 4). Other settings (
 
 ### `docs`
 
-The endpoint's contract: hand-authored Markdown in a `|-` block scalar, a **string**, not a map. Layout, table rules and Audience rules are in [`docs-template.md`](docs-template.md); `brunocheck.py` K2-K6 and K10 check it.
+The endpoint's contract: Markdown generated from code, in a `|-` block scalar, a **string**, not a map. Layout, table rules and Audience rules are in [`docs-template.md`](docs-template.md); `brunocheck.py` K2-K6 and K10 check it.
 
 ---
 

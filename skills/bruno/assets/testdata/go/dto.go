@@ -7,7 +7,7 @@ type CreateAccountRequest struct {
 }
 
 type Item struct {
-	Code string `json:"code"`
+	Code string `json:"code" binding:"required"`
 }
 
 type AccountResponse struct {

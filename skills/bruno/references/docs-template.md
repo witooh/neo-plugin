@@ -1,6 +1,6 @@
 # Bruno `docs:` template: the contract layout
 
-Every request's `docs:` block is the source of truth for its endpoint. This file fixes its layout,
+Every request's `docs:` block is its endpoint's contract, generated from code. This file fixes its layout,
 the table rules and the Audience rules. `assets/docsparse.py` parses exactly this shape and
 `assets/brunocheck.py` enforces it (rule IDs K1-K11 in brackets). YAML keys outside `docs:` are in
 [`yaml-reference.md`](yaml-reference.md).
@@ -15,7 +15,7 @@ bruno/
 ├── environments/            local.yml · sit.yml (init-project template naming)
 └── <domain>/
     ├── folder.yml           info{name, type: folder, seq} + request.auth/headers + optional docs:
-    └── <endpoint>.yml       one endpoint = the source of truth for that endpoint
+    └── <endpoint>.yml       one endpoint = its contract, generated from code
 ```
 
 - Request top-level order: `info → http → runtime → settings → docs` [K1]. `examples` is never emitted.
@@ -50,11 +50,9 @@ A passing root: `assets/testdata/good/opencollection.yml`.
   Strings, separate from the success envelope. `errorMessage` is for logs and support, not customer
   wording. Keep leading zeroes in `responseCode`. The shared contract is
   [`errors.md`](../../init-project/assets/template/.kiro/steering/errors.md).
-- **Migrate placeholder.** When the legacy spec holds no evidence of the error body, `migrate.py`
-  writes `## Error Response Body` as the single sentence `Not documented in the source spec.` and
-  prints a warning. K11 NOTEs that sentence but it passes L1. A human must fill in the real
-  body; never invent it. When the legacy spec has no common-lib body but two or more endpoint files
-  share another error body, `migrate.py` documents the most frequent one and warns; confirm it.
+- `## Error Response Body` documents the error body the code renders (the common-lib body for a
+  common-lib service). K11 NOTEs the sentence `Not documented in the source spec.`, left by older
+  collections; Generate replaces it with that body.
 
 ---
 
@@ -98,7 +96,9 @@ A passing root: `assets/testdata/good/opencollection.yml`.
   above it. Each section's first table is the one parsed.
 - A non-common-lib error body (a partner contract) gets its own `### HTTP Status: <4xx/5xx>`
   section with a field table. The common-lib body is never repeated per endpoint.
-- `## Business Logic` is written by Generate and Update only. Draft omits it.
+- `## Business Logic` is written from the usecase: only the steps it performs, in order.
+- Every `docs:` statement traces to code. Where the code says nothing, the docs say nothing: a field
+  without a comment gets a short neutral description, and no business meaning is guessed.
 
 ---
 

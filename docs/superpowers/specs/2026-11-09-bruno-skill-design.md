@@ -1,3 +1,5 @@
+> Superseded in part by `2026-11-09-bruno-from-code-design.md` (source of truth, modes, migrate).
+
 # `bruno` skill: Bruno OpenCollection as the API source of truth
 
 Date: 2026-11-09 · Status: approved design, pending spec review

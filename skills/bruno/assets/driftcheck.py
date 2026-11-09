@@ -5,9 +5,9 @@ install: pure Python 3 (stdlib + PyYAML, parsing through the sibling docsparse.p
 Deterministic layer of the bruno skill's verify.
 
 WHY THIS EXISTS
-  Each Bruno request file's `docs:` markdown is the SOURCE OF TRUTH for its endpoint. This
-  script scans the Go code and reports where the implementation has DRIFTED from that
-  contract. It is the DETERMINISTIC, independent measure a machine CAN count, so reconciling
+  Go code is the SOURCE OF TRUTH; each Bruno request file's `docs:` markdown is generated from
+  it. This script scans the Go code and reports where a request's `docs:` has DRIFTED from the
+  implementation (a stale contract). It is the DETERMINISTIC, independent measure a machine CAN count, so reconciling
   the collection rests on evidence, not the writer's confidence. (It writes no file; it
   reads bruno/**/*.yml + Go.)
 
@@ -69,6 +69,7 @@ RE_ROUTE = re.compile(
     r'\b\w+\.(Get|Post|Put|Patch|Delete|Options|Head)\s*\(\s*"([^"]*)"\s*,\s*([^)]+)\)',
     re.I)
 RE_HANDLER = re.compile(r'^[\w.]+\.([A-Z]\w*)$')
+RE_CLOSURE = re.compile(r'\s*func\s*\([^)]*\b(?:Context|Ctx|ResponseWriter)\b')
 
 
 def iter_structs(text):
@@ -122,12 +123,17 @@ def parse_struct_fields(body):
 
 
 def parse_go(src_root):
-    """Return (structs, routes, dup_names). Skips _test.go and vendor/.
+    """Return (structs, routes, dup_names). Skips _test.go, vendor/ and, when src_root holds a
+       go.mod, every nested module below it (tools/*, worktrees, templates).
        Returns (None, [], set()) if no Go files found."""
     root = pathlib.Path(src_root)
+    nested = ({m.parent for m in root.rglob('go.mod') if m.parent != root}
+              if (root / 'go.mod').is_file() else set())
     structs, routes, dup_names, found = {}, [], set(), False
     for gofile in root.rglob('*.go'):
         if gofile.name.endswith('_test.go') or 'vendor' in gofile.parts:
+            continue
+        if any(p in nested for p in gofile.parents):
             continue
         found = True
         try:
@@ -141,9 +147,9 @@ def parse_go(src_root):
             structs[name] = fields
         for rm in RE_ROUTE.finditer(text):
             hm = RE_HANDLER.match(rm.group(3).strip())
-            if hm:
+            if hm or RE_CLOSURE.match(rm.group(3)):   # x.Method or an inline handler closure
                 routes.append({'method': rm.group(1).upper(),
-                               'path': rm.group(2), 'handler': hm.group(1)})
+                               'path': rm.group(2), 'handler': hm.group(1) if hm else None})
     return (structs if found else None), routes, dup_names
 
 
@@ -166,14 +172,11 @@ def resolve_serializable(struct_name, structs, _seen=None):
 
 
 def compute_mo(field, is_request):
-    """M/O from struct tags (M/O classification)."""
+    """M/O from struct tags: a request field is M only when tagged required; a response field
+       is O when it can be absent (pointer or omitempty)."""
     if is_request:
-        if field['required']:
-            return 'M'
-        if field['pointer'] or field['omitempty'] or field['bool']:
-            return 'O'
-        return 'M'
-    return 'O' if field['pointer'] else 'M'
+        return 'M' if field['required'] else 'O'
+    return 'O' if field['pointer'] or field['omitempty'] else 'M'
 
 
 def map_names_to_struct(field_names, name_sets, resolved):

@@ -122,7 +122,7 @@ source of truth for it is `docs/knowledge/`, which holds the ingested originals:
 verbatim requirement captures, and their provenance.
 
 ```
-code ← bruno ← ticket/spec ← docs/knowledge/{contracts,requirements}/ ← the originating issue
+bruno ← code ← ticket/spec ← docs/knowledge/{contracts,requirements}/ ← the originating issue
 ```
 The mechanical half: every enum, code, and constant the contract promises that appears **nowhere**
 in the ingested originals. Each hit was invented downstream by a person or a model, and no test

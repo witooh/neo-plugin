@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Shared parser for Bruno OpenCollection request files whose `docs:` block is the API source of truth.
+"""Shared parser for Bruno OpenCollection request files whose `docs:` block holds the endpoint contract.
 
-Imported by brunocheck.py, migrate.py and driftcheck.py. Stdlib + PyYAML only.
+Imported by brunocheck.py and driftcheck.py. Stdlib + PyYAML only.
 """
 import json
 import re

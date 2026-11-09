@@ -129,7 +129,7 @@ From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. 
 
 | Skill                | Purpose                                                          |
 | -------------------- | ---------------------------------------------------------------- |
-| `bruno`              | Bruno collection at `bruno/`: API source of truth, drift check, migration |
+| `bruno`              | Bruno collection at `bruno/`, generated from Go code; format and drift checks |
 
 **Shaping a service**
 

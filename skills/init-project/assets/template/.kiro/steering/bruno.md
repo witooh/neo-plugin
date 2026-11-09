@@ -5,8 +5,8 @@ fileMatchPattern: "**/bruno/**"
 
 # API Request Collection (Bruno OpenCollection)
 
-`bruno/` is a runnable **OpenCollection 1.0** and the **API source of truth**: each request's
-`docs:` block is the contract for its endpoint. Author it with the `bruno` skill. Requests are
+`bruno/` is a runnable **OpenCollection 1.0**, **generated from the code** with the `bruno` skill; the
+code is the source of truth. Each request's `docs:` block is the contract for its endpoint. Requests are
 grouped by resource, mirroring the handler packages.
 
 ```
