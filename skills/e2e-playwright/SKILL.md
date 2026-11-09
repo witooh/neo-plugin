@@ -1,6 +1,6 @@
 ---
 name: e2e-playwright
-description: "Author, update, and run HTTP end-to-end tests: one per acceptance criterion, for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the originating issue/ticket (issue tracker, a user-passed path, or a spec file under docs/, specs/, or .scratch/), authors specs from those + the api-spec contract, runs the suite, maps pass/fail to each AC; a ticket with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e."
+description: "Author, update, and run HTTP end-to-end tests: one per acceptance criterion, for a service with a Jest + Playwright-request e2e harness (Playwright's HTTP client run by Jest, not the @playwright/test runner). Each test title carries the stable prefix '[<CARD> - AC-NNN] <desc> → <expected>' so every AC is traceable. Reads ACs from the originating issue/ticket (issue tracker, a user-passed path, or a spec file under docs/, specs/, or .scratch/), authors specs from those + the `bruno/<domain>/<endpoint>.yml` `docs:` contract, runs the suite, maps pass/fail to each AC; a ticket with no AC section runs without the AC gate. Three-layer verify: e2echeck.py coverage tripwire + fresh-eyes + completeness. Only HTTP-observable ACs are gated; a non-observable one (log/PII) is a declared it.skip with a reason. Use when you write, generate, or run AC-driven HTTP e2e."
 ---
 
 # E2E Playwright (AC-driven HTTP e2e)
@@ -55,16 +55,18 @@ What the specs must reflect: read it yourself, never from a summary. Look for ac
   2. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), or the originating ticket fetched via `docs/agents/issue-tracker.md`. Local tracker: `.scratch/<feature>/issues/<NN>-<slug>.md`.
   3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
   4. **no AC section anywhere → no-AC mode**: the ticket has no acceptance criteria. Do **not** stop:
-     author + run e2e from the api-spec contract + the endpoints under test, without the AC gate (see
+     author + run e2e from the `bruno/<domain>/<endpoint>.yml` `docs:` contract + the endpoints under test, without the AC gate (see
      the no-AC notes in Steps 2-4). e2e does **not** invent or number ACs: numbered ACs are the
      ticket/spec's responsibility.
 - **AC ids:** if the source already numbers criteria `AC-NNN`, those are the test targets. If the
   source is a ticket whose Acceptance criteria are unlabeled checkboxes (`- [ ] …`), number them
   `AC-001…` in listed order and use those ids in titles. A `Deferred-ACs:` line in the source is
   honoured either way.
-- **Wire contract**: the api-spec at `docs/api/<domain>/<endpoint>.yaml` (authored by the
-  `api-spec` skill): the method/path, request/response field shape, status codes, and the stable
-  **error codes** the AC expects. Assert against this, not a guess.
+- **Wire contract**: the `docs:` block of `bruno/<domain>/<endpoint>.yml` (authored by the
+  `bruno` skill): the method/path, request/response field shape (`### Body (JSON)` and
+  `### HTTP Status: N` tables), status codes, and the stable **error codes** the AC expects (the
+  request's `### Error Responses` table and the collection root's `## Common Error Responses` in
+  `bruno/opencollection.yml`). Assert against this, not a guess.
 - **Card**: `<CARD>` in the title prefix is the ticket identifier: the issue number (`#123`), the
   local ticket slug (`01-add-endpoint`), or the tracker key (`GI-74`) if that is what the
   configured tracker uses. Pull it from the ticket.
@@ -84,7 +86,7 @@ Write per [`references/e2e-template.md`](references/e2e-template.md). In short:
   seed/assert; follow the existing spec's per-spec **created-data teardown** in `afterAll`. Reach
   error paths through the project's fault **sentinels** when they exist (e.g. a `NODEFAIL` id), do
   not fake a 500.
-- **Assert the contract**: status code + the actual success/error body + the api-spec's stable
+- **Assert the contract**: status code + the actual success/error body + the contract's stable
   error code, per the AC. For common-lib catalog errors, assert exactly `responseCode`, `errorCode`,
   `errorMessage` (not a success `StandardResponse` or `errors[]`); status follows `responseCode`.
   The shared contract is [`errors.md`](../init-project/assets/template/.kiro/steering/errors.md).
@@ -161,7 +163,7 @@ yourself.
 <e2e-root>/specs/*.e2e.ts
 
 ## Source-of-intent
-<paste: the ticket/spec path + the api-spec endpoint YAML>
+<paste: the ticket/spec path + the `bruno/<domain>/<endpoint>.yml`>
 
 End with Status: DONE | DONE_WITH_CONCERNS | BLOCKED
 ```
@@ -175,7 +177,7 @@ L1/L2 inspect what is present; L3 catches what is **missing entirely**. Re-enume
 Ready-AC inventory** from the source-of-intent and confirm: every Ready AC has either a passing
 `it()` or a justified `it.skip`; every endpoint the ACs touch has at least one test; no whole AC was
 silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC inventory, sweep the
-**endpoint inventory** instead: every endpoint the api-spec under test defines has at least one `it()`.
+**endpoint inventory** instead: every endpoint the contract under test defines has at least one `it()`.
 
 ### Output
 
@@ -201,7 +203,7 @@ silently dropped. Report any gap; fix → re-run L1. **No-AC mode:** with no AC 
   suite. This skill is the HTTP acceptance gate; the two are complementary, not substitutes.
 - **Not** a browser / DOM / UI tester: browser testing is out of scope here; Playwright is
   only an HTTP client in this harness.
-- **Not** an api-spec author: the wire contract is authored by **`api-spec`** (`docs/api/*.yaml`);
+- **Not** a contract author: the wire contract is authored by **`bruno`** (`bruno/<domain>/<endpoint>.yml` `docs:`);
   this skill *reads* it to know the status codes + error codes to assert.
 - **Not** a harness scaffolder: if no `tests/e2e` Jest+Playwright harness exists, it reports and
   stops rather than inventing one.

@@ -116,5 +116,5 @@ make migration-up               # apply  (⚠️ never run migration-down on UAT
   image (docker-compose **builds** it, does not mount it). For a local `go run` the empty skeleton
   dials Postgres best-effort and serves `/health` regardless; override hosts to `localhost` via
   those env vars once you need the database.
-- `bruno/` (runnable Bruno OpenCollection) is generated from the `docs/api/*.yaml` api-spec by
-  the `open-collection` skill: regenerate rather than hand-edit (see `bruno.md`).
+- `bruno/` (runnable Bruno OpenCollection) is the API source of truth, authored with the
+  `bruno` skill (contract in each request's `docs:`; see `bruno.md`).

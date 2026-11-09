@@ -211,8 +211,8 @@ Pass `errorCatalog` down to `router` / `middleware.Setup`. An invalid catalog st
 3. Add the `Ref`, its constructor, and the `Ref` in `ErrorRefs()`.
 4. Raise it from the usecase (map the port error); add the usecase to `raisedBy`. A new usecase that
    raises an existing code is added to that code's `raisedBy`.
-5. Tests per the table; update the endpoint's `errors` in `docs/api/**` and the Appendix-E table in the
-   spec.
+5. Tests per the table; update the endpoint's `### Error Responses` table in
+   `bruno/<domain>/<endpoint>.yml` and the Appendix-E table in `README.md`.
 
 ## Don'ts
 

@@ -11,7 +11,7 @@ deterministic L1 check (`e2echeck.py`) ran. The script validated **coverage + gr
 in the source is traced by an `it()` (active), an `it.skip()` with a reason (declared
 non-observable), or a `Deferred-ACs:` line in the spec (declared deferred), and the
 `[<CARD> - AC-NNN]` title prefix is well-formed. Your job is to read the
-**acceptance criteria** (the originating ticket/spec + the api-spec the specs are *supposed* to test) **and** the
+**acceptance criteria** (the originating ticket/spec + the `bruno/<domain>/<endpoint>.yml` `docs:` contract the specs are *supposed* to test) **and** the
 authored specs independently, and judge the **semantic fidelity** the script structurally cannot , 
 that independence is your entire value.
 
@@ -34,21 +34,21 @@ spec** rather than an AC quietly parked to make the gate green.
 - The **specs under review**: `<e2e-root>/specs/*.e2e.ts` (paths in your dispatch).
 - The **source-of-intent** (paths in your dispatch): the acceptance criteria (the originating ticket/spec
   fetched via the issue tracker, a user-passed path, or a file under `docs/`, `specs/`, or `.scratch/`)
-  and the api-spec endpoint YAML (`docs/api/<domain>/*.yaml`). This is the ground
+  and the endpoint's `bruno/<domain>/<endpoint>.yml` `docs:`. This is the ground
   truth the specs must reflect; read it yourself, never from a summary. **No-AC mode:** if the ticket
-  has no ACs, verify the specs against the api-spec contract + the endpoints instead.
+  has no ACs, verify the specs against the `docs:` contract + the endpoints instead.
 
 ## Never guess
 
 Anything unclear or unresolvable (an AC whose expected outcome you cannot locate, an error code not
-in the api-spec) → report it as an **UNVERIFIED** finding stating *what* is missing and *why* it
+in the `docs:` contract) → report it as an **UNVERIFIED** finding stating *what* is missing and *why* it
 matters. Do not assume a convention, do not invent an expected status. An honest "could not verify
 X" beats a confident guess.
 
 ## What to verify (semantic / judgment only: never what the script already did)
 
 1. **The assertion proves the AC.** Each `it()` asserts the AC's **expected HTTP status** AND the
-   api-spec's **stable error `code`** (for failure ACs) or the **response shape** (for success ACs)
+   contract's **stable error `code`** (for failure ACs) or the **response shape** (for success ACs)
   : not just `res.status`, and not a weaker check than the AC demands. A test that would pass even
    if the behavior were wrong is a **vacuous** test → WRONG.
 2. **`it.skip` reasons are legitimate.** Each declared-non-observable AC is *genuinely* impossible to
@@ -58,7 +58,9 @@ X" beats a confident guess.
 3. **Error paths are reached honestly.** A test claiming a 4xx/5xx actually triggers it (a real bad
    input, or a project fault **sentinel**), not a hardcoded expectation that can never fire.
 4. **No invented surface.** The path, params, status codes, and error codes asserted exist in the
-   api-spec / design docs. A test asserting an endpoint or code the contract does not define → WRONG.
+   `docs:` contract / design docs: an error code in the request's `### Error Responses` table or the
+   collection root's `## Common Error Responses` (`bruno/opencollection.yml`). A test asserting an
+   endpoint or code the contract does not define → WRONG.
 5. **Expected outcome matches the AC.** The title's `→ <expected>` and the assertion agree with the
    AC's stated outcome (right status, right code): no test that quietly asserts a different result
    than the criterion specifies.

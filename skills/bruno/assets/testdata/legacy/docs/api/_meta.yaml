@@ -1,0 +1,15 @@
+title: Legacy Service API Documentation
+version: "1.0"
+base_url: /
+overview: |
+  Legacy service used by the migration tests.
+field_info:
+  Account Type:
+    - { code: SA, description: Saving }
+    - { code: FD, description: Fixed Deposit }
+common_errors:
+  - { status: 400, responseCode: "001", code: LEG-1001, message: "Mandatory field missing", description: "A required field is absent" }
+domains:
+  Account: { seq: 10 }
+extra_endpoints:
+  - { domain: Health, method: GET, path: /health, description: 'Liveness probe, returns {"status":"ok"}' }

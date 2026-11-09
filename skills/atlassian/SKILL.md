@@ -9,8 +9,7 @@ description: >
   Jira/Confluence CLI action ("ดู issue ของฉัน", "view my issues",
   "transition ไป In Progress", "สร้าง bug ใน Jira", "search ด้วย JQL",
   "ดู sprint ปัจจุบัน", "ดู Confluence page", "list spaces", or any raw acli
-  operation). Ingesting a card into `docs/knowledge/` is `markitdown`. Publishing
-  generated API docs to Confluence is `confluence-api-doc` (acli cannot write pages).
+  operation). Ingesting a card into `docs/knowledge/` is `markitdown`.
 metadata:
   version: "2.0"
 ---
@@ -141,9 +140,6 @@ find unassigned bugs), each with its safety steps inline, read
   Use `storage` by default (leanest, structure-clean); if the page is macro-heavy and the
   output fills with `<ac:…>` tags, switch to `--body-format view` (fully rendered HTML).
 - Creating / updating a Confluence page: use the Confluence REST API directly (curl).
-- **Publishing generated API docs to Confluence:** use the `confluence-api-doc` skill when
-  that skill is in this repo (it owns the REST publish + round-trip verify). Do not
-  reimplement that here.
 - Space lifecycle (`list` / `view` / `create` / `update` / `archive` / `restore`) *is*
   supported via acli.
 

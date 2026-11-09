@@ -1,0 +1,25 @@
+opencollection: 1.0.0
+
+info:
+  name: Fixture Service
+
+bundled: false
+
+docs: |-
+  ## Overview
+
+  Fixture service used by the parser and checker tests.
+
+  ## Error Response Body
+
+  | Field Name | Type | Mandatory | Description | Possible Value |
+  |---|---|---|---|---|
+  | responseCode | String | Yes | Response code | `"001"` |
+  | errorCode | String | Yes | Error code | `"FIX-1001"` |
+  | errorMessage | String | Yes | Error message | `"Mandatory field missing"` |
+
+  ## Common Error Responses
+
+  | Status | Response Code | Error Code | Error Messages | Description |
+  |---|---|---|---|---|
+  | 400 | 001 | FIX-1001 | Mandatory field missing | A required field is absent |

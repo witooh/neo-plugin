@@ -43,7 +43,8 @@ domain work.
 - **Agentic context**: `.kiro/steering/*` (generic guides + an empty-service `repo-instance.md`),
   `CLAUDE.md` (thin index over steering). **No** `.kiro/skills` or `.kiro/agents` in the template ,
   those install from the neo plugin / `kiro.sh`, not per service.
-  `bruno/` + `mockoon/` shells (READMEs + env; collections/stubs regenerate per-domain).
+  `bruno/` + `mockoon/` shells (READMEs + env; requests are authored per domain with the `bruno`
+  skill, stubs regenerate per domain).
   - **`CLAUDE.md` is gitignored by design** (`template/.gitignore`): this is a **Kiro-first**
     layout: `.kiro/` steering is the source of truth. The scaffold *creates* `CLAUDE.md` (so Claude
     Code users have it locally), but the generated project keeps it **untracked**, so teammates who

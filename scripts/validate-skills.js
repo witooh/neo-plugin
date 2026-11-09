@@ -54,6 +54,10 @@ const DEAD_SKILLS = [
 	"test-driven-development",
 	"sync-upstream",
 	"using-neo",
+	"api-spec",
+	"open-collection",
+	"openapi-doc",
+	"confluence-api-doc",
 ];
 
 function parseFrontmatter(text) {

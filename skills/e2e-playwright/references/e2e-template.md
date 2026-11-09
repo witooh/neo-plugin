@@ -120,7 +120,7 @@ describe("GET /products/eligibles: Eligible Products [GI-74]", () => {
       const res = await api.get<SuccessEnvelope<EligibleData>>(`${PATH}?customer_id=${C001}`);
       expect(res.status).toBe(200);
       expect(res.body.status).toBe("Success");
-      // assert the contract shape the api-spec defines …
+      // assert the contract shape the request's `docs:` defines …
     });
   });
 

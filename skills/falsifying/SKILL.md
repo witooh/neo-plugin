@@ -54,7 +54,7 @@ Real findings from this technique:
 A fact stated in more than one place is a fact that has already drifted somewhere.
 
 1. **Enumerate every source.** For an endpoint path: the router, the router test, the e2e specs,
-   the API spec YAML, the generated index, the Bruno collection. Six places, one fact.
+   the Bruno request's `http.url`, and its `docs:` `### Endpoint`. Five places, one fact.
 2. **Diff them pairwise** and write the table. Do not stop at the first disagreement, measured
    once: three sources disagreed with each other in three different ways.
 3. **Decide which one is the truth from evidence**, not from hierarchy. Running code with a

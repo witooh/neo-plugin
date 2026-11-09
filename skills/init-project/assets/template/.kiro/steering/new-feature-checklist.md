@@ -56,4 +56,4 @@ when you open those files.
 - [ ] `make compose-up` **then** `make test-e2e` (rebuild first).
 
 ## 11. API collection (`bruno.md`): optional
-- [ ] Add a request file under `bruno/<resource>/`; update `openapi.yaml`.
+- [ ] Add or update the request under `bruno/<resource>/` with the `bruno` skill (contract in `docs:`).

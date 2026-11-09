@@ -1,0 +1,86 @@
+info:
+  name: Create Account
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/v1/accounts"
+  body:
+    type: json
+    data: |-
+      {
+        "customerId": "{{customerId}}",
+        "accountType": "SA",
+        "items": [{"code": "X1"}]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("status is 201", function() { expect(res.status).to.equal(201); });
+
+settings:
+  encodeUrl: true
+
+docs: |-
+  ## Purpose
+
+  Open an account. Values are `SA` \| `FD`.
+
+  ## Request
+
+  ### Endpoint
+
+  `POST /v1/accounts`
+
+  ### Auth
+
+  `None`
+
+  ### Body (JSON)
+
+  | Field Name | Type | Mandatory | Description | Possible Value |
+  |---|---|---|---|---|
+  | customerId | String | Yes | Owner | `"uuid-v4"` |
+  | accountType | String | Yes | `SA` \| `FD` | `"SA"` |
+  | items | Array | No | Extra items | `[{…}]` |
+  | items[].code | String | Yes | Item code | `"X1"` |
+
+  ### Example
+
+  ```json
+  {"customerId": "uuid-v4", "accountType": "SA", "items": [{"code": "X1"}]}
+  ```
+
+  ## Response
+
+  ### HTTP Status: 201
+
+  Created.
+
+  | Field Name | Type | Mandatory | Description | Possible Value |
+  |---|---|---|---|---|
+  | status | String | Yes | Envelope status | `"Success"` |
+  | data | Object | Yes | Payload | see below |
+  | data.accountId | String | Yes | New id | `"uuid-v4"` |
+
+  All fields are always present.
+
+  ### Example
+
+  ```json
+  {"status": "Success", "data": {"accountId": "uuid-v4"}}
+  ```
+
+  ### Error Responses
+
+  | Status | Response Code | Error Code | Error Messages | Description |
+  |---|---|---|---|---|
+  | 400 | 001 | FIX-1002 | Invalid field format | Malformed field |
+
+  ## Business Logic
+
+  1. Validate, then create.

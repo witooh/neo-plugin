@@ -1,0 +1,16 @@
+opencollection: 1.0.0
+
+info:
+  name: Legacy Service API
+
+docs: |-
+  # Legacy Service API Documentation
+
+  **Version:** 1.0
+  **Base URL:** `/`
+
+  ## Overview
+
+  Legacy service used by the migration tests.
+
+bundled: false

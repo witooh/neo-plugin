@@ -3,10 +3,9 @@
 Git-native API collection for driving the neo-service HTTP API locally. Open this folder in
 [Bruno](https://www.usebruno.com/) (File → Open Collection) and select the **local** environment.
 
-This collection is **generated from the api-spec** at `docs/api/*.yaml` by the `open-collection`
-skill: regenerate rather than hand-edit (see `.kiro/steering/bruno.md`). A freshly scaffolded
-service has no endpoints yet; neo's Architect authors the api-spec as it adds the first domain,
-then regenerate to populate the resource folders below.
+This collection is the **API source of truth**, authored with the `bruno` skill (see
+`.kiro/steering/bruno.md`). Each request's `docs:` block holds its contract. A freshly scaffolded
+service has no endpoints yet; add a request under `<resource>/` as each endpoint is built.
 
 ## Layout
 
@@ -14,7 +13,7 @@ then regenerate to populate the resource folders below.
 bruno/
 ├── opencollection.yml          # collection root
 ├── environments/local.yml      # baseUrl (point at your running service)
-└── <resource>/                 # one folder per resource: open-collection generates these
+└── <resource>/                 # one folder per resource, one request per endpoint
 ```
 
 ## Prerequisites

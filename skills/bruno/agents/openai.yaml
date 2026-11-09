@@ -1,0 +1,3 @@
+interface:
+  display_name: "Bruno"
+  short_description: "Bruno collection as API source of truth"

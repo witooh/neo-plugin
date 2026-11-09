@@ -122,20 +122,20 @@ source of truth for it is `docs/knowledge/`, which holds the ingested originals:
 verbatim requirement captures, and their provenance.
 
 ```
-code ← api-spec ← ticket/spec ← docs/knowledge/{contracts,requirements}/ ← the originating issue
+code ← bruno ← ticket/spec ← docs/knowledge/{contracts,requirements}/ ← the originating issue
 ```
 The mechanical half: every enum, code, and constant the contract promises that appears **nowhere**
 in the ingested originals. Each hit was invented downstream by a person or a model, and no test
 ever disagreed with it:
 
 ```bash
-for c in $(grep -rhoE '"[A-Z_]{6,}"' docs/api/*/*.yaml | tr -d '"' | sort -u); do
-  grep -rqi "$c" docs/knowledge/ || echo "$c"
-done
+{ grep -rhoE '`"?([A-Z][A-Z0-9_]{5,}|[A-Z]{2,3}-[0-9]{4})"?`' bruno --include='*.yml' | tr -d '`"'
+  grep -rhE '^\s*\| *[0-9]{3} *\|' bruno --include='*.yml' | awk -F'|' '{gsub(/[ `]/,"",$4); if ($4!="") print $4}'
+} | sort -u | while read -r c; do grep -rqi -- "$c" docs/knowledge/ || echo "$c"; done
 ```
 
 An empty result is a real result here, so confirm the check still bites before trusting it: add a
-fake code to a scratch copy of the spec and check it is listed.
+fake code to a scratch copy of a request's `### Error Responses` table and check it is listed.
 
 The judgment half: walk the chain and compare meaning, not shape:
 
@@ -164,10 +164,10 @@ ingestion is a transcription step and transcriptions lose things.
 Everything the contract promises but nothing tests. Mechanically diffable:
 
 ```bash
-# error codes declared in the API spec
-grep -h "code:" docs/api/*/*.yaml | sed 's/.*code: *//;s/[",]//g' | sort -u > /tmp/declared
+# error codes declared in the collection's Error Responses tables
+grep -rhE '^\s*\| *[0-9]{3} *\|' bruno --include='*.yml' | awk -F'|' '{gsub(/[ `]/,"",$4); if ($4!="") print $4}' | sort -u > /tmp/declared
 # error codes any e2e actually asserts
-grep -rhoE '"[A-Z_]{6,}"' tests/e2e/specs/*.ts | tr -d '"' | sort -u > /tmp/asserted
+grep -rhoE '"([A-Z_]{6,}|[A-Z]{2,3}-[0-9]{4})"' tests/e2e/specs/*.ts | tr -d '"' | sort -u > /tmp/asserted
 comm -23 /tmp/declared /tmp/asserted
 ```
 

@@ -5,7 +5,8 @@ fileMatchPattern: "**/bruno/**"
 
 # API Request Collection (Bruno OpenCollection)
 
-`bruno/` is a runnable **OpenCollection 1.0** for exercising the HTTP API. Requests are
+`bruno/` is a runnable **OpenCollection 1.0** and the **API source of truth**: each request's
+`docs:` block is the contract for its endpoint. Author it with the `bruno` skill. Requests are
 grouped by resource, mirroring the handler packages.
 
 ```
@@ -13,8 +14,8 @@ bruno/
     opencollection.yml         collection root
     environments/<env>.yml     variables per environment (baseUrl, IDs, sentinels)
     <resource>/<operation>.yml one request per usecase endpoint (e.g. order/get-order.yml)
+    <resource>/folder.yml      folder info + auth/headers (every folder that holds requests)
     README.md
-    openapi.yaml               OpenAPI spec (separate artifact, not part of the runnable collection)
 ```
 
 ## Collection root: `opencollection.yml`
@@ -24,6 +25,8 @@ opencollection: 1.0.0
 info:
   name: <Service> API
 bundled: false
+docs: |-                        # must hold ## Overview, ## Error Response Body, ## Common Error Responses
+  ...
 extensions:
   bruno:
     ignore: [node_modules, .git]
@@ -47,39 +50,61 @@ variables:
 
 ## Request: `<resource>/<operation>.yml`
 
+Top-level order is `info → http → runtime → settings → docs`.
+
 ```yaml
 info:
   name: Get Order
   type: http
-  seq: 10                       # ordering within the folder (and for chained runs)
+  seq: 10                       # unique within the folder (and for chained runs)
 
 http:
   method: GET
   url: "{{baseUrl}}/orders/{{orderId}}"
-  # body: { mode: json, json: "..." }   # for POST/PUT
+  # body: { type: json, data: "..." }   # for POST/PUT
 
 runtime:
   scripts:
     - type: tests               # assertions run after the response
       code: |-
         test("status is 200", function () { expect(res.status).to.equal(200); });
-        test("has status", function () { expect(res.body.data.status).to.be.a("string"); });
     # - type: after-response     # capture an id into an env var to chain later requests
 
 settings:
   encodeUrl: true
-  timeout: 0
-  followRedirects: true
-  maxRedirects: 5
 
-docs: |
+docs: |-
   ## Purpose
   ...
   ## Request
+  ### Endpoint
   `GET /orders/{orderId}`
+  ### Auth
+  `None`
+  ### Path Parameters
+  | Field Name | Type | Mandatory | Description | Possible Value |
+  |---|---|---|---|---|
+  | orderId | String | Yes | Order id | `"00000000-0000-0000-0000-000000000001"` |
   ## Response
-  `200`: `{ orderId, status }`; `404`: unknown order ID.
+  ### HTTP Status: 200
+  | Field Name | Type | Mandatory | Description | Possible Value |
+  ### Error Responses
+  | Status | Response Code | Error Code | Error Messages | Description |
 ```
+
+## `docs:` rules
+
+- Required: `## Purpose`, `## Request` (`### Endpoint`, `### Auth`) and `## Response`. `### Endpoint` is one
+  `METHOD /path` line that matches `http.method` and `http.url` (`{id}` is `:id`).
+- Field tables use exactly `Field Name | Type | Mandatory | Description | Possible Value`.
+  `Type` is `String`, `Number`, `Boolean`, `Object` or `Array`; `Mandatory` is `Yes` or `No`.
+  Nest with dot-paths (`data.id`, `items[].code`) and give every nested row a parent row.
+- A `### Body (JSON)` table is followed by a `### Example` that parses as JSON and covers every `Yes` row.
+- `### Error Responses` lists endpoint-specific errors only, with columns
+  `Status | Response Code | Error Code | Error Messages | Description`. The common-lib body
+  (`responseCode`, `errorCode`, `errorMessage`) is documented once in the `opencollection.yml` `docs:`.
+- `docs:` is read by the teams that call the API: no ticket or AC IDs, internal repo paths, or
+  working notes.
 
 ## Conventions
 
@@ -87,5 +112,3 @@ docs: |
 - Reference everything mutable through **env variables**; bake nothing host- or data-specific into the request.
 - Use **sentinel IDs** that match the stub/seed data so requests are deterministic.
 - Chain dependent requests with an **after-response** script that writes an id into an env var, and order with `seq`.
-- Put a short **`docs`** block (purpose + request + response/error summary) in every request, it is the human-facing contract.
-- Keep `openapi.yaml` (the spec) and the runnable collection consistent, but they are separate artifacts.

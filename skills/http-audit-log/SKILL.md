@@ -122,7 +122,7 @@ Done when the script exits 0 and the tests above are green.
 
 - **Not** `created_by` / `updated_by` / `mobile:<id>` actor columns. Same MR
   shipped that for account-open only; this skill does not.
-- **Not** an API spec, Bruno collection, or Confluence page (`api-spec` /
-  `open-collection` / `confluence-api-doc`).
+- **Not** an API spec, Bruno collection, or Confluence page (`bruno`
+  owns the Bruno collection).
 - **Not** a new e2e harness (`e2e-playwright` authors AC tests on an existing
   one).

@@ -2,9 +2,9 @@
 
 Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT). No router, no bundled workflow.
 
-neo is a skill pack: 19 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
+neo is a skill pack: 16 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
 
-- **advice-mode** is user-invoked. The other 18 are model-invoked.
+- **advice-mode** is user-invoked. The other 15 are model-invoked.
 - **Your git stays yours.** Commit / push only when you ask, through `gitlab`.
 
 ## Install
@@ -125,14 +125,11 @@ From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. 
 | `bug-hunter`     | Latent defects no gate covers                               |
 | `attack-test`    | Live HTTP abuse paths after happy path                      |
 
-**The API contract chain**
+**The API contract**
 
 | Skill                | Purpose                                                          |
 | -------------------- | ---------------------------------------------------------------- |
-| `api-spec`           | Custom-YAML contract at `docs/api/` — spec-first source of truth |
-| `openapi-doc`        | Go vs `docs/api/` drift report                                   |
-| `open-collection`    | Bruno collection from the spec                                   |
-| `confluence-api-doc` | Publish API docs to Confluence                                   |
+| `bruno`              | Bruno collection at `bruno/`: API source of truth, drift check, migration |
 
 **Shaping a service**
 

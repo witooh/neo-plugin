@@ -50,7 +50,7 @@ inside this skill unless the user explicitly asks to fix after the report.
 4. **Stay in scope**: sentinel/test customers only; never thrash production data.
 5. **Evidence = request/response**: every finding cites status + app error code or settle field.
 6. **Fix must point somewhere**: file/function/missing check, or mark `[INFERENCE]` if source was not opened.
-7. **Never invent wire fields**: pull names from compose / bruno / e2e / api-spec / knowledge.
+7. **Never invent wire fields**: pull names from compose / bruno / e2e / knowledge.
 
 ## Inputs (collect before firing)
 

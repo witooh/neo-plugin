@@ -28,7 +28,7 @@ grok plugin enable neo
 
 `--trust` is required by the CLI. `enable` is separate: Grok leaves plugins off until they are listed in `[plugins].enabled` or enabled in the Plugins tab (`/plugins`, then Space).
 
-Start a new session after enabling. Skills show up as slash commands (`/api-spec`, `/gitlab`, …). When a name collides, Grok shows the qualified form `/neo:api-spec`.
+Start a new session after enabling. Skills show up as slash commands (`/bruno`, `/gitlab`, …). When a name collides, Grok shows the qualified form `/neo:bruno`.
 
 ## Update / uninstall
 

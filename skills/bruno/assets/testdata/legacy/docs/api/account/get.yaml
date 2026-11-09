@@ -1,0 +1,22 @@
+endpoint: Get Account
+domain: Account
+method: GET
+path: /v1/accounts/{accountId}
+auth: None
+description: |
+  Read one account.
+path_params:
+  - { name: accountId, description: Account id, type: String, mandatory: M, example: "uuid-v4", remark: "" }
+responses:
+  - status: 200
+    description: OK
+    fields:
+      - { name: status, description: Envelope status, type: String, mandatory: M, example: "Success" }
+      - { name: data, description: Payload, type: Object, mandatory: M, object: AccountResponse }
+    objects:
+      AccountResponse:
+        - { name: accountId, description: Account id, type: String, mandatory: M, example: "uuid-v4" }
+    example: |
+      {"status": "Success", "data": {"accountId": "uuid-v4"}}
+business_logic: |
+  1. Look up the account by id.
