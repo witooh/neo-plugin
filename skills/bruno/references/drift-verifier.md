@@ -68,9 +68,9 @@ The drift check recomputes Mandatory from the Go struct tags and compares it to 
 **Response structs:** pointer or `json:",omitempty"` → **No**; otherwise → **Yes**.
 
 A request field without `required` is **No** because the binding accepts a missing field and Go leaves
-its zero value: the sender may omit it. Query params from inline `c.Query(...)` are **handler-inline**, not struct fields → the
-drift check leaves them to you (`No` by default, `Yes` only if the handler errors when empty, read the
-handler).
+its zero value: the sender may omit it. Query params from inline `c.Query(...)` are **handler-inline**,
+not struct fields → the drift check leaves them to you (`No` by default, `Yes` only if the handler errors
+when empty, read the handler).
 
 Type mapping the script applies (anything else is skipped, never drift): `string` → `String`; integer,
 float, `byte`, `rune` → `Number`; `bool` → `Boolean`; `[]T` → `Array`; `map[string]T` → `Object`;
@@ -124,7 +124,7 @@ Do not duplicate elsewhere; reference this.
 
 ### Routes (D1)
 - [ ] Every route in Go code has a `bruno/<domain>/<endpoint>.yml` request, and every request maps to a
-      real route (no orphan / unconfirmed documented-first-pending)
+      real route (no orphan)
 - [ ] Path + method match (normalised, base-URL-suffix-tolerant); a one-sided route is reported with its
       direction
 

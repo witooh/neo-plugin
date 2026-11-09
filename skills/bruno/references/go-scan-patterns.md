@@ -149,8 +149,8 @@ type CreateUserRequest struct {
 - `json:"name"` → field name in JSON
 - `json:",omitempty"` → optional field
 - `validate:"required"` or `binding:"required"` → mandatory (M)
-- `validate:"min=X,max=Y"` → range constraint (note in Remark)
-- `validate:"oneof=a b c"` → enum values (note in Remark)
+- `validate:"min=X,max=Y"` → range constraint (state it in Description)
+- `validate:"oneof=a b c"` → enum values (list them in Description, as `docs-template.md` §Table rules shows)
 
 **M/O Classification for Request Fields:**
 
@@ -243,19 +243,19 @@ type Response struct {
 
 Document the response as the full envelope:
 
-| Field Name | Type | Description | Remark |
-|------------|------|-------------|--------|
-| `success` | Boolean | Operation result | |
-| `data` | Object | Response payload | See ConsentResponse Object below |
-| `message` | String | Status message | |
+| Field Name | Type | Mandatory | Description | Possible Value |
+|---|---|---|---|---|
+| success | Boolean | Yes | Operation result | `true` |
+| data | Object | Yes | Response payload | see below |
+| message | String | Yes | Status message | `"OK"` |
 
-Then add a sub-table for the inner data object.
+Then list the inner object's fields in the same table as `data.<field>` rows.
 
 **If no wrapper** (direct struct return), document the struct fields as the top-level response.
 
-**List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields, `data` as `Array` with a sub-table for the item type, plus `total`/`page`/etc. as their own rows.
+**List / pagination envelope** (`{data: [...], total, page}`): document the envelope fields, `data` as `Array` with one `data[].<field>` row per item field, plus `total`/`page`/etc. as their own rows.
 
-**Error envelope:** compare the custom-YAML error response fields/examples separately from success. Error rows carry HTTP `status`, structured `responseCode` (common-lib), `code` and/or `message`, plus the rejection description. Do not treat prose in `description` as the response-code field or introduce OpenAPI `components.responses` into this custom-YAML spec.
+**Error envelope:** document error bodies separately from success, in the `Status | Response Code | Error Code | Error Messages | Description` table (`docs-template.md`). Each row carries the HTTP status, the common-lib `responseCode`, the error code and message, plus the rejection description. Do not put the response code in Description prose.
 
 ### Response Discovery Fallbacks
 
@@ -431,8 +431,8 @@ const (
 ```
 
 - Document the underlying type (`String`) in the Type column
-- List all enum values in the Remark column: `"active"`, `"revoked"`, `"expired"`
-- For `decimal.Decimal` → document as `String` (JSON representation) with Remark: `"decimal number as string"`
+- List all enum values in the Description column (`active`, `revoked`, `expired`, pipe-separated per `docs-template.md`) and put one of them in Possible Value: `"active"`
+- For `decimal.Decimal` → document as `String` (JSON representation) with Description: `decimal number as string`
 
 **How to find:** when you see a non-primitive type, `Grep` for `type <TypeName>` to find its definition and constants.
 
@@ -450,8 +450,8 @@ type ConsentItem struct {
 }
 ```
 
-- Parent table: `items` → Type: `Array`, Remark: `See ConsentItem Object below`
-- Add a separate sub-table for `ConsentItem` with all its fields
+- Parent row: `items` → Type: `Array`, Possible Value: `[{…}]`
+- Then one `items[].<field>` row per `ConsentItem` field, in the same table
 
 ### Map Fields
 
@@ -461,7 +461,7 @@ type MetadataResponse struct {
 }
 ```
 
-- Document as Type: `Object`, Remark: `"key-value pairs, dynamic structure"`
+- Document as Type: `Object`, Description: `key-value pairs, dynamic structure`
 
 ### Excluded Fields: Do NOT Document
 
@@ -841,10 +841,10 @@ Convert the handler's exported receiver method name from PascalCase to kebab-cas
 
 | Function Name | File Name |
 |---------------|-----------|
-| `AcceptConsent` | `accept-consent.md` |
-| `GetConsentHistory` | `get-consent-history.md` |
-| `CreateChannel` | `create-channel.md` |
-| `GetAllChannels` | `get-all-channels.md` |
+| `AcceptConsent` | `accept-consent.yml` |
+| `GetConsentHistory` | `get-consent-history.yml` |
+| `CreateChannel` | `create-channel.yml` |
+| `GetAllChannels` | `get-all-channels.yml` |
 
 To find the function name, look for the exported receiver method in each Go file:
 ```go
@@ -854,7 +854,7 @@ func (h *ConsentHandler) AcceptConsent(c *gin.Context) { ... }
 
 ### Single-File Handler Edge Case
 
-If a group directory contains only `handler.go` (no separate action files), extract all exported receiver methods from `handler.go` itself, each method becomes a separate endpoint doc file.
+If a group directory contains only `handler.go` (no separate action files), extract all exported receiver methods from `handler.go` itself, each method becomes a separate request file.
 
 ### Flat Structure Fallback
 

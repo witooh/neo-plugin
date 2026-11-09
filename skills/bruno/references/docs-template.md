@@ -118,7 +118,8 @@ A passing root: `assets/testdata/good/opencollection.yml`.
   `001`→400, `002`→400, `003`→404, `004`→409, `005`→503, `006`→504, `999`→500.
   A partner contract may leave Response Code blank.
 - `Mandatory: Yes` means the field is always required. "Required when X" is `No`, with the condition
-  in Description.
+  in Description. In a response table, `Yes` means the key is always present; a pointer or
+  `omitempty` field is `No`.
 - Possible Value is a JSON literal in backticks (`` `"SA"` ``, `` `100` ``); object and array parent
   rows may say `see below` or `` `[{…}]` ``.
 - Error Messages is a column title; the wire field stays `errorMessage`. Keep absent values blank;
