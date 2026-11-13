@@ -72,6 +72,7 @@ variables:
 - Always emit `baseUrl` even if the code uses a different name: the user can rename.
 - Add a variable for each `{{<name>}}` reference in request URLs, headers, params, bodies or auth. K8 counts both `environments/` and the request's own `runtime.variables` as definitions.
 - For values that look like secrets (token, pin, otp, password, key, secret, biometric, national_id, citizen_id where it's the *requester's* identity), emit them with `secret: true` and `value: ""`. K8 ERRORs on a committed value for `password` / `secret` / `token` / `bearer` / `otp` / `api key` names and NOTEs one for `pin` / `national` / `citizen` / `cif` / `biometric` names.
+- Values: `local` runs as committed and every other environment fills only `baseUrl` (SKILL.md Step 3, `environments/`). Keep each comment with its variable: edit these files as text.
 
 ---
 
@@ -103,7 +104,7 @@ docs: |-
 | `info.type` | yes | Always `folder`. |
 | `info.seq` | yes | Sort order among sibling folders. Assign 10, 20, 30… |
 | `request.headers` | no | Headers inherited by every request inside this folder. Lift here when every request shares the same header. |
-| `request.auth` | no | Auth inherited by child requests. Values: `inherit`, `none`, or an explicit auth block (see Auth Types). |
+| `request.auth` | no | Auth inherited by child requests: `inherit` or an explicit auth block (see Auth Types). Omitted when the folder's endpoints share no auth. |
 | `docs` | no | Domain prose for callers; omit when there is none. |
 
 ---
@@ -142,7 +143,7 @@ info:
 ```yaml
 http:
   method: POST
-  url: "{{baseUrl}}/api/v1/consents/:id"
+  url: "{{baseUrl}}/api/v1/consents/:id?page=1"
   params:
     - name: id
       value: "uuid-v4"
@@ -166,12 +167,12 @@ http:
 | Key | Required | Notes |
 |-----|----------|-------|
 | `method` | yes | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`. Matches the `### Endpoint` method (K2). |
-| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params: the `### Endpoint` line's `{id}` becomes `:id` here (K2). |
-| `params` | no | All path **and** query params declared explicitly. `type: path` or `type: query`. Every `:name` in the URL needs a `type: path` row (K3). |
+| `url` | yes | Always quoted when it contains `{{vars}}` or `:params`. Use Bruno-style `:name` for path params: the `### Endpoint` line's `{id}` becomes `:id` here (K2). Carries the query string too: Bruno CLI 3.3.0 sends only the query the url holds, never a `type: query` row on its own. |
+| `params` | no | All path **and** query params declared explicitly. `type: path` or `type: query`. Every `:name` in the URL needs a `type: path` row (K3); every `type: query` row is also in the URL's query string (K13). |
 | `headers` | no | Per-request headers only. Folder-level shared headers belong in `folder.yml`. |
 | `body.type` | only if body | `json`, `text`, `xml`, `form-urlencoded`, `multipart-form`, `graphql`. This skill emits `json` for application/json bodies; `form-urlencoded` for `application/x-www-form-urlencoded`. |
-| `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. Its key paths equal the `docs:` Body Example's (K5); values may differ and may be `{{vars}}`. |
-| `auth` | yes | `inherit` (default: read from `folder.yml`), `none`, or an explicit auth block. |
+| `body.data` | only if body | **String**, not a map. Use `|-` block scalar to preserve multi-line JSON formatting. Its key paths equal the `docs:` Body Example's (K5); values may differ and may be `{{vars}}`. A record id the request needs to exist is a `{{var}}`, and an optional id that turns a create into an update is left out (K14 NOTEs a literal id). |
+| `auth` | no | `inherit` when `folder.yml` sets the auth, or an explicit auth block. When `### Auth` is `None`: omitted, or `inherit` while no enclosing `folder.yml` sets an auth (K12). |
 
 ### `runtime`
 
@@ -181,11 +182,14 @@ runtime:
     - type: tests
       code: |-
         test("status is 201", function() { expect(res.status).to.equal(201); });
+    - type: after-response   # only in a request whose response holds an id later requests read
+      code: |-
+        bru.setVar("accountId", res.body.data.accountId);
 ```
 
 | Key | Required | Notes |
 |-----|----------|-------|
-| `scripts[].type` | yes | `tests` runs after the response. Bruno also accepts `before-request` and `after-response`; this skill writes only `tests` and preserves any others it finds. |
+| `scripts[].type` | yes | `tests` runs after the response. Bruno also accepts `before-request` and `after-response`; this skill writes `tests`, plus `after-response` in a request whose response holds an id that later requests read (`bru.setVar`), and preserves any others it finds. |
 | `scripts[].code` | yes | JavaScript string (`|-`). Assertions use Chai `expect` inside `test("<name>", function() { … })`. The response is `res`: `res.status` or `res.getStatus()`, `res.getBody()`. |
 | `variables[]` | no | `{ name, value }` request-scoped variables; `{{process.env.VAR}}` reads a real secret from the OS env. |
 
@@ -210,12 +214,12 @@ The endpoint's contract: Markdown generated from code, in a `|-` block scalar, a
 
 ## Auth Types
 
-`auth: inherit` is the default for request files; the actual auth is set on the folder. The explicit forms (used in `folder.yml.request.auth` when needed):
+A request whose folder sets the auth reads `auth: inherit`; the auth itself is set on the folder. A request with no auth has no `auth` key: on Bruno CLI 3.3.0 such a request sends no auth even inside a folder that sets one, and `auth: none` fails with `Unsupported auth type`. Under folders that set no auth, `auth: inherit` also runs on Bruno CLI 3.3.0, so K12 accepts it. The forms (the explicit ones go in `folder.yml.request.auth` when needed):
 
 | Type | YAML shape | When the skill emits it |
 |------|-----------|-------------------------|
-| `inherit` | `auth: inherit` | Default: request defers to folder, folder defers to parent. |
-| `none` | `auth: none` | `### Auth` is `None`. |
+| `inherit` | `auth: inherit` | The folder sets the auth: request defers to folder, folder defers to parent. Also accepted when `### Auth` is `None` and no enclosing folder sets an auth. |
+| no auth | no `auth` key | `### Auth` is `None`. Never `auth: none` (K12). |
 | `bearer` | `auth: { type: bearer, token: "{{auth_token}}" }` | `### Auth` is a Bearer/JWT token. |
 | `apikey` | `auth: { type: apikey, key: X-API-Key, value: "{{api_key}}", placement: header }` | `### Auth` is an API key. |
 | `basic` | `auth: { type: basic, username: "{{basic_user}}", password: "{{basic_pass}}" }` | `### Auth` is Basic auth. |
@@ -249,7 +253,7 @@ This skill only emits `json` and `form-urlencoded` automatically. Other types ar
 | `{{varName}}` | URL, headers, body string, params, auth fields | Read from environment or runtime variable. |
 | `{{process.env.VAR}}` | `runtime.variables[].value` only | Read from OS env (via `.env` file). Used for real secrets. The skill never writes a literal value here. K8 skips these. |
 | `bru.getEnvVar(name)` / `bru.setEnvVar(name, val)` | Scripts | Read/write env var from JS. Skill does not emit these; it preserves them. |
-| `bru.getVar(name)` / `bru.setVar(name, val)` | Scripts | Read/write collection-scoped runtime variable. Skill does not emit these; it preserves them. |
+| `bru.getVar(name)` / `bru.setVar(name, val)` | Scripts | Read/write a collection-scoped runtime variable, which overrides the environment variable of the same name. The skill emits `bru.setVar` only to store a run-time id (§`runtime`) and preserves any others. |
 
 ---
 

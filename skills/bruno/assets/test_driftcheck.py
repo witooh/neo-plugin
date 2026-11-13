@@ -26,6 +26,16 @@ def go_copy(rel=None, old=None, new=None, append=None):
     return tmp
 
 
+REGISTER = ('package fix\n\nfunc Register(r Router, h *Handler) {\n%s}\n\n'
+            'func registerAccounts(r Router, h *Handler) {\n\tr.POST("", h.Create)\n\tr.GET("/:accountId", h.Get)\n}\n')
+
+
+def go_router(text):
+    go = go_copy()
+    (go / "router.go").write_text(text, encoding="utf-8")
+    return go
+
+
 class DriftCheckTests(unittest.TestCase):
     def test_good_collection_matches_go(self):
         r = run(DC, GOOD, "--src", GO)
@@ -89,11 +99,61 @@ class DriftCheckTests(unittest.TestCase):
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("`accountId`: Go tags → O but spec says M", r.stdout)
 
+    def test_duplicate_struct_name_degrades_a_lookalike_match_to_note(self):
+        go = go_copy("dto.go", append='\ntype PatchAccountRequest struct {\n'
+                                      '\tAccountID *string `json:"accountId,omitempty"`\n}\n')
+        (go / "entity").mkdir()
+        (go / "entity" / "account.go").write_text(
+            'package entity\n\ntype AccountResponse struct {\n'
+            '\tAccountID string `json:"accountId"`\n\tSecret    string `json:"secret"`\n}\n',
+            encoding="utf-8")
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("AccountResponse is defined more than once", r.stdout)
+
+    def test_tighter_match_is_still_compared_beside_a_duplicate_name(self):
+        go = go_copy("dto.go", '`json:"accountId"`', '`json:"accountId,omitempty"`')
+        for pkg in ("entity", "store"):
+            (go / pkg).mkdir()
+            (go / pkg / "account.go").write_text(
+                f'package {pkg}\n\ntype Account struct {{\n\tAccountID string `json:"accountId"`\n'
+                f'\t{pkg.title()} string `json:"{pkg}"`\n}}\n', encoding="utf-8")
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("`accountId`: Go tags → O but spec says M", r.stdout)
+
     def test_go_route_without_request_is_drift(self):
         go = go_copy("router.go", "}\n", '\tr.DELETE("/v1/accounts/:accountId", h.Delete)\n}\n')
         r = run(DC, GOOD, "--src", go)
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("DELETE", r.stdout)
+
+    def test_group_prefix_is_resolved(self):
+        cases = (("inline group", '\tregisterAccounts(r.Group("/v1/accounts"), h)\n'),
+                 ("group variable", '\taccounts := r.Group("/v1/accounts")\n\tregisterAccounts(accounts, h)\n'),
+                 ("nested groups", '\tapi := r.Group("/v1")\n\tregisterAccounts(api.Group("/accounts"), h)\n'))
+        for label, body in cases:
+            with self.subTest(label):
+                r = run(DC, GOOD, "--src", go_router(REGISTER % body))
+                self.assertEqual(r.returncode, 0, r.stdout)
+        with self.subTest("same function"):
+            r = run(DC, GOOD, "--src", go_router(
+                'package fix\n\nfunc Register(r Router, h *Handler) {\n\tg := r.Group("/v1/accounts")\n'
+                '\tg.POST("", h.Create)\n\tg.GET("/:accountId", h.Get)\n}\n'))
+            self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_group_prefix_is_part_of_the_route(self):
+        r = run(DC, GOOD, "--src", go_router(REGISTER % '\tregisterAccounts(r.Group("/v2/accounts"), h)\n'))
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("Go route POST /v2/accounts has no request", r.stdout)
+
+    def test_group_prefix_skips_a_function_name_defined_twice(self):
+        go = go_router(REGISTER % '\tregisterAccounts(r.Group("/v1/accounts"), h)\n')
+        (go / "other").mkdir()
+        (go / "other" / "other.go").write_text("package other\n\nfunc registerAccounts(r Router) {}\n", encoding="utf-8")
+        r = run(DC, GOOD, "--src", go)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("Go route POST / has no request", r.stdout)
 
     def test_missing_input_exits_2(self):
         empty = Path(tempfile.mkdtemp())

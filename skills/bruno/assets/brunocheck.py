@@ -3,7 +3,8 @@
 
 Rules here: K1 file shape/order, K2 docs headings + endpoint, K3 path params, K7 status test,
 K8 env vars/secrets, K9 folder.yml + unique seq, K4 field tables, K5 example vs table,
-K6 error tables, K10 leaked internals, K11 root docs headings. Usage: brunocheck.py <bruno-root>
+K6 error tables, K10 leaked internals, K11 root docs headings, K12 auth key, K13 query params
+in the url, K14 literal ids sent (NOTE). Usage: brunocheck.py <bruno-root>
 Exit 1 iff any ERROR. Stdlib + PyYAML only. Regex helpers are ported from the legacy collection checker.
 """
 import json
@@ -25,12 +26,14 @@ RE_DOC_PARAM = re.compile(r"(?<!\{)\{([^{}]+)\}(?!\})")
 RE_COLON_PARAM = re.compile(r"(?:(?<=/)|^):([^/?#]+)")
 RE_STATUS_TEST = re.compile(r"\bres\.(status\b|getStatus\(\))")
 RE_PROCESS_ENV = re.compile(r"\{\{\s*process\.env\.\w+\s*\}\}")
+RE_UUID = re.compile(r"\b[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b")
 REQUIRED_HEADINGS = ["Purpose", "Request", "Endpoint", "Auth", "Response"]
 SECRET_WORDS = {"password", "secret", "token", "bearer", "otp"}
 PII_WORDS = {"pin", "national", "citizen", "cif", "biometric"}
 RESPONSE_STATUSES = {"001": 400, "002": 400, "003": 404, "004": 409, "005": 503, "006": 504, "999": 500}
 COMMON_LIB_CODE = r"[A-Z]{2,3}-[0-9]{4}"
 REQUIRED_ROOT_HEADINGS = ["Error Response Body", "Common Error Responses"]
+AUTH_NONE = "{} is `none`, which Bruno rejects (`Unsupported auth type`): omit the key"
 LEAK_PATTERNS = [
     (re.compile(r"(?<![\w/.])internal/[\w./-]+"), "internal source path"),
     (re.compile(r"\bdocs/(knowledge|tasks)/"), "docs/knowledge or docs/tasks reference"),
@@ -273,7 +276,31 @@ def _check_leaks(text, rel, declared):
     return out
 
 
-def _check_request(req, rel, env_names):
+def _route_key(req):
+    """(METHOD, normalised path) of a request, or None when its http block is unusable."""
+    http = req["http"] if isinstance(req["http"], dict) else {}
+    if not isinstance(http.get("method"), str) or not isinstance(http.get("url"), str):
+        return None
+    return http["method"].upper(), norm_path(http["url"])
+
+
+def _enclosing_auth(root, directory):
+    """The auth a folder.yml between `directory` and `root` hands to its requests, or None."""
+    for d in (directory, *directory.parents):
+        if d == root or root not in d.parents:
+            return None
+        try:
+            data = dp.load_yaml_with_order(d / "folder.yml")[0] if (d / "folder.yml").is_file() else {}
+        except dp.ParseError:
+            data = {}
+        request = data.get("request") if isinstance(data, dict) else None
+        auth = request.get("auth") if isinstance(request, dict) else None
+        if auth not in (None, "inherit", "none"):
+            return auth
+    return None
+
+
+def _check_request(req, rel, env_names, folder_auth=None):
     f = []
 
     def add(level, rule, msg):
@@ -299,6 +326,7 @@ def _check_request(req, rel, env_names):
         add("ERROR", "K2", "no success `### HTTP Status: N` section (N < 400)")
 
     url = http.get("url") if isinstance(http.get("url"), str) else ""
+    params = http.get("params") if isinstance(http.get("params"), list) else []
     endpoint = docs["endpoint"]
     doc_names = set()
     if "Endpoint" in headings:
@@ -317,11 +345,33 @@ def _check_request(req, rel, env_names):
         if not (doc_names == table_names == url_names):
             add("ERROR", "K3", f"path params differ: docs path {sorted(doc_names)}, "
                                f"Path Parameters table {sorted(table_names)}, url {sorted(url_names)}")
-        params = http.get("params") if isinstance(http.get("params"), list) else []
         typed = {p.get("name") for p in params if isinstance(p, dict) and p.get("type") == "path"}
         for name in sorted(RE_COLON_PARAM.findall(RE_LEADING_VAR.sub("", _strip_query(url)))):
             if name not in typed:
                 add("ERROR", "K3", f"`:{name}` has no http.params row with type: path")
+
+    if http.get("auth") == "none":
+        add("ERROR", "K12", AUTH_NONE.format("http.auth"))
+    elif "auth" in http and (docs["auth"] or "").lower() == "none":
+        if http["auth"] != "inherit":
+            add("ERROR", "K12", "`### Auth` is `None` but http.auth sets an auth: omit the key or use `inherit`")
+        elif folder_auth is not None:
+            add("ERROR", "K12", "`### Auth` is `None` but `auth: inherit` picks up the auth a folder.yml sets: "
+                                "omit the key")
+
+    sent = {kv.split("=", 1)[0] for kv in url.split("#", 1)[0].partition("?")[2].split("&")}
+    for p in params:
+        if isinstance(p, dict) and p.get("type") == "query" and p.get("name") not in sent:
+            add("ERROR", "K13", f"query param `{p.get('name')}` is not in the http.url query string: "
+                                f"Bruno sends only the query the url carries")
+
+    body = http.get("body") if isinstance(http.get("body"), dict) else {}
+    sent_text = " ".join([url, str(body.get("data") or "")] +
+                         [str(p.get("value") or "") for p in params if isinstance(p, dict)])
+    for uid in sorted(set(RE_UUID.findall(sent_text))):
+        add("NOTE", "K14", f"the request sends the literal id `{uid}`: an id that must name an existing "
+                           f"record is an environment variable, an optional id that turns a create into "
+                           f"an update is left out")
 
     runtime = req["runtime"] if isinstance(req["runtime"], dict) else {}
     scripts = runtime.get("scripts") if isinstance(runtime.get("scripts"), list) else []
@@ -380,16 +430,24 @@ def check(root):
     for rel, variables in envs.items():
         findings += _check_env_values(rel, variables)
 
-    by_dir = {}
-    requests = []
+    parsed = []
     for path in _request_paths(root):
         rel = _rel(root, path)
         try:
-            req = dp.parse_request(path)
+            parsed.append((path, rel, dp.parse_request(path)))
         except dp.ParseError as exc:
             findings.append(("ERROR", "K1", rel, exc.msg))
+    documented = {_route_key(req) for _, _, req in parsed if "docs" in req["order"]}
+
+    by_dir = {}
+    requests = []
+    for path, rel, req in parsed:
+        key = _route_key(req)
+        if key is not None and "docs" not in req["order"] and key in documented:
+            method, url = key[0], RE_LEADING_VAR.sub("", _strip_query(req["http"]["url"]))
+            findings.append(("NOTE", "K1", rel, f"extra request for {method} {url} (no `docs:`): not checked"))
             continue
-        findings += _check_request(req, rel, env_names)
+        findings += _check_request(req, rel, env_names, _enclosing_auth(root, path.parent))
         by_dir.setdefault(path.parent, []).append((rel, req))
         requests.append((rel, req))
 
@@ -432,6 +490,8 @@ def check(root):
             findings.append(("ERROR", "K1", rel, exc.msg))
             continue
         findings += _undefined_vars(json.dumps(data.get("request"), default=str), env_names, rel)
+        if isinstance(data.get("request"), dict) and data["request"].get("auth") == "none":
+            findings.append(("ERROR", "K12", rel, AUTH_NONE.format("request.auth")))
         if isinstance(data.get("docs"), str):
             findings += _check_leaks(data["docs"], rel, declared)
     return findings

@@ -10,7 +10,6 @@ http:
     - name: accountId
       value: "{{accountId}}"
       type: path
-  auth: inherit
 
 runtime:
   scripts:

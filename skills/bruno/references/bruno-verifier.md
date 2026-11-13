@@ -38,7 +38,9 @@ columns and common-lib Response Codes map to Status (K6); a `type: tests` script
 (K7); every `{{var}}` other than `{{process.env.*}}` and Bruno's documented `{{$…}}` dynamic variables is defined in
 `environments/` or the request's `runtime.variables`, and secret-like names carry no committed value (K8);
 `folder.yml` per domain and unique `seq` (K9); the pattern-detectable Audience leaks in request, folder and
-root `docs:` (K10 ERRORs); and the root `docs:` headings (K11). `driftcheck.py` already compared route
+root `docs:` (K10 ERRORs); the root `docs:` headings (K11); no `auth: none`, and under a `### Auth` of `None` no
+`http.auth` other than an `inherit` that picks up no folder auth (K12); and every `type: query` param is in the `http.url` query string (K13).
+`driftcheck.py` already compared route
 coverage, top-level field presence, Mandatory and the confident types against Go (see `drift-verifier.md`
 §Division of labor).
 **Do not re-check those.** Your scope is ONLY the meaning, the `NOTE` lines it printed (each ending in
@@ -75,7 +77,11 @@ beats a confident guess.
 4. **Errors cover the error paths.** Trace them per `go-scan-patterns.md` §Error Tracing Patterns. Every
    error the usecase can reach has a row in the request's `### Error Responses` or the root
    `## Common Error Responses`, with the right Status, Response Code and Error Code; every row is backed
-   by code. The common-lib body is exactly `responseCode`, `errorCode`, `errorMessage` (all required
+   by code. That includes the typed errors at the return sites of the repository and gateway methods it
+   calls (a `no rows` mapped to 404), and those of every usecase method it calls: two requests that call
+   the same method carry the same rows for it. A dead branch (the code can never take it, whatever data is
+   stored) needs no row; confirm the reason the author listed under Warnings. A branch that depends on
+   stored data needs its row, even when this repo never writes that data. The common-lib body is exactly `responseCode`, `errorCode`, `errorMessage` (all required
    Strings), documented once in the root `## Error Response Body`. A `type/status/serviceId/message/errors[]`
    body is **WRONG** unless the code renders it, even with a prefixed code inside. A root
    `## Error Response Body` that still reads `Not documented in the source spec.` is **MISSING**: it must
@@ -89,19 +95,26 @@ beats a confident guess.
    lists in Description are complete, and at least one optional field is shown where the table has any.
 7. **Auth mapping.** The `### Auth` line maps to the right `auth` block: a bearer token →
    `{ type: bearer, token: "{{auth_token}}" }`, an API key →
-   `{ type: apikey, key: <header>, value: "{{api_key}}", placement: header }`, `None` → `none`. When every
+   `{ type: apikey, key: <header>, value: "{{api_key}}", placement: header }`, `None` → no `auth` key, or `auth: inherit` under folders that set none. When every
    request in a folder shares one auth, it lives in `folder.yml` and each request reads `auth: inherit`:
    not duplicated, not contradicting the folder.
 8. **Header mapping.** Every header in a `### Headers` table is sent: per request in `http.headers`, or
-   lifted to `folder.yml` when every request in the folder sends it. Nothing the contract or the middleware
-   implies is silently dropped.
+   lifted to `folder.yml` when every request in the folder sends it. Re-derive the headers per
+   `go-scan-patterns.md` §Header Detection: a header the handler or a middleware on the route's chain reads
+   with no `### Headers` row is **MISSING**.
 9. **Runnable body vs `docs:`.** `http.body.data` is a request a caller could actually send for this
    contract: nested objects and arrays shaped as their dot-path rows describe, `{{var}}` placeholders
-   where a real value is environment-specific. `http.params` values are sensible for their param.
+   where a real value is environment-specific. A record id the endpoint looks up (path, query or body) is a
+   `{{var}}`; an optional id that turns a create into an update is left out, so the request can pass its
+   own status test. Settle each K14 NOTE: a literal id that must name an existing record is **WRONG**.
+   `http.params` values are sensible for their param.
    Every `### Query Parameters` row has an `http.params` entry with `type: query` (no K-rule checks it).
 10. **Environment sensibility.** `baseUrl` exists for each environment; secret-looking variables (`token`,
     `pin`, `otp`, `password`, `key`, `secret`, `biometric`, `national_id`, …) carry `secret: true` with an
-    empty value; **no literal credential is committed** to any env file.
+    empty value; **no literal credential is committed** to any env file. `local.yml` runs as committed: every id
+    has a value from a seed row, a mock-stub sample or an e2e sentinel, and an id the service creates is `""`
+    and stored by the `after-response` script of the request that returns it, which runs first. Every other
+    environment fills only `baseUrl`.
 11. **Audience fitness.** `docs:` (request, folder, root) carries the wire contract and caller-visible
     behaviour only. Flag what K10's patterns miss: ticket framing as prose (`[PAY-…]`, a card title),
     commit SHAs, Go file / package / function names, decision-log / "user-confirmed" / process cites,
@@ -115,6 +128,9 @@ beats a confident guess.
     - **Ticket key**: a tracker key (the ticket under review, a key in `docs/knowledge/`, a prefix that is
       not the service's error prefix). Report it as an **Audience** leak to remove.
     - Cannot place it → **UNVERIFIED**, with what you checked.
+13. **K1 extra-request NOTEs.** `brunocheck.py` skipped a request with no `docs:` because a documented
+    request has the same method and path. Confirm it is a variant of that request (a negative case, another
+    body) that a caller could send. A request that only lost its `docs:` block is **MISSING** its contract.
 
 ## Evidence rule
 

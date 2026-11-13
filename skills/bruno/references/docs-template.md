@@ -2,7 +2,7 @@
 
 Every request's `docs:` block is its endpoint's contract, generated from code. This file fixes its layout,
 the table rules and the Audience rules. `assets/docsparse.py` parses exactly this shape and
-`assets/brunocheck.py` enforces it (rule IDs K1-K11 in brackets). YAML keys outside `docs:` are in
+`assets/brunocheck.py` enforces it (rule IDs K1-K14 in brackets). YAML keys outside `docs:` are in
 [`yaml-reference.md`](yaml-reference.md).
 
 ---
@@ -19,6 +19,7 @@ bruno/
 ```
 
 - Request top-level order: `info → http → runtime → settings → docs` [K1]. `examples` is never emitted.
+  An extra request (no `docs:`, same method and path as a request that has one) is skipped with a NOTE [K1].
 - Every directory that holds requests has a `folder.yml`; `info.seq` is unique within a folder [K9].
 - Domain prose goes in that folder's `folder.yml` `docs:` (optional, free prose).
 
@@ -91,6 +92,9 @@ A passing root: `assets/testdata/good/opencollection.yml`.
   `http.method` and `http.url` (`{id}` ↔ `:id`, `{{baseUrl}}` stripped) [K2].
 - Path params agree across the Endpoint path, the `### Path Parameters` table and the
   `http.params` rows with `type: path` [K3].
+- Every `http.params` row with `type: query` is also in the `http.url` query string [K13].
+- A literal UUID in `http.url`, `http.params` or `http.body.data` is NOTEd for fresh-eyes: a record id is a `{{var}}` [K14].
+- A request whose `### Auth` is `None` has no `http.auth` key, or `auth: inherit` while no enclosing `folder.yml` sets an auth; no file writes `auth: none` [K12].
 - The parser reads only `##` and `###` headings. A request `### Example` counts only when it comes
   directly after `### Body (JSON)`; a response `### Example` belongs to the `### HTTP Status: N`
   above it. Each section's first table is the one parsed.
@@ -177,7 +181,6 @@ http:
         "accountType": "SA",
         "items": [{"code": "X1"}]
       }
-  auth: inherit
 
 runtime:
   scripts:

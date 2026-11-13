@@ -84,8 +84,9 @@ Structs, §Field Extraction Completeness, §Error Tracing Patterns).
 ## What to verify (judgment only: never what the script already did)
 
 1. **Error-status tracing** *(the script does NOT trace errors: top priority)*. Per
-   `go-scan-patterns.md §Error Tracing Patterns`: open **every** usecase method the handler calls **and**
-   every domain-service method those call. Compare the distinct typed errors to the request's
+   `go-scan-patterns.md §Error Tracing Patterns`: open **every** usecase method the handler calls, every
+   domain-service and usecase method those call, **and** the return sites of the repository and gateway
+   methods they call (a `no rows` mapped to a 404 is a row). Compare the distinct typed errors to the request's
    `### Error Responses` rows plus the root `## Common Error Responses`. Confirm:
    - For common-lib catalog-backed services, follow `go-scan-patterns.md §Error Mapping` and the shared
      [`errors.md`](../../init-project/assets/template/.kiro/steering/errors.md): trace usecase-selected

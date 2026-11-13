@@ -322,6 +322,16 @@ api := e.Group("/api/v1", middleware.JWT())       // → "Bearer token"
 | API key, `APIKeyAuth`, `X-API-Key` | `API Key` |
 | No auth middleware on route/group | `None` |
 
+### Header Detection
+
+List every request header the route reads, in its handler and in every middleware on its chain (the route, its groups and the router):
+
+1. Find the middleware functions on the chain (from §Auth Type Detection step 1).
+2. In the handler and in each of those functions, `Grep` for `GetHeader(`, `Header.Get(`, `Header.Values(` and Fiber's `c.Get("`. A middleware from a dependency module (e.g., common-lib) is read in the module cache (`go env GOMODCACHE`).
+3. Each header is a `### Headers` row. Mandatory is `Yes` only when a missing value is rejected. A header read only for logging, audit, tracing or recording who made a change is `No`, and its Description says what the service does with it, in caller terms, and that it does not change the response.
+
+A header that a middleware reads on one group belongs only to that group's requests. A standard HTTP header (`Content-Type`, `Accept`, `User-Agent`, …) gets a row only when the service rejects the request or changes the response on its value. Copying all headers wholesale, into a log or an audit record, is not reading one.
+
 ### Success Status Code
 
 Check the handler's success return to determine the actual HTTP status, do not assume 200:
@@ -496,11 +506,12 @@ After writing a field table:
 ## Error Tracing Patterns
 
 Use a **usecase-first** approach: read ALL usecase methods, then supplement with delivery-level
-errors. For common-lib, apply **Error Mapping** above: inventory distinct catalog codes, follow
-domain constructors and `NewDBError`, derive status from `responseCode`, and deduplicate by code.
-The handler-mapping examples, tracing boundary, and consolidation rules below describe
-**non-catalog services** only; never collapse a common-lib dependency code to a generic 500 or
-classify its validation as 422.
+errors. For a common-lib catalog-backed service (it has `errorcatalog/errors.json`), apply
+**Error Mapping** above: inventory distinct catalog codes, follow domain constructors and `NewDBError`,
+derive status from `responseCode`, and deduplicate by code. The handler-mapping examples and
+consolidation rules below describe **non-catalog services** only (an older common-lib without a
+catalog is one); never collapse a common-lib dependency code to a generic 500 or classify its
+validation as 422. The tracing boundary (Step 4) applies to every service.
 
 ### Step 1: Read ALL Usecase Methods (start here)
 
@@ -565,7 +576,7 @@ func (u *ConsentUsecase) Create(ctx context.Context, req CreateConsentInput) (*C
 
 Every `return ..., err` or `return ..., ErrXxx` line = one row in this inventory. Do not skip any.
 
-**If the usecase calls its own private/helper methods** (e.g., `u.validatePurpose(...)`), read those too, they may return additional sentinel errors that bubble up. However, do NOT follow calls into repository or external service implementations (see Step 4: Error Tracing Boundary).
+**If the usecase calls its own private/helper methods** (e.g., `u.validatePurpose(...)`), read those too, they may return additional sentinel errors that bubble up. The same holds for another usecase method it calls. Read a repository or external service method only at its return sites (see Step 4: Error Tracing Boundary).
 
 ### Step 2: Map Usecase Errors to HTTP Status
 
@@ -628,27 +639,33 @@ func (h *Handler) CreateConsent(c *fiber.Ctx) error {
 
 ### Step 4: Error Tracing Boundary (strict)
 
-The boundary is **usecase + domain service**. Trace INTO domain services but NOT into repositories or external services.
+The boundary is **usecase + domain service + the return sites of the repositories and gateways they call**. Trace INTO domain services and usecase methods. Do NOT trace a repository's or an external client's logic, but DO read its return sites for the typed errors it constructs.
 
 **What to trace into (business logic layers):**
 - Domain services called by the usecase (e.g., `scopeValidator.ValidateX(...)`, `service.DoY(...)`), these contain business rules and return typed errors (not just 500). Open the service method and collect all its typed error returns.
 - Private/helper methods within the usecase package: same reason.
+- Another usecase method the usecase calls (e.g., `u.GetCustomer(...)` inside `UpsertAddress`). Its error rows belong to every caller, identically.
 
-**What NOT to trace into (infrastructure layers):**
-- Repository implementations (`u.repo.Create(...)`, `u.repo.FindByID(...)`)
+**What to read only at its return sites (infrastructure layers):**
+- Each repository or gateway method the usecase or a traced method calls (`u.repo.FindByID(...)`, `u.addressRepo.Update(...)`). Open that one method and collect each typed error it constructs where it returns: `stderr.NewResourceNotFoundError(...)`, `internalerror.New*Error(...)`, a domain sentinel, a `pgx.ErrNoRows` mapped to one of these. Each is a row with the status its type maps to. A constructor called at the return site (e.g., `dberror.NewDBError(err)`) is part of it: open it to see the type it builds. Do not follow the method's other calls.
+
+**What NOT to trace into:**
+- The internals of repository and gateway methods beyond their return sites
 - External HTTP clients, message queues, notification services
-- Any function in `infrastructure/`, `repository/`, or third-party packages
+- Third-party packages
 
 **Error classification by source:**
 - Typed error constructed in usecase body (e.g., `errs.UseCasef(...)`) → collect as sentinel
 - Typed error constructed in domain service body → trace into service, collect as sentinel
-- `return nil, err` propagating a **domain service** error → trace the service to find its typed errors
-- `return nil, err` propagating a **repo/external** error → catch-all 500
+- `return nil, err` propagating a **domain service** or **usecase method** error → trace it to find its typed errors
+- `return nil, err` propagating a **repo/external** error → the typed errors that method constructs at its return sites; anything else it returns is the catch-all 500
 - `fmt.Errorf("...: %w", err)` or `errs.WithStack(err)` wrapping repo/external → catch-all 500
 
-**How to distinguish domain service from repo:** check the variable name and package. `u.repo.*`, `u.*Repo.*`, `u.store.*` → repository. `u.*Service.*`, `u.*Validator.*`, `service.New*` → domain service. When in doubt, check the import path, `domain/service/` or `domain/` = trace, `infrastructure/` or `repository/` = don't trace.
+**How to distinguish domain service from repo:** check the variable name and package. `u.repo.*`, `u.*Repo.*`, `u.store.*` → repository. `u.*Service.*`, `u.*Validator.*`, `service.New*` → domain service. When in doubt, check the import path, `domain/service/` or `domain/` = trace, `infrastructure/` or `repository/` = return sites only.
 
-**Why this boundary matters:** tracing into repos produces inconsistent results because different runs may follow different call depths. Domain services are part of the business logic and return meaningful typed errors that consumers need to know about. Keeping repository as the hard boundary ensures consistent error enumeration.
+**Why this boundary matters:** following a repository's own calls gives a different depth on each run; reading only the return sites of the methods the usecase calls does not. Those return sites are where a repository turns `no rows` into a 404 a caller sees, so skipping them drops real rows.
+
+**Dead branches:** an error branch the code can never take, whatever data is stored, gets no row. Examples: the constructor always sets the value the branch checks; the query is `:many`, so it never returns no rows; the service refuses to start without the setting. Reading the query's kind or the constructor is part of reading that return site. List each under Warnings as `dead branch: <error>, because <the code that rules it out>`. A branch that depends on stored data keeps its row, even when this repo's own writes never produce that data: the repo cannot rule out migrations, backfills or other writers.
 
 ### Sentinel Error Discovery
 
@@ -737,7 +754,7 @@ case errors.Is(err, domain.ErrPurposeExpired):
 ```
 → **2 rows** in the error table, NOT 1 combined "422 | business rule violation" row.
 
-**Rule 2: Wrapped errors = catch-all 500 (do not trace into repo)**
+**Rule 2: Wrapped errors = catch-all 500 (beyond the typed errors at the repo's return sites)**
 
 ```go
 // Usecase has 3 wrapped error returns:
@@ -790,8 +807,9 @@ List error rows in this order: no deviation:
 3. **Resolve handler functions** → follow the function reference to its definition
 4. **Find request/response structs** → `Grep` for struct types used in handlers
 5. **Find error mapping** → look for status code assignments in handler error paths
-6. **Find domain entities** → if response wraps an entity, trace to `entity.go`
-7. **Scan handler directory** → determine endpoint grouping (see below)
+6. **Find the headers read** → handler + middleware chain (§Header Detection)
+7. **Find domain entities** → if response wraps an entity, trace to `entity.go`
+8. **Scan handler directory** → determine endpoint grouping (see below)
 
 ## Handler Directory Scanning
 

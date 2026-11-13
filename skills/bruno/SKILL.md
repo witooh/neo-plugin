@@ -85,7 +85,11 @@ Designing an API before its code exists is not a mode. See *What this skill is N
 
 - Find the Go root and the collection root (see *Output location*).
 - Read `CLAUDE.md` / `AGENTS.md` / `README` for the service name (`info.name`), the dev port (the `local` environment's `baseUrl`) and the environments. An existing `info.name` is kept.
-- Project docs that describe another way to write `bruno/` (for example, generated from a legacy API spec) are stale. List them under Warnings and do not follow them.
+- Project docs that describe another way to write `bruno/` (for example, generated from a legacy API spec, or another file format) are stale. List each stale line under Warnings and do not follow it. Find them by search, not from memory: agent guides (`CLAUDE.md`, `AGENTS.md`, `.kiro/steering/`, `.cursor/rules/`) and READMEs that describe the collection or count its requests. Use `git grep`: it searches every tracked file, including ones `.gitignore` lists. Agent folders such as `.kiro/` are often force-added under an ignore rule, and ripgrep-based search skips them.
+
+  ```
+  git grep -n -i bruno -- '*.md' '*.mdc' ':!bruno/'
+  ```
 - If a legacy `docs/api/` exists:
   - say it is obsolete;
   - never read it as input;
@@ -118,10 +122,11 @@ For each in-scope endpoint, read the code in this order. [`go-scan-patterns.md`]
    - the bind calls (body, query, path);
    - the success status (§Success Status Code);
    - the response rendering (§Response Wrapper Detection);
-   - the auth middleware on its route group (§Auth Type Detection).
+   - the auth middleware on its route group (§Auth Type Detection);
+   - every header the handler and the middleware on its chain read (§Header Detection).
 2. **The request DTO.** It gives the wire names and types. Its binding tags give Mandatory: `Yes` only with `binding:"required"` or `validate:"required"`; otherwise `No` ([`drift-verifier.md`](references/drift-verifier.md) §Mandatory classification). Embedded structs and custom types are expanded per [`go-scan-patterns.md`](references/go-scan-patterns.md) §Field Extraction Completeness.
 3. **The response DTO.** Pointer or `omitempty` → `No`; otherwise `Yes`.
-4. **The usecase**, and every domain-service method it calls. These give `## Business Logic` and the error paths (§Error Tracing Patterns).
+4. **The usecase**, every domain-service and usecase method it calls, and the return sites of the repository and gateway methods they call. These give `## Business Logic` and the error paths (§Error Tracing Patterns).
 5. **The error catalog.** It gives Error Code, Error Messages and Response Code; Status follows Response Code (§Error Mapping).
 
 Write the files per [`docs-template.md`](references/docs-template.md) + [`yaml-reference.md`](references/yaml-reference.md):
@@ -135,18 +140,22 @@ Write the files per [`docs-template.md`](references/docs-template.md) + [`yaml-r
   - a root `docs:` with `## Overview`, an optional `## Field Information`, `## Error Response Body` (the body the code renders, documented once) and `## Common Error Responses` (may hold zero rows).
 
   If its `## Error Response Body` reads `Not documented in the source spec.`, replace that sentence with the body the code renders.
-- **`environments/`.** Write `local.yml` and `sit.yml` when they are missing, with `baseUrl` + one variable per `{{name}}` used. Secret-looking names get `value: ""` + `secret: true`.
+- **`environments/`.** Write `local.yml` and `sit.yml` when they are missing, with `baseUrl` + one variable per `{{name}}` used. Secret-looking names get `value: ""` + `secret: true`. An older file of the same name (`environments/<name>.bru`) hands its values and comments to the new one.
+  - **`local.yml` runs as committed.** Each id gets a value the local stack accepts, taken from a file you read: a seed migration row, a mock-stub sample (for example a Mockoon environment), or an e2e sentinel id.
+  - **An id the service creates during the run** gets `value: ""`. The request that returns it stores it with an `after-response` script (`bru.setVar`, [`yaml-reference.md`](references/yaml-reference.md) §`runtime`), and its `seq` puts it before every request that reads the id.
+  - **Every other environment** (`sit.yml`, `uat.yml`, …) fills only `baseUrl`; its ids stay `""`. A full run there writes shared data, so the user fills an id on purpose. Never copy a local or seed id into it.
 - **`<domain>/folder.yml`.** It holds:
   - `info{name, type: folder, seq}` (10, 20, 30…);
-  - the auth and headers that every request in the folder shares, with each request on `auth: inherit`;
+  - the auth and headers that every request in the folder shares, with each of those requests on `auth: inherit`. A folder whose requests share no auth sets none; a request with no auth then omits `auth` or reads `auth: inherit`, never `auth: none` (K12);
   - optional domain prose in `docs:`.
 - **`<domain>/<endpoint>.yml`.**
   - Order: `info → http → runtime → settings → docs`.
   - `http.url` uses `:param`, with a `type: path` row per param.
   - `http.body.data` has the same key paths as the `docs:` Body Example.
+  - Body and param values are ones the local stack accepts in a full run. Two requests that update the same record in one run send different values: an update that changes nothing may be rejected.
   - `runtime.scripts` holds a `type: tests` script asserting the success status.
   - `settings.encodeUrl: true`.
-- **Error rows.** When the code renders a Response Code, Status follows it per the common-lib table. When it does not (an older common-lib, a partner body), Status is what the code sets and Response Code stays blank. The common-lib body is never repeated per endpoint; `### Error Responses` lists only that endpoint's errors. A partner contract's error body gets its own `### HTTP Status: <4xx/5xx>` section.
+- **Error rows.** When the code renders a Response Code, Status follows it per the common-lib table. When it does not (an older common-lib, a partner body), Status is what the code sets and Response Code stays blank. The common-lib body is never repeated per endpoint; `### Error Responses` lists only that endpoint's errors. A partner contract's error body gets its own `### HTTP Status: <4xx/5xx>` section. A dead branch, one the code can never take whatever data is stored, gets no row and goes under Warnings (§Error Tracing Patterns, Step 4).
 
 ### Step 4 · Preserve (an existing request)
 
@@ -155,6 +164,7 @@ Write the files per [`docs-template.md`](references/docs-template.md) + [`yaml-r
   - its `http.url` path, with `{{baseUrl}}` and the query string removed. The path may match the route's path in full or as a suffix of it, the same way `driftcheck.py` matches.
 
   Never pair by `docs:`; an older layout may not have one.
+- **Several requests on one route** (for example hand-written negative cases): the one with a `docs:` block holds the contract; when none has one, the lowest `seq` gets it. The others are **extra requests**: kept untouched without `docs:`, never deleted, and listed under Warnings. `brunocheck.py` skips them with a `NOTE K1 … extra request` line.
 - **Rewritten from code:**
   - `docs:`, in full;
   - `http.method` and `http.url`;
@@ -165,7 +175,7 @@ Write the files per [`docs-template.md`](references/docs-template.md) + [`yaml-r
   - `runtime` (scripts, variables);
   - `settings`;
   - `info.seq`;
-  - every environment value.
+  - every environment value, and the comment next to it. Edit environment files as text: a YAML load and dump drops comments.
 
   These parts are runnable and often hand-typed; the code cannot give them back.
 - **`http.body`:** keep it when its key-path set equals the request DTO's. Otherwise regenerate it from the DTO, keeping the values of the keys that survive.
@@ -184,10 +194,16 @@ A request may be documented before its handler exists, in a case the user direct
 
 ### Step 6 · Verify, then offer to remove `docs/api/`
 
-1. Run the three-layer verify below.
-2. Only after L1 passes, and only if a legacy `docs/api/` exists, ask once: "`docs/api/` is obsolete now that `bruno/` is generated from code. Remove it with `git rm -r docs/api`?"
-   - yes → run it;
-   - no → leave it and report it under Warnings.
+1. Run the three-layer verify below, then the live run (§Live run).
+2. Only after L1 passes, and only if a legacy `docs/api/` exists:
+   1. List what still reads it: agent and skill prompts, CI jobs, scripts, READMEs. Use `git grep` for the reason in Step 1.
+
+      ```
+      git grep -ln 'docs/api' -- ':!docs/'
+      ```
+   2. Ask once, naming those files: "`docs/api/` is obsolete now that `bruno/` is generated from code. Remove it with `git rm -r docs/api`? These files still point at it: …"
+      - yes → run it, and list the files that still point at it under Warnings;
+      - no → leave it and report it under Warnings.
 
 Committing stays with the user.
 
@@ -213,7 +229,7 @@ python3 "$ASSET_DIR/driftcheck.py" bruno --src <go-root>
   - `ERROR K<n> <file>: <msg>` and `NOTE K<n> <file>: <msg> — needs fresh-eyes` lines;
   - `PASS: 0 error(s)` or `FAIL: N error(s)`.
 
-  Its rules K1-K11 are tagged in brackets in [`docs-template.md`](references/docs-template.md).
+  Its rules K1-K14 are tagged in brackets in [`docs-template.md`](references/docs-template.md).
 - **`driftcheck.py`** reads Go per [`go-scan-patterns.md`](references/go-scan-patterns.md) and prints:
   - a `(routes)` block;
   - `✓`/`✗ <request file>` for each request that has a `DRIFT` or a `NOTE`, with those lines. A request with neither is not printed;
@@ -267,7 +283,8 @@ SKILL_DIR = <skill base dir>
 ## Task
 Independently verify that the Bruno requests below say what the Go code does. Check ONLY semantic
 fidelity to the code, auth/header mapping, runnable body vs docs:, and Audience fitness (not the
-scripts' mechanical checks). For each K10 NOTE, decide: ticket key or error code? Read the code yourself.
+scripts' mechanical checks). For each K10 NOTE, decide: ticket key or error code? For each K1 extra-request NOTE, confirm it
+is a variant of that route's documented request. Read the code yourself.
 
 ## Files under review
 <in-scope request .yml + folder.yml + opencollection.yml + environments/*.yml paths>
@@ -300,8 +317,8 @@ routes the script could not confidently compare.
 <paste every NOTE line from L1>
 
 ## brunocheck NOTEs and Audience
-Also read <SKILL_DIR>/references/bruno-verifier.md checks 11-12. Apply check 11 (Audience) to every
-request docs:, and settle each brunocheck NOTE below with check 12.
+Also read <SKILL_DIR>/references/bruno-verifier.md checks 11-13. Apply check 11 (Audience) to every
+request docs:, and settle each brunocheck NOTE below with check 12 (K10) or 13 (K1).
 <paste every brunocheck NOTE line from L1>
 
 ## Project conventions
@@ -320,13 +337,25 @@ L1 and L2 inspect what is present; L3 catches what is **missing entirely**. Re-d
 
 - **Generate:**
   - every in-scope route on your Step 2 list has a request with `docs:`;
-  - for each of them, every error path the usecase can reach has a row in `### Error Responses` or the root `## Common Error Responses`. This includes the reserved validation and unexpected codes, where they are reachable.
+  - for each of them, every error path the usecase can reach has a row in `### Error Responses` or the root `## Common Error Responses`. This includes the reserved validation and unexpected codes, where they are reachable;
+  - two requests whose usecases call the same method carry the same rows for that method's errors;
+  - every header the handler or its middleware chain reads has a `### Headers` row;
+  - every stale line the Step 1 search found is listed under Warnings.
 - **Check:** both inventories re-derived, meaning the full route list from the router setup and the full request list from `bruno/`.
   - Every route and every request was compared.
   - Every "no confident struct match" reached L2.
   - See the [Drift Verification Checklist](references/drift-verifier.md#drift-verification-checklist).
 
 Report any whole endpoint the pipeline silently dropped, fix it, then re-run L1.
+
+### Live run (after a Generate, when a local stack is up)
+
+The three layers compare the files with the code; this run proves the collection works as committed. It writes data, so it runs against `local` only, never a shared environment.
+
+1. Probe a route from your Step 2 list that needs no data, usually the health route, at the `local.yml` `baseUrl` (for example `curl -fsS <baseUrl>/health`). No answer, or no `bru` CLI → report `⏭ not run` with the reason, never as passed.
+2. From the collection root, run `bru run -r --env local`. Only `baseUrl` may be overridden (`--env-var baseUrl=…`), when the stack listens on another port. Every id comes from `local.yml` or a stored run-time variable; needing `--env-var` for an id means `local.yml` is wrong, so fix it.
+3. A failure caused by run order or values (an update that repeats the previous value, an id from the wrong scope) is fixed in the request's values. Never drop the request or its test.
+4. Re-run until every request passes, or stop after ~3 rounds with no progress and report the failures.
 
 ### Output
 
@@ -339,8 +368,9 @@ Report any whole endpoint the pipeline silently dropped, fix it, then re-run L1.
 - L1 brunocheck.py: ✅ PASS / ❌ N ERROR · driftcheck.py: ✅ 0 DRIFT in scope / ⚠️ N DRIFT (N out of scope) · N NOTE · loop rounds: 0-3
 - L2 fresh-eyes: ✅ Clean / ⚠️ N findings fixed / ⏭ Skipped
 - L3 completeness sweep: ✅ all covered / ⚠️ N silent omissions fixed
+- Live run: ✅ N/N requests pass / ❌ N failing / ⏭ not run (<reason>)
 - Verdict: ✅ in sync with code / ⚠️ gaps to reconcile / ⏸ escalated
-**Warnings:** routes driftcheck missed, out-of-scope drift, confirmed false positives, orphans, `docs/api/` left in place, open questions for a human
+**Warnings:** routes driftcheck missed, out-of-scope drift, confirmed false positives, dead error branches left out (each with the code that rules it out), orphans, extra requests, stale project docs, `docs/api/` left in place or files that still point at it, open questions for a human
 ```
 
 ---

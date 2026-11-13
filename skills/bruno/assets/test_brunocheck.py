@@ -97,8 +97,8 @@ class BrunoCheckTests(unittest.TestCase):
         env = "environments/local.yml"
         root = mutated((env, "00000000-0000-0000-0000-000000000002\n",
                         '00000000-0000-0000-0000-000000000002\n  - name: auth_token\n    value: "abc"\n'),
-                       ("account/create-account.yml", "  auth: inherit\n",
-                        '  headers:\n    - name: X-Token\n      value: "{{auth_token}}"\n  auth: inherit\n'))
+                       ("account/create-account.yml", "  body:\n",
+                        '  headers:\n    - name: X-Token\n      value: "{{auth_token}}"\n  body:\n'))
         self.assertIn("K8", rules(bc.check(root)))
 
     def test_k8_pii_with_value_is_note(self):
@@ -107,6 +107,14 @@ class BrunoCheckTests(unittest.TestCase):
         found = bc.check(root)
         self.assertIn("K8", rules(found, "NOTE"))
         self.assertNotIn("K8", rules(found))
+
+    def test_k14_literal_id_in_request_is_note(self):
+        root = mutated(("account/create-account.yml", '"customerId": "{{customerId}}"',
+                        '"customerId": "0198d0a4-7c1e-7b3a-9f2d-5e6a1b2c3d4e"'))
+        found = bc.check(root)
+        self.assertIn("K14", rules(found, "NOTE"))
+        self.assertNotIn("K14", rules(found))
+        self.assertNotIn("K14", rules(bc.check(GOOD), "NOTE"))
 
     def test_k8_credential_words_match_whole_segments(self):
         root = mutated(("environments/local.yml", "value: http://localhost:8080\n",
@@ -149,6 +157,7 @@ class BrunoCheckTests(unittest.TestCase):
         self.assertIn("FAIL: ", bad.stdout.strip().splitlines()[-1])
 
 CA = "account/create-account.yml"
+GA = "account/get-account.yml"
 
 
 class ContentRuleTests(unittest.TestCase):
@@ -224,8 +233,8 @@ class ContentRuleTests(unittest.TestCase):
         runtime_vars = ('runtime:\n  variables:\n    - name: reqCustomer\n      value: "{{customerId}}"\n'
                         '    - name: req_token\n      value: "abc"\n  scripts:')
         root = mutated((CA, '"{{customerId}}"', '"{{reqCustomer}}"'), (CA, "runtime:\n  scripts:", runtime_vars),
-                       (CA, "  auth: inherit\n", '  headers:\n    - name: X-Token\n      value: "{{req_token}}"\n'
-                                                '  auth: inherit\n'))
+                       (CA, "  body:\n", '  headers:\n    - name: X-Token\n      value: "{{req_token}}"\n'
+                                       '  body:\n'))
         errs = [f for f in bc.check(root) if f[0] == "ERROR" and f[1] == "K8"]
         self.assertEqual([f[2:] for f in errs], [(CA, "secret-like variable `req_token` has a committed value")])
         root = mutated((CA, '"{{customerId}}"', '"{{reqVar}}"'),
@@ -274,8 +283,8 @@ class ContentRuleTests(unittest.TestCase):
                                  [("account/get-account.yml", "no success `### HTTP Status: N` section (N < 400)")])
 
     def test_k8_process_env_value_is_not_committed(self):
-        root = mutated((CA, "  auth: inherit\n",
-                        '  headers:\n    - name: Authorization\n      value: "Bearer {{auth_token}}"\n  auth: inherit\n'),
+        root = mutated((CA, "  body:\n",
+                        '  headers:\n    - name: Authorization\n      value: "Bearer {{auth_token}}"\n  body:\n'),
                        (CA, "runtime:\n  scripts:",
                         'runtime:\n  variables:\n    - name: auth_token\n      value: "{{process.env.AUTH_TOKEN}}"\n'
                         '  scripts:'),
@@ -284,8 +293,8 @@ class ContentRuleTests(unittest.TestCase):
         self.assertNotIn("K8", rules(bc.check(root)))
 
     def test_k10_scans_folder_docs(self):
-        root = mutated(("account/folder.yml", "  auth: none\n",
-                        "  auth: none\n\ndocs: |-\n  Accounts. See `internal/handler/account.go`.\n"))
+        root = mutated(("account/folder.yml", "  seq: 10\n",
+                        "  seq: 10\n\ndocs: |-\n  Accounts. See `internal/handler/account.go`.\n"))
         found = bc.check(root)
         self.assertIn(("ERROR", "K10", "account/folder.yml"), [f[:3] for f in found])
 
@@ -320,11 +329,60 @@ class ContentRuleTests(unittest.TestCase):
     def test_k8_bruno_dynamic_variables(self):
         headers = '  headers:\n    - name: X-Request-Id\n      value: "{{$guid}}"\n' \
                   '    - name: X-At\n      value: "{{$timestamp}}"\n'
-        root = mutated((CA, "  auth: inherit\n", headers + "  auth: inherit\n"))
+        root = mutated((CA, "  body:\n", headers + "  body:\n"))
         self.assertNotIn("K8", rules(bc.check(root)))
-        root = mutated((CA, "  auth: inherit\n", headers.replace("$guid", "$uuid") + "  auth: inherit\n"))
+        root = mutated((CA, "  body:\n", headers.replace("$guid", "$uuid") + "  body:\n"))
         errs = [f[3] for f in bc.check(root) if f[0] == "ERROR" and f[1] == "K8"]
         self.assertEqual(errs, ["`{{$uuid}}` is not defined in environments/"])
+
+    def test_k12_auth_none_is_rejected(self):
+        for label, edit in (("request", (GA, "      type: path\n", "      type: path\n  auth: none\n")),
+                            ("folder", ("account/folder.yml", "  seq: 10\n", "  seq: 10\n\nrequest:\n  auth: none\n"))):
+            with self.subTest(label):
+                self.assertIn("K12", rules(bc.check(mutated(edit))))
+
+    def test_k12_inherit_under_no_auth_is_accepted(self):
+        inherit = (GA, "      type: path\n", "      type: path\n  auth: inherit\n")
+        self.assertNotIn("K12", rules(bc.check(mutated(inherit))))
+        root = mutated(inherit, (GA, "### Auth\n\n  `None`", "### Auth\n\n  `Bearer token`"))
+        self.assertNotIn("K12", rules(bc.check(root)))
+
+    def test_k12_no_auth_request_must_not_pick_up_an_auth(self):
+        folder_auth = ("account/folder.yml", "  seq: 10\n",
+                       '  seq: 10\n\nrequest:\n  auth:\n    type: bearer\n    token: "{{auth_token}}"\n')
+        cases = (("inherit under a folder auth", [(GA, "      type: path\n", "      type: path\n  auth: inherit\n"),
+                                                  folder_auth]),
+                 ("explicit auth block", [(GA, "      type: path\n",
+                                           '      type: path\n  auth:\n    type: bearer\n    token: "{{auth_token}}"\n')]))
+        for label, edits in cases:
+            with self.subTest(label):
+                errs = [f for f in bc.check(mutated(*edits)) if f[1] == "K12"]
+                self.assertEqual([f[2] for f in errs], [GA], errs)
+
+    def test_k13_query_param_must_be_in_the_url(self):
+        row = (GA, "      type: path\n", '      type: path\n    - name: page\n      value: "1"\n      type: query\n')
+        errs = [f[3] for f in bc.check(mutated(row)) if f[0] == "ERROR" and f[1] == "K13"]
+        self.assertEqual(len(errs), 1, errs)
+        self.assertIn("`page`", errs[0])
+        root = mutated(row, (GA, '/:accountId"', '/:accountId?page=1"'))
+        self.assertEqual(rules(bc.check(root)), set())
+
+    def test_extra_request_for_a_documented_route_is_skipped(self):
+        root = mutated()
+        runnable = (root / GA).read_text(encoding="utf-8").split("\ndocs:", 1)[0]
+        extra = "account/get-account-unknown-id.yml"
+        (root / extra).write_text(runnable.replace('"{{accountId}}"', '"not-a-uuid"'), encoding="utf-8")
+        found = bc.check(root)
+        self.assertEqual(rules(found), set())
+        self.assertEqual([f[2:] for f in found if f[0] == "NOTE" and f[1] == "K1"],
+                         [(extra, "extra request for GET /v1/accounts/:accountId (no `docs:`): not checked")])
+
+    def test_request_without_docs_and_without_a_documented_twin_is_checked(self):
+        root = mutated()
+        runnable = (root / GA).read_text(encoding="utf-8").split("\ndocs:", 1)[0]
+        lone = "account/list-accounts.yml"
+        (root / lone).write_text(runnable.replace("/:accountId", "/").replace("seq: 20", "seq: 30"), encoding="utf-8")
+        self.assertIn(("ERROR", "K1", lone), [f[:3] for f in bc.check(root)])
 
 
 def dp_rows(names):
