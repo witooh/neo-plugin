@@ -4,12 +4,12 @@ Canonical repository guidance for AI coding harnesses working on this repo. Root
 
 ## Repository Overview
 
-neo is a skill pack of 16 org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT). It is not a router and does not ship a bundled workflow. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
+neo is a skill pack of 17 org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT, card delivery). It is not a router. The host agent loads matching skills; developers can also pick a skill themselves. Only the `neo` skill orchestrates work: from a workspace folder of Neo repos it confirms a card's scope with the user, then runs one headless `claude` or `omp` worker per repo and reviews their work before they open merge requests. No other skill orchestrates ingest → spec → implement.
 
-The 16 skills live in `skills/`:
+The 17 skills live in `skills/`:
 
 - **User-invoked:** `advice-mode`
-- **Model-invoked:** `markitdown`, `atlassian`, `gitlab`, `bruno`, `e2e-playwright`, `http-audit-log`, `falsifying`, `bug-hunter`, `attack-test`, `init-project`, `migrate-project`, `neo-core-sit`, `neo-aux-sit`, `neo-core-uat`, `neo-aux-uat`
+- **Model-invoked:** `markitdown`, `atlassian`, `gitlab`, `bruno`, `e2e-playwright`, `http-audit-log`, `falsifying`, `bug-hunter`, `attack-test`, `init-project`, `migrate-project`, `neo-core-sit`, `neo-aux-sit`, `neo-core-uat`, `neo-aux-uat`, `neo`
 
 `falsifying`, `bug-hunter`, and `attack-test` all start from an all-green (or happy-path) state and differ by target: `falsifying` audits the measuring apparatus (can this gate go red at all?), `bug-hunter` hunts the product in code for what the acceptance criteria never asked — its first ground compares the code against the ingested originals in `docs/knowledge/` — and `attack-test` fires abuse paths over live HTTP against a running stack. All three stop at a confirmed symptom; none fixes in place.
 
@@ -18,7 +18,7 @@ There are no personas and no phase-contract files. Domain skills are edited in p
 ## Project Structure
 
 ```text
-skills/            the 16 org domain skills
+skills/            the 17 org domain skills
 scripts/           Validators
 docs/              Setup guides
 .claude-plugin/    Claude Code plugin + marketplace manifests
@@ -33,7 +33,7 @@ docs/              Setup guides
 .omp/              Project omp settings (`config.yml`: customDirectories for `.agents/skills`)
 ```
 
-`ship` is maintainer-only and is not one of the shipped 16.
+`ship` is maintainer-only and is not one of the shipped 17.
 
 ## Harness Channels
 
@@ -53,6 +53,8 @@ Do not fork skill content per harness.
 
 There is none. The host agent loads matching skills. neo does not own the work, the edits, or a completeness verdict. Git branching belongs to the user.
 
+The exception is the `neo` skill. After the user confirms a card at its Gate, it creates one worktree per repo, and its workers commit, push, and open merge requests for that card only.
+
 ## Skill Authoring Conventions
 
 - Every skill lives in `skills/<kebab-case-name>/SKILL.md` with `name` and `description` YAML frontmatter; description ≤ 1024 characters, third-person "what" first, then "when to use".
@@ -69,6 +71,8 @@ There is none. The host agent loads matching skills. neo does not own the work, 
 - Cursor package: `node scripts/validate-cursor-package.js`
 - Codex package: `node scripts/validate-codex-package.js`
 - Codex installation + skill discovery: `node scripts/test-codex-install.js` (requires Codex CLI)
+- neo worker launcher: `bash scripts/neo-worker-test.sh` (stub `claude` and `omp`)
+- neo CI watcher: `bash scripts/neo-watch-mr-test.sh` (stub `glab`)
 - Claude plugin structure: `claude plugin validate .`
 - Grok plugin structure: `grok plugin validate .`
 

@@ -2,10 +2,10 @@
 
 Org domain skills for AI coding agents (HTTP/API/e2e, Jira/GitLab, Go scaffold, SIT/UAT). No router, no bundled workflow.
 
-neo is a skill pack: 16 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. neo does not orchestrate ingest → spec → implement.
+neo is a skill pack: 17 skills in `skills/`. The host agent loads matching skills; developers can also pick a skill themselves. Only the `neo` skill orchestrates work across repos; no other skill orchestrates ingest → spec → implement.
 
-- **advice-mode** is user-invoked. The other 15 are model-invoked.
-- **Your git stays yours.** Commit / push only when you ask, through `gitlab`.
+- **advice-mode** is user-invoked. The other 16 are model-invoked.
+- **Your git stays yours.** Commit / push only when you ask, through `gitlab`, or when you confirm a card at the `neo` skill's Gate.
 
 ## Install
 
@@ -116,6 +116,14 @@ From a neo-plugin checkout the script installs that tree and ignores `NEO_REF`. 
 | `atlassian`    | JIRA / Confluence operations via `acli`                                         |
 | `gitlab`       | GitLab MR operations via `glab`                                                 |
 
+**Delivering a card**
+
+| Skill     | Purpose                                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `neo`     | From a workspace folder of Neo repos: confirm a card's scope and contract, run one headless `claude` / `omp` worker per repo, review, then MR and CI |
+
+Run it from the folder that holds the repos, for example `/neo:neo GI-1234` in Claude Code. It needs `git`, `jq`, `glab` (logged in), `docker`, and the `claude` or `omp` CLI; `acli` is needed only to read Jira cards. The skill's `scripts/preflight.sh` checks them. Run state goes to `.neo/runs/<KEY>/` in that folder.
+
 **Proving it works**
 
 | Skill            | Purpose                                                     |
@@ -171,6 +179,8 @@ node scripts/validate-cursor-package.js # Cursor marketplace + plugin wiring
 node scripts/validate-codex-package.js # Codex marketplace + plugin wiring
 node scripts/test-codex-install.js    # Codex install + actual skill discovery
 bash scripts/pg-from-secret-test.sh   # Postgres helper reads only the postgres settings
+bash scripts/neo-worker-test.sh       # neo worker launcher against stub claude / omp
+bash scripts/neo-watch-mr-test.sh     # neo CI watcher against a stub glab
 claude plugin validate .              # Claude plugin structure
 grok plugin validate .                # Grok plugin structure
 ```
